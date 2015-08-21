@@ -121,6 +121,8 @@ static void FNAME(compute_lines_gradual_score)(PIXEL *lines, int width, int num_
     PIXEL *cur_pix = lines + width / 2;
     PIXEL *bottom_pix;
     PIXEL *last_line = lines + (num_lines - 1) * width;
+    int num_samples = 0;
+    double samples_sum_score = 0;
 
     if ((width <= 1) || (num_lines <= 1)) {
         *o_num_samples = 1;
@@ -128,20 +130,18 @@ static void FNAME(compute_lines_gradual_score)(PIXEL *lines, int width, int num_
         return;
     }
 
-    *o_samples_sum_score = 0;
-    *o_num_samples = 0;
-
     while (cur_pix < last_line) {
         if ((cur_pix + 1 - lines) % width == 0) { // last pixel in the row
             cur_pix--; // jump is bigger than 1 so we will not enter endless loop
         }
         bottom_pix = cur_pix + width;
-        (*o_samples_sum_score) += FNAME(pixels_square_score)(cur_pix, bottom_pix);
-        (*o_num_samples)++;
+        samples_sum_score += FNAME(pixels_square_score)(cur_pix, bottom_pix);
+        num_samples++;
         cur_pix += jump;
     }
 
-    (*o_num_samples) *= 3;
+    (*o_samples_sum_score) = samples_sum_score;
+    (*o_num_samples) = num_samples * 3;
 }
 
 #undef PIXEL
