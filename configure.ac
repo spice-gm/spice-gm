@@ -48,6 +48,12 @@ AM_PROG_CC_C_O
 AC_C_BIGENDIAN
 PKG_PROG_PKG_CONFIG
 
+AC_PROG_CXX
+AC_LANG_PUSH([C++])
+m4_ifndef([AX_CXX_COMPILE_STDCXX_11], [m4_fatal([Missing AX_CXX_COMPILE_STDCXX_11, install autoconf-archive])])
+AX_CXX_COMPILE_STDCXX_11
+AC_LANG_POP([C++])
+
 AC_CHECK_HEADERS([sys/time.h execinfo.h linux/sockios.h pthread_np.h])
 AC_CHECK_DECL([TCP_KEEPIDLE], [have_tcp_keepidle="yes"],,
               [#include <netinet/tcp.h>])
@@ -318,6 +324,7 @@ AC_MSG_NOTICE([
 
         prefix:                   ${prefix}
         C compiler:               ${CC}
+        C++ compiler:             ${CXX}
 
         LZ4 support:              ${have_lz4}
         Smartcard:                ${have_smartcard}

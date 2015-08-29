@@ -1,7 +1,7 @@
 #
 # project definition
 #
-project('spice', 'c',
+project('spice', 'c', 'cpp',
         version : run_command('build-aux/git-version-gen', meson.source_root() + '/.tarball-version', check : true).stdout().strip(),
         license : 'LGPLv2.1',
         meson_version : '>= 0.48',
@@ -44,6 +44,7 @@ spice_server_global_cflags = ['-DSPICE_SERVER_INTERNAL',
                               '-Wno-unused-parameter']
 
 compiler = meson.get_compiler('c')
+cxx_compiler = meson.get_compiler('cpp')
 spice_server_config_data = configuration_data()
 spice_server_include = [include_directories('.')]
 spice_server_deps = [dependency('threads')]
@@ -188,6 +189,10 @@ spice_server_global_cflags += ['-DGLIB_VERSION_MIN_REQUIRED=@0@'.format(glib_enc
 
 add_project_arguments(compiler.get_supported_arguments(spice_server_global_cflags),
                       language : 'c')
+
+spice_server_global_cxxflags = spice_server_global_cflags
+add_project_arguments(cxx_compiler.get_supported_arguments(spice_server_global_cxxflags),
+                      language : 'cpp')
 
 #
 # Subdirectories

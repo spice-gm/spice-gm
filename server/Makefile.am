@@ -21,8 +21,15 @@ AM_CPPFLAGS =					\
 	$(GSTREAMER_1_0_CFLAGS)			\
 	$(SSL_CFLAGS)				\
 	$(VISIBILITY_HIDDEN_CFLAGS)		\
-	$(WARN_CFLAGS)				\
 	$(ORC_CFLAGS)				\
+	$(NULL)
+
+AM_CFLAGS =					\
+	$(WARN_CFLAGS)				\
+	$(NULL)
+
+AM_CXXFLAGS =					\
+	$(WARN_CXXFLAGS)			\
 	$(NULL)
 
 noinst_LTLIBRARIES = libserver.la

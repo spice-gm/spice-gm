@@ -8,7 +8,7 @@ before_script:
     glib2-devel pixman-devel alsa-lib-devel openssl-devel libjpeg-turbo-devel
     libcacard-devel cyrus-sasl-devel lz4-devel opus-devel
     gstreamer1-devel gstreamer1-plugins-base-devel
-    dconf
+    dconf gcc-c++ autoconf-archive
     -y
   - &protocol >
     git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git} &&
@@ -31,6 +31,7 @@ makecheck:
   - cd builddir
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
+    CXXFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
     ../autogen.sh
   - make
@@ -40,6 +41,7 @@ meson-makecheck:
   script:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
+    CXXFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
     meson --buildtype=release --werror build || (cat build/meson-logs/meson-log.txt && exit 1)
   - ninja -C build
@@ -70,6 +72,7 @@ check-valgrind:
     -y
   - >
     CFLAGS='-O2 -pipe -g -D_FORTIFY_SOURCE=0'
+    CXXFLAGS='-O2 -pipe -g -D_FORTIFY_SOURCE=0'
     ./autogen.sh --enable-valgrind --enable-extra-checks
   - make
   - make check-valgrind || (cat server/tests/test-suite-memcheck.log && exit 1)
@@ -96,13 +99,14 @@ makecheck-centos:
       libcacard-devel cyrus-sasl-devel lz4-devel
       gstreamer1-devel gstreamer1-plugins-base-devel
       git-core python3-pyparsing python3-six python3
-      meson
+      meson gcc-c++ autoconf-archive
       -y
     - *protocol
   image: centos:latest
   script:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
+    CXXFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
     ./autogen.sh
   - make
@@ -123,11 +127,13 @@ makecheck-debian32:
       libjpeg-dev liblz4-dev libopus-dev libpixman-1-dev libsasl2-dev
       libspice-protocol-dev libssl-dev pkg-config
       python3-six python3-pyparsing liborc-0.4-dev meson git
+      g++ autoconf-archive
     - *protocol
   image: i386/debian:latest
   script:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
+    CXXFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
     meson --buildtype=release --werror build || (cat build/meson-logs/meson-log.txt && exit 1)
   - ninja -C build

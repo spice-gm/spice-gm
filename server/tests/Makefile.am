@@ -22,7 +22,14 @@ AM_CPPFLAGS =					\
 	$(GOBJECT2_CFLAGS)			\
 	$(SMARTCARD_CFLAGS)			\
 	$(SPICE_NONPKGCONFIG_CFLAGS)		\
+	$(NULL)
+
+AM_CFLAGS =					\
 	$(WARN_CFLAGS)				\
+	$(NULL)
+
+AM_CXXFLAGS =					\
+	$(WARN_CXXFLAGS)			\
 	$(NULL)
 
 noinst_LIBRARIES = libtest.a
