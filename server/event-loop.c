@@ -85,14 +85,6 @@ static void timer_remove(const SpiceCoreInterfaceInternal *iface,
     g_free(timer);
 }
 
-struct SpiceWatch {
-    GMainContext *context;
-    void *opaque;
-    GSource *source;
-    GIOChannel *channel;
-    SpiceWatchFunc func;
-};
-
 static GIOCondition spice_event_to_giocondition(int event_mask)
 {
     GIOCondition condition = 0;
@@ -116,6 +108,15 @@ static int giocondition_to_spice_event(GIOCondition condition)
 
     return event;
 }
+
+#ifdef _WIN32
+struct SpiceWatch {
+    GMainContext *context;
+    void *opaque;
+    GSource *source;
+    GIOChannel *channel;
+    SpiceWatchFunc func;
+};
 
 static gboolean watch_func(GIOChannel *source, GIOCondition condition,
                            gpointer data)
@@ -161,11 +162,7 @@ static SpiceWatch *watch_add(const SpiceCoreInterfaceInternal *iface,
 
     watch = g_new0(SpiceWatch, 1);
     watch->context = iface->main_context;
-#ifndef _WIN32
-    watch->channel = g_io_channel_unix_new(fd);
-#else
     watch->channel = g_io_channel_win32_new_socket(fd);
-#endif
     watch->func = func;
     watch->opaque = opaque;
 
@@ -183,6 +180,79 @@ static void watch_remove(const SpiceCoreInterfaceInternal *iface,
     g_io_channel_unref(watch->channel);
     g_free(watch);
 }
+
+#else
+
+struct SpiceWatch {
+    GSource source;
+    gpointer unix_fd;
+    int fd;
+};
+
+static gboolean
+spice_watch_check(GSource *source)
+{
+    SpiceWatch *watch = SPICE_CONTAINEROF(source, SpiceWatch, source);
+
+    return g_source_query_unix_fd(&watch->source, watch->unix_fd) != 0;
+}
+
+static gboolean
+spice_watch_dispatch(GSource     *source,
+                     GSourceFunc  callback,
+                     gpointer     user_data)
+{
+    SpiceWatch *watch = SPICE_CONTAINEROF(source, SpiceWatch, source);
+    SpiceWatchFunc func = (SpiceWatchFunc)(void*) callback;
+    GIOCondition condition = g_source_query_unix_fd(&watch->source, watch->unix_fd);
+
+    func(watch->fd, giocondition_to_spice_event(condition), user_data);
+    /* timer might be free after func(), don't touch */
+
+    return G_SOURCE_CONTINUE;
+}
+
+static GSourceFuncs spice_watch_funcs = {
+    .check = spice_watch_check,
+    .dispatch = spice_watch_dispatch,
+};
+
+static void watch_update_mask(const SpiceCoreInterfaceInternal *iface,
+                              SpiceWatch *watch, int event_mask)
+{
+    GIOCondition condition = spice_event_to_giocondition(event_mask);
+
+    g_source_modify_unix_fd(&watch->source, watch->unix_fd, condition);
+}
+
+static SpiceWatch *watch_add(const SpiceCoreInterfaceInternal *iface,
+                             int fd, int event_mask, SpiceWatchFunc func, void *opaque)
+{
+    SpiceWatch *watch = (SpiceWatch *) g_source_new(&spice_watch_funcs, sizeof(SpiceWatch));
+
+    spice_return_val_if_fail(fd != -1, NULL);
+    spice_return_val_if_fail(func != NULL, NULL);
+
+    watch->fd = fd;
+
+    g_source_set_callback(&watch->source, (GSourceFunc)(void*)(SpiceWatchFunc) func, opaque, NULL);
+
+    g_source_attach(&watch->source, iface->main_context);
+
+    GIOCondition condition = spice_event_to_giocondition(event_mask);
+    watch->unix_fd = g_source_add_unix_fd(&watch->source, watch->fd, condition);
+
+    return watch;
+}
+
+static void watch_remove(const SpiceCoreInterfaceInternal *iface,
+                         SpiceWatch *watch)
+{
+    g_source_remove_unix_fd(&watch->source, watch->unix_fd);
+    g_source_destroy(&watch->source);
+    g_source_unref(&watch->source);
+}
+#endif
 
 const SpiceCoreInterfaceInternal event_loop_core = {
     .timer_add = timer_add,
