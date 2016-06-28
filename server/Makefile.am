@@ -177,6 +177,8 @@ libserver_la_SOURCES =				\
 	video-encoder.h				\
 	video-stream.c				\
 	video-stream.h				\
+	websocket.c				\
+	websocket.h				\
 	zlib-encoder.c				\
 	zlib-encoder.h				\
 	$(NULL)

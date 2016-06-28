@@ -39,6 +39,7 @@
 #include "red-common.h"
 #include "red-stream.h"
 #include "reds.h"
+#include "websocket.h"
 
 // compatibility for *BSD systems
 #if !defined(TCP_CORK) && !defined(_WIN32)
@@ -77,6 +78,17 @@ typedef struct RedSASL {
 } RedSASL;
 #endif
 
+typedef struct {
+    int closed;
+
+    websocket_frame_t read_frame;
+    uint64_t write_remainder;
+
+    ssize_t (*raw_read)(RedStream *s, void *buf, size_t nbyte);
+    ssize_t (*raw_write)(RedStream *s, const void *buf, size_t nbyte);
+    ssize_t (*raw_writev)(RedStream *s, const struct iovec *iov, int iovcnt);
+} RedsWebSocket;
+
 struct RedStreamPrivate {
     SSL *ssl;
 
@@ -85,6 +97,8 @@ struct RedStreamPrivate {
 #endif
 
     AsyncRead async_read;
+
+    RedsWebSocket *ws;
 
     /* life time of info:
      * allocated when creating RedStream.
@@ -432,6 +446,8 @@ void red_stream_free(RedStream *s)
     if (s->priv->ssl) {
         SSL_free(s->priv->ssl);
     }
+
+    g_free(s->priv->ws);
 
     red_stream_remove_watch(s);
     socket_close(s->socket);
@@ -1155,3 +1171,105 @@ error:
     return false;
 }
 #endif
+
+static ssize_t stream_websocket_read(RedStream *s, void *buf, size_t size)
+{
+    int rc;
+
+    if (s->priv->ws->closed)
+        return 0;
+
+    rc = websocket_read((void *)s, buf, size, &s->priv->ws->read_frame,
+        (websocket_read_cb_t) s->priv->ws->raw_read,
+        (websocket_write_cb_t) s->priv->ws->raw_write);
+
+    if (rc == 0)
+        s->priv->ws->closed = 1;
+
+    return rc;
+}
+
+static ssize_t stream_websocket_write(RedStream *s, const void *buf, size_t size)
+{
+    if (s->priv->ws->closed) {
+        errno = EPIPE;
+        return -1;
+    }
+    return websocket_write((void *)s, buf, size, &s->priv->ws->write_remainder,
+        (websocket_write_cb_t) s->priv->ws->raw_write);
+}
+
+static ssize_t stream_websocket_writev(RedStream *s, const struct iovec *iov, int iovcnt)
+{
+    if (s->priv->ws->closed) {
+        errno = EPIPE;
+        return -1;
+    }
+    return websocket_writev((void *)s, (struct iovec *) iov, iovcnt, &s->priv->ws->write_remainder,
+        (websocket_writev_cb_t) s->priv->ws->raw_writev);
+}
+
+/*
+    If we detect that a newly opened stream appears to be using
+    the WebSocket protocol, we will put in place cover functions
+    that will speak WebSocket to the client, but allow the server
+    to continue to use normal stream read/write/writev semantics.
+*/
+bool red_stream_is_websocket(RedStream *stream, const void *buf, size_t len)
+{
+    char rbuf[4096];
+    int rc;
+
+    if (stream->priv->ws) {
+        return false;
+    }
+
+    memcpy(rbuf, buf, len);
+    rc = stream->priv->read(stream, rbuf + len, sizeof(rbuf) - len - 1);
+    if (rc <= 0) {
+        return false;
+    }
+    len += rc;
+    rbuf[len] = 0;
+
+    /* TODO:  this has a theoretical flaw around packet buffering
+              that is not likely to occur in practice.  That is,
+              to be fully correct, we should repeatedly read bytes until
+              either we get the end of the GET header (\r\n\r\n), or until
+              an amount of time has passed.  Instead, we just read for
+              16 bytes, and then read up to the sizeof rbuf.  So if the
+              GET request is only partially complete at this point we
+              will fail.
+
+              A typical GET request is 520 bytes, and it's difficult to
+              imagine a real world case where that will come in fragmented
+              such that we trigger this failure.  Further, the spice reds
+              code has no real mechanism to do variable length/time based reads,
+              so it seems wisest to live with this theoretical flaw.
+    */
+
+    if (websocket_is_start(rbuf)) {
+        char outbuf[1024];
+
+        websocket_create_reply(rbuf, outbuf);
+        rc = stream->priv->write(stream, outbuf, strlen(outbuf));
+        if (rc == strlen(outbuf)) {
+            stream->priv->ws = g_malloc0(sizeof(*stream->priv->ws));
+
+            stream->priv->ws->raw_read = stream->priv->read;
+            stream->priv->ws->raw_write = stream->priv->write;
+
+            stream->priv->read = stream_websocket_read;
+            stream->priv->write = stream_websocket_write;
+
+            if (stream->priv->writev) {
+                stream->priv->ws->raw_writev = stream->priv->writev;
+                stream->priv->writev = stream_websocket_writev;
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}

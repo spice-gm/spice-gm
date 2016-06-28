@@ -91,6 +91,8 @@ bool red_stream_set_auto_flush(RedStream *stream, bool auto_flush);
  */
 void red_stream_flush(RedStream *stream);
 
+bool red_stream_is_websocket(RedStream *stream, const void *buf, size_t len);
+
 typedef enum {
     RED_SASL_ERROR_OK,
     RED_SASL_ERROR_GENERIC,
