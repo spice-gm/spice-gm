@@ -436,9 +436,9 @@ static void current_remove(DisplayChannel *display, TreeItem *item)
     }
 }
 
-static void current_remove_all(DisplayChannel *display, int surface_id)
+static void current_remove_all(DisplayChannel *display, RedSurface *surface)
 {
-    Ring *ring = &display->priv->surfaces[surface_id].current;
+    Ring *ring = &surface->current;
     RingItem *ring_item;
 
     while ((ring_item = ring_get_head(ring))) {
@@ -1478,7 +1478,7 @@ void display_channel_current_flush(DisplayChannel *display, int surface_id)
     while (!ring_is_empty(&display->priv->surfaces[surface_id].current_list)) {
         free_one_drawable(display, FALSE);
     }
-    current_remove_all(display, surface_id);
+    current_remove_all(display, &display->priv->surfaces[surface_id]);
 }
 
 void display_channel_free_some(DisplayChannel *display)
@@ -1984,7 +1984,7 @@ static void display_channel_destroy_surface(DisplayChannel *display, uint32_t su
     /* note that draw_depend_on_me must be called before current_remove_all.
        otherwise "current" will hold items that other drawables may depend on, and then
        current_remove_all will remove them from the pipe. */
-    current_remove_all(display, surface_id);
+    current_remove_all(display, &display->priv->surfaces[surface_id]);
     clear_surface_drawables_from_pipes(display, surface_id, FALSE);
     display_channel_surface_unref(display, surface_id);
 }
@@ -2000,7 +2000,7 @@ void display_channel_destroy_surface_wait(DisplayChannel *display, uint32_t surf
     /* note that draw_depend_on_me must be called before current_remove_all.
        otherwise "current" will hold items that other drawables may depend on, and then
        current_remove_all will remove them from the pipe. */
-    current_remove_all(display, surface_id);
+    current_remove_all(display, &display->priv->surfaces[surface_id]);
     clear_surface_drawables_from_pipes(display, surface_id, TRUE);
 }
 
