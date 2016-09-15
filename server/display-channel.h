@@ -37,6 +37,7 @@
 #include "push-visibility.h"
 
 struct DisplayChannelPrivate;
+struct RedSurface;
 
 struct DisplayChannel final: public CommonGraphicsChannel
 {
@@ -78,8 +79,10 @@ struct Drawable {
     BitmapGradualType copy_bitmap_graduality;
     DependItem depend_items[3];
 
-    int surface_id;
-    int surface_deps[3];
+    /* destination surface. This pointer is not NULL. A reference is hold */
+    RedSurface *surface;
+    /* dependency surfaces. They can be NULL. A reference is hold. */
+    RedSurface *surface_deps[3];
 
     uint32_t process_commands_generation;
     DisplayChannel *display;

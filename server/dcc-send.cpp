@@ -307,7 +307,7 @@ static void fill_base(SpiceMarshaller *base_marshaller, Drawable *drawable)
 {
     SpiceMsgDisplayBase base;
 
-    base.surface_id = drawable->surface_id;
+    base.surface_id = drawable->surface->id;
     base.box = drawable->red_drawable->bbox;
     base.clip = drawable->red_drawable->clip;
 
@@ -560,7 +560,7 @@ static void surface_lossy_region_update(DisplayChannelClient *dcc,
         return;
     }
 
-    surface_lossy_region = &dcc->priv->surface_client_lossy_region[item->surface_id];
+    surface_lossy_region = &dcc->priv->surface_client_lossy_region[item->surface->id];
     drawable = item->red_drawable.get();
 
     if (drawable->clip.type == SPICE_CLIP_TYPE_RECTS ) {
@@ -654,7 +654,10 @@ static bool drawable_depends_on_areas(Drawable *drawable, int surface_ids[],
         int dep_surface_id;
 
          for (x = 0; x < 3; ++x) {
-            dep_surface_id = drawable->surface_deps[x];
+            if (!drawable->surface_deps[x]) {
+                continue;
+            }
+            dep_surface_id = drawable->surface_deps[x]->id;
             if (dep_surface_id == surface_ids[i]) {
                 if (rect_intersects(&surface_areas[i], &red_drawable->surfaces_rects[x])) {
                     return TRUE;
@@ -821,7 +824,7 @@ static void red_lossy_marshall_qxl_draw_fill(DisplayChannelClient *dcc,
     brush_is_lossy = is_brush_lossy(dcc, &drawable->u.fill.brush,
                                     &brush_bitmap_data);
     if (!dest_allowed_lossy) {
-        dest_is_lossy = is_surface_area_lossy(dcc, item->surface_id, &drawable->bbox,
+        dest_is_lossy = is_surface_area_lossy(dcc, item->surface->id, &drawable->bbox,
                                               &dest_lossy_area);
     }
 
@@ -838,7 +841,7 @@ static void red_lossy_marshall_qxl_draw_fill(DisplayChannelClient *dcc,
         int num_resend = 0;
 
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = item->surface_id;
+            resend_surface_ids[num_resend] = item->surface->id;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
@@ -1131,7 +1134,7 @@ static void red_lossy_marshall_qxl_copy_bits(DisplayChannelClient *dcc,
     src_rect.right = drawable->bbox.right + horz_offset;
     src_rect.bottom = drawable->bbox.bottom + vert_offset;
 
-    src_is_lossy = is_surface_area_lossy(dcc, item->surface_id,
+    src_is_lossy = is_surface_area_lossy(dcc, item->surface->id,
                                          &src_rect, &src_lossy_area);
 
     surface_lossy_region_update(dcc, item, FALSE, src_is_lossy);
@@ -1191,7 +1194,7 @@ static void red_lossy_marshall_qxl_draw_blend(DisplayChannelClient *dcc,
         }
 
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = item->surface_id;
+            resend_surface_ids[num_resend] = item->surface->id;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
@@ -1365,7 +1368,7 @@ static void red_lossy_marshall_qxl_draw_rop3(DisplayChannelClient *dcc,
         }
 
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = item->surface_id;
+            resend_surface_ids[num_resend] = item->surface->id;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
@@ -1444,7 +1447,7 @@ static void red_lossy_marshall_qxl_draw_composite(DisplayChannelClient *dcc,
         }
 
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = item->surface_id;
+            resend_surface_ids[num_resend] = item->surface->id;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }

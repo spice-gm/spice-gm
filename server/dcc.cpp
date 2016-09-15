@@ -105,9 +105,15 @@ bool dcc_drawable_is_in_pipe(DisplayChannelClient *dcc, Drawable *drawable)
 bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surface_id,
                                            int wait_if_used)
 {
+    DisplayChannel *display;
+    RedSurface *surface;
+
     spice_return_val_if_fail(dcc != nullptr, TRUE);
     /* removing the newest drawables that their destination is surface_id and
        no other drawable depends on them */
+
+    display = DCC_TO_DC(dcc);
+    surface = &display->priv->surfaces[surface_id];
 
     auto &pipe = dcc->get_pipe();
     for (auto l = pipe.begin(); l != pipe.end(); ) {
@@ -126,14 +132,14 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
             continue;
         }
 
-        if (drawable->surface_id == surface_id) {
+        if (drawable->surface == surface) {
             l = pipe.erase(item_pos);
             continue;
         }
 
         auto depend_found =
             std::find(std::begin(drawable->surface_deps), std::end(drawable->surface_deps),
-                      surface_id) != std::end(drawable->surface_deps);
+                      surface) != std::end(drawable->surface_deps);
         if (depend_found) {
             spice_debug("surface %d dependent item found %p, %p", surface_id, drawable, item);
             if (!wait_if_used) {
@@ -265,8 +271,9 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
 {
     DisplayChannel *display = DCC_TO_DC(dcc);
 
-    for (const auto surface_id : drawable->surface_deps) {
-        if (surface_id != -1) {
+    for (const auto surface : drawable->surface_deps) {
+        if (surface != nullptr) {
+            const auto surface_id = surface->id;
             if (dcc->priv->surface_client_created[surface_id]) {
                 continue;
             }
@@ -276,13 +283,13 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
         }
     }
 
-    if (dcc->priv->surface_client_created[drawable->surface_id]) {
+    if (dcc->priv->surface_client_created[drawable->surface->id]) {
         return;
     }
 
-    dcc_create_surface(dcc, drawable->surface_id);
-    display_channel_current_flush(display, drawable->surface_id);
-    dcc_push_surface_image(dcc, drawable->surface_id);
+    dcc_create_surface(dcc, drawable->surface->id);
+    display_channel_current_flush(display, drawable->surface->id);
+    dcc_push_surface_image(dcc, drawable->surface->id);
 }
 
 RedDrawablePipeItem::RedDrawablePipeItem(DisplayChannelClient *init_dcc, Drawable *init_drawable):

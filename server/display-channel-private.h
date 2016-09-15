@@ -35,8 +35,9 @@ typedef struct DrawContext {
     void *line_0;
 } DrawContext;
 
-typedef struct RedSurface {
+struct RedSurface {
     uint32_t refs;
+    uint16_t id;
     /* A Ring representing a hierarchical tree structure. This tree includes
      * DrawItems, Containers, and Shadows. It is used to efficiently determine
      * which drawables overlap, and to exclude regions of drawables that are
@@ -58,7 +59,7 @@ typedef struct RedSurface {
     /* QEMU expects the guest data for the command to be valid as long as the
      * surface is valid */
     red::shared_ptr<const RedSurfaceCmd> destroy_cmd;
-} RedSurface;
+};
 
 typedef struct MonitorsConfig {
     int refs;
@@ -320,16 +321,14 @@ static inline int is_same_drawable(Drawable *d1, Drawable *d2)
     }
 }
 
-static inline int is_drawable_independent_from_surfaces(Drawable *drawable)
+static inline bool is_drawable_independent_from_surfaces(const Drawable *drawable)
 {
-    int x;
-
-    for (x = 0; x < 3; ++x) {
-        if (drawable->surface_deps[x] != -1) {
-            return FALSE;
+    for (const auto& surface : drawable->surface_deps) {
+        if (surface) {
+            return false;
         }
     }
-    return TRUE;
+    return true;
 }
 
 static inline int has_shadow(RedDrawable *drawable)
