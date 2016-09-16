@@ -92,9 +92,9 @@ static bool is_surface_area_lossy(DisplayChannelClient *dcc, uint32_t surface_id
     QRegion lossy_region;
     DisplayChannel *display = DCC_TO_DC(dcc);
 
-    spice_return_val_if_fail(display_channel_validate_surface(display, surface_id), FALSE);
+    surface = display_channel_validate_surface(display, surface_id);
+    spice_return_val_if_fail(surface, false);
 
-    surface = &display->priv->surfaces[surface_id];
     surface_lossy_region = &dcc->priv->surface_client_lossy_region[surface_id];
 
     if (!area) {
@@ -398,13 +398,13 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
         RedSurface *surface;
 
         surface_id = simage->u.surface.surface_id;
-        if (!display_channel_validate_surface(display, surface_id)) {
+        surface = display_channel_validate_surface(display, surface_id);
+        if (!surface) {
             spice_warning("Invalid surface in SPICE_IMAGE_TYPE_SURFACE");
             pthread_mutex_unlock(&dcc->priv->pixmap_cache->lock);
             return FILL_BITS_TYPE_SURFACE;
         }
 
-        surface = &display->priv->surfaces[surface_id];
         image.descriptor.type = SPICE_IMAGE_TYPE_SURFACE;
         image.descriptor.flags = 0;
         image.descriptor.width = surface->context.width;

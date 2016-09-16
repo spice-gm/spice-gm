@@ -139,7 +139,7 @@ void display_channel_update_monitors_config(DisplayChannel *display, const QXLMo
 void display_channel_set_monitors_config_to_primary(DisplayChannel *display);
 void display_channel_push_monitors_config(DisplayChannel *display);
 
-gboolean display_channel_validate_surface(DisplayChannel *display, uint32_t surface_id);
+RedSurface *display_channel_validate_surface(DisplayChannel *display, uint32_t surface_id);
 gboolean display_channel_surface_has_canvas(DisplayChannel *display, uint32_t surface_id);
 void display_channel_reset_image_cache(DisplayChannel *self);
 

@@ -1241,15 +1241,15 @@ static void draw_depend_on_me(DisplayChannel *display, RedSurface *surface)
 static bool validate_drawable_bbox(DisplayChannel *display, RedDrawable *drawable)
 {
         DrawContext *context;
-        uint32_t surface_id = drawable->surface_id;
 
         /* surface_id must be validated before calling into
          * validate_drawable_bbox
          */
-        if (!display_channel_validate_surface(display, drawable->surface_id)) {
+        RedSurface *surface = display_channel_validate_surface(display, drawable->surface_id);
+        if (!surface) {
             return FALSE;
         }
-        context = &display->priv->surfaces[surface_id].context;
+        context = &surface->context;
 
         if (drawable->bbox.top < 0)
                 return FALSE;
@@ -1955,16 +1955,15 @@ void display_channel_update(DisplayChannel *display,
                             QXLRect **qxl_dirty_rects, uint32_t *num_dirty_rects)
 {
     SpiceRect rect;
-    RedSurface *surface;
 
     // Check that the request is valid, the surface_id comes directly from the guest
-    if (!display_channel_validate_surface(display, surface_id)) {
+    RedSurface *surface = display_channel_validate_surface(display, surface_id);
+    if (!surface) {
         // just return, display_channel_validate_surface already logged a warning
         return;
     }
 
     red_get_rect_ptr(&rect, area);
-    surface = &display->priv->surfaces[surface_id];
     display_channel_surface_draw(display, surface, &rect);
 
     if (*qxl_dirty_rects == nullptr) {
@@ -2003,11 +2002,10 @@ static void display_channel_destroy_surface(DisplayChannel *display, RedSurface 
 
 void display_channel_destroy_surface_wait(DisplayChannel *display, uint32_t surface_id)
 {
-    if (!display_channel_validate_surface(display, surface_id))
+    RedSurface *surface = display_channel_validate_surface(display, surface_id);
+    if (!surface) {
         return;
-    RedSurface *surface = &display->priv->surfaces[surface_id];
-    if (!surface->context.canvas)
-        return;
+    }
 
     draw_depend_on_me(display, surface);
     /* note that draw_depend_on_me must be called before current_remove_all.
@@ -2152,9 +2150,9 @@ static SpiceCanvas *image_surfaces_get(SpiceImageSurfaces *surfaces, uint32_t su
     DisplayChannelPrivate *p = SPICE_CONTAINEROF(surfaces, DisplayChannelPrivate, image_surfaces);
     DisplayChannel *display = p->pub;
 
-    spice_return_val_if_fail(display_channel_validate_surface(display, surface_id), NULL);
+    auto surface = display_channel_validate_surface(display, surface_id);
 
-    return p->surfaces[surface_id].context.canvas;
+    return surface ? surface->context.canvas : nullptr;
 }
 
 red::shared_ptr<DisplayChannel>
@@ -2340,19 +2338,20 @@ VideoStream *display_channel_get_nth_video_stream(DisplayChannel *display, gint 
     return &display->priv->streams_buf[i];
 }
 
-gboolean display_channel_validate_surface(DisplayChannel *display, uint32_t surface_id)
+RedSurface *display_channel_validate_surface(DisplayChannel *display, uint32_t surface_id)
 {
     if SPICE_UNLIKELY(surface_id >= display->priv->n_surfaces) {
         spice_warning("invalid surface_id %u", surface_id);
-        return FALSE;
+        return nullptr;
     }
-    if (!display->priv->surfaces[surface_id].context.canvas) {
+    RedSurface *surface = &display->priv->surfaces[surface_id];
+    if (!surface->context.canvas) {
         spice_warning("canvas address is %p for %d (and is NULL)",
-                   &(display->priv->surfaces[surface_id].context.canvas), surface_id);
+                      &(surface->context.canvas), surface_id);
         spice_warning("failed on %d", surface_id);
-        return FALSE;
+        return nullptr;
     }
-    return TRUE;
+    return surface;
 }
 
 void display_channel_push_monitors_config(DisplayChannel *display)
@@ -2380,17 +2379,19 @@ void display_channel_update_monitors_config(DisplayChannel *display,
 
 void display_channel_set_monitors_config_to_primary(DisplayChannel *display)
 {
-    DrawContext *context = &display->priv->surfaces[0].context;
-    QXLHead head = { 0, };
-    uint16_t old_max = 1;
+    RedSurface *surface = display_channel_validate_surface(display, 0);
 
-    spice_return_if_fail(display->priv->surfaces[0].context.canvas);
+    spice_return_if_fail(surface);
+
+    DrawContext *context = &surface->context;
+    uint16_t old_max = 1;
 
     if (display->priv->monitors_config) {
         old_max = display->priv->monitors_config->max_allowed;
         monitors_config_unref(display->priv->monitors_config);
     }
 
+    QXLHead head = { 0, };
     head.width = context->width;
     head.height = context->height;
     display->priv->monitors_config = monitors_config_new(&head, 1, old_max);
