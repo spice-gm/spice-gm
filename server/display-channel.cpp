@@ -1864,10 +1864,9 @@ static Drawable* current_find_intersects_rect(Ring *current, RingItem *from,
  * than 'last' (exclusive).
  * FIXME: merge with display_channel_draw()?
  */
-void display_channel_draw_until(DisplayChannel *display, const SpiceRect *area, int surface_id,
+void display_channel_draw_until(DisplayChannel *display, const SpiceRect *area, RedSurface *surface,
                                 Drawable *last)
 {
-    RedSurface *surface;
     Drawable *surface_last = nullptr;
     Ring *ring;
     RingItem *ring_item;
@@ -1875,8 +1874,6 @@ void display_channel_draw_until(DisplayChannel *display, const SpiceRect *area, 
 
     spice_return_if_fail(last);
     spice_return_if_fail(ring_item_is_linked(&last->list_link));
-
-    surface = &display->priv->surfaces[surface_id];
 
     if (surface != last->surface) {
         // find the nearest older drawable from the appropriate surface

@@ -172,7 +172,7 @@ void monitors_config_unref(MonitorsConfig *config);
 
 void display_channel_draw_until(DisplayChannel *display,
                                 const SpiceRect *area,
-                                int surface_id,
+                                RedSurface *surface,
                                 Drawable *last);
 GArray* display_channel_get_video_codecs(DisplayChannel *display);
 int display_channel_get_stream_video(DisplayChannel *display);

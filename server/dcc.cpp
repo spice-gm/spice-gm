@@ -181,12 +181,11 @@ void dcc_create_surface(DisplayChannelClient *dcc, RedSurface *surface)
 
 // adding the pipe item after pos. If pos == NULL, adding to head.
 void
-dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
+dcc_add_surface_area_image(DisplayChannelClient *dcc, RedSurface *surface,
                            SpiceRect *area, RedChannelClient::Pipe::iterator pipe_item_pos,
                            int can_lossy)
 {
     DisplayChannel *display = DCC_TO_DC(dcc);
-    RedSurface *surface = &display->priv->surfaces[surface_id];
     SpiceCanvas *canvas = surface->context.canvas;
     int stride;
     int width;
@@ -203,7 +202,7 @@ dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
 
     red::shared_ptr<RedImageItem> item(new (height * stride) RedImageItem());
 
-    item->surface_id = surface_id;
+    item->surface_id = surface->id;
     item->image_format =
         spice_bitmap_from_surface_type(surface->context.format);
     item->image_flags = 0;
@@ -253,7 +252,7 @@ void dcc_push_surface_image(DisplayChannelClient *dcc, RedSurface *surface)
 
     /* not allowing lossy compression because probably, especially if it is a primary surface,
        it combines both "picture-like" areas with areas that are more "artificial"*/
-    dcc_add_surface_area_image(dcc, surface->id, &area, dcc->get_pipe().end(), false);
+    dcc_add_surface_area_image(dcc, surface, &area, dcc->get_pipe().end(), false);
 }
 
 static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *drawable)

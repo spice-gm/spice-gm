@@ -140,7 +140,7 @@ void dcc_create_surface(DisplayChannelClient *dcc, struct RedSurface *surface);
 void dcc_push_surface_image(DisplayChannelClient *dcc, struct RedSurface *surface);
 bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc,
                                            RedSurface *surface, bool wait_if_used);
-void dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
+void dcc_add_surface_area_image(DisplayChannelClient *dcc, RedSurface *surface,
                                 SpiceRect *area, RedChannelClient::Pipe::iterator pipe_item_pos,
                                 int can_lossy);
 RedPipeItemPtr dcc_gl_scanout_item_new(RedChannelClient *rcc, void *data, int num);

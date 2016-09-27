@@ -43,7 +43,7 @@ enum BitmapDataType {
 
 struct BitmapData {
     BitmapDataType type;
-    uint64_t id; // surface id or cache item id
+    RedSurface *surface;
     SpiceRect lossy_rect;
 };
 
@@ -84,18 +84,13 @@ static int dcc_pixmap_cache_hit(DisplayChannelClient *dcc, uint64_t id, int *los
 }
 
 /* set area=NULL for testing the whole surface */
-static bool is_surface_area_lossy(DisplayChannelClient *dcc, uint32_t surface_id,
+static bool is_surface_area_lossy(DisplayChannelClient *dcc, RedSurface *surface,
                                   const SpiceRect *area, SpiceRect *out_lossy_area)
 {
-    RedSurface *surface;
     QRegion *surface_lossy_region;
     QRegion lossy_region;
-    DisplayChannel *display = DCC_TO_DC(dcc);
 
-    surface = display_channel_validate_surface(display, surface_id);
-    spice_return_val_if_fail(surface, false);
-
-    surface_lossy_region = &dcc->priv->surface_client_lossy_region[surface_id];
+    surface_lossy_region = &dcc->priv->surface_client_lossy_region[surface->id];
 
     if (!area) {
         if (region_is_empty(surface_lossy_region)) {
@@ -129,33 +124,35 @@ static bool is_surface_area_lossy(DisplayChannelClient *dcc, uint32_t surface_id
 static bool is_bitmap_lossy(DisplayChannelClient *dcc, SpiceImage *image, SpiceRect *area,
                             BitmapData *out_data)
 {
+    out_data->type = BITMAP_DATA_TYPE_BITMAP;
     if (image == nullptr) {
         // self bitmap
-        out_data->type = BITMAP_DATA_TYPE_BITMAP;
         return FALSE;
     }
 
     if ((image->descriptor.flags & SPICE_IMAGE_FLAGS_CACHE_ME)) {
         int is_hit_lossy;
 
-        out_data->id = image->descriptor.id;
         if (dcc_pixmap_cache_hit(dcc, image->descriptor.id, &is_hit_lossy)) {
             out_data->type = BITMAP_DATA_TYPE_CACHE;
             return is_hit_lossy;
         }
         out_data->type = BITMAP_DATA_TYPE_BITMAP_TO_CACHE;
-    } else {
-         out_data->type = BITMAP_DATA_TYPE_BITMAP;
     }
 
     if (image->descriptor.type != SPICE_IMAGE_TYPE_SURFACE) {
         return FALSE;
     }
 
-    out_data->type = BITMAP_DATA_TYPE_SURFACE;
-    out_data->id = image->u.surface.surface_id;
+    auto surface = display_channel_validate_surface(DCC_TO_DC(dcc), image->u.surface.surface_id);
+    if (!surface) {
+        return false;
+    }
 
-    return is_surface_area_lossy(dcc, out_data->id,
+    out_data->type = BITMAP_DATA_TYPE_SURFACE;
+    out_data->surface = surface;
+
+    return is_surface_area_lossy(dcc, out_data->surface,
                                  area, &out_data->lossy_rect);
 }
 
@@ -394,10 +391,9 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
 
     switch (simage->descriptor.type) {
     case SPICE_IMAGE_TYPE_SURFACE: {
-        int surface_id;
         RedSurface *surface;
 
-        surface_id = simage->u.surface.surface_id;
+        auto surface_id = simage->u.surface.surface_id;
         surface = display_channel_validate_surface(display, surface_id);
         if (!surface) {
             spice_warning("Invalid surface in SPICE_IMAGE_TYPE_SURFACE");
@@ -588,13 +584,13 @@ static void surface_lossy_region_update(DisplayChannelClient *dcc,
     }
 }
 
-static bool drawable_intersects_with_areas(Drawable *drawable, int surface_ids[],
+static bool drawable_intersects_with_areas(Drawable *drawable, RedSurface *surfaces[],
                                            SpiceRect *surface_areas[],
                                            int num_surfaces)
 {
     int i;
     for (i = 0; i < num_surfaces; i++) {
-        if (surface_ids[i] == drawable->red_drawable->surface_id) {
+        if (surfaces[i] == drawable->surface) {
             if (rect_intersects(surface_areas[i], &drawable->red_drawable->bbox)) {
                 return TRUE;
             }
@@ -604,7 +600,7 @@ static bool drawable_intersects_with_areas(Drawable *drawable, int surface_ids[]
 }
 
 static bool pipe_rendered_drawables_intersect_with_areas(DisplayChannelClient *dcc,
-                                                         int surface_ids[],
+                                                         RedSurface *surfaces[],
                                                          SpiceRect *surface_areas[],
                                                          int num_surfaces)
 {
@@ -620,7 +616,7 @@ static bool pipe_rendered_drawables_intersect_with_areas(DisplayChannelClient *d
         if (ring_item_is_linked(&drawable->list_link))
             continue; // item hasn't been rendered
 
-        if (drawable_intersects_with_areas(drawable, surface_ids, surface_areas, num_surfaces)) {
+        if (drawable_intersects_with_areas(drawable, surfaces, surface_areas, num_surfaces)) {
             return TRUE;
         }
     }
@@ -628,15 +624,14 @@ static bool pipe_rendered_drawables_intersect_with_areas(DisplayChannelClient *d
     return FALSE;
 }
 
-static bool drawable_depends_on_areas(Drawable *drawable, int surface_ids[],
+static bool drawable_depends_on_areas(Drawable *drawable, RedSurface *surfaces[],
                                       SpiceRect surface_areas[], int num_surfaces)
 {
     int i;
-    RedDrawable *red_drawable;
     int drawable_has_shadow;
     SpiceRect shadow_rect = {0, 0, 0, 0};
 
-    red_drawable = drawable->red_drawable.get();
+    RedDrawable *const red_drawable = drawable->red_drawable.get();
     drawable_has_shadow = has_shadow(red_drawable);
 
     if (drawable_has_shadow) {
@@ -651,21 +646,16 @@ static bool drawable_depends_on_areas(Drawable *drawable, int surface_ids[],
 
     for (i = 0; i < num_surfaces; i++) {
         int x;
-        int dep_surface_id;
 
          for (x = 0; x < 3; ++x) {
-            if (!drawable->surface_deps[x]) {
-                continue;
-            }
-            dep_surface_id = drawable->surface_deps[x]->id;
-            if (dep_surface_id == surface_ids[i]) {
+            if (drawable->surface_deps[x] == surfaces[i]) {
                 if (rect_intersects(&surface_areas[i], &red_drawable->surfaces_rects[x])) {
                     return TRUE;
                 }
             }
         }
 
-        if (surface_ids[i] == red_drawable->surface_id) {
+        if (surfaces[i] == drawable->surface) {
             if (drawable_has_shadow) {
                 if (rect_intersects(&surface_areas[i], &shadow_rect)) {
                     return TRUE;
@@ -687,14 +677,14 @@ static bool drawable_depends_on_areas(Drawable *drawable, int surface_ids[],
 }
 
 static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient *dcc,
-                                                            int first_surface_id,
+                                                            RedSurface *first_surface,
                                                             SpiceRect *first_area)
 {
-    int resent_surface_ids[MAX_PIPE_SIZE];
+    RedSurface *resent_surfaces[MAX_PIPE_SIZE];
     SpiceRect resent_areas[MAX_PIPE_SIZE]; // not pointers since drawables may be released
     int num_resent;
 
-    resent_surface_ids[0] = first_surface_id;
+    resent_surfaces[0] = first_surface;
     resent_areas[0] = *first_area;
     num_resent = 1;
 
@@ -717,15 +707,15 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
         // (i.e., the bitmaps can be more futuristic w.r.t X). Thus, X shouldn't
         // be rendered at the client, and we replace it with an image as well.
         if (!drawable_depends_on_areas(drawable,
-                                       resent_surface_ids,
+                                       resent_surfaces,
                                        resent_areas,
                                        num_resent)) {
             continue;
         }
 
-        dcc_add_surface_area_image(dcc, drawable->red_drawable->surface_id,
+        dcc_add_surface_area_image(dcc, drawable->surface,
                                    &drawable->red_drawable->bbox, l, TRUE);
-        resent_surface_ids[num_resent] = drawable->red_drawable->surface_id;
+        resent_surfaces[num_resent] = drawable->surface;
         resent_areas[num_resent] = drawable->red_drawable->bbox;
         num_resent++;
 
@@ -735,7 +725,7 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
 
 static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
                                                    Drawable *item,
-                                                   int deps_surfaces_ids[],
+                                                   RedSurface *deps_surfaces[],
                                                    SpiceRect *deps_areas[],
                                                    int num_deps)
 {
@@ -751,10 +741,10 @@ static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
 
         // checking if the drawable itself or one of the other commands
         // that were rendered, affected the areas that need to be resent
-        if (!drawable_intersects_with_areas(item, deps_surfaces_ids,
+        if (!drawable_intersects_with_areas(item, deps_surfaces,
                                             deps_areas, num_deps)) {
             if (pipe_rendered_drawables_intersect_with_areas(dcc,
-                                                             deps_surfaces_ids,
+                                                             deps_surfaces,
                                                              deps_areas,
                                                              num_deps)) {
                 sync_rendered = TRUE;
@@ -765,7 +755,7 @@ static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
     } else {
         sync_rendered = FALSE;
         for (i = 0; i < num_deps; i++) {
-            display_channel_draw_until(display, deps_areas[i], deps_surfaces_ids[i], item);
+            display_channel_draw_until(display, deps_areas[i], deps_surfaces[i], item);
         }
     }
 
@@ -775,28 +765,28 @@ static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
         // the surfaces areas will be sent as DRAW_COPY commands, that
         // will be executed before the current drawable
         for (i = 0; i < num_deps; i++) {
-            dcc_add_surface_area_image(dcc, deps_surfaces_ids[i], deps_areas[i],
+            dcc_add_surface_area_image(dcc, deps_surfaces[i], deps_areas[i],
                                        get_pipe_tail(dcc->get_pipe()), FALSE);
 
         }
     } else {
-        int drawable_surface_id[1];
+        RedSurface *drawable_surface[1];
         SpiceRect *drawable_bbox[1];
 
-        drawable_surface_id[0] = drawable->surface_id;
+        drawable_surface[0] = item->surface;
         drawable_bbox[0] = &drawable->bbox;
 
         // check if the other rendered images in the pipe have updated the drawable bbox
         if (pipe_rendered_drawables_intersect_with_areas(dcc,
-                                                         drawable_surface_id,
+                                                         drawable_surface,
                                                          drawable_bbox,
                                                          1)) {
             red_pipe_replace_rendered_drawables_with_images(dcc,
-                                                            drawable->surface_id,
+                                                            item->surface,
                                                             &drawable->bbox);
         }
 
-        dcc_add_surface_area_image(dcc, drawable->surface_id, &drawable->bbox,
+        dcc_add_surface_area_image(dcc, item->surface, &drawable->bbox,
                                    get_pipe_tail(dcc->get_pipe()), TRUE);
     }
 }
@@ -824,7 +814,7 @@ static void red_lossy_marshall_qxl_draw_fill(DisplayChannelClient *dcc,
     brush_is_lossy = is_brush_lossy(dcc, &drawable->u.fill.brush,
                                     &brush_bitmap_data);
     if (!dest_allowed_lossy) {
-        dest_is_lossy = is_surface_area_lossy(dcc, item->surface->id, &drawable->bbox,
+        dest_is_lossy = is_surface_area_lossy(dcc, item->surface, &drawable->bbox,
                                               &dest_lossy_area);
     }
 
@@ -836,24 +826,24 @@ static void red_lossy_marshall_qxl_draw_fill(DisplayChannelClient *dcc,
         // either the brush operation is opaque, or the dest is not lossy
         surface_lossy_region_update(dcc, item, has_mask, FALSE);
     } else {
-        int resend_surface_ids[2];
+        RedSurface *resend_surfaces[2];
         SpiceRect *resend_areas[2];
         int num_resend = 0;
 
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = item->surface->id;
+            resend_surfaces[num_resend] = item->surface;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
 
         if (brush_is_lossy && (brush_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = brush_bitmap_data.id;
+            resend_surfaces[num_resend] = brush_bitmap_data.surface;
             resend_areas[num_resend] = &brush_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         red_add_lossless_drawable_dependencies(dcc, item,
-                                               resend_surface_ids, resend_areas, num_resend);
+                                               resend_surfaces, resend_areas, num_resend);
     }
 }
 
@@ -932,24 +922,24 @@ static void red_lossy_marshall_qxl_draw_opaque(DisplayChannelClient *dcc,
 
         surface_lossy_region_update(dcc, item, has_mask, src_is_lossy);
     } else {
-        int resend_surface_ids[2];
+        RedSurface *resend_surfaces[2];
         SpiceRect *resend_areas[2];
         int num_resend = 0;
 
         if (src_is_lossy && (src_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = src_bitmap_data.id;
+            resend_surfaces[num_resend] = src_bitmap_data.surface;
             resend_areas[num_resend] = &src_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         if (brush_is_lossy && (brush_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = brush_bitmap_data.id;
+            resend_surfaces[num_resend] = brush_bitmap_data.surface;
             resend_areas[num_resend] = &brush_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         red_add_lossless_drawable_dependencies(dcc, item,
-                                               resend_surface_ids, resend_areas, num_resend);
+                                               resend_surfaces, resend_areas, num_resend);
     }
 }
 
@@ -1035,16 +1025,16 @@ static void red_lossy_marshall_qxl_draw_transparent(DisplayChannelClient *dcc,
 
     if (!src_is_lossy || (src_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE)) {
         red_marshall_qxl_draw_transparent(dcc, base_marshaller, dpi);
-        // don't update surface lossy region since transperent areas might be lossy
+        // don't update surface lossy region since transparent areas might be lossy
     } else {
-        int resend_surface_ids[1];
+        RedSurface *resend_surfaces[1];
         SpiceRect *resend_areas[1];
 
-        resend_surface_ids[0] = src_bitmap_data.id;
+        resend_surfaces[0] = src_bitmap_data.surface;
         resend_areas[0] = &src_bitmap_data.lossy_rect;
 
         red_add_lossless_drawable_dependencies(dcc, item,
-                                               resend_surface_ids, resend_areas, 1);
+                                               resend_surfaces, resend_areas, 1);
     }
 }
 
@@ -1134,7 +1124,7 @@ static void red_lossy_marshall_qxl_copy_bits(DisplayChannelClient *dcc,
     src_rect.right = drawable->bbox.right + horz_offset;
     src_rect.bottom = drawable->bbox.bottom + vert_offset;
 
-    src_is_lossy = is_surface_area_lossy(dcc, item->surface->id,
+    src_is_lossy = is_surface_area_lossy(dcc, item->surface,
                                          &src_rect, &src_lossy_area);
 
     surface_lossy_region_update(dcc, item, FALSE, src_is_lossy);
@@ -1176,31 +1166,31 @@ static void red_lossy_marshall_qxl_draw_blend(DisplayChannelClient *dcc,
 
     src_is_lossy = is_bitmap_lossy(dcc, drawable->u.blend.src_bitmap,
                                    &drawable->u.blend.src_area, &src_bitmap_data);
-    dest_is_lossy = is_surface_area_lossy(dcc, drawable->surface_id,
+    dest_is_lossy = is_surface_area_lossy(dcc, item->surface,
                                           &drawable->bbox, &dest_lossy_area);
 
     if (!dest_is_lossy &&
         (!src_is_lossy || (src_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE))) {
         red_marshall_qxl_draw_blend(dcc, base_marshaller, dpi);
     } else {
-        int resend_surface_ids[2];
+        RedSurface *resend_surfaces[2];
         SpiceRect *resend_areas[2];
         int num_resend = 0;
 
         if (src_is_lossy && (src_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = src_bitmap_data.id;
+            resend_surfaces[num_resend] = src_bitmap_data.surface;
             resend_areas[num_resend] = &src_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = item->surface->id;
+            resend_surfaces[num_resend] = item->surface;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
 
         red_add_lossless_drawable_dependencies(dcc, item,
-                                               resend_surface_ids, resend_areas, num_resend);
+                                               resend_surfaces, resend_areas, num_resend);
     }
 }
 
@@ -1341,7 +1331,7 @@ static void red_lossy_marshall_qxl_draw_rop3(DisplayChannelClient *dcc,
                                    &drawable->u.rop3.src_area, &src_bitmap_data);
     brush_is_lossy = is_brush_lossy(dcc, &drawable->u.rop3.brush,
                                     &brush_bitmap_data);
-    dest_is_lossy = is_surface_area_lossy(dcc, drawable->surface_id,
+    dest_is_lossy = is_surface_area_lossy(dcc, item->surface,
                                           &drawable->bbox, &dest_lossy_area);
 
     if ((!src_is_lossy || (src_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE)) &&
@@ -1351,30 +1341,30 @@ static void red_lossy_marshall_qxl_draw_rop3(DisplayChannelClient *dcc,
         red_marshall_qxl_draw_rop3(dcc, base_marshaller, dpi);
         surface_lossy_region_update(dcc, item, has_mask, FALSE);
     } else {
-        int resend_surface_ids[3];
+        RedSurface *resend_surfaces[3];
         SpiceRect *resend_areas[3];
         int num_resend = 0;
 
         if (src_is_lossy && (src_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = src_bitmap_data.id;
+            resend_surfaces[num_resend] = src_bitmap_data.surface;
             resend_areas[num_resend] = &src_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         if (brush_is_lossy && (brush_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = brush_bitmap_data.id;
+            resend_surfaces[num_resend] = brush_bitmap_data.surface;
             resend_areas[num_resend] = &brush_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = item->surface->id;
+            resend_surfaces[num_resend] = item->surface;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
 
         red_add_lossless_drawable_dependencies(dcc, item,
-                                               resend_surface_ids, resend_areas, num_resend);
+                                               resend_surfaces, resend_areas, num_resend);
     }
 }
 
@@ -1420,7 +1410,7 @@ static void red_lossy_marshall_qxl_draw_composite(DisplayChannelClient *dcc,
     mask_is_lossy = drawable->u.composite.mask_bitmap &&
         is_bitmap_lossy(dcc, drawable->u.composite.mask_bitmap, nullptr, &mask_bitmap_data);
 
-    dest_is_lossy = is_surface_area_lossy(dcc, drawable->surface_id,
+    dest_is_lossy = is_surface_area_lossy(dcc, item->surface,
                                           &drawable->bbox, &dest_lossy_area);
 
     if ((!src_is_lossy || (src_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE))   &&
@@ -1430,30 +1420,30 @@ static void red_lossy_marshall_qxl_draw_composite(DisplayChannelClient *dcc,
         surface_lossy_region_update(dcc, item, FALSE, FALSE);
     }
     else {
-        int resend_surface_ids[3];
+        RedSurface *resend_surfaces[3];
         SpiceRect *resend_areas[3];
         int num_resend = 0;
 
         if (src_is_lossy && (src_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = src_bitmap_data.id;
+            resend_surfaces[num_resend] = src_bitmap_data.surface;
             resend_areas[num_resend] = &src_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         if (mask_is_lossy && (mask_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = mask_bitmap_data.id;
+            resend_surfaces[num_resend] = mask_bitmap_data.surface;
             resend_areas[num_resend] = &mask_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = item->surface->id;
+            resend_surfaces[num_resend] = item->surface;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
 
         red_add_lossless_drawable_dependencies(dcc, item,
-                                               resend_surface_ids, resend_areas, num_resend);
+                                               resend_surfaces, resend_areas, num_resend);
     }
 }
 
@@ -1504,7 +1494,7 @@ static void red_lossy_marshall_qxl_draw_stroke(DisplayChannelClient *dcc,
     if (drawable->u.stroke.brush.type != SPICE_BRUSH_TYPE_SOLID &&
         ((rop & SPICE_ROPD_OP_OR) || (rop & SPICE_ROPD_OP_AND) ||
         (rop & SPICE_ROPD_OP_XOR))) {
-        dest_is_lossy = is_surface_area_lossy(dcc, drawable->surface_id,
+        dest_is_lossy = is_surface_area_lossy(dcc, item->surface,
                                               &drawable->bbox, &dest_lossy_area);
     }
 
@@ -1513,25 +1503,25 @@ static void red_lossy_marshall_qxl_draw_stroke(DisplayChannelClient *dcc,
     {
         red_marshall_qxl_draw_stroke(dcc, base_marshaller, dpi);
     } else {
-        int resend_surface_ids[2];
+        RedSurface *resend_surfaces[2];
         SpiceRect *resend_areas[2];
         int num_resend = 0;
 
         if (brush_is_lossy && (brush_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = brush_bitmap_data.id;
+            resend_surfaces[num_resend] = brush_bitmap_data.surface;
             resend_areas[num_resend] = &brush_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         // TODO: use the path in order to resend smaller areas
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = drawable->surface_id;
+            resend_surfaces[num_resend] = item->surface;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
 
         red_add_lossless_drawable_dependencies(dcc, item,
-                                               resend_surface_ids, resend_areas, num_resend);
+                                               resend_surfaces, resend_areas, num_resend);
     }
 }
 
@@ -1592,7 +1582,7 @@ static void red_lossy_marshall_qxl_draw_text(DisplayChannelClient *dcc,
 
     if ((rop & SPICE_ROPD_OP_OR) || (rop & SPICE_ROPD_OP_AND) ||
         (rop & SPICE_ROPD_OP_XOR)) {
-        dest_is_lossy = is_surface_area_lossy(dcc, drawable->surface_id,
+        dest_is_lossy = is_surface_area_lossy(dcc, item->surface,
                                               &drawable->bbox, &dest_lossy_area);
     }
 
@@ -1601,29 +1591,29 @@ static void red_lossy_marshall_qxl_draw_text(DisplayChannelClient *dcc,
         (!bg_is_lossy || (bg_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE))) {
         red_marshall_qxl_draw_text(dcc, base_marshaller, dpi);
     } else {
-        int resend_surface_ids[3];
+        RedSurface *resend_surface[3];
         SpiceRect *resend_areas[3];
         int num_resend = 0;
 
         if (fg_is_lossy && (fg_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = fg_bitmap_data.id;
+            resend_surface[num_resend] = fg_bitmap_data.surface;
             resend_areas[num_resend] = &fg_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         if (bg_is_lossy && (bg_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE)) {
-            resend_surface_ids[num_resend] = bg_bitmap_data.id;
+            resend_surface[num_resend] = bg_bitmap_data.surface;
             resend_areas[num_resend] = &bg_bitmap_data.lossy_rect;
             num_resend++;
         }
 
         if (dest_is_lossy) {
-            resend_surface_ids[num_resend] = drawable->surface_id;
+            resend_surface[num_resend] = item->surface;
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
         red_add_lossless_drawable_dependencies(dcc, item,
-                                               resend_surface_ids, resend_areas, num_resend);
+                                               resend_surface, resend_areas, num_resend);
     }
 }
 
