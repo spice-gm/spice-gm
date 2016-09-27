@@ -1222,12 +1222,9 @@ static bool handle_surface_deps(DisplayChannel *display, Drawable *drawable)
     return TRUE;
 }
 
-static void draw_depend_on_me(DisplayChannel *display, uint32_t surface_id)
+static void draw_depend_on_me(DisplayChannel *display, RedSurface *surface)
 {
-    RedSurface *surface;
     RingItem *ring_item;
-
-    surface = &display->priv->surfaces[surface_id];
 
     while ((ring_item = ring_get_tail(&surface->depend_on_me))) {
         Drawable *drawable;
@@ -1320,7 +1317,6 @@ static Drawable *display_channel_get_drawable(DisplayChannel *display, uint8_t e
  */
 static void display_channel_add_drawable(DisplayChannel *display, Drawable *drawable)
 {
-    int surface_id = drawable->surface->id;
     RedDrawable *red_drawable = drawable->red_drawable.get();
 
     red_drawable->mm_time = reds_get_mm_time();
@@ -1344,7 +1340,7 @@ static void display_channel_add_drawable(DisplayChannel *display, Drawable *draw
         handle_self_bitmap(display, drawable);
     }
 
-    draw_depend_on_me(display, surface_id);
+    draw_depend_on_me(display, drawable->surface);
 
     if (!handle_surface_deps(display, drawable)) {
         return;
@@ -1982,15 +1978,14 @@ static void clear_surface_drawables_from_pipes(DisplayChannel *display, int surf
 }
 
 /* TODO: cleanup/refactor destroy functions */
-static void display_channel_destroy_surface(DisplayChannel *display, uint32_t surface_id)
+static void display_channel_destroy_surface(DisplayChannel *display, RedSurface *surface)
 {
-    RedSurface *surface = &display->priv->surfaces[surface_id];
-    draw_depend_on_me(display, surface_id);
+    draw_depend_on_me(display, surface);
     /* note that draw_depend_on_me must be called before current_remove_all.
        otherwise "current" will hold items that other drawables may depend on, and then
        current_remove_all will remove them from the pipe. */
     current_remove_all(display, surface);
-    clear_surface_drawables_from_pipes(display, surface_id, FALSE);
+    clear_surface_drawables_from_pipes(display, surface->id, false);
     display_channel_surface_unref(display, surface);
 }
 
@@ -2001,11 +1996,12 @@ void display_channel_destroy_surface_wait(DisplayChannel *display, uint32_t surf
     if (!display->priv->surfaces[surface_id].context.canvas)
         return;
 
-    draw_depend_on_me(display, surface_id);
+    RedSurface *surface = &display->priv->surfaces[surface_id];
+    draw_depend_on_me(display, surface);
     /* note that draw_depend_on_me must be called before current_remove_all.
        otherwise "current" will hold items that other drawables may depend on, and then
        current_remove_all will remove them from the pipe. */
-    current_remove_all(display, &display->priv->surfaces[surface_id]);
+    current_remove_all(display, surface);
     clear_surface_drawables_from_pipes(display, surface_id, TRUE);
 }
 
@@ -2267,7 +2263,7 @@ void display_channel_process_surface_cmd(DisplayChannel *display,
             break;
         }
         surface->destroy_cmd = surface_cmd;
-        display_channel_destroy_surface(display, surface_id);
+        display_channel_destroy_surface(display, surface);
         break;
     default:
         spice_warn_if_reached();
