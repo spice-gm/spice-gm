@@ -2050,8 +2050,9 @@ static void send_create_surface(DisplayChannel *display, RedSurface *surface, in
 
     FOREACH_DCC(display, dcc) {
         dcc_create_surface(dcc, surface);
-        if (image_ready)
-            dcc_push_surface_image(dcc, surface->id);
+        if (image_ready) {
+            dcc_push_surface_image(dcc, surface);
+        }
     }
 }
 

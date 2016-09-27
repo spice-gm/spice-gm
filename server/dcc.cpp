@@ -236,18 +236,14 @@ dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
     }
 }
 
-void dcc_push_surface_image(DisplayChannelClient *dcc, int surface_id)
+void dcc_push_surface_image(DisplayChannelClient *dcc, RedSurface *surface)
 {
-    DisplayChannel *display;
     SpiceRect area;
-    RedSurface *surface;
 
     if (!dcc) {
         return;
     }
 
-    display = DCC_TO_DC(dcc);
-    surface = &display->priv->surfaces[surface_id];
     if (!surface->context.canvas) {
         return;
     }
@@ -257,7 +253,7 @@ void dcc_push_surface_image(DisplayChannelClient *dcc, int surface_id)
 
     /* not allowing lossy compression because probably, especially if it is a primary surface,
        it combines both "picture-like" areas with areas that are more "artificial"*/
-    dcc_add_surface_area_image(dcc, surface_id, &area, dcc->get_pipe().end(), FALSE);
+    dcc_add_surface_area_image(dcc, surface->id, &area, dcc->get_pipe().end(), false);
 }
 
 static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *drawable)
@@ -272,7 +268,7 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
             }
             dcc_create_surface(dcc, surface);
             display_channel_current_flush(display, surface);
-            dcc_push_surface_image(dcc, surface_id);
+            dcc_push_surface_image(dcc, surface);
         }
     }
 
@@ -282,7 +278,7 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
 
     dcc_create_surface(dcc, drawable->surface);
     display_channel_current_flush(display, drawable->surface);
-    dcc_push_surface_image(dcc, drawable->surface->id);
+    dcc_push_surface_image(dcc, drawable->surface);
 }
 
 RedDrawablePipeItem::RedDrawablePipeItem(DisplayChannelClient *init_dcc, Drawable *init_drawable):
@@ -416,7 +412,7 @@ void dcc_start(DisplayChannelClient *dcc)
         display_channel_current_flush(display, &display->priv->surfaces[0]);
         dcc->pipe_add_type(RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
         dcc_create_surface(dcc, &display->priv->surfaces[0]);
-        dcc_push_surface_image(dcc, 0);
+        dcc_push_surface_image(dcc, &display->priv->surfaces[0]);
         dcc_push_monitors_config(dcc);
         dcc->pipe_add_empty_msg(SPICE_MSG_DISPLAY_MARK);
         dcc_create_all_streams(dcc);
