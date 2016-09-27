@@ -234,7 +234,7 @@ static void display_channel_surface_unref(DisplayChannel *display, RedSurface *s
     }
 
     // only primary surface streams are supported
-    if (is_primary_surface(display, surface->id)) {
+    if (is_primary_surface(display, surface)) {
         stop_streams(display);
     }
     spice_assert(surface->context.canvas);
@@ -274,7 +274,7 @@ static void streams_update_visible_region(DisplayChannel *display, Drawable *dra
         return;
     }
 
-    if (!is_primary_surface(display, drawable->surface->id)) {
+    if (!is_primary_surface(display, drawable->surface)) {
         return;
     }
 
@@ -817,7 +817,7 @@ static bool current_add_with_shadow(DisplayChannel *display, Ring *ring, Drawabl
     // for now putting them on root.
 
     // only primary surface streams are supported
-    if (is_primary_surface(display, item->surface->id)) {
+    if (is_primary_surface(display, item->surface)) {
         video_stream_detach_behind(display, &shadow->base.rgn, nullptr);
     }
 
@@ -838,7 +838,7 @@ static bool current_add_with_shadow(DisplayChannel *display, Ring *ring, Drawabl
         region_destroy(&exclude_rgn);
         streams_update_visible_region(display, item);
     } else {
-        if (is_primary_surface(display, item->surface->id)) {
+        if (is_primary_surface(display, item->surface)) {
             video_stream_detach_behind(display, &item->tree_item.base.rgn, item);
         }
     }
@@ -1035,7 +1035,7 @@ static bool current_add(DisplayChannel *display, Ring *ring, Drawable *drawable)
          * video_stream_detach_behind
          */
         current_add_drawable(display, drawable, ring);
-        if (is_primary_surface(display, drawable->surface->id)) {
+        if (is_primary_surface(display, drawable->surface)) {
             video_stream_detach_behind(display, &drawable->tree_item.base.rgn, drawable);
         }
     }
@@ -1053,7 +1053,7 @@ static bool drawable_can_stream(DisplayChannel *display, Drawable *drawable)
         return FALSE;
     }
 
-    if (!is_primary_surface(display, drawable->surface->id)) {
+    if (!is_primary_surface(display, drawable->surface)) {
         return FALSE;
     }
 
@@ -1174,7 +1174,7 @@ static void handle_self_bitmap(DisplayChannel *display, Drawable *drawable)
 
     /* For 32bit non-primary surfaces we need to keep any non-zero
        high bytes as the surface may be used as source to an alpha_blend */
-    if (!is_primary_surface(display, drawable->surface->id) &&
+    if (!is_primary_surface(display, drawable->surface) &&
         image->u.bitmap.format == SPICE_BITMAP_FMT_32BIT &&
         rgb32_data_has_alpha(width, height, dest_stride, dest, &all_set)) {
         if (all_set) {

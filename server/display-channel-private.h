@@ -336,12 +336,14 @@ static inline int has_shadow(RedDrawable *drawable)
     return drawable->type == QXL_COPY_BITS;
 }
 
-static inline int is_primary_surface(DisplayChannel *display, uint32_t surface_id)
+static inline bool is_primary_surface_id(DisplayChannel *display, uint32_t surface_id)
 {
-    if (surface_id == 0) {
-        return TRUE;
-    }
-    return FALSE;
+    return surface_id == 0;
+}
+
+static inline bool is_primary_surface(DisplayChannel *display, const RedSurface *surface)
+{
+    return surface->id == 0;
 }
 
 static inline void region_add_clip_rects(QRegion *rgn, SpiceClipRects *data)

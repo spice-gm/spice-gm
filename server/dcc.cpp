@@ -171,7 +171,7 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
     }
 
     display = DCC_TO_DC(dcc);
-    flags = is_primary_surface(display, surface_id) ? SPICE_SURFACE_FLAGS_PRIMARY : 0;
+    flags = is_primary_surface_id(display, surface_id) ? SPICE_SURFACE_FLAGS_PRIMARY : 0;
 
     /* don't send redundant create surface commands to client */
     if (display->get_during_target_migrate() ||
@@ -226,7 +226,7 @@ dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
 
     /* For 32bit non-primary surfaces we need to keep any non-zero
        high bytes as the surface may be used as source to an alpha_blend */
-    if (!is_primary_surface(display, surface_id) &&
+    if (!is_primary_surface(display, surface) &&
         item->image_format == SPICE_BITMAP_FMT_32BIT &&
         rgb32_data_has_alpha(item->width, item->height, item->stride, item->data, &all_set)) {
         if (all_set) {
