@@ -261,9 +261,8 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
     DisplayChannel *display = DCC_TO_DC(dcc);
 
     for (const auto surface : drawable->surface_deps) {
-        if (surface != nullptr) {
-            const auto surface_id = surface->id;
-            if (dcc->priv->surface_client_created[surface_id]) {
+        if (surface) {
+            if (dcc->priv->surface_client_created[surface->id]) {
                 continue;
             }
             dcc_create_surface(dcc, surface);
@@ -272,13 +271,14 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
         }
     }
 
-    if (dcc->priv->surface_client_created[drawable->surface->id]) {
+    const auto surface = drawable->surface;
+    if (dcc->priv->surface_client_created[surface->id]) {
         return;
     }
 
-    dcc_create_surface(dcc, drawable->surface);
-    display_channel_current_flush(display, drawable->surface);
-    dcc_push_surface_image(dcc, drawable->surface);
+    dcc_create_surface(dcc, surface);
+    display_channel_current_flush(display, surface);
+    dcc_push_surface_image(dcc, surface);
 }
 
 RedDrawablePipeItem::RedDrawablePipeItem(DisplayChannelClient *init_dcc, Drawable *init_drawable):
