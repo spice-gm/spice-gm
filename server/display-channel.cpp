@@ -1965,13 +1965,13 @@ void display_channel_update(DisplayChannel *display,
         region_clear(&surface->draw_dirty_region);
 }
 
-static void clear_surface_drawables_from_pipes(DisplayChannel *display, int surface_id,
+static void clear_surface_drawables_from_pipes(DisplayChannel *display, RedSurface *surface,
                                                int wait_if_used)
 {
     DisplayChannelClient *dcc;
 
     FOREACH_DCC(display, dcc) {
-        if (!dcc_clear_surface_drawables_from_pipe(dcc, surface_id, wait_if_used)) {
+        if (!dcc_clear_surface_drawables_from_pipe(dcc, surface, wait_if_used)) {
             dcc->disconnect();
         }
     }
@@ -1985,7 +1985,7 @@ static void display_channel_destroy_surface(DisplayChannel *display, RedSurface 
        otherwise "current" will hold items that other drawables may depend on, and then
        current_remove_all will remove them from the pipe. */
     current_remove_all(display, surface);
-    clear_surface_drawables_from_pipes(display, surface->id, false);
+    clear_surface_drawables_from_pipes(display, surface, false);
     display_channel_surface_unref(display, surface);
 }
 
@@ -2002,7 +2002,7 @@ void display_channel_destroy_surface_wait(DisplayChannel *display, uint32_t surf
        otherwise "current" will hold items that other drawables may depend on, and then
        current_remove_all will remove them from the pipe. */
     current_remove_all(display, surface);
-    clear_surface_drawables_from_pipes(display, surface_id, TRUE);
+    clear_surface_drawables_from_pipes(display, surface, true);
 }
 
 /* called upon device reset */

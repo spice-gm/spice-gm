@@ -81,6 +81,7 @@ public:
 struct DisplayChannel;
 struct VideoStream;
 struct VideoStreamAgent;
+struct RedSurface;
 
 typedef struct WaitForChannels {
     SpiceMsgWaitForChannels header;
@@ -131,9 +132,6 @@ void                       dcc_append_drawable                       (DisplayCha
 void                       dcc_add_drawable_after                    (DisplayChannelClient *dcc,
                                                                       Drawable *drawable,
                                                                       RedPipeItem *pos);
-bool                       dcc_clear_surface_drawables_from_pipe     (DisplayChannelClient *dcc,
-                                                                      int surface_id,
-                                                                      int wait_if_used);
 bool                       dcc_drawable_is_in_pipe                   (DisplayChannelClient *dcc,
                                                                       Drawable *drawable);
 
@@ -142,6 +140,8 @@ int                        dcc_compress_image                        (DisplayCha
                                                                       int can_lossy,
                                                                       compress_send_data_t* o_comp_data);
 
+bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc,
+                                           RedSurface *surface, bool wait_if_used);
 void dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
                                 SpiceRect *area, RedChannelClient::Pipe::iterator pipe_item_pos,
                                 int can_lossy);

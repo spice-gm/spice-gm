@@ -99,21 +99,15 @@ bool dcc_drawable_is_in_pipe(DisplayChannelClient *dcc, Drawable *drawable)
 }
 
 /*
- * Return: TRUE if wait_if_used == FALSE, or otherwise, if all of the pipe items that
+ * Return: true if wait_if_used == false, or otherwise, if all of the pipe items that
  * are related to the surface have been cleared (or sent) from the pipe.
  */
-bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surface_id,
-                                           int wait_if_used)
+bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, RedSurface *surface,
+                                           bool wait_if_used)
 {
-    DisplayChannel *display;
-    RedSurface *surface;
-
     spice_return_val_if_fail(dcc != nullptr, TRUE);
-    /* removing the newest drawables that their destination is surface_id and
+    /* removing the newest drawables that their destination is surface and
        no other drawable depends on them */
-
-    display = DCC_TO_DC(dcc);
-    surface = &display->priv->surfaces[surface_id];
 
     auto &pipe = dcc->get_pipe();
     for (auto l = pipe.begin(); l != pipe.end(); ) {
@@ -141,16 +135,16 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
             std::find(std::begin(drawable->surface_deps), std::end(drawable->surface_deps),
                       surface) != std::end(drawable->surface_deps);
         if (depend_found) {
-            spice_debug("surface %d dependent item found %p, %p", surface_id, drawable, item);
+            spice_debug("surface %d dependent item found %p, %p", surface->id, drawable, item);
             if (!wait_if_used) {
-                return TRUE;
+                return true;
             }
             return dcc->wait_pipe_item_sent(item_pos, COMMON_CLIENT_TIMEOUT);
         }
     }
 
     if (!wait_if_used) {
-        return TRUE;
+        return true;
     }
 
     /*
