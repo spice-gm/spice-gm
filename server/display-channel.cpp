@@ -1120,11 +1120,10 @@ static void drawable_ref_surface_deps(DisplayChannel *display, Drawable *drawabl
     }
 }
 
-static void surface_read_bits(DisplayChannel *display, int surface_id,
+static void surface_read_bits(DisplayChannel *display, RedSurface *surface,
                               const SpiceRect *area, uint8_t *dest, int dest_stride)
 {
     SpiceCanvas *canvas;
-    RedSurface *surface = &display->priv->surfaces[surface_id];
 
     canvas = surface->context.canvas;
     canvas->ops->read_bits(canvas, dest, dest_stride, area);
@@ -1166,7 +1165,7 @@ static void handle_self_bitmap(DisplayChannel *display, Drawable *drawable)
     image->u.bitmap.data->flags |= SPICE_CHUNKS_FLAGS_FREE;
 
     display_channel_draw(display, &red_drawable->self_bitmap_area, drawable->surface->id);
-    surface_read_bits(display, drawable->surface->id,
+    surface_read_bits(display, drawable->surface,
         &red_drawable->self_bitmap_area, dest, dest_stride);
 
     /* For 32bit non-primary surfaces we need to keep any non-zero
