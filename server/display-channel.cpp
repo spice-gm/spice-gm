@@ -225,9 +225,8 @@ static void stop_streams(DisplayChannel *display)
     memset(display->priv->items_trace, 0, sizeof(display->priv->items_trace));
 }
 
-void display_channel_surface_unref(DisplayChannel *display, uint32_t surface_id)
+static void display_channel_surface_unref(DisplayChannel *display, RedSurface *surface)
 {
-    RedSurface *surface = &display->priv->surfaces[surface_id];
     DisplayChannelClient *dcc;
 
     if (--surface->refs != 0) {
@@ -235,7 +234,7 @@ void display_channel_surface_unref(DisplayChannel *display, uint32_t surface_id)
     }
 
     // only primary surface streams are supported
-    if (is_primary_surface(display, surface_id)) {
+    if (is_primary_surface(display, surface->id)) {
         stop_streams(display);
     }
     spice_assert(surface->context.canvas);
@@ -247,7 +246,7 @@ void display_channel_surface_unref(DisplayChannel *display, uint32_t surface_id)
     region_destroy(&surface->draw_dirty_region);
     surface->context.canvas = nullptr;
     FOREACH_DCC(display, dcc) {
-        dcc_destroy_surface(dcc, surface_id);
+        dcc_destroy_surface(dcc, surface->id);
     }
 
     spice_warn_if_fail(ring_is_empty(&surface->depend_on_me));
@@ -258,6 +257,11 @@ gboolean display_channel_surface_has_canvas(DisplayChannel *display,
                                             uint32_t surface_id)
 {
     return display->priv->surfaces[surface_id].context.canvas != nullptr;
+}
+
+void display_channel_surface_id_unref(DisplayChannel *display, uint32_t surface_id)
+{
+    display_channel_surface_unref(display, &display->priv->surfaces[surface_id]);
 }
 
 static void streams_update_visible_region(DisplayChannel *display, Drawable *drawable)
@@ -1601,7 +1605,7 @@ static void drawable_unref_surface_deps(DisplayChannel *display, Drawable *drawa
         if (surface == nullptr) {
             continue;
         }
-        display_channel_surface_unref(display, surface->id);
+        display_channel_surface_unref(display, surface);
     }
 }
 
@@ -1622,7 +1626,7 @@ void drawable_unref(Drawable *drawable)
 
     drawable_remove_dependencies(drawable);
     drawable_unref_surface_deps(display, drawable);
-    display_channel_surface_unref(display, drawable->surface->id);
+    display_channel_surface_unref(display, drawable->surface);
 
     glz_retention_detach_drawables(&drawable->glz_retention);
 
@@ -1980,13 +1984,14 @@ static void clear_surface_drawables_from_pipes(DisplayChannel *display, int surf
 /* TODO: cleanup/refactor destroy functions */
 static void display_channel_destroy_surface(DisplayChannel *display, uint32_t surface_id)
 {
+    RedSurface *surface = &display->priv->surfaces[surface_id];
     draw_depend_on_me(display, surface_id);
     /* note that draw_depend_on_me must be called before current_remove_all.
        otherwise "current" will hold items that other drawables may depend on, and then
        current_remove_all will remove them from the pipe. */
-    current_remove_all(display, &display->priv->surfaces[surface_id]);
+    current_remove_all(display, surface);
     clear_surface_drawables_from_pipes(display, surface_id, FALSE);
-    display_channel_surface_unref(display, surface_id);
+    display_channel_surface_unref(display, surface);
 }
 
 void display_channel_destroy_surface_wait(DisplayChannel *display, uint32_t surface_id)
@@ -2016,7 +2021,7 @@ void display_channel_destroy_surfaces(DisplayChannel *display)
         if (display->priv->surfaces[i].context.canvas) {
             display_channel_destroy_surface_wait(display, i);
             if (display->priv->surfaces[i].context.canvas) {
-                display_channel_surface_unref(display, i);
+                display_channel_surface_unref(display, &display->priv->surfaces[i]);
             }
             spice_assert(!display->priv->surfaces[i].context.canvas);
         }

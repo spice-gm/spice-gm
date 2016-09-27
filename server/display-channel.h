@@ -94,6 +94,7 @@ display_channel_new(RedsState *reds, QXLInstance *qxl,
                     int migrate, int stream_video,
                     GArray *video_codecs,
                     uint32_t n_surfaces);
+void display_channel_surface_id_unref(DisplayChannel *display, uint32_t surface_id);
 void                       display_channel_create_surface            (DisplayChannel *display, uint32_t surface_id,
                                                                       uint32_t width, uint32_t height,
                                                                       int32_t stride, uint32_t format, void *line_0,
@@ -115,8 +116,6 @@ void                       display_channel_set_video_codecs          (DisplayCha
 int                        display_channel_get_streams_timeout       (DisplayChannel *display);
 void                       display_channel_compress_stats_print      (DisplayChannel *display);
 void                       display_channel_compress_stats_reset      (DisplayChannel *display);
-void                       display_channel_surface_unref             (DisplayChannel *display,
-                                                                      uint32_t surface_id);
 bool                       display_channel_wait_for_migrate_data     (DisplayChannel *display);
 void                       display_channel_flush_all_surfaces        (DisplayChannel *display);
 void                       display_channel_free_glz_drawables_to_free(DisplayChannel *display);
