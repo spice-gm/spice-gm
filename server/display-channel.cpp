@@ -56,6 +56,8 @@ DisplayChannel::~DisplayChannel()
 static void drawable_draw(DisplayChannel *display, Drawable *drawable);
 static Drawable *display_channel_drawable_try_new(DisplayChannel *display,
                                                   uint32_t process_commands_generation);
+static void display_channel_surface_draw(DisplayChannel *display, RedSurface *surface,
+                                         const SpiceRect *area);
 
 uint32_t display_channel_generate_uid(DisplayChannel *display)
 {
@@ -1168,7 +1170,8 @@ static void handle_self_bitmap(DisplayChannel *display, Drawable *drawable)
     image->u.bitmap.data = spice_chunks_new_linear(dest, height * dest_stride);
     image->u.bitmap.data->flags |= SPICE_CHUNKS_FLAGS_FREE;
 
-    display_channel_draw(display, &red_drawable->self_bitmap_area, drawable->surface->id);
+    display_channel_surface_draw(display, drawable->surface,
+                                 &red_drawable->self_bitmap_area);
     surface_read_bits(display, drawable->surface,
         &red_drawable->self_bitmap_area, dest, dest_stride);
 
@@ -1230,7 +1233,8 @@ static void draw_depend_on_me(DisplayChannel *display, RedSurface *surface)
         Drawable *drawable;
         DependItem *depended_item = SPICE_CONTAINEROF(ring_item, DependItem, ring_item);
         drawable = depended_item->drawable;
-        display_channel_draw(display, &drawable->red_drawable->bbox, drawable->surface->id);
+        display_channel_surface_draw(display, drawable->surface,
+                                     &drawable->red_drawable->bbox);
     }
 }
 
@@ -1637,7 +1641,8 @@ static void drawable_deps_draw(DisplayChannel *display, Drawable *drawable)
         RedSurface *surface = drawable->surface_deps[x];
         if (surface && drawable->depend_items[x].drawable) {
             depended_item_remove(&drawable->depend_items[x]);
-            display_channel_draw(display, &drawable->red_drawable->surfaces_rects[x], surface->id);
+            display_channel_surface_draw(display, surface,
+                                         &drawable->red_drawable->surfaces_rects[x]);
         }
     }
 }
@@ -1906,7 +1911,6 @@ void display_channel_draw_until(DisplayChannel *display, const SpiceRect *area, 
 void display_channel_draw(DisplayChannel *display, const SpiceRect *area, int surface_id)
 {
     RedSurface *surface;
-    Drawable *last;
 
     spice_return_if_fail(surface_id >= 0 && surface_id < NUM_SURFACES);
     spice_return_if_fail(area);
@@ -1914,6 +1918,14 @@ void display_channel_draw(DisplayChannel *display, const SpiceRect *area, int su
                          area->left < area->right && area->top < area->bottom);
 
     surface = &display->priv->surfaces[surface_id];
+
+    display_channel_surface_draw(display, surface, area);
+}
+
+static void display_channel_surface_draw(DisplayChannel *display, RedSurface *surface,
+                                         const SpiceRect *area)
+{
+    Drawable *last;
 
     last = current_find_intersects_rect(&surface->current_list, nullptr, area);
     if (last)
@@ -1952,9 +1964,9 @@ void display_channel_update(DisplayChannel *display,
     }
 
     red_get_rect_ptr(&rect, area);
-    display_channel_draw(display, &rect, surface_id);
-
     surface = &display->priv->surfaces[surface_id];
+    display_channel_surface_draw(display, surface, &rect);
+
     if (*qxl_dirty_rects == nullptr) {
         *num_dirty_rects = pixman_region32_n_rects(&surface->draw_dirty_region);
         *qxl_dirty_rects = g_new0(QXLRect, *num_dirty_rects);
@@ -1993,10 +2005,10 @@ void display_channel_destroy_surface_wait(DisplayChannel *display, uint32_t surf
 {
     if (!display_channel_validate_surface(display, surface_id))
         return;
-    if (!display->priv->surfaces[surface_id].context.canvas)
+    RedSurface *surface = &display->priv->surfaces[surface_id];
+    if (!surface->context.canvas)
         return;
 
-    RedSurface *surface = &display->priv->surfaces[surface_id];
     draw_depend_on_me(display, surface);
     /* note that draw_depend_on_me must be called before current_remove_all.
        otherwise "current" will hold items that other drawables may depend on, and then
