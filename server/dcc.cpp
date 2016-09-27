@@ -154,10 +154,10 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, RedSurface
     return dcc->wait_outgoing_item(DISPLAY_CLIENT_SHORT_TIMEOUT);
 }
 
-void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
+void dcc_create_surface(DisplayChannelClient *dcc, RedSurface *surface)
 {
     DisplayChannel *display;
-    RedSurface *surface;
+    uint32_t surface_id = surface->id;
     uint32_t flags;
 
     if (!dcc) {
@@ -165,14 +165,13 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
     }
 
     display = DCC_TO_DC(dcc);
-    flags = is_primary_surface_id(display, surface_id) ? SPICE_SURFACE_FLAGS_PRIMARY : 0;
+    flags = is_primary_surface(display, surface) ? SPICE_SURFACE_FLAGS_PRIMARY : 0;
 
     /* don't send redundant create surface commands to client */
     if (display->get_during_target_migrate() ||
         dcc->priv->surface_client_created[surface_id]) {
         return;
     }
-    surface = &display->priv->surfaces[surface_id];
     auto create = red::make_shared<RedSurfaceCreateItem>(surface_id, surface->context.width,
                                                          surface->context.height,
                                                          surface->context.format, flags);
@@ -271,7 +270,7 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
             if (dcc->priv->surface_client_created[surface_id]) {
                 continue;
             }
-            dcc_create_surface(dcc, surface_id);
+            dcc_create_surface(dcc, surface);
             display_channel_current_flush(display, surface);
             dcc_push_surface_image(dcc, surface_id);
         }
@@ -281,7 +280,7 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
         return;
     }
 
-    dcc_create_surface(dcc, drawable->surface->id);
+    dcc_create_surface(dcc, drawable->surface);
     display_channel_current_flush(display, drawable->surface);
     dcc_push_surface_image(dcc, drawable->surface->id);
 }
@@ -416,7 +415,7 @@ void dcc_start(DisplayChannelClient *dcc)
     if (display->priv->surfaces[0].context.canvas) {
         display_channel_current_flush(display, &display->priv->surfaces[0]);
         dcc->pipe_add_type(RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
-        dcc_create_surface(dcc, 0);
+        dcc_create_surface(dcc, &display->priv->surfaces[0]);
         dcc_push_surface_image(dcc, 0);
         dcc_push_monitors_config(dcc);
         dcc->pipe_add_empty_msg(SPICE_MSG_DISPLAY_MARK);

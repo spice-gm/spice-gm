@@ -336,11 +336,6 @@ static inline int has_shadow(RedDrawable *drawable)
     return drawable->type == QXL_COPY_BITS;
 }
 
-static inline bool is_primary_surface_id(DisplayChannel *display, uint32_t surface_id)
-{
-    return surface_id == 0;
-}
-
 static inline bool is_primary_surface(DisplayChannel *display, const RedSurface *surface)
 {
     return surface->id == 0;

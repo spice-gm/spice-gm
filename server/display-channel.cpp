@@ -2044,14 +2044,14 @@ void display_channel_destroy_surfaces(DisplayChannel *display)
     display_channel_free_glz_drawables(display);
 }
 
-static void send_create_surface(DisplayChannel *display, int surface_id, int image_ready)
+static void send_create_surface(DisplayChannel *display, RedSurface *surface, int image_ready)
 {
     DisplayChannelClient *dcc;
 
     FOREACH_DCC(display, dcc) {
-        dcc_create_surface(dcc, surface_id);
+        dcc_create_surface(dcc, surface);
         if (image_ready)
-            dcc_push_surface_image(dcc, surface_id);
+            dcc_push_surface_image(dcc, surface->id);
     }
 }
 
@@ -2123,8 +2123,9 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
     }
 
     spice_return_if_fail(surface->context.canvas);
-    if (send_client)
-        send_create_surface(display, surface_id, data_is_valid);
+    if (send_client) {
+        send_create_surface(display, surface, data_is_valid);
+    }
 }
 
 void DisplayChannelClient::handle_migrate_flush_mark()

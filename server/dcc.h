@@ -115,8 +115,6 @@ void                       dcc_video_stream_agent_clip               (DisplayCha
                                                                       VideoStreamAgent *agent);
 void                       dcc_create_stream                         (DisplayChannelClient *dcc,
                                                                       VideoStream *stream);
-void                       dcc_create_surface                        (DisplayChannelClient *dcc,
-                                                                      int surface_id);
 void                       dcc_push_surface_image                    (DisplayChannelClient *dcc,
                                                                       int surface_id);
 void                       dcc_palette_cache_reset                   (DisplayChannelClient *dcc);
@@ -140,6 +138,7 @@ int                        dcc_compress_image                        (DisplayCha
                                                                       int can_lossy,
                                                                       compress_send_data_t* o_comp_data);
 
+void dcc_create_surface(DisplayChannelClient *dcc, struct RedSurface *surface);
 bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc,
                                            RedSurface *surface, bool wait_if_used);
 void dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
