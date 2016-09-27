@@ -272,7 +272,7 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
                 continue;
             }
             dcc_create_surface(dcc, surface_id);
-            display_channel_current_flush(display, surface_id);
+            display_channel_current_flush(display, surface);
             dcc_push_surface_image(dcc, surface_id);
         }
     }
@@ -282,7 +282,7 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
     }
 
     dcc_create_surface(dcc, drawable->surface->id);
-    display_channel_current_flush(display, drawable->surface->id);
+    display_channel_current_flush(display, drawable->surface);
     dcc_push_surface_image(dcc, drawable->surface->id);
 }
 
@@ -414,7 +414,7 @@ void dcc_start(DisplayChannelClient *dcc)
     red::shared_ptr<DisplayChannelClient> self(dcc);
     dcc->ack_zero_messages_window();
     if (display->priv->surfaces[0].context.canvas) {
-        display_channel_current_flush(display, 0);
+        display_channel_current_flush(display, &display->priv->surfaces[0]);
         dcc->pipe_add_type(RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
         dcc_create_surface(dcc, 0);
         dcc_push_surface_image(dcc, 0);

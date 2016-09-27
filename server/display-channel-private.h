@@ -177,7 +177,7 @@ void display_channel_draw_until(DisplayChannel *display,
 GArray* display_channel_get_video_codecs(DisplayChannel *display);
 int display_channel_get_stream_video(DisplayChannel *display);
 void display_channel_current_flush(DisplayChannel *display,
-                                   int surface_id);
+                                   RedSurface *surface);
 uint32_t display_channel_generate_uid(DisplayChannel *display);
 
 int display_channel_get_video_stream_id(DisplayChannel *display, VideoStream *stream);

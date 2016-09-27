@@ -1424,7 +1424,7 @@ void display_channel_flush_all_surfaces(DisplayChannel *display)
 
     for (x = 0; x < NUM_SURFACES; ++x) {
         if (display->priv->surfaces[x].context.canvas) {
-            display_channel_current_flush(display, x);
+            display_channel_current_flush(display, &display->priv->surfaces[x]);
         }
     }
 }
@@ -1473,12 +1473,12 @@ static bool free_one_drawable(DisplayChannel *display, int force_glz_free)
     return TRUE;
 }
 
-void display_channel_current_flush(DisplayChannel *display, int surface_id)
+void display_channel_current_flush(DisplayChannel *display, RedSurface *surface)
 {
-    while (!ring_is_empty(&display->priv->surfaces[surface_id].current_list)) {
+    while (!ring_is_empty(&surface->current_list)) {
         free_one_drawable(display, FALSE);
     }
-    current_remove_all(display, &display->priv->surfaces[surface_id]);
+    current_remove_all(display, surface);
 }
 
 void display_channel_free_some(DisplayChannel *display)
