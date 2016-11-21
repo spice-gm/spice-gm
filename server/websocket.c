@@ -478,3 +478,28 @@ void websocket_create_reply(char *buf, char *outbuf)
                     "Sec-WebSocket-Protocol: binary\r\n\r\n", key);
     g_free(key);
 }
+
+RedsWebSocket *websocket_new(char *rbuf, struct RedStream *stream, websocket_read_cb_t read_cb,
+                             websocket_write_cb_t write_cb, websocket_writev_cb_t writev_cb)
+{
+    if (!websocket_is_start(rbuf)) {
+        return NULL;
+    }
+
+    char outbuf[1024];
+
+    websocket_create_reply(rbuf, outbuf);
+    int rc = write_cb(stream, outbuf, strlen(outbuf));
+    if (rc != strlen(outbuf)) {
+        return NULL;
+    }
+
+    RedsWebSocket *ws = g_new0(RedsWebSocket, 1);
+
+    ws->raw_stream = stream;
+    ws->raw_read = read_cb;
+    ws->raw_write = write_cb;
+    ws->raw_writev = writev_cb;
+
+    return ws;
+}

@@ -41,11 +41,13 @@ typedef struct {
     uint64_t write_remainder;
 
     struct RedStream *raw_stream;
-    ssize_t (*raw_read)(struct RedStream *s, void *buf, size_t nbyte);
-    ssize_t (*raw_write)(struct RedStream *s, const void *buf, size_t nbyte);
-    ssize_t (*raw_writev)(struct RedStream *s, const struct iovec *iov, int iovcnt);
+    websocket_read_cb_t raw_read;
+    websocket_write_cb_t raw_write;
+    websocket_writev_cb_t raw_writev;
 } RedsWebSocket;
 
+RedsWebSocket *websocket_new(char *buf, struct RedStream *s, websocket_read_cb_t read_cb,
+                             websocket_write_cb_t write_cb, websocket_writev_cb_t writev_cb);
 bool websocket_is_start(char *buf);
 void websocket_create_reply(char *buf, char *outbuf);
 int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t len);

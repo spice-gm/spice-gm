@@ -1215,28 +1215,19 @@ bool red_stream_is_websocket(RedStream *stream, const void *buf, size_t len)
               so it seems wisest to live with this theoretical flaw.
     */
 
-    if (websocket_is_start(rbuf)) {
-        char outbuf[1024];
+    stream->priv->ws = websocket_new(rbuf, stream,
+                                     (websocket_read_cb_t) stream->priv->read,
+                                     (websocket_write_cb_t) stream->priv->write,
+                                     (websocket_writev_cb_t) stream->priv->writev);
+    if (stream->priv->ws) {
+        stream->priv->read = stream_websocket_read;
+        stream->priv->write = stream_websocket_write;
 
-        websocket_create_reply(rbuf, outbuf);
-        rc = stream->priv->write(stream, outbuf, strlen(outbuf));
-        if (rc == strlen(outbuf)) {
-            stream->priv->ws = g_malloc0(sizeof(*stream->priv->ws));
-
-            stream->priv->ws->raw_stream = stream;
-            stream->priv->ws->raw_read = stream->priv->read;
-            stream->priv->ws->raw_write = stream->priv->write;
-
-            stream->priv->read = stream_websocket_read;
-            stream->priv->write = stream_websocket_write;
-
-            if (stream->priv->writev) {
-                stream->priv->ws->raw_writev = stream->priv->writev;
-                stream->priv->writev = stream_websocket_writev;
-            }
-
-            return true;
+        if (stream->priv->writev) {
+            stream->priv->writev = stream_websocket_writev;
         }
+
+        return true;
     }
 
     return false;
