@@ -501,15 +501,23 @@ static void websocket_ack_close(void *stream, websocket_write_cb_t write_cb)
 
 static bool websocket_is_start(char *buf)
 {
-    if (strncmp(buf, "GET ", 4) == 0 &&
-            // TODO strip, do not assume a single space
-            find_str(buf, "\nSec-WebSocket-Protocol: binary") &&
-            find_str(buf, "\nSec-WebSocket-Key:") &&
-            g_str_has_suffix(buf, "\r\n\r\n")) {
-        return true;
+    const char *protocol = find_str(buf, "\nSec-WebSocket-Protocol:");
+    const char *key = find_str(buf, "\nSec-WebSocket-Key:");
+
+    if (strncmp(buf, "GET ", 4) != 0 ||
+            protocol == NULL || key == NULL ||
+            !g_str_has_suffix(buf, "\r\n\r\n")) {
+        return false;
     }
 
-    return false;
+    /* check protocol value ignoring spaces before and after */
+    int binary_pos = -1;
+    sscanf(protocol, " binary %n", &binary_pos);
+    if (binary_pos <= 0) {
+        return false;
+    }
+
+    return true;
 }
 
 static void websocket_create_reply(char *buf, char *outbuf)
