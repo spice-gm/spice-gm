@@ -90,7 +90,7 @@ struct RedsWebSocket {
     websocket_writev_cb_t raw_writev;
 };
 
-static void websocket_ack_close(void *opaque, websocket_write_cb_t write_cb);
+static void websocket_ack_close(void *stream, websocket_write_cb_t write_cb);
 
 /* Perform a case insensitive search for needle in haystack.
    If found, return a pointer to the byte after the end of needle.
@@ -279,9 +279,6 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
     int n = 0;
     int rc;
     websocket_frame_t *frame = &ws->read_frame;
-    void *opaque = ws->raw_stream;
-    websocket_read_cb_t read_cb = (websocket_read_cb_t) ws->raw_read;
-    websocket_write_cb_t write_cb = (websocket_write_cb_t) ws->raw_write;
 
     if (ws->closed) {
         return 0;
@@ -290,7 +287,8 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
     while (size > 0) {
         // make sure we have a proper frame ready
         if (!frame->frame_ready) {
-            rc = read_cb(ws->raw_stream, frame->header + frame->header_pos, frame_bytes_needed(frame));
+            rc = ws->raw_read(ws->raw_stream, frame->header + frame->header_pos,
+                              frame_bytes_needed(frame));
             if (rc <= 0) {
                 goto read_error;
             }
@@ -302,12 +300,13 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
                 return -1;
             }
         } else if (frame->type == CLOSE_FRAME) {
-            websocket_ack_close(opaque, write_cb);
+            websocket_ack_close(ws->raw_stream, ws->raw_write);
             websocket_clear_frame(frame);
             ws->closed = true;
             return 0;
         } else if (frame->type == BINARY_FRAME) {
-            rc = read_cb(opaque, buf, MIN(size, frame->expected_len - frame->relayed));
+            rc = ws->raw_read(ws->raw_stream, buf,
+                              MIN(size, frame->expected_len - frame->relayed));
             if (rc <= 0) {
                 goto read_error;
             }
@@ -403,24 +402,21 @@ int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
     int iov_out_cnt;
     int i;
     int header_len;
-    void *opaque = ws->raw_stream;
-    websocket_writev_cb_t writev_cb = (websocket_writev_cb_t) ws->raw_writev;
-    uint64_t *remainder = &ws->write_remainder;
 
     if (ws->closed) {
         errno = EPIPE;
         return -1;
     }
-    if (*remainder > 0) {
-        constrain_iov((struct iovec *) iov, iovcnt, &iov_out, &iov_out_cnt, *remainder);
-        rc = writev_cb(opaque, iov_out, iov_out_cnt);
+    if (ws->write_remainder > 0) {
+        constrain_iov((struct iovec *) iov, iovcnt, &iov_out, &iov_out_cnt, ws->write_remainder);
+        rc = ws->raw_writev(ws->raw_stream, iov_out, iov_out_cnt);
         if (iov_out != iov) {
             g_free(iov_out);
         }
         if (rc <= 0) {
             return rc;
         }
-        *remainder -= rc;
+        ws->write_remainder -= rc;
         return rc;
     }
 
@@ -436,7 +432,7 @@ int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
     header_len = fill_header(header, len);
     iov_out[0].iov_len = header_len;
     iov_out[0].iov_base = header;
-    rc = writev_cb(opaque, iov_out, iov_out_cnt);
+    rc = ws->raw_writev(ws->raw_stream, iov_out, iov_out_cnt);
     g_free(iov_out);
     if (rc <= 0) {
         return rc;
@@ -448,7 +444,7 @@ int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
     /* Key point:  if we did not write out all the data, remember how
        much more data the client is expecting, and write that data without
        a header of any kind the next time around */
-    *remainder = len - rc;
+    ws->write_remainder = len - rc;
 
     return rc;
 }
@@ -458,18 +454,15 @@ int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
     uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
     int rc;
     int header_len;
-    void *opaque = ws->raw_stream;
-    websocket_write_cb_t write_cb = (websocket_write_cb_t) ws->raw_write;
-    uint64_t *remainder = &ws->write_remainder;
 
     if (ws->closed) {
         errno = EPIPE;
         return -1;
     }
 
-    if (*remainder == 0) {
+    if (ws->write_remainder == 0) {
         header_len = fill_header(header, len);
-        rc = write_cb(opaque, header, header_len);
+        rc = ws->raw_write(ws->raw_stream, header, header_len);
         if (rc <= 0) {
             return rc;
         }
@@ -481,26 +474,26 @@ int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
             return -1;
         }
     } else {
-        len = MIN(*remainder, len);
+        len = MIN(ws->write_remainder, len);
     }
 
-    rc = write_cb(opaque, buf, len);
+    rc = ws->raw_write(ws->raw_stream, buf, len);
     if (rc <= 0) {
-        *remainder = len;
+        ws->write_remainder = len;
     } else {
-        *remainder = len - rc;
+        ws->write_remainder = len - rc;
     }
     return rc;
 }
 
-static void websocket_ack_close(void *opaque, websocket_write_cb_t write_cb)
+static void websocket_ack_close(void *stream, websocket_write_cb_t write_cb)
 {
     unsigned char header[2];
 
     header[0] = FIN_FLAG | CLOSE_FRAME;
     header[1] = 0;
 
-    write_cb(opaque, header, sizeof(header));
+    write_cb(stream, header, sizeof(header));
 }
 
 static bool websocket_is_start(char *buf)
