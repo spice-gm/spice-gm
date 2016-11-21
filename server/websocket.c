@@ -439,7 +439,12 @@ int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
     }
     rc -= header_len;
 
-    spice_assert(rc >= 0);
+    /* TODO this in theory can happen if we can't write the header */
+    if (SPICE_UNLIKELY(rc < 0)) {
+        ws->closed = true;
+        errno = EPIPE;
+        return -1;
+    }
 
     /* Key point:  if we did not write out all the data, remember how
        much more data the client is expecting, and write that data without
