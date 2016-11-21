@@ -85,6 +85,7 @@ struct RedsWebSocket {
     uint64_t write_remainder;
     uint8_t write_header[WEBSOCKET_MAX_HEADER_SIZE];
     uint8_t write_header_pos, write_header_len;
+    bool close_pending;
 
     void *raw_stream;
     websocket_read_cb_t raw_read;
@@ -92,7 +93,8 @@ struct RedsWebSocket {
     websocket_writev_cb_t raw_writev;
 };
 
-static void websocket_ack_close(void *stream, websocket_write_cb_t write_cb);
+static int websocket_ack_close(RedsWebSocket *ws);
+static int send_pending_data(RedsWebSocket *ws);
 
 /* Perform a case insensitive search for needle in haystack.
    If found, return a pointer to the byte after the end of needle.
@@ -282,7 +284,11 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
     int rc;
     websocket_frame_t *frame = &ws->read_frame;
 
-    if (ws->closed) {
+    if (ws->closed || ws->close_pending) {
+        /* this avoids infinite loop in the case connection is still open and we have
+         * pending data */
+        uint8_t discard[128];
+        ws->raw_read(ws->raw_stream, discard, sizeof(discard));
         return 0;
     }
 
@@ -302,9 +308,9 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
                 return -1;
             }
         } else if (frame->type == CLOSE_FRAME) {
-            websocket_ack_close(ws->raw_stream, ws->raw_write);
+            ws->close_pending = true;
             websocket_clear_frame(frame);
-            ws->closed = true;
+            send_pending_data(ws);
             return 0;
         } else if (frame->type == BINARY_FRAME) {
             rc = ws->raw_read(ws->raw_stream, buf,
@@ -418,13 +424,42 @@ static int send_data_header_left(RedsWebSocket *ws)
 
 static int send_data_header(RedsWebSocket *ws, uint64_t len)
 {
-    /* if we don't have a pending header fill it */
-    if (ws->write_header_pos >= ws->write_header_len) {
-        ws->write_header_pos = 0;
-        ws->write_header_len = fill_header(ws->write_header, len);
-    }
+    spice_assert(ws->write_header_pos >= ws->write_header_len);
+    spice_assert(ws->write_remainder == 0);
+
+    /* fill a new header */
+    ws->write_header_pos = 0;
+    ws->write_header_len = fill_header(ws->write_header, len);
 
     return send_data_header_left(ws);
+}
+
+static int send_pending_data(RedsWebSocket *ws)
+{
+    int rc;
+
+    /* don't send while we are sending a data frame */
+    if (ws->write_remainder) {
+        return 1;
+    }
+
+    /* write pending data frame header not send completely */
+    if (ws->write_header_pos < ws->write_header_len) {
+        rc = send_data_header_left(ws);
+        if (rc <= 0) {
+            return rc;
+        }
+        return 1;
+    }
+
+    /* write close frame */
+    if (ws->close_pending) {
+        rc = websocket_ack_close(ws);
+        if (rc <= 0) {
+            return rc;
+        }
+    }
+    return 1;
 }
 
 /* Write a WebSocket frame with the enclosed data out. */
@@ -440,11 +475,9 @@ int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
         errno = EPIPE;
         return -1;
     }
-    if (ws->write_header_pos < ws->write_header_len) {
-        rc = send_data_header_left(ws);
-        if (rc <= 0) {
-            return rc;
-        }
+    rc = send_pending_data(ws);
+    if (rc <= 0) {
+        return rc;
     }
     if (ws->write_remainder > 0) {
         constrain_iov((struct iovec *) iov, iovcnt, &iov_out, &iov_out_cnt, ws->write_remainder);
@@ -504,6 +537,10 @@ int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
         return -1;
     }
 
+    rc = send_pending_data(ws);
+    if (rc <= 0) {
+        return rc;
+    }
     if (ws->write_remainder == 0) {
         rc = send_data_header(ws, len);
         if (rc <= 0) {
@@ -521,14 +558,20 @@ int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
     return rc;
 }
 
-static void websocket_ack_close(void *stream, websocket_write_cb_t write_cb)
+static int websocket_ack_close(RedsWebSocket *ws)
 {
     unsigned char header[2];
+    int rc;
 
     header[0] = FIN_FLAG | CLOSE_FRAME;
     header[1] = 0;
 
-    write_cb(stream, header, sizeof(header));
+    rc = ws->raw_write(ws->raw_stream, header, sizeof(header));
+    if (rc == sizeof(header)) {
+        ws->close_pending = false;
+        ws->closed = true;
+    }
+    return rc;
 }
 
 static bool websocket_is_start(char *buf)
