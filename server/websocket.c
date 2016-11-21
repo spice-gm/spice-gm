@@ -226,7 +226,7 @@ static int relay_data(uint8_t* buf, size_t size, websocket_frame_t *frame)
     return n;
 }
 
-int websocket_read(RedsWebSocket *ws, uint8_t *buf, int size)
+int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
 {
     int n = 0;
     int rc;
@@ -342,7 +342,7 @@ static void constrain_iov(struct iovec *iov, int iovcnt,
 
 
 /* Write a WebSocket frame with the enclosed data out. */
-int websocket_writev(RedsWebSocket *ws, struct iovec *iov, int iovcnt)
+int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
 {
     uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
     uint64_t len;
@@ -360,7 +360,7 @@ int websocket_writev(RedsWebSocket *ws, struct iovec *iov, int iovcnt)
         return -1;
     }
     if (*remainder > 0) {
-        constrain_iov(iov, iovcnt, &iov_out, &iov_out_cnt, *remainder);
+        constrain_iov((struct iovec *) iov, iovcnt, &iov_out, &iov_out_cnt, *remainder);
         rc = writev_cb(opaque, iov_out, iov_out_cnt);
         if (iov_out != iov) {
             g_free(iov_out);
@@ -401,7 +401,7 @@ int websocket_writev(RedsWebSocket *ws, struct iovec *iov, int iovcnt)
     return rc;
 }
 
-int websocket_write(RedsWebSocket *ws, const uint8_t *buf, int len)
+int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
 {
     uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
     int rc;
