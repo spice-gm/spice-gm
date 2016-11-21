@@ -68,11 +68,11 @@
 #define WEBSOCKET_MAX_HEADER_SIZE (1 + 9 + 4)
 
 typedef struct {
-    int type;
-    int masked;
+    uint8_t type;
     uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
     int header_pos;
-    int frame_ready:1;
+    bool frame_ready:1;
+    bool masked:1;
     uint8_t mask[4];
     uint64_t relayed;
     uint64_t expected_len;
