@@ -78,17 +78,6 @@ typedef struct RedSASL {
 } RedSASL;
 #endif
 
-typedef struct {
-    int closed;
-
-    websocket_frame_t read_frame;
-    uint64_t write_remainder;
-
-    ssize_t (*raw_read)(RedStream *s, void *buf, size_t nbyte);
-    ssize_t (*raw_write)(RedStream *s, const void *buf, size_t nbyte);
-    ssize_t (*raw_writev)(RedStream *s, const struct iovec *iov, int iovcnt);
-} RedsWebSocket;
-
 struct RedStreamPrivate {
     SSL *ssl;
 
@@ -1174,39 +1163,17 @@ error:
 
 static ssize_t stream_websocket_read(RedStream *s, void *buf, size_t size)
 {
-    int rc;
-
-    if (s->priv->ws->closed)
-        return 0;
-
-    rc = websocket_read((void *)s, buf, size, &s->priv->ws->read_frame,
-        (websocket_read_cb_t) s->priv->ws->raw_read,
-        (websocket_write_cb_t) s->priv->ws->raw_write);
-
-    if (rc == 0)
-        s->priv->ws->closed = 1;
-
-    return rc;
+    return websocket_read(s->priv->ws, buf, size);
 }
 
 static ssize_t stream_websocket_write(RedStream *s, const void *buf, size_t size)
 {
-    if (s->priv->ws->closed) {
-        errno = EPIPE;
-        return -1;
-    }
-    return websocket_write((void *)s, buf, size, &s->priv->ws->write_remainder,
-        (websocket_write_cb_t) s->priv->ws->raw_write);
+    return websocket_write(s->priv->ws, buf, size);
 }
 
 static ssize_t stream_websocket_writev(RedStream *s, const struct iovec *iov, int iovcnt)
 {
-    if (s->priv->ws->closed) {
-        errno = EPIPE;
-        return -1;
-    }
-    return websocket_writev((void *)s, (struct iovec *) iov, iovcnt, &s->priv->ws->write_remainder,
-        (websocket_writev_cb_t) s->priv->ws->raw_writev);
+    return websocket_writev(s->priv->ws, (struct iovec *) iov, iovcnt);
 }
 
 /*
@@ -1256,6 +1223,7 @@ bool red_stream_is_websocket(RedStream *stream, const void *buf, size_t len)
         if (rc == strlen(outbuf)) {
             stream->priv->ws = g_malloc0(sizeof(*stream->priv->ws));
 
+            stream->priv->ws->raw_stream = stream;
             stream->priv->ws->raw_read = stream->priv->read;
             stream->priv->ws->raw_write = stream->priv->write;
 

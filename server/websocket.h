@@ -17,6 +17,8 @@
 
 #define WEBSOCKET_MAX_HEADER_SIZE (1 + 9 + 4)
 
+struct RedStream;
+
 typedef struct {
     int type;
     int masked;
@@ -32,13 +34,21 @@ typedef ssize_t (*websocket_read_cb_t)(void *opaque, void *buf, size_t nbyte);
 typedef ssize_t (*websocket_write_cb_t)(void *opaque, const void *buf, size_t nbyte);
 typedef ssize_t (*websocket_writev_cb_t)(void *opaque, struct iovec *iov, int iovcnt);
 
+typedef struct {
+    int closed;
+
+    websocket_frame_t read_frame;
+    uint64_t write_remainder;
+
+    struct RedStream *raw_stream;
+    ssize_t (*raw_read)(struct RedStream *s, void *buf, size_t nbyte);
+    ssize_t (*raw_write)(struct RedStream *s, const void *buf, size_t nbyte);
+    ssize_t (*raw_writev)(struct RedStream *s, const struct iovec *iov, int iovcnt);
+} RedsWebSocket;
+
 bool websocket_is_start(char *buf);
 void websocket_create_reply(char *buf, char *outbuf);
-int websocket_read(void *opaque, uint8_t *buf, int len, websocket_frame_t *frame,
-         websocket_read_cb_t read_cb,
-         websocket_write_cb_t write_cb);
-int websocket_write(void *opaque, const uint8_t *buf, int len, uint64_t *remainder,
-         websocket_write_cb_t write_cb);
-int websocket_writev(void *opaque, struct iovec *iov, int iovcnt, uint64_t *remainder,
-         websocket_writev_cb_t writev_cb);
+int websocket_read(RedsWebSocket *ws, uint8_t *buf, int len);
+int websocket_write(RedsWebSocket *ws, const uint8_t *buf, int len);
+int websocket_writev(RedsWebSocket *ws, struct iovec *iov, int iovcnt);
 void websocket_ack_close(void *opaque, websocket_write_cb_t write_cb);

@@ -226,17 +226,23 @@ static int relay_data(uint8_t* buf, size_t size, websocket_frame_t *frame)
     return n;
 }
 
-int websocket_read(void *opaque, uint8_t *buf, int size, websocket_frame_t *frame,
-                    websocket_read_cb_t read_cb,
-                    websocket_write_cb_t write_cb)
+int websocket_read(RedsWebSocket *ws, uint8_t *buf, int size)
 {
     int n = 0;
     int rc;
+    websocket_frame_t *frame = &ws->read_frame;
+    void *opaque = ws->raw_stream;
+    websocket_read_cb_t read_cb = (websocket_read_cb_t) ws->raw_read;
+    websocket_write_cb_t write_cb = (websocket_write_cb_t) ws->raw_write;
+
+    if (ws->closed) {
+        return 0;
+    }
 
     while (size > 0) {
         // make sure we have a proper frame ready
         if (!frame->frame_ready) {
-            rc = read_cb(opaque, frame->header + frame->header_pos, frame_bytes_needed(frame));
+            rc = read_cb(ws->raw_stream, frame->header + frame->header_pos, frame_bytes_needed(frame));
             if (rc <= 0) {
                 goto read_error;
             }
@@ -246,6 +252,7 @@ int websocket_read(void *opaque, uint8_t *buf, int size, websocket_frame_t *fram
         } else if (frame->type == CLOSE_FRAME) {
             websocket_ack_close(opaque, write_cb);
             websocket_clear_frame(frame);
+            ws->closed = true;
             return 0;
         } else if (frame->type == BINARY_FRAME) {
             rc = read_cb(opaque, buf, MIN(size, frame->expected_len - frame->relayed));
@@ -273,6 +280,9 @@ int websocket_read(void *opaque, uint8_t *buf, int size, websocket_frame_t *fram
 read_error:
     if (n > 0 && rc == -1 && (errno == EINTR || errno == EAGAIN)) {
         return n;
+    }
+    if (rc == 0) {
+        ws->closed = true;
     }
     return rc;
 }
@@ -332,8 +342,7 @@ static void constrain_iov(struct iovec *iov, int iovcnt,
 
 
 /* Write a WebSocket frame with the enclosed data out. */
-int websocket_writev(void *opaque, struct iovec *iov, int iovcnt, uint64_t *remainder,
-         websocket_writev_cb_t writev_cb)
+int websocket_writev(RedsWebSocket *ws, struct iovec *iov, int iovcnt)
 {
     uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
     uint64_t len;
@@ -342,7 +351,14 @@ int websocket_writev(void *opaque, struct iovec *iov, int iovcnt, uint64_t *rema
     int iov_out_cnt;
     int i;
     int header_len;
+    void *opaque = ws->raw_stream;
+    websocket_writev_cb_t writev_cb = (websocket_writev_cb_t) ws->raw_writev;
+    uint64_t *remainder = &ws->write_remainder;
 
+    if (ws->closed) {
+        errno = EPIPE;
+        return -1;
+    }
     if (*remainder > 0) {
         constrain_iov(iov, iovcnt, &iov_out, &iov_out_cnt, *remainder);
         rc = writev_cb(opaque, iov_out, iov_out_cnt);
@@ -385,12 +401,19 @@ int websocket_writev(void *opaque, struct iovec *iov, int iovcnt, uint64_t *rema
     return rc;
 }
 
-int websocket_write(void *opaque, const uint8_t *buf, int len, uint64_t *remainder,
-         websocket_write_cb_t write_cb)
+int websocket_write(RedsWebSocket *ws, const uint8_t *buf, int len)
 {
     uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
     int rc;
     int header_len;
+    void *opaque = ws->raw_stream;
+    websocket_write_cb_t write_cb = (websocket_write_cb_t) ws->raw_write;
+    uint64_t *remainder = &ws->write_remainder;
+
+    if (ws->closed) {
+        errno = EPIPE;
+        return -1;
+    }
 
     if (*remainder == 0) {
         header_len = fill_header(header, len);
