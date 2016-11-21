@@ -63,6 +63,31 @@
 
 #define WEBSOCKET_GUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
+#define WEBSOCKET_MAX_HEADER_SIZE (1 + 9 + 4)
+
+typedef struct {
+    int type;
+    int masked;
+    uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
+    int header_pos;
+    int frame_ready:1;
+    uint8_t mask[4];
+    uint64_t relayed;
+    uint64_t expected_len;
+} websocket_frame_t;
+
+struct RedsWebSocket {
+    bool closed;
+
+    websocket_frame_t read_frame;
+    uint64_t write_remainder;
+
+    void *raw_stream;
+    websocket_read_cb_t raw_read;
+    websocket_write_cb_t raw_write;
+    websocket_writev_cb_t raw_writev;
+};
+
 static void websocket_ack_close(void *opaque, websocket_write_cb_t write_cb);
 
 /* Perform a case insensitive search for needle in haystack.
@@ -453,7 +478,7 @@ static void websocket_ack_close(void *opaque, websocket_write_cb_t write_cb)
     write_cb(opaque, header, sizeof(header));
 }
 
-bool websocket_is_start(char *buf)
+static bool websocket_is_start(char *buf)
 {
     if (strncmp(buf, "GET ", 4) == 0 &&
             // TODO strip, do not assume a single space
@@ -466,7 +491,7 @@ bool websocket_is_start(char *buf)
     return false;
 }
 
-void websocket_create_reply(char *buf, char *outbuf)
+static void websocket_create_reply(char *buf, char *outbuf)
 {
     char *key;
 
@@ -479,9 +504,35 @@ void websocket_create_reply(char *buf, char *outbuf)
     g_free(key);
 }
 
-RedsWebSocket *websocket_new(char *rbuf, struct RedStream *stream, websocket_read_cb_t read_cb,
+RedsWebSocket *websocket_new(const void *buf, size_t len, void *stream, websocket_read_cb_t read_cb,
                              websocket_write_cb_t write_cb, websocket_writev_cb_t writev_cb)
 {
+    char rbuf[4096];
+
+    memcpy(rbuf, buf, len);
+    int rc = read_cb(stream, rbuf + len, sizeof(rbuf) - len - 1);
+    if (rc <= 0) {
+        return NULL;
+    }
+    len += rc;
+    rbuf[len] = 0;
+
+    /* TODO:  this has a theoretical flaw around packet buffering
+              that is not likely to occur in practice.  That is,
+              to be fully correct, we should repeatedly read bytes until
+              either we get the end of the GET header (\r\n\r\n), or until
+              an amount of time has passed.  Instead, we just read for
+              16 bytes, and then read up to the sizeof rbuf.  So if the
+              GET request is only partially complete at this point we
+              will fail.
+
+              A typical GET request is 520 bytes, and it's difficult to
+              imagine a real world case where that will come in fragmented
+              such that we trigger this failure.  Further, the spice reds
+              code has no real mechanism to do variable length/time based reads,
+              so it seems wisest to live with this theoretical flaw.
+    */
+
     if (!websocket_is_start(rbuf)) {
         return NULL;
     }
@@ -489,7 +540,7 @@ RedsWebSocket *websocket_new(char *rbuf, struct RedStream *stream, websocket_rea
     char outbuf[1024];
 
     websocket_create_reply(rbuf, outbuf);
-    int rc = write_cb(stream, outbuf, strlen(outbuf));
+    rc = write_cb(stream, outbuf, strlen(outbuf));
     if (rc != strlen(outbuf)) {
         return NULL;
     }
@@ -502,4 +553,9 @@ RedsWebSocket *websocket_new(char *rbuf, struct RedStream *stream, websocket_rea
     ws->raw_writev = writev_cb;
 
     return ws;
+}
+
+void websocket_free(RedsWebSocket *ws)
+{
+    g_free(ws);
 }

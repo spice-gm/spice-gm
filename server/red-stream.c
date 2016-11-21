@@ -436,7 +436,7 @@ void red_stream_free(RedStream *s)
         SSL_free(s->priv->ssl);
     }
 
-    g_free(s->priv->ws);
+    websocket_free(s->priv->ws);
 
     red_stream_remove_watch(s);
     socket_close(s->socket);
@@ -1184,38 +1184,11 @@ static ssize_t stream_websocket_writev(RedStream *s, const struct iovec *iov, in
 */
 bool red_stream_is_websocket(RedStream *stream, const void *buf, size_t len)
 {
-    char rbuf[4096];
-    int rc;
-
     if (stream->priv->ws) {
         return false;
     }
 
-    memcpy(rbuf, buf, len);
-    rc = stream->priv->read(stream, rbuf + len, sizeof(rbuf) - len - 1);
-    if (rc <= 0) {
-        return false;
-    }
-    len += rc;
-    rbuf[len] = 0;
-
-    /* TODO:  this has a theoretical flaw around packet buffering
-              that is not likely to occur in practice.  That is,
-              to be fully correct, we should repeatedly read bytes until
-              either we get the end of the GET header (\r\n\r\n), or until
-              an amount of time has passed.  Instead, we just read for
-              16 bytes, and then read up to the sizeof rbuf.  So if the
-              GET request is only partially complete at this point we
-              will fail.
-
-              A typical GET request is 520 bytes, and it's difficult to
-              imagine a real world case where that will come in fragmented
-              such that we trigger this failure.  Further, the spice reds
-              code has no real mechanism to do variable length/time based reads,
-              so it seems wisest to live with this theoretical flaw.
-    */
-
-    stream->priv->ws = websocket_new(rbuf, stream,
+    stream->priv->ws = websocket_new(buf, len, stream,
                                      (websocket_read_cb_t) stream->priv->read,
                                      (websocket_write_cb_t) stream->priv->write,
                                      (websocket_writev_cb_t) stream->priv->writev);
