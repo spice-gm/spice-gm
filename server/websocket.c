@@ -310,26 +310,24 @@ static void constrain_iov(struct iovec *iov, int iovcnt,
                           struct iovec **iov_out, int *iov_out_cnt,
                           uint64_t maxlen)
 {
-    int i, j;
-
-    *iov_out = iov;
-    *iov_out_cnt = iovcnt;
+    int i;
 
     for (i = 0; i < iovcnt && maxlen > 0; i++) {
         if (iov[i].iov_len > maxlen) {
             /* TODO - This code has never triggered afaik... */
-            *iov_out_cnt = i + 1;
-            *iov_out = g_malloc((*iov_out_cnt) * sizeof (**iov_out));
-            for (j = 0; j < i; j++) {
-                (*iov_out)[j].iov_base = iov[j].iov_base;
-                (*iov_out)[j].iov_len = iov[j].iov_len;
-            }
-            (*iov_out)[j].iov_base = iov[j].iov_base;
-            (*iov_out)[j].iov_len = maxlen;
-            break;
+            *iov_out_cnt = ++i;
+            *iov_out = g_memdup(iov, i * sizeof (*iov));
+            (*iov_out)[i-1].iov_len = maxlen;
+            return;
         }
         maxlen -= iov[i].iov_len;
     }
+
+    /* we must trim the iov in case maxlen initially matches some chunks
+     * For instance if initially we had 2 chunks 256 and 128 bytes respectively
+     * and a maxlen of 256 we should just return the first chunk */
+    *iov_out_cnt = i;
+    *iov_out = iov;
 }
 
 
