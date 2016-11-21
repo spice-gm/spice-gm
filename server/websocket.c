@@ -83,6 +83,8 @@ struct RedsWebSocket {
 
     websocket_frame_t read_frame;
     uint64_t write_remainder;
+    uint8_t write_header[WEBSOCKET_MAX_HEADER_SIZE];
+    uint8_t write_header_pos, write_header_len;
 
     void *raw_stream;
     websocket_read_cb_t raw_read;
@@ -391,21 +393,58 @@ static void constrain_iov(struct iovec *iov, int iovcnt,
     *iov_out = iov;
 }
 
+static int send_data_header_left(RedsWebSocket *ws)
+{
+    /* send the pending header */
+    /* this can be tested capping the length with MIN with a small size like 3 */
+    int rc = ws->raw_write(ws->raw_stream, ws->write_header + ws->write_header_pos,
+                           ws->write_header_len - ws->write_header_pos);
+    if (rc <= 0) {
+        return rc;
+    }
+    ws->write_header_pos += rc;
+
+    /* if header was sent now we can send data */
+    if (ws->write_header_pos >= ws->write_header_len) {
+        int used = 1;
+        ws->write_remainder = extract_length(ws->write_header + used, &used);
+        return ws->write_header_len;
+    }
+
+    /* otherwise try to send the rest later */
+    errno = EAGAIN;
+    return -1;
+}
+
+static int send_data_header(RedsWebSocket *ws, uint64_t len)
+{
+    /* if we don't have a pending header fill it */
+    if (ws->write_header_pos >= ws->write_header_len) {
+        ws->write_header_pos = 0;
+        ws->write_header_len = fill_header(ws->write_header, len);
+    }
+
+    return send_data_header_left(ws);
+}
 
 /* Write a WebSocket frame with the enclosed data out. */
 int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
 {
-    uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
     uint64_t len;
-    int rc = -1;
+    int rc;
     struct iovec *iov_out;
     int iov_out_cnt;
     int i;
-    int header_len;
 
     if (ws->closed) {
         errno = EPIPE;
         return -1;
+    }
+    if (ws->write_header_pos < ws->write_header_len) {
+        rc = send_data_header_left(ws);
+        if (rc <= 0) {
+            return rc;
+        }
     }
     if (ws->write_remainder > 0) {
         constrain_iov((struct iovec *) iov, iovcnt, &iov_out, &iov_out_cnt, ws->write_remainder);
@@ -428,23 +467,25 @@ int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
         iov_out[i + 1] = iov[i];
     }
 
-    memset(header, 0, sizeof(header));
-    header_len = fill_header(header, len);
-    iov_out[0].iov_len = header_len;
-    iov_out[0].iov_base = header;
+    ws->write_header_pos = 0;
+    ws->write_header_len = fill_header(ws->write_header, len);
+    iov_out[0].iov_len = ws->write_header_len;
+    iov_out[0].iov_base = ws->write_header;
     rc = ws->raw_writev(ws->raw_stream, iov_out, iov_out_cnt);
     g_free(iov_out);
     if (rc <= 0) {
+        ws->write_header_len = 0;
         return rc;
     }
-    rc -= header_len;
 
-    /* TODO this in theory can happen if we can't write the header */
-    if (SPICE_UNLIKELY(rc < 0)) {
-        ws->closed = true;
-        errno = EPIPE;
+    /* this can happen if we can't write the header */
+    if (SPICE_UNLIKELY(rc < ws->write_header_len)) {
+        ws->write_header_pos = ws->write_header_len - rc;
+        errno = EAGAIN;
         return -1;
     }
+    ws->write_header_pos = ws->write_header_len;
+    rc -= ws->write_header_len;
 
     /* Key point:  if we did not write out all the data, remember how
        much more data the client is expecting, and write that data without
@@ -456,9 +497,7 @@ int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
 
 int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
 {
-    uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
     int rc;
-    int header_len;
 
     if (ws->closed) {
         errno = EPIPE;
@@ -466,18 +505,11 @@ int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
     }
 
     if (ws->write_remainder == 0) {
-        header_len = fill_header(header, len);
-        rc = ws->raw_write(ws->raw_stream, header, header_len);
+        rc = send_data_header(ws, len);
         if (rc <= 0) {
             return rc;
         }
-        if (rc != header_len) {
-            /* TODO - In theory, we can handle this case.  In practice,
-                      it does not occur, and does not seem to be worth
-                      the code complexity */
-            errno = EPIPE;
-            return -1;
-        }
+        len = ws->write_remainder;
     } else {
         len = MIN(ws->write_remainder, len);
     }
