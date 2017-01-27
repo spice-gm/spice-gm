@@ -83,6 +83,12 @@ noinst_PROGRAMS =				\
 	$(check_PROGRAMS)			\
 	$(NULL)
 
+if !OS_WIN32
+noinst_PROGRAMS += \
+	test-websocket \
+	$(NULL)
+endif
+
 TESTS = $(check_PROGRAMS)			\
 	$(NULL)
 

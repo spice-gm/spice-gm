@@ -28,5 +28,6 @@ test-gst
 test-leaks
 test-sasl
 test-record
+test-websocket
 /test-*.log
 /test-*.trs

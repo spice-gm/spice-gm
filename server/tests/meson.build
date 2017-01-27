@@ -67,6 +67,7 @@ if host_machine.system() != 'windows'
   tests += [
     ['test-stream', true],
     ['test-stat-file', true],
+    ['test-websocket', false],
   ]
 endif
 
