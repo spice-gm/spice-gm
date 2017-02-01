@@ -46,7 +46,9 @@
 /* Constants / masks all from RFC 6455 */
 
 #define FIN_FLAG        0x80
+#define RSV_MASK        0x70
 #define TYPE_MASK       0x0F
+#define CONTROL_FRAME_MASK 0x8
 
 #define CONTINUATION_FRAME  0x0
 #define TEXT_FRAME      0x1
@@ -206,21 +208,33 @@ static void websocket_clear_frame(websocket_frame_t *frame)
 }
 
 /* Extract a frame header of data from a set of data transmitted by
-    a WebSocket client. */
-static void websocket_get_frame_header(websocket_frame_t *frame)
+    a WebSocket client. Returns success or error */
+static bool websocket_get_frame_header(websocket_frame_t *frame)
 {
     int fin;
     int used = 0;
 
     if (frame_bytes_needed(frame) > 0) {
-        return;
+        return true;
     }
 
     fin = frame->header[0] & FIN_FLAG;
     frame->type = frame->header[0] & TYPE_MASK;
     used++;
 
-    frame->masked = frame->header[1] & MASK_FLAG;
+    // reserved bits are not expected
+    if (frame->header[0] & RSV_MASK) {
+        return false;
+    }
+    // control commands cannot be split
+    if (!fin && (frame->type & CONTROL_FRAME_MASK) != 0) {
+        return false;
+    }
+    if ((frame->type & ~CONTROL_FRAME_MASK) >= 3) {
+        return false;
+    }
+
+    frame->masked = !!(frame->header[1] & MASK_FLAG);
 
     /* This is a Spice specific optimization.  We don't really
        care about assembling frames fully, so we treat
@@ -235,8 +249,15 @@ static void websocket_get_frame_header(websocket_frame_t *frame)
         memcpy(frame->mask, frame->header + used, 4);
     }
 
+    /* control frames cannot have more than 125 bytes of data */
+    if ((frame->type & CONTROL_FRAME_MASK) != 0 &&
+        frame->expected_len >= LENGTH_16BIT) {
+        return false;
+    }
+
     frame->relayed = 0;
-    frame->frame_ready = 1;
+    frame->frame_ready = true;
+    return true;
 }
 
 static int relay_data(uint8_t* buf, size_t size, websocket_frame_t *frame)
@@ -275,7 +296,11 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
             }
             frame->header_pos += rc;
 
-            websocket_get_frame_header(frame);
+            if (!websocket_get_frame_header(frame)) {
+                ws->closed = true;
+                errno = EIO;
+                return -1;
+            }
         } else if (frame->type == CLOSE_FRAME) {
             websocket_ack_close(opaque, write_cb);
             websocket_clear_frame(frame);
