@@ -67,6 +67,21 @@
 
 #define WEBSOCKET_MAX_HEADER_SIZE (1 + 9 + 4)
 
+#define MAX_CONTROL_DATA 125
+#define CONTROL_HDR_LEN 2
+
+typedef struct {
+    uint8_t raw_pos;
+    union {
+        uint8_t raw_data[MAX_CONTROL_DATA + CONTROL_HDR_LEN];
+        struct {
+            uint8_t type;
+            uint8_t data_len;
+            uint8_t data[MAX_CONTROL_DATA];
+        };
+    };
+} WebSocketControl;
+
 typedef struct {
     uint8_t type;
     uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
@@ -86,6 +101,8 @@ struct RedsWebSocket {
     uint8_t write_header[WEBSOCKET_MAX_HEADER_SIZE];
     uint8_t write_header_pos, write_header_len;
     bool close_pending;
+    WebSocketControl pong;
+    WebSocketControl pending_pong;
 
     void *raw_stream;
     websocket_read_cb_t raw_read;
@@ -95,6 +112,28 @@ struct RedsWebSocket {
 
 static int websocket_ack_close(RedsWebSocket *ws);
 static int send_pending_data(RedsWebSocket *ws);
+
+static inline int get_control_raw_len(const WebSocketControl *control)
+{
+    return control->data_len + CONTROL_HDR_LEN;
+}
+
+static inline void control_init(WebSocketControl *control, uint8_t type)
+{
+    control->raw_pos = CONTROL_HDR_LEN;
+    control->type = type;
+    control->data_len = 0;
+}
+
+static inline bool control_sent(const WebSocketControl *control)
+{
+    return control->raw_pos >= get_control_raw_len(control);
+}
+
+static inline void pong_init(WebSocketControl *pong)
+{
+    control_init(pong, FIN_FLAG | PONG_FRAME);
+}
 
 /* Perform a case insensitive search for needle in haystack.
    If found, return a pointer to the byte after the end of needle.
@@ -264,18 +303,14 @@ static bool websocket_get_frame_header(websocket_frame_t *frame)
     return true;
 }
 
-static int relay_data(uint8_t* buf, size_t size, websocket_frame_t *frame)
+static void relay_data(uint8_t* buf, size_t size, websocket_frame_t *frame)
 {
-    int i;
-    int n = MIN(size, frame->expected_len - frame->relayed);
-
     if (frame->masked) {
-        for (i = 0; i < n; i++, frame->relayed++) {
-            *buf++ ^= frame->mask[frame->relayed % 4];
+        size_t i;
+        for (i = 0; i < size; i++) {
+            *buf++ ^= frame->mask[(frame->relayed + i) % 4];
         }
     }
-
-    return n;
 }
 
 int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
@@ -307,7 +342,15 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
                 errno = EIO;
                 return -1;
             }
-        } else if (frame->type == CLOSE_FRAME) {
+            /* discard a pending ping, replace with current one */
+            if (frame->frame_ready && frame->type == PING_FRAME) {
+                pong_init(&ws->pong);
+                ws->pong.data_len = frame->expected_len;
+            }
+            continue;
+        }
+
+        if (frame->type == CLOSE_FRAME) {
             ws->close_pending = true;
             websocket_clear_frame(frame);
             send_pending_data(ws);
@@ -319,18 +362,50 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
                 goto read_error;
             }
 
-            rc = relay_data(buf, rc, frame);
+            relay_data(buf, rc, frame);
             n += rc;
             buf += rc;
             size -= rc;
-            if (frame->relayed >= frame->expected_len) {
-                websocket_clear_frame(frame);
+        } else if (frame->type == PING_FRAME) {
+            spice_assert(ws->pong.data_len == frame->expected_len);
+            rc = 0;
+            if (ws->pong.data_len > (ws->pong.raw_pos - CONTROL_HDR_LEN)) {
+                rc = ws->raw_read(ws->raw_stream, ws->pong.raw_data + ws->pong.raw_pos,
+                                  ws->pong.data_len - (ws->pong.raw_pos - CONTROL_HDR_LEN));
+                if (rc <= 0) {
+                    goto read_error;
+                }
+                relay_data(ws->pong.raw_data + ws->pong.raw_pos, rc, frame);
+                ws->pong.raw_pos += rc;
+            }
+            if (ws->pong.raw_pos - CONTROL_HDR_LEN >= ws->pong.data_len) {
+                ws->pong.raw_pos = 0;
+                if (control_sent(&ws->pending_pong)) {
+                    ws->pending_pong = ws->pong;
+                    pong_init(&ws->pong);
+                }
+                send_pending_data(ws);
             }
         } else {
-            /* TODO - We don't handle PING at this point */
-            spice_warning("Unexpected WebSocket frame.type %d.  Failure now likely.", frame->type);
+            /* client could sent a PONG just as heartbeat */
+            if (frame->type != PONG_FRAME) {
+                spice_warning("Unexpected WebSocket frame.type %d.  Failure now likely.", frame->type);
+            }
+
+            // discard this data
+            uint8_t discard[128];
+            rc = 0;
+            if (frame->expected_len > frame->relayed) {
+                rc = ws->raw_read(ws->raw_stream, discard,
+                                  MIN(sizeof(discard), frame->expected_len - frame->relayed));
+                if (rc <= 0) {
+                    goto read_error;
+                }
+            }
+        }
+        frame->relayed += rc;
+        if (frame->relayed >= frame->expected_len) {
             websocket_clear_frame(frame);
-            continue;
         }
     }
 
@@ -457,6 +532,25 @@ static int send_pending_data(RedsWebSocket *ws)
         rc = websocket_ack_close(ws);
         if (rc <= 0) {
             return rc;
+        }
+    }
+
+    WebSocketControl *pong = &ws->pending_pong;
+    if (!control_sent(pong)) {
+        rc = ws->raw_write(ws->raw_stream, pong->raw_data + pong->raw_pos,
+                           get_control_raw_len(pong) - pong->raw_pos);
+        if (rc <= 0) {
+            return rc;
+        }
+        pong->raw_pos += rc;
+        if (!control_sent(pong)) {
+            errno = EAGAIN;
+            return -1;
+        }
+        /* already another pending */
+        if (ws->pong.raw_pos == 0) {
+            ws->pending_pong = ws->pong;
+            pong_init(&ws->pong);
         }
     }
     return 1;
@@ -655,6 +749,9 @@ RedsWebSocket *websocket_new(const void *buf, size_t len, void *stream, websocke
     ws->raw_read = read_cb;
     ws->raw_write = write_cb;
     ws->raw_writev = writev_cb;
+
+    pong_init(&ws->pong);
+    pong_init(&ws->pending_pong);
 
     return ws;
 }
