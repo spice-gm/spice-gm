@@ -83,7 +83,7 @@ typedef struct {
 } WebSocketControl;
 
 typedef struct {
-    uint8_t type;
+    uint8_t type, fin, unfinished;
     uint8_t header[WEBSOCKET_MAX_HEADER_SIZE];
     int header_pos;
     bool frame_ready:1;
@@ -100,6 +100,7 @@ struct RedsWebSocket {
     uint64_t write_remainder;
     uint8_t write_header[WEBSOCKET_MAX_HEADER_SIZE];
     uint8_t write_header_pos, write_header_len;
+    bool send_unfinished;
     bool close_pending;
     WebSocketControl pong;
     WebSocketControl pending_pong;
@@ -247,7 +248,9 @@ static char *generate_reply_key(char *buf)
 
 static void websocket_clear_frame(websocket_frame_t *frame)
 {
+    uint8_t unfinished = frame->unfinished;
     memset(frame, 0, sizeof(*frame));
+    frame->unfinished = unfinished;
 }
 
 /* Extract a frame header of data from a set of data transmitted by
@@ -261,7 +264,7 @@ static bool websocket_get_frame_header(websocket_frame_t *frame)
         return true;
     }
 
-    fin = frame->header[0] & FIN_FLAG;
+    fin = frame->fin = frame->header[0] & FIN_FLAG;
     frame->type = frame->header[0] & TYPE_MASK;
     used++;
 
@@ -282,8 +285,16 @@ static bool websocket_get_frame_header(websocket_frame_t *frame)
     /* This is a Spice specific optimization.  We don't really
        care about assembling frames fully, so we treat
        a frame in process as a finished frame and pass it along. */
-    if (!fin && frame->type == CONTINUATION_FRAME) {
-        frame->type = BINARY_FRAME;
+    if ((frame->type & CONTROL_FRAME_MASK) == 0) {
+        if (frame->type == CONTINUATION_FRAME) {
+            if (!frame->unfinished) {
+                return false;
+            }
+            frame->type = frame->unfinished;
+        } else if (frame->unfinished) {
+            return false;
+        }
+        frame->unfinished = fin ? 0 : frame->type;
     }
 
     frame->expected_len = extract_length(frame->header + used, &used);
@@ -358,18 +369,21 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size, unsigned *flags
             send_pending_data(ws);
             return 0;
         } else if (frame->type == BINARY_FRAME || frame->type == TEXT_FRAME) {
-            rc = ws->raw_read(ws->raw_stream, buf,
-                              MIN(size, frame->expected_len - frame->relayed));
-            if (rc <= 0) {
-                goto read_error;
+            rc = 0;
+            if (frame->expected_len > frame->relayed) {
+                rc = ws->raw_read(ws->raw_stream, buf,
+                                  MIN(size, frame->expected_len - frame->relayed));
+                if (rc <= 0) {
+                    goto read_error;
+                }
+
+                relay_data(buf, rc, frame);
+                n += rc;
+                buf += rc;
+                size -= rc;
             }
 
             *flags = frame->type;
-
-            relay_data(buf, rc, frame);
-            n += rc;
-            buf += rc;
-            size -= rc;
         } else if (frame->type == PING_FRAME) {
             spice_assert(ws->pong.data_len == frame->expected_len);
             rc = 0;
@@ -409,8 +423,11 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size, unsigned *flags
         }
         frame->relayed += rc;
         if (frame->relayed >= frame->expected_len) {
+            if (*flags) {
+                *flags |= frame->fin;
+            }
             websocket_clear_frame(frame);
-            if (n) {
+            if (*flags) {
                 break;
             }
         }
@@ -433,8 +450,8 @@ static int fill_header(uint8_t *header, uint64_t len, uint8_t type)
     int used = 0;
     int i;
 
-    type &= TYPE_MASK;
-    header[0] = FIN_FLAG | (type ? type : BINARY_FRAME);
+    type &= FIN_FLAG|TYPE_MASK;
+    header[0] = type;
     used++;
 
     header[1] = 0;
@@ -512,7 +529,11 @@ static int send_data_header(RedsWebSocket *ws, uint64_t len, uint8_t type)
 
     /* fill a new header */
     ws->write_header_pos = 0;
+    if (ws->send_unfinished) {
+        type &= FIN_FLAG;
+    }
     ws->write_header_len = fill_header(ws->write_header, len, type);
+    ws->send_unfinished = (type & FIN_FLAG) == 0;
 
     return send_data_header_left(ws);
 }

@@ -219,21 +219,28 @@ handle_client(int new_sock)
     assert(ws);
 
     char buffer[4096];
+    bool got_message = false;
     size_t to_send = 0;
     unsigned ws_flags = WEBSOCKET_BINARY_FINAL;
     while (!got_term) {
         int events = 0;
-        if (sizeof(buffer) > to_send) {
+        if (sizeof(buffer) > to_send &&
+            (!got_message || (ws_flags & WEBSOCKET_FINAL) == 0)) {
             events |= POLLIN;
         }
-        if (to_send) {
+        assert(!to_send || got_message);
+        if (got_message) {
             events |= POLLOUT;
         }
         events = wait_for(new_sock, events);
         if (events & POLLIN) {
             assert(sizeof(buffer) > to_send);
+            unsigned flags;
             int size = websocket_read(ws, (void *) (buffer + to_send), sizeof(buffer) - to_send,
-                                      &ws_flags);
+                                      &flags);
+            if (flags) {
+                ws_flags = flags;
+            }
 
             if (size < 0) {
                 if (errno == EIO) {
@@ -245,14 +252,15 @@ handle_client(int new_sock)
                 err(1, "recv");
             }
 
-            if (size == 0) {
+            if (size == 0 && flags == 0) {
                 break;
             }
 
             if (debug) {
-                printf("received %d bytes of data\n", size);
+                printf("received %d bytes of data flags %x\n", size, flags);
             }
             to_send += size;
+            got_message = true;
         }
 
         if (events & POLLOUT) {
@@ -275,12 +283,11 @@ handle_client(int new_sock)
                 printf("sent %d bytes of data\n", size);
             }
 
-            if (size == 0) {
-                errx(1, "Unexpected short write\n");
-            }
-
             to_send -= size;
             memmove(buffer, buffer + size, to_send);
+            if (!to_send) {
+                got_message = false;
+            }
         }
     }
 
