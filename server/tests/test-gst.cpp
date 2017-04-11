@@ -739,8 +739,9 @@ create_video_encoder(const EncoderInfo *encoder)
 
     video_encoder = encoder->new_encoder(encoder->coded_type, starting_bit_rate, &rate_control_cbs,
                                          (bitmap_ref_t) frame_ref, (bitmap_unref_t) frame_unref);
-    // TODO return not supported error
-    spice_assert(video_encoder);
+    if (video_encoder == NULL) {
+        exit(123);
+    }
 }
 
 static void
