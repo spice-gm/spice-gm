@@ -132,7 +132,7 @@ sc_check_author_list:
 # XXX some of these tools/ programs probably ought to bindtextdomain ?
 exclude_file_name_regexp--sc_bindtextdomain = ^server/tests|common/region.c|tools/(bitmap_to_c.c|icon_to_c.c|reds_stat.c)
 
-exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = docs/.*.odt|server/tests/base_test.ppm|docs/manual/images/.*.png
+exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = docs/.*.odt|server/tests/base_test.ppm|docs/manual/images/.*.png|docs/images/newbies/.*.png
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = ^.*\.(c|py|h)
 
