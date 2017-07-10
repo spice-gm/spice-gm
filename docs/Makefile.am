@@ -8,12 +8,14 @@ EXTRA_DIST =					\
 	spice_threading_model.html		\
 	spice_threading_model.txt		\
 	vd_interfaces.txt			\
+	spice_protocol.txt			\
 	$(NULL)
 
 HTML_FILES = \
 	spice_style.html \
 	spice_threading_model.html \
 	vd_interfaces.html \
+	spice_protocol.html \
 	$(NULL)
 
 if BUILD_MANUAL
