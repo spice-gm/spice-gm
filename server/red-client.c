@@ -106,6 +106,7 @@ red_client_finalize (GObject *object)
 {
     RedClient *self = RED_CLIENT(object);
 
+    g_clear_object(&self->mcc);
     spice_debug("release client=%p", self);
     pthread_mutex_destroy(&self->lock);
 
@@ -313,7 +314,8 @@ MainChannelClient *red_client_get_main(RedClient *client)
 
 void red_client_set_main(RedClient *client, MainChannelClient *mcc)
 {
-    client->mcc = mcc;
+    spice_assert(client->mcc == NULL);
+    client->mcc = g_object_ref(mcc);
 }
 
 void red_client_semi_seamless_migrate_complete(RedClient *client)
