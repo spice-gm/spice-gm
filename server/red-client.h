@@ -39,8 +39,6 @@ gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError
 void red_client_remove_channel(RedChannelClient *rcc);
 
 MainChannelClient *red_client_get_main(RedClient *client);
-// main should be set once before all the other channels are created
-void red_client_set_main(RedClient *client, MainChannelClient *mcc);
 
 /* called when the migration handshake results in seamless migration (dst side).
  * By default we assume semi-seamless */

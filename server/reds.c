@@ -1902,7 +1902,6 @@ static void reds_handle_main_link(RedsState *reds, RedLinkInfo *link)
     red_channel_capabilities_reset(&caps);
     spice_debug("NEW Client %p mcc %p connect-id %d", client, mcc, connection_id);
     g_free(link_mess);
-    red_client_set_main(client, mcc);
 
     if (reds->vdagent) {
         if (mig_target) {

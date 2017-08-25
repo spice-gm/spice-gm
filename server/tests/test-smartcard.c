@@ -337,7 +337,6 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
     mcc = main_channel_link(main_channel, client, create_dummy_stream(server, NULL),
                             0, FALSE, &caps);
     g_assert_nonnull(mcc);
-    red_client_set_main(client, mcc);
 
     // create our testing RedChannelClient
     red_channel_connect(channel, client, create_dummy_stream(server, &client_socket),

@@ -295,6 +295,11 @@ gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError
         goto cleanup;
     }
 
+    // first must be the main one
+    if (!client->mcc) {
+        client->mcc = g_object_ref(rcc);
+        spice_assert(MAIN_CHANNEL_CLIENT(rcc) != NULL);
+    }
     client->channels = g_list_prepend(client->channels, rcc);
     if (client->during_target_migrate && client->seamless_migrate) {
         if (red_channel_client_set_migration_seamless(rcc)) {
@@ -310,12 +315,6 @@ cleanup:
 MainChannelClient *red_client_get_main(RedClient *client)
 {
     return client->mcc;
-}
-
-void red_client_set_main(RedClient *client, MainChannelClient *mcc)
-{
-    spice_assert(client->mcc == NULL);
-    client->mcc = g_object_ref(mcc);
 }
 
 void red_client_semi_seamless_migrate_complete(RedClient *client)
