@@ -190,8 +190,6 @@ void red_client_migrate(RedClient *client)
 
 void red_client_destroy(RedClient *client)
 {
-    RedChannelClient *rcc;
-
     if (!pthread_equal(pthread_self(), client->thread_id)) {
         spice_warning("client->thread_id (%p) != "
                       "pthread_self (%p)."
@@ -200,23 +198,45 @@ void red_client_destroy(RedClient *client)
                       (void*) client->thread_id,
                       (void*) pthread_self());
     }
-    red_client_set_disconnecting(client);
-    FOREACH_CHANNEL_CLIENT(client, rcc) {
+
+    pthread_mutex_lock(&client->lock);
+    spice_debug("destroy client %p with #channels=%d", client, g_list_length(client->channels));
+    // This makes sure that we won't try to add new RedChannelClient instances
+    // to the RedClient::channels list while iterating it
+    client->disconnecting = TRUE;
+    while (client->channels) {
         RedChannel *channel;
+        RedChannelClient *rcc = client->channels->data;
+
+        // Remove the RedChannelClient we are processing from the list
+        // Note that we own the object so it is safe to do some operations on it.
+        // This manual scan of the list is done to have a thread safe
+        // iteration of the list
+        client->channels = g_list_delete_link(client->channels, client->channels);
+
+        // prevent dead lock disconnecting rcc (which can happen
+        // in the same thread or synchronously on another one)
+        pthread_mutex_unlock(&client->lock);
+
         // some channels may be in other threads, so disconnection
         // is not synchronous.
         channel = red_channel_client_get_channel(rcc);
         red_channel_client_set_destroying(rcc);
+
         // some channels may be in other threads. However we currently
         // assume disconnect is synchronous (we changed the dispatcher
         // to wait for disconnection)
         // TODO: should we go back to async. For this we need to use
         // ref count for channel clients.
         red_channel_disconnect_client(channel, rcc);
+
         spice_assert(red_channel_client_pipe_is_empty(rcc));
         spice_assert(red_channel_client_no_item_being_sent(rcc));
+
         red_channel_client_destroy(rcc);
+        pthread_mutex_lock(&client->lock);
     }
+    pthread_mutex_unlock(&client->lock);
     g_object_unref(client);
 }
 
