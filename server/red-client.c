@@ -234,6 +234,7 @@ void red_client_destroy(RedClient *client)
         spice_assert(red_channel_client_no_item_being_sent(rcc));
 
         red_channel_client_destroy(rcc);
+        g_object_unref(rcc);
         pthread_mutex_lock(&client->lock);
     }
     pthread_mutex_unlock(&client->lock);
@@ -347,8 +348,14 @@ void red_client_remove_channel(RedChannelClient *rcc)
 {
     RedClient *client = red_channel_client_get_client(rcc);
     pthread_mutex_lock(&client->lock);
-    client->channels = g_list_remove(client->channels, rcc);
+    GList *link = g_list_find(client->channels, rcc);
+    if (link) {
+        client->channels = g_list_delete_link(client->channels, link);
+    }
     pthread_mutex_unlock(&client->lock);
+    if (link) {
+        g_object_unref(rcc);
+    }
 }
 
 /* returns TRUE If all channels are finished migrating, FALSE otherwise */

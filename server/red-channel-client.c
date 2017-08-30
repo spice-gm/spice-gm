@@ -678,6 +678,8 @@ static void red_channel_client_ping_timer(void *opaque)
 {
     RedChannelClient *rcc = opaque;
 
+    g_object_ref(rcc);
+
     spice_assert(rcc->priv->latency_monitor.state == PING_STATE_TIMER);
     red_channel_client_cancel_ping_timer(rcc);
 
@@ -692,11 +694,13 @@ static void red_channel_client_ping_timer(void *opaque)
     if (so_unsent_size > 0) {
         /* tcp send buffer is still occupied. rescheduling ping */
         red_channel_client_start_ping_timer(rcc, PING_TEST_IDLE_NET_TIMEOUT_MS);
+        g_object_unref(rcc);
         return;
     }
 #endif /* ifdef HAVE_LINUX_SOCKIOS_H */
     /* More portable alternative code path (less accurate but avoids bogus ioctls)*/
     red_channel_client_push_ping(rcc);
+    g_object_unref(rcc);
 }
 
 static inline int red_channel_client_waiting_for_ack(RedChannelClient *rcc)
@@ -727,6 +731,8 @@ static void red_channel_client_connectivity_timer(void *opaque)
     RedChannelClient *rcc = opaque;
     RedChannelClientConnectivityMonitor *monitor = &rcc->priv->connectivity_monitor;
     int is_alive = TRUE;
+
+    g_object_ref(rcc);
 
     if (monitor->state == CONNECTIVITY_STATE_BLOCKED) {
         if (!monitor->received_bytes && !monitor->sent_bytes) {
@@ -766,6 +772,7 @@ static void red_channel_client_connectivity_timer(void *opaque)
                             rcc, monitor->timeout);
         red_channel_client_disconnect(rcc);
     }
+    g_object_unref(rcc);
 }
 
 void red_channel_client_start_connectivity_monitoring(RedChannelClient *rcc, uint32_t timeout_ms)
@@ -1026,8 +1033,6 @@ void red_channel_client_destroy(RedChannelClient *rcc)
 {
     rcc->priv->destroying = TRUE;
     red_channel_client_disconnect(rcc);
-    red_client_remove_channel(rcc);
-    g_object_unref(rcc);
 }
 
 void red_channel_client_shutdown(RedChannelClient *rcc)
@@ -1736,6 +1741,10 @@ void red_channel_client_disconnect(RedChannelClient *rcc)
 
     red_channel_remove_client(channel, rcc);
     red_channel_client_on_disconnect(rcc);
+    // remove client from RedClient
+    // NOTE this may trigger the free of the object, if we are in a watch/timer
+    // we should make sure we keep a reference
+    red_client_remove_channel(rcc);
 }
 
 gboolean red_channel_client_is_blocked(RedChannelClient *rcc)
