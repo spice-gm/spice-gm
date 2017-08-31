@@ -224,11 +224,9 @@ static void red_char_device_handle_client_overflow(RedCharDeviceClient *dev_clie
 static RedCharDeviceClient *red_char_device_client_find(RedCharDevice *dev,
                                                         RedClient *client)
 {
-    GList *item;
+    RedCharDeviceClient *dev_client;
 
-    for (item = dev->priv->clients; item != NULL; item = item->next) {
-        RedCharDeviceClient *dev_client = item->data;
-
+    GLIST_FOREACH(dev->priv->clients, RedCharDeviceClient, dev_client) {
         if (dev_client->client == client) {
             return dev_client;
         }
@@ -254,12 +252,10 @@ static int red_char_device_can_send_to_client(RedCharDeviceClient *dev_client)
 
 static uint64_t red_char_device_max_send_tokens(RedCharDevice *dev)
 {
-    GList *item;
+    RedCharDeviceClient *dev_client;
     uint64_t max = 0;
 
-    for (item = dev->priv->clients; item != NULL; item = item->next) {
-        RedCharDeviceClient *dev_client = item->data;
-
+    GLIST_FOREACH(dev->priv->clients, RedCharDeviceClient, dev_client) {
         if (!dev_client->do_flow_control) {
             max = ~0;
             break;
@@ -294,13 +290,9 @@ static void red_char_device_add_msg_to_client_queue(RedCharDeviceClient *dev_cli
 static void red_char_device_send_msg_to_clients(RedCharDevice *dev,
                                                 RedPipeItem *msg)
 {
-    GList *l;
+    RedCharDeviceClient *dev_client;
 
-    l = dev->priv->clients;
-    while (l) {
-        GList *next = l->next;
-        RedCharDeviceClient *dev_client = l->data;
-
+    GLIST_FOREACH(dev->priv->clients, RedCharDeviceClient, dev_client) {
         if (red_char_device_can_send_to_client(dev_client)) {
             dev_client->num_send_tokens--;
             spice_assert(g_queue_is_empty(dev_client->send_queue));
@@ -310,7 +302,6 @@ static void red_char_device_send_msg_to_clients(RedCharDevice *dev,
         } else {
             red_char_device_add_msg_to_client_queue(dev_client, msg);
         }
-        l = next;
     }
 }
 
@@ -823,7 +814,7 @@ void red_char_device_stop(RedCharDevice *dev)
 
 void red_char_device_reset(RedCharDevice *dev)
 {
-    GList *client_item;
+    RedCharDeviceClient *dev_client;
     RedCharDeviceWriteBuffer *buf;
 
     dev->priv->wait_for_migrate_data = FALSE;
@@ -833,9 +824,7 @@ void red_char_device_reset(RedCharDevice *dev)
     }
     red_char_device_write_buffer_release(dev, &dev->priv->cur_write_buf);
 
-    for (client_item = dev->priv->clients; client_item != NULL; client_item = client_item->next) {
-        RedCharDeviceClient *dev_client = client_item->data;
-
+    GLIST_FOREACH(dev->priv->clients, RedCharDeviceClient, dev_client) {
         spice_debug("send_queue_empty %d", g_queue_is_empty(dev_client->send_queue));
         dev_client->num_send_tokens += g_queue_get_length(dev_client->send_queue);
         g_queue_free_full(dev_client->send_queue, (GDestroyNotify)red_pipe_item_unref);
