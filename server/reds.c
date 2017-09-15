@@ -2588,8 +2588,12 @@ static int reds_init_socket(const char *addr, int portnr, int family)
 
         local.sun_family = AF_UNIX;
         g_strlcpy(local.sun_path, addr, sizeof(local.sun_path));
-        unlink(local.sun_path);
         len = SUN_LEN(&local);
+        if (local.sun_path[0] == '@') {
+            local.sun_path[0] = 0;
+        } else {
+            unlink(local.sun_path);
+        }
         if (bind(slisten, (struct sockaddr *)&local, len) == -1) {
             perror("bind");
             socket_close(slisten);
