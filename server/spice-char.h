@@ -40,9 +40,35 @@ typedef enum {
 struct SpiceCharDeviceInterface {
     SpiceBaseInterface base;
 
+    /* Set the state of the device.
+     * connected should be 0 or 1.
+     * Setting state to 0 causes the device to be disabled.
+     * This can be used by SPICE server to tell guest that device is not
+     * working anymore (for instance because the guest itself sent some
+     * wrong request).
+     */
     void (*state)(SpiceCharDeviceInstance *sin, int connected);
+
+    /* Write some bytes to the character device.
+     * Returns bytes copied from buf or a value < 0 on errors.
+     * If able to write some bytes the function should return the amount of
+     * bytes successfully written.
+     * Function can return a value < len, even 0.
+     * errno is not determined after calling this function.
+     * Function should be implemented as no-blocking.
+     * A len < 0 causes indeterminate results.
+     */
     int (*write)(SpiceCharDeviceInstance *sin, const uint8_t *buf, int len);
+
+    /* Read some bytes from the character device.
+     * Returns bytes copied into buf or a value < 0 on errors.
+     * Function can return 0 if no data is available or len is 0.
+     * errno is not determined after calling this function.
+     * Function should be implemented as no-blocking.
+     * A len < 0 causes indeterminate results.
+     */
     int (*read)(SpiceCharDeviceInstance *sin, uint8_t *buf, int len);
+
     void (*event)(SpiceCharDeviceInstance *sin, uint8_t event);
     spice_char_device_flags flags;
 };
