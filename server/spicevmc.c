@@ -420,16 +420,6 @@ static void spicevmc_port_send_event(RedChannelClient *rcc, uint8_t event)
     red_channel_client_pipe_add_push(rcc, &item->base);
 }
 
-static void spicevmc_char_dev_send_tokens_to_client(RedCharDevice *self,
-                                                    RedClient *client,
-                                                    uint32_t tokens)
-{
-    RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
-    RedVmcChannel *channel = RED_VMC_CHANNEL(vmc->channel);
-
-    red_channel_warning(RED_CHANNEL(channel), "%s: Not implemented!", G_STRFUNC);
-}
-
 static void spicevmc_char_dev_remove_client(RedCharDevice *self,
                                             RedClient *client)
 {
@@ -905,7 +895,6 @@ red_char_device_spicevmc_class_init(RedCharDeviceSpiceVmcClass *klass)
 
     char_dev_class->read_one_msg_from_device = spicevmc_chardev_read_msg_from_dev;
     char_dev_class->send_msg_to_client = spicevmc_chardev_send_msg_to_client;
-    char_dev_class->send_tokens_to_client = spicevmc_char_dev_send_tokens_to_client;
     char_dev_class->remove_client = spicevmc_char_dev_remove_client;
     char_dev_class->port_event = spicevmc_port_event;
 

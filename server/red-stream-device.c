@@ -574,12 +574,6 @@ stream_device_send_msg_to_client(RedCharDevice *self, RedPipeItem *msg, RedClien
 }
 
 static void
-stream_device_send_tokens_to_client(RedCharDevice *self, RedClient *client, uint32_t tokens)
-{
-    g_warning("%s: Not implemented!", G_STRFUNC);
-}
-
-static void
 stream_device_remove_client(RedCharDevice *self, RedClient *client)
 {
 }
@@ -795,7 +789,6 @@ stream_device_class_init(StreamDeviceClass *klass)
 
     char_dev_class->read_one_msg_from_device = stream_device_read_msg_from_dev;
     char_dev_class->send_msg_to_client = stream_device_send_msg_to_client;
-    char_dev_class->send_tokens_to_client = stream_device_send_tokens_to_client;
     char_dev_class->remove_client = stream_device_remove_client;
     char_dev_class->port_event = stream_device_port_event;
 }

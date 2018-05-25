@@ -122,6 +122,10 @@ red_char_device_send_tokens_to_client(RedCharDevice *dev,
 {
    RedCharDeviceClass *klass = RED_CHAR_DEVICE_GET_CLASS(dev);
 
+   if (klass->send_tokens_to_client == NULL) {
+       g_warn_if_reached();
+       return;
+   }
    klass->send_tokens_to_client(dev, client, tokens);
 }
 

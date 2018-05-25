@@ -181,13 +181,6 @@ static void smartcard_send_msg_to_client(RedCharDevice *self,
     red_channel_client_pipe_add_push(rcc, msg);
 }
 
-static void smartcard_send_tokens_to_client(RedCharDevice *self,
-                                            RedClient *client,
-                                            uint32_t tokens)
-{
-    spice_error("not implemented");
-}
-
 static void smartcard_remove_client(RedCharDevice *self, RedClient *client)
 {
     RedCharDeviceSmartcard *dev = RED_CHAR_DEVICE_SMARTCARD(self);
@@ -608,7 +601,6 @@ red_char_device_smartcard_class_init(RedCharDeviceSmartcardClass *klass)
 
     char_dev_class->read_one_msg_from_device = smartcard_read_msg_from_device;
     char_dev_class->send_msg_to_client = smartcard_send_msg_to_client;
-    char_dev_class->send_tokens_to_client = smartcard_send_tokens_to_client;
     char_dev_class->remove_client = smartcard_remove_client;
 }
 
