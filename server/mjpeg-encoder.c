@@ -206,7 +206,7 @@ static MJpegVideoBuffer* create_mjpeg_video_buffer(void)
 
 static void mjpeg_encoder_destroy(VideoEncoder *video_encoder)
 {
-    MJpegEncoder *encoder = (MJpegEncoder*)video_encoder;
+    MJpegEncoder *encoder = SPICE_CONTAINEROF(video_encoder, MJpegEncoder, base);
     g_free(encoder->cinfo.dest);
     jpeg_destroy_compress(&encoder->cinfo);
     g_free(encoder->row);
@@ -931,7 +931,7 @@ static int mjpeg_encoder_encode_frame(VideoEncoder *video_encoder,
                                       gpointer bitmap_opaque,
                                       VideoBuffer **outbuf)
 {
-    MJpegEncoder *encoder = (MJpegEncoder*)video_encoder;
+    MJpegEncoder *encoder = SPICE_CONTAINEROF(video_encoder, MJpegEncoder, base);
     MJpegVideoBuffer *buffer = create_mjpeg_video_buffer();
     if (!buffer) {
         return VIDEO_ENCODER_FRAME_UNSUPPORTED;
@@ -1191,7 +1191,7 @@ static void mjpeg_encoder_client_stream_report(VideoEncoder *video_encoder,
                                                int32_t end_frame_delay,
                                                uint32_t audio_delay)
 {
-    MJpegEncoder *encoder = (MJpegEncoder*)video_encoder;
+    MJpegEncoder *encoder = SPICE_CONTAINEROF(video_encoder, MJpegEncoder, base);
     MJpegEncoderRateControl *rate_control = &encoder->rate_control;
     MJpegEncoderClientState *client_state = &rate_control->client_state;
     uint64_t avg_enc_size = 0;
@@ -1289,7 +1289,7 @@ static void mjpeg_encoder_client_stream_report(VideoEncoder *video_encoder,
 
 static void mjpeg_encoder_notify_server_frame_drop(VideoEncoder *video_encoder)
 {
-    MJpegEncoder *encoder = (MJpegEncoder*)video_encoder;
+    MJpegEncoder *encoder = SPICE_CONTAINEROF(video_encoder, MJpegEncoder, base);
     encoder->rate_control.server_state.num_frames_dropped++;
     mjpeg_encoder_process_server_drops(encoder);
 }
@@ -1328,14 +1328,14 @@ static void mjpeg_encoder_process_server_drops(MJpegEncoder *encoder)
 
 static uint64_t mjpeg_encoder_get_bit_rate(VideoEncoder *video_encoder)
 {
-    MJpegEncoder *encoder = (MJpegEncoder*)video_encoder;
+    MJpegEncoder *encoder = SPICE_CONTAINEROF(video_encoder, MJpegEncoder, base);
     return encoder->rate_control.byte_rate * 8;
 }
 
 static void mjpeg_encoder_get_stats(VideoEncoder *video_encoder,
                                     VideoEncoderStats *stats)
 {
-    MJpegEncoder *encoder = (MJpegEncoder*)video_encoder;
+    MJpegEncoder *encoder = SPICE_CONTAINEROF(video_encoder, MJpegEncoder, base);
     spice_assert(encoder != NULL && stats != NULL);
     stats->starting_bit_rate = encoder->starting_bit_rate;
     stats->cur_bit_rate = mjpeg_encoder_get_bit_rate(video_encoder);

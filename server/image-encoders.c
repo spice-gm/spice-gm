@@ -89,7 +89,7 @@ static void image_encoders_release_glz(ImageEncoders *enc);
 static SPICE_GNUC_NORETURN SPICE_GNUC_PRINTF(2, 3) void
 quic_usr_error(QuicUsrContext *usr, const char *fmt, ...)
 {
-    EncoderData *usr_data = &(((QuicData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, QuicData, usr)->data);
     va_list ap;
     char message_buf[ENCODER_MESSAGE_SIZE];
 
@@ -104,7 +104,7 @@ quic_usr_error(QuicUsrContext *usr, const char *fmt, ...)
 static SPICE_GNUC_NORETURN SPICE_GNUC_PRINTF(2, 3) void
 lz_usr_error(LzUsrContext *usr, const char *fmt, ...)
 {
-    EncoderData *usr_data = &(((LzData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, LzData, usr)->data);
     va_list ap;
     char message_buf[ENCODER_MESSAGE_SIZE];
 
@@ -233,25 +233,25 @@ static int encoder_usr_more_space(EncoderData *enc_data, uint8_t **io_ptr)
 
 static int quic_usr_more_space(QuicUsrContext *usr, uint32_t **io_ptr, int rows_completed)
 {
-    EncoderData *usr_data = &(((QuicData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, QuicData, usr)->data);
     return encoder_usr_more_space(usr_data, (uint8_t **)io_ptr) / sizeof(uint32_t);
 }
 
 static int lz_usr_more_space(LzUsrContext *usr, uint8_t **io_ptr)
 {
-    EncoderData *usr_data = &(((LzData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, LzData, usr)->data);
     return encoder_usr_more_space(usr_data, io_ptr);
 }
 
 static int glz_usr_more_space(GlzEncoderUsrContext *usr, uint8_t **io_ptr)
 {
-    EncoderData *usr_data = &(((GlzData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, GlzData, usr)->data);
     return encoder_usr_more_space(usr_data, io_ptr);
 }
 
 static int jpeg_usr_more_space(JpegEncoderUsrContext *usr, uint8_t **io_ptr)
 {
-    EncoderData *usr_data = &(((JpegData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, JpegData, usr)->data);
     return encoder_usr_more_space(usr_data, io_ptr);
 }
 
@@ -265,7 +265,7 @@ static int lz4_usr_more_space(Lz4EncoderUsrContext *usr, uint8_t **io_ptr)
 
 static int zlib_usr_more_space(ZlibEncoderUsrContext *usr, uint8_t **io_ptr)
 {
-    EncoderData *usr_data = &(((ZlibData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, ZlibData, usr)->data);
     return encoder_usr_more_space(usr_data, io_ptr);
 }
 
@@ -301,25 +301,25 @@ static inline int encoder_usr_more_lines(EncoderData *enc_data, uint8_t **lines)
 
 static int quic_usr_more_lines(QuicUsrContext *usr, uint8_t **lines)
 {
-    EncoderData *usr_data = &(((QuicData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, QuicData, usr)->data);
     return encoder_usr_more_lines(usr_data, lines);
 }
 
 static int lz_usr_more_lines(LzUsrContext *usr, uint8_t **lines)
 {
-    EncoderData *usr_data = &(((LzData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, LzData, usr)->data);
     return encoder_usr_more_lines(usr_data, lines);
 }
 
 static int glz_usr_more_lines(GlzEncoderUsrContext *usr, uint8_t **lines)
 {
-    EncoderData *usr_data = &(((GlzData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, GlzData, usr)->data);
     return encoder_usr_more_lines(usr_data, lines);
 }
 
 static int jpeg_usr_more_lines(JpegEncoderUsrContext *usr, uint8_t **lines)
 {
-    EncoderData *usr_data = &(((JpegData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, JpegData, usr)->data);
     return encoder_usr_more_lines(usr_data, lines);
 }
 
@@ -333,7 +333,7 @@ static int lz4_usr_more_lines(Lz4EncoderUsrContext *usr, uint8_t **lines)
 
 static int zlib_usr_more_input(ZlibEncoderUsrContext *usr, uint8_t** input)
 {
-    EncoderData *usr_data = &(((ZlibData *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, ZlibData, usr)->data);
     int buf_size;
 
     if (!usr_data->u.compressed_data.next) {
@@ -386,7 +386,7 @@ static void image_encoders_init_lz(ImageEncoders *enc)
 
 static void glz_usr_free_image(GlzEncoderUsrContext *usr, GlzUsrImageContext *image)
 {
-    GlzData *lz_data = (GlzData *)usr;
+    GlzData *lz_data = SPICE_CONTAINEROF(usr, GlzData, usr);
     GlzDrawableInstanceItem *glz_drawable_instance = (GlzDrawableInstanceItem *)image;
     ImageEncoders *drawable_enc = glz_drawable_instance->glz_drawable->encoders;
     ImageEncoders *this_enc = SPICE_CONTAINEROF(lz_data, ImageEncoders, glz_data);

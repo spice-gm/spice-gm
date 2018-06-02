@@ -89,7 +89,8 @@ static int FUNC_NAME(add)(CHANNELCLIENT *channel_client, uint64_t id, size_t siz
     channel_client->priv->VAR_NAME(available) -= size;
     SPICE_VERIFY(SPICE_OFFSETOF(RedCacheItem, u.cache_data.lru_link) == 0);
     while (channel_client->priv->VAR_NAME(available) < 0) {
-        RedCacheItem *tail = (RedCacheItem *)ring_get_tail(&channel_client->priv->VAR_NAME(lru));
+        RedCacheItem *tail = SPICE_CONTAINEROF(ring_get_tail(&channel_client->priv->VAR_NAME(lru)),
+                                                             RedCacheItem, u.cache_data.lru_link);
         if (!tail) {
             channel_client->priv->VAR_NAME(available) += size;
             g_free(item);
