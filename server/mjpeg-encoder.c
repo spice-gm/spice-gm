@@ -70,6 +70,16 @@ static const int mjpeg_quality_samples[MJPEG_QUALITY_SAMPLE_NUM] = {20, 30, 40, 
 /* The compressed buffer initial size. */
 #define MJPEG_INITIAL_BUFFER_SIZE (32 * 1024)
 
+#ifdef JCS_EXTENSIONS
+#  ifndef WORDS_BIGENDIAN
+#    define JCS_EXT_LE_BGRX JCS_EXT_BGRX
+#    define JCS_EXT_LE_BGR JCS_EXT_BGR
+#  else
+#    define JCS_EXT_LE_BGRX JCS_EXT_XRGB
+#    define JCS_EXT_LE_BGR JCS_EXT_RGB
+#  endif
+#endif
+
 enum {
     MJPEG_QUALITY_EVAL_TYPE_SET,
     MJPEG_QUALITY_EVAL_TYPE_UPGRADE,
@@ -232,6 +242,7 @@ static void pixel_rgb24bpp_to_24(void *src_ptr, uint8_t *dest)
 static void pixel_rgb32bpp_to_24(void *src, uint8_t *dest)
 {
     uint32_t pixel = *(uint32_t *)src;
+    pixel = GUINT32_FROM_LE(pixel);
     *dest++ = (pixel >> 16) & 0xff;
     *dest++ = (pixel >>  8) & 0xff;
     *dest++ = (pixel >>  0) & 0xff;
@@ -241,6 +252,7 @@ static void pixel_rgb32bpp_to_24(void *src, uint8_t *dest)
 static void pixel_rgb16bpp_to_24(void *src, uint8_t *dest)
 {
     uint16_t pixel = *(uint16_t *)src;
+    pixel = GUINT16_FROM_LE(pixel);
     *dest++ = ((pixel >> 7) & 0xf8) | ((pixel >> 12) & 0x7);
     *dest++ = ((pixel >> 2) & 0xf8) | ((pixel >> 7) & 0x7);
     *dest++ = ((pixel << 3) & 0xf8) | ((pixel >> 2) & 0x7);
@@ -753,7 +765,7 @@ static int mjpeg_encoder_start_frame(MJpegEncoder *encoder,
     case SPICE_BITMAP_FMT_RGBA:
         encoder->bytes_per_pixel = 4;
 #ifdef JCS_EXTENSIONS
-        encoder->cinfo.in_color_space   = JCS_EXT_BGRX;
+        encoder->cinfo.in_color_space   = JCS_EXT_LE_BGRX;
         encoder->cinfo.input_components = 4;
 #else
         encoder->pixel_converter = pixel_rgb32bpp_to_24;
@@ -766,7 +778,7 @@ static int mjpeg_encoder_start_frame(MJpegEncoder *encoder,
     case SPICE_BITMAP_FMT_24BIT:
         encoder->bytes_per_pixel = 3;
 #ifdef JCS_EXTENSIONS
-        encoder->cinfo.in_color_space = JCS_EXT_BGR;
+        encoder->cinfo.in_color_space = JCS_EXT_LE_BGR;
 #else
         encoder->pixel_converter = pixel_rgb24bpp_to_24;
 #endif

@@ -118,6 +118,7 @@ static void convert_RGB16_to_RGB24(void *line, int width, uint8_t **out_line)
 
     for (x = 0; x < width; x++) {
        uint16_t pixel = *src_line++;
+       pixel = GUINT16_FROM_LE(pixel);
        *out_pix++ = ((pixel >> 7) & 0xf8) | ((pixel >> 12) & 0x7);
        *out_pix++ = ((pixel >> 2) & 0xf8) | ((pixel >> 7) & 0x7);
        *out_pix++ = ((pixel << 3) & 0xf8) | ((pixel >> 2) & 0x7);
@@ -153,6 +154,7 @@ static void convert_BGRX32_to_RGB24(void *line, int width, uint8_t **out_line)
 
     for (x = 0; x < width; x++) {
         uint32_t pixel = *src_line++;
+        pixel = GUINT32_FROM_LE(pixel);
         *out_pix++ = (pixel >> 16) & 0xff;
         *out_pix++ = (pixel >> 8) & 0xff;
         *out_pix++ = pixel & 0xff;
