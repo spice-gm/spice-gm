@@ -941,9 +941,9 @@ static SpiceString *red_get_string(RedMemSlotInfo *slots, int group_id,
         spice_assert(glyph_size <= (char*) end - (char*) &start->data[0]);
         memcpy(glyph->data, start->data, glyph_size);
         start = (QXLRasterGlyph*)(&start->data[glyph_size]);
-        glyph = (SpiceRasterGlyph*)
+        glyph = SPICE_ALIGNED_CAST(SpiceRasterGlyph*,
             (((uint8_t *)glyph) +
-             SPICE_ALIGN(sizeof(SpiceRasterGlyph) + glyph_size, 4));
+             SPICE_ALIGN(sizeof(SpiceRasterGlyph) + glyph_size, 4)));
     }
 
     if (free_data) {
