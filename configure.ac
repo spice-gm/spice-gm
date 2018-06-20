@@ -68,6 +68,20 @@ case $host_cpu in
         SPICE_WARNING([spice-server on non-x86_64 architectures has not been extensively tested])
 esac
 
+AC_MSG_CHECKING([for native Win32])
+case "$host_os" in
+     *mingw*|*cygwin*)
+        os_win32=yes
+        dnl AI_ADDRCONFIG and possibly some other code require at least Vista
+        AC_DEFINE([_WIN32_WINNT], [0x600], [Minimal Win32 version])
+        ;;
+     *)
+        os_win32=no
+        ;;
+esac
+AC_MSG_RESULT([$os_win32])
+AM_CONDITIONAL([OS_WIN32],[test "$os_win32" = "yes"])
+
 dnl =========================================================================
 dnl Check optional features
 SPICE_CHECK_SMARTCARD
@@ -154,6 +168,9 @@ AC_CHECK_LIB(rt, clock_gettime, LIBRT="-lrt")
 AC_SUBST(LIBRT)
 
 AS_VAR_APPEND([SPICE_NONPKGCONFIG_LIBS], [" -pthread $LIBM $LIBRT"])
+AS_IF([test "x$os_win32" = "xyes"], [
+    AS_VAR_APPEND([SPICE_NONPKGCONFIG_LIBS], [" -lws2_32"])
+])
 
 SPICE_REQUIRES=""
 
@@ -176,7 +193,8 @@ PKG_CHECK_MODULES([GOBJECT2], [gobject-2.0 >= $GLIB2_REQUIRED])
 AS_VAR_APPEND([SPICE_REQUIRES], [" gobject-2.0 >= $GLIB2_REQUIRED"])
 
 #used only by tests
-PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= $GLIB2_REQUIRED])
+AS_IF([test "x$os_win32" != "xyes"],
+      PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= $GLIB2_REQUIRED]))
 
 PIXMAN_REQUIRED=0.17.7
 PKG_CHECK_MODULES(PIXMAN, pixman-1 >= $PIXMAN_REQUIRED)

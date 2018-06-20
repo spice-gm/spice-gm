@@ -1,5 +1,8 @@
 test_lib_include = [spice_server_include, include_directories('.')]
-test_lib_deps = [spice_server_deps, dependency('gio-unix-2.0')]
+test_lib_deps = [spice_server_deps]
+if host_machine.system() != 'windows'
+  test_lib_deps += [dependency('gio-unix-2.0')]
+endif
 
 test_lib_sources = [
   'basic-event-loop.c',

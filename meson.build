@@ -102,9 +102,13 @@ foreach dep : ['libjpeg', 'zlib']
   spice_server_deps += dependency(dep)
 endforeach
 
-foreach dep : ['librt', 'libm']
-  spice_server_deps += compiler.find_library(dep)
-endforeach
+if host_machine.system() != 'windows'
+  foreach dep : ['librt', 'libm']
+    spice_server_deps += compiler.find_library(dep)
+  endforeach
+else
+  spice_server_deps += compiler.find_library('ws2_32')
+endif
 
 #
 # Non-mandatory/optional dependencies
@@ -199,6 +203,11 @@ spice_server_config_data.set('SPICE_USE_SAFER_CONTAINEROF', '1')
 
 if get_option('statistics')
   spice_server_config_data.set('RED_STATISTICS', '1')
+endif
+
+# Minimal Win32 version
+if host_machine.system() == 'windows'
+  spice_server_config_data.set('_WIN32_WINNT', '0x600')
 endif
 
 configure_file(output : 'config.h',
