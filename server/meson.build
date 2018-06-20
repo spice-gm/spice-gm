@@ -133,6 +133,8 @@ spice_server_sources = [
   'stat.h',
   'stream-channel.c',
   'stream-channel.h',
+  'sys-socket.c',
+  'sys-socket.h',
   'red-stream-device.c',
   'red-stream-device.h',
   'sw-canvas.c',
