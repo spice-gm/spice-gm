@@ -266,7 +266,8 @@ static replay_t read_binary(SpiceReplay *replay, const char *prefix, size_t *siz
             exit(1);
         }
         if ((ret = inflate(&strm, Z_NO_FLUSH)) != Z_STREAM_END) {
-            spice_error("inflate error %d (disc: %ld)", ret, *size - strm.total_out);
+            spice_error("inflate error %d (disc: %" G_GSSIZE_FORMAT ")",
+                        ret, *size - strm.total_out);
             if (ret == Z_DATA_ERROR) {
                 /* last operation may be wrong. since we do the recording
                  * in red_worker, when there is a shutdown from the vcpu/io thread
@@ -475,7 +476,7 @@ static QXLImage *red_replay_image(SpiceReplay *replay, uint32_t flags)
         } else {
             size = red_replay_data_chunks(replay, "bitmap.data", (uint8_t**)&qxl->bitmap.data, 0);
             if (size != bitmap_size) {
-                g_warning("bad image, %" PRIuPTR " != %" PRIuPTR, size, bitmap_size);
+                g_warning("bad image, %" G_GSIZE_FORMAT " != %" G_GSIZE_FORMAT, size, bitmap_size);
                 return NULL;
             }
         }
@@ -1137,7 +1138,7 @@ static QXLSurfaceCmd *red_replay_surface_cmd(SpiceReplay *replay)
         if ((qxl->flags & QXL_SURF_FLAG_KEEP_DATA) != 0) {
             read_binary(replay, "data", &read_size, (uint8_t**)&qxl->u.surface_create.data, 0);
             if (read_size != size) {
-                g_warning("mismatch %" PRIuPTR " != %" PRIuPTR, size, read_size);
+                g_warning("mismatch %" G_GSIZE_FORMAT " != %" G_GSIZE_FORMAT, size, read_size);
             }
         } else {
             qxl->u.surface_create.data = QXLPHYSICAL_FROM_PTR(replay_malloc(replay, size));
@@ -1321,7 +1322,7 @@ SPICE_GNUC_VISIBLE QXLCommandExt* spice_replay_next_cmd(SpiceReplay *replay,
     cmd = replay_malloc0(replay, sizeof(QXLCommandExt));
     cmd->cmd.type = type;
     cmd->group_id = 0;
-    spice_debug("command %"SCNu64", %d", timestamp, cmd->cmd.type);
+    spice_debug("command %"G_GUINT64_FORMAT", %d", timestamp, cmd->cmd.type);
     switch (cmd->cmd.type) {
     case QXL_CMD_DRAW:
         cmd->flags = 0;

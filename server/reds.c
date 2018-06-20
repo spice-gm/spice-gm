@@ -1260,7 +1260,7 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
     }
     spice_buffer_append(cmc, message, size);
     if (sizeof(VDAgentMessage) > cmc->offset) {
-        spice_debug("not enough data yet. %zd", cmc->offset);
+        spice_debug("not enough data yet. %" G_GSSIZE_FORMAT, cmc->offset);
         return;
     }
     msg_header = (VDAgentMessage *)cmc->buffer;
@@ -1268,7 +1268,7 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
         goto overflow;
     }
     if (msg_header->size > cmc->offset - sizeof(VDAgentMessage)) {
-        spice_debug("not enough data yet. %zd", cmc->offset);
+        spice_debug("not enough data yet. %" G_GSSIZE_FORMAT, cmc->offset);
         return;
     }
     if (msg_header->size < sizeof(VDAgentMonitorsConfig)) {

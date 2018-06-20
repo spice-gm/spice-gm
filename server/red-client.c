@@ -176,7 +176,8 @@ void red_client_migrate(RedClient *client)
     RedChannel *channel;
 
     if (!pthread_equal(pthread_self(), client->thread_id)) {
-        spice_warning("client->thread_id (0x%lx) != pthread_self (0x%lx)."
+        spice_warning("client->thread_id (0x%" G_GSIZE_MODIFIER "x) != "
+                      "pthread_self (0x%" G_GSIZE_MODIFIER "x)."
                       "If one of the threads is != io-thread && != vcpu-thread,"
                       " this might be a BUG",
                       client->thread_id, pthread_self());
@@ -194,7 +195,8 @@ void red_client_destroy(RedClient *client)
     RedChannelClient *rcc;
 
     if (!pthread_equal(pthread_self(), client->thread_id)) {
-        spice_warning("client->thread_id (0x%lx) != pthread_self (0x%lx)."
+        spice_warning("client->thread_id (0x%" G_GSIZE_MODIFIER "x) != "
+                      "pthread_self (0x%" G_GSIZE_MODIFIER "x)."
                       "If one of the threads is != io-thread && != vcpu-thread,"
                       " this might be a BUG",
                       client->thread_id,

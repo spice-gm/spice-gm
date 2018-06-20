@@ -788,7 +788,8 @@ void red_char_device_client_remove(RedCharDevice *dev,
     }
 
     if (dev->priv->clients == NULL) {
-        spice_debug("client removed, memory pool will be freed (%"PRIu64" bytes)", dev->priv->cur_pool_size);
+        spice_debug("client removed, memory pool will be freed (%"G_GUINT64_FORMAT" bytes)",
+                    dev->priv->cur_pool_size);
         write_buffers_queue_free(&dev->priv->write_bufs_pool);
         dev->priv->cur_pool_size = 0;
     }

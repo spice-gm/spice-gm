@@ -187,7 +187,7 @@ red_channel_constructed(GObject *object)
 {
     RedChannel *self = RED_CHANNEL(object);
 
-    red_channel_debug(self, "thread_id 0x%lx", self->priv->thread_id);
+    red_channel_debug(self, "thread_id 0x%" G_GSIZE_MODIFIER "x", self->priv->thread_id);
 
     RedChannelClass *klass = RED_CHANNEL_GET_CLASS(self);
 
@@ -463,7 +463,9 @@ void red_channel_remove_client(RedChannel *channel, RedChannelClient *rcc)
     g_return_if_fail(channel == red_channel_client_get_channel(rcc));
 
     if (!pthread_equal(pthread_self(), channel->priv->thread_id)) {
-        red_channel_warning(channel, "channel->thread_id (0x%lx) != pthread_self (0x%lx)."
+        red_channel_warning(channel,
+                            "channel->thread_id (0x%" G_GSIZE_MODIFIER "x) != "
+                            "pthread_self (0x%" G_GSIZE_MODIFIER "x)."
                             "If one of the threads is != io-thread && != vcpu-thread, "
                             "this might be a BUG",
                             channel->priv->thread_id, pthread_self());

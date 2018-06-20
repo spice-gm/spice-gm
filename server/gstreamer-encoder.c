@@ -1080,10 +1080,10 @@ static void set_gstenc_bitrate(SpiceGstEncoder *encoder)
         break;
         }
     default:
-        spice_warning("the %s property has an unsupported type %zu",
+        spice_warning("the %s property has an unsupported type %" G_GSIZE_FORMAT,
                       prop, param->value_type);
     }
-    spice_debug("setting the GStreamer %s to %"PRIu64, prop, gst_bit_rate);
+    spice_debug("setting the GStreamer %s to %"G_GUINT64_FORMAT, prop, gst_bit_rate);
 }
 
 /* A helper for spice_gst_encoder_encode_frame() */
