@@ -61,7 +61,7 @@ int memslot_validate_virt(RedMemSlotInfo *info, unsigned long virt, int slot_id,
 
     if (virt < slot->virt_start_addr || (virt + add_size) > slot->virt_end_addr) {
         print_memslots(info);
-        spice_warning("virtual address out of range\n"
+        spice_warning("virtual address out of range"
               "    virt=0x%lx+0x%x slot_id=%d group_id=%d\n"
               "    slot=0x%lx-0x%lx delta=0x%lx",
               virt, add_size, slot_id, group_id,
@@ -114,8 +114,10 @@ void *memslot_get_virt(RedMemSlotInfo *info, QXLPHYSICAL addr, uint32_t add_size
     generation = memslot_get_generation(info, addr);
     if (generation != slot->generation) {
         print_memslots(info);
-        spice_critical("address generation is not valid, group_id %d, slot_id %d, gen %d, slot_gen %d\n",
-              group_id, slot_id, generation, slot->generation);
+        spice_critical("address generation is not valid, group_id %d, slot_id %d, "
+                       "gen %d, slot_gen %d",
+                       group_id, slot_id,
+                       generation, slot->generation);
         return NULL;
     }
 

@@ -840,7 +840,7 @@ RedRecord *red_record_new(const char *filename)
 
     f = fopen(filename, "w+");
     if (!f) {
-        spice_error("failed to open recording file %s\n", filename);
+        spice_error("failed to open recording file %s", filename);
     }
 
     filter = getenv("SPICE_WORKER_RECORD_FILTER");

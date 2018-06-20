@@ -1289,7 +1289,7 @@ static void replay_handle_dev_input(QXLWorker *worker, SpiceReplay *replay,
         // safe to ignore
         break;
     default:
-        spice_debug("unhandled %d\n", message);
+        spice_debug("unhandled %d", message);
     }
 }
 
@@ -1321,7 +1321,7 @@ SPICE_GNUC_VISIBLE QXLCommandExt* spice_replay_next_cmd(SpiceReplay *replay,
     cmd = replay_malloc0(replay, sizeof(QXLCommandExt));
     cmd->cmd.type = type;
     cmd->group_id = 0;
-    spice_debug("command %"SCNu64", %d\r", timestamp, cmd->cmd.type);
+    spice_debug("command %"SCNu64", %d", timestamp, cmd->cmd.type);
     switch (cmd->cmd.type) {
     case QXL_CMD_DRAW:
         cmd->flags = 0;

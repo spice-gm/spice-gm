@@ -137,7 +137,7 @@ static size_t red_get_data_chunks_ptr(RedMemSlotInfo *slots, int group_id,
          * Or made a circular list of chunks
          */
         if (++num_chunks >= MAX_CHUNKS) {
-            spice_warning("data split in too many chunks, avoiding DoS\n");
+            spice_warning("data split in too many chunks, avoiding DoS");
             goto error;
         }
 
@@ -167,7 +167,7 @@ static size_t red_get_data_chunks_ptr(RedMemSlotInfo *slots, int group_id,
         data_size += chunk_data_size;
         /* this can happen if client is sending nested chunks */
         if (data_size > MAX_DATA_CHUNK) {
-            spice_warning("too much data inside chunks, avoiding DoS\n");
+            spice_warning("too much data inside chunks, avoiding DoS");
             goto error;
         }
         if (!memslot_validate_virt(slots, (intptr_t)red->data, memslot_id, red->data_size, group_id))
@@ -430,14 +430,14 @@ static bool bitmap_consistent(SpiceBitmap *bitmap)
     unsigned int bpp;
 
     if (bitmap->format >= SPICE_N_ELEMENTS(MAP_BITMAP_FMT_TO_BITS_PER_PIXEL)) {
-        spice_warning("wrong format specified for image\n");
+        spice_warning("wrong format specified for image");
         return false;
     }
 
     bpp = MAP_BITMAP_FMT_TO_BITS_PER_PIXEL[bitmap->format];
 
     if (bitmap->stride < (((uint64_t) bitmap->x * bpp + 7u) / 8u)) {
-        spice_warning("image stride too small for width: %d < ((%d * %d + 7) / 8) (%s=%d)\n",
+        spice_warning("image stride too small for width: %d < ((%d * %d + 7) / 8) (%s=%d)",
                     bitmap->stride, bitmap->x, bpp,
                     bitmap_format_to_string(bitmap->format),
                     bitmap->format);
@@ -486,12 +486,12 @@ static SpiceImage *red_get_image(RedMemSlotInfo *slots, int group_id,
         red->u.bitmap.stride = qxl->bitmap.stride;
         palette = qxl->bitmap.palette;
         if (!bitmap_fmt_is_rgb(red->u.bitmap.format) && !palette && !is_mask) {
-            spice_warning("guest error: missing palette on bitmap format=%d\n",
+            spice_warning("guest error: missing palette on bitmap format=%d",
                           red->u.bitmap.format);
             goto error;
         }
         if (red->u.bitmap.x == 0 || red->u.bitmap.y == 0) {
-            spice_warning("guest error: zero area bitmap\n");
+            spice_warning("guest error: zero area bitmap");
             goto error;
         }
         qxl_flags = qxl->bitmap.flags;

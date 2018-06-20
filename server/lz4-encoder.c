@@ -116,7 +116,7 @@ int lz4_encode(Lz4EncoderContext *lz4, int height, int stride, uint8_t *io_ptr,
 
     LZ4_freeStream(stream);
     if (total_lines != height) {
-        spice_error("too many lines\n");
+        spice_error("too many lines");
         out_size = 0;
     }
 

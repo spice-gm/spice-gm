@@ -2421,7 +2421,7 @@ gboolean display_channel_validate_surface(DisplayChannel *display, uint32_t surf
         return FALSE;
     }
     if (!display->priv->surfaces[surface_id].context.canvas) {
-        spice_warning("canvas address is %p for %d (and is NULL)\n",
+        spice_warning("canvas address is %p for %d (and is NULL)",
                    &(display->priv->surfaces[surface_id].context.canvas), surface_id);
         spice_warning("failed on %d", surface_id);
         return FALSE;
