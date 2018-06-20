@@ -112,7 +112,7 @@ static int socket_set_cork(int socket, int enabled)
 
 static ssize_t stream_write_cb(RedStream *s, const void *buf, size_t size)
 {
-    return write(s->socket, buf, size);
+    return socket_write(s->socket, buf, size);
 }
 
 static ssize_t stream_writev_cb(RedStream *s, const struct iovec *iov, int iovcnt)
@@ -130,7 +130,7 @@ static ssize_t stream_writev_cb(RedStream *s, const struct iovec *iov, int iovcn
         for (i = 0; i < tosend; i++) {
             expected += iov[i].iov_len;
         }
-        n = writev(s->socket, iov, tosend);
+        n = socket_writev(s->socket, iov, tosend);
         if (n <= expected) {
             if (n > 0)
                 ret += n;
@@ -146,7 +146,7 @@ static ssize_t stream_writev_cb(RedStream *s, const struct iovec *iov, int iovcn
 
 static ssize_t stream_read_cb(RedStream *s, void *buf, size_t size)
 {
-    return read(s->socket, buf, size);
+    return socket_read(s->socket, buf, size);
 }
 
 static ssize_t stream_ssl_write_cb(RedStream *s, const void *buf, size_t size)
@@ -402,7 +402,7 @@ void red_stream_free(RedStream *s)
     }
 
     red_stream_remove_watch(s);
-    close(s->socket);
+    socket_close(s->socket);
 
     g_free(s);
 }
