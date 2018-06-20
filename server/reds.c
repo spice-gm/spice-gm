@@ -3739,8 +3739,7 @@ static const int video_codec_caps[] = {
  * @codec: a location to return the parsed codec
  * @return the position of the next codec in the string
  */
-static const char* parse_next_video_codec(const char *codecs, char **encoder,
-                                          char **codec)
+static char* parse_next_video_codec(char *codecs, char **encoder, char **codec)
 {
     if (!codecs) {
         return NULL;
@@ -3749,14 +3748,15 @@ static const char* parse_next_video_codec(const char *codecs, char **encoder,
     if (!*codecs) {
         return NULL;
     }
-    int n;
+    int end_encoder, end_codec = -1;
     *encoder = *codec = NULL;
-    if (sscanf(codecs, "%m[0-9a-zA-Z_]:%m[0-9a-zA-Z_]%n", encoder, codec, &n) == 2) {
-        // this avoids accepting "encoder:codec" followed by garbage like "$%*"
-        if (codecs[n] != ';' && codecs[n] != '\0') {
-            free(*codec);
-            *codec = NULL;
-        }
+    if (sscanf(codecs, "%*[0-9a-zA-Z_]:%n%*[0-9a-zA-Z_];%n", &end_encoder, &end_codec) == 0
+        && end_codec > 0) {
+        codecs[end_encoder - 1] = '\0';
+        codecs[end_codec - 1] = '\0';
+        *encoder = codecs;
+        *codec = codecs + end_encoder;
+        return codecs + end_codec;
     }
     return codecs + strcspn(codecs, ";");
 }
@@ -3773,7 +3773,8 @@ static void reds_set_video_codecs_from_string(RedsState *reds, const char *codec
     }
 
     video_codecs = g_array_new(FALSE, FALSE, sizeof(RedVideoCodec));
-    const char *c = codecs;
+    char *codecs_copy = g_strdup_printf("%s;", codecs);
+    char *c = codecs_copy;
     while ( (c = parse_next_video_codec(c, &encoder_name, &codec_name)) ) {
         uint32_t encoder_index, codec_index;
         if (!encoder_name || !codec_name) {
@@ -3796,19 +3797,17 @@ static void reds_set_video_codecs_from_string(RedsState *reds, const char *codec
             g_array_append_val(video_codecs, new_codec);
         }
 
-        /* these are allocated by sscanf, do not use g_free */
-        free(encoder_name);
-        free(codec_name);
         codecs = c;
     }
 
     if (video_codecs->len == 0) {
         spice_warning("Failed to set video codecs, input string: '%s'", codecs);
         g_array_unref(video_codecs);
-        return;
+    } else {
+        reds_set_video_codecs(reds, video_codecs);
     }
 
-    reds_set_video_codecs(reds, video_codecs);
+    g_free(codecs_copy);
 }
 
 SPICE_GNUC_VISIBLE int spice_server_init(SpiceServer *reds, SpiceCoreInterface *core)
