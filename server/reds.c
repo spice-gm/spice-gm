@@ -22,16 +22,21 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <limits.h>
+#include <pthread.h>
+#include <ctype.h>
+#ifndef _WIN32
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <limits.h>
-#include <pthread.h>
 #include <sys/mman.h>
-#include <ctype.h>
+#include <sys/un.h>
+#else
+#include <ws2tcpip.h>
+#endif
 
 #include <openssl/err.h>
 
@@ -40,7 +45,6 @@
 #endif
 
 #include <glib.h>
-#include <sys/un.h>
 
 #include <spice/protocol.h>
 #include <spice/vd_agent.h>

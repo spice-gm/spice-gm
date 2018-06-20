@@ -24,7 +24,9 @@
 #include <string.h>
 #include <pthread.h>
 #include <fcntl.h>
+#ifndef _WIN32
 #include <poll.h>
+#endif
 
 #include "dispatcher.h"
 

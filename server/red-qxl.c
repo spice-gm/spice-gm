@@ -24,7 +24,6 @@
 #include <errno.h>
 #include <string.h>
 #include <pthread.h>
-#include <sys/socket.h>
 #include <inttypes.h>
 
 #include <spice/qxl_dev.h>

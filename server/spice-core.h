@@ -23,7 +23,13 @@
 #endif
 
 #include <stdint.h>
+#ifndef _WIN32
 #include <sys/socket.h>
+#else
+#include <winsock2.h>
+#include <windows.h>
+typedef int socklen_t;
+#endif
 #include <spice/qxl_dev.h>
 #include <spice/vd_agent.h>
 #include <spice/macros.h>

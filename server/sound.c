@@ -23,10 +23,12 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/types.h>
+#ifndef _WIN32
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#endif
 
 #include <common/generated_server_marshallers.h>
 #include <common/snd_codec.h>

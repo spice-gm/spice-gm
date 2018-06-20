@@ -30,7 +30,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 #include <fcntl.h>
 #include <glib.h>
 #include <pthread.h>

@@ -20,11 +20,13 @@
 #endif
 
 #include <errno.h>
-#include <netdb.h>
 #include <unistd.h>
-#include <sys/socket.h>
 #include <fcntl.h>
+#ifndef _WIN32
+#include <netdb.h>
+#include <sys/socket.h>
 #include <netinet/tcp.h>
+#endif
 
 #include <glib.h>
 

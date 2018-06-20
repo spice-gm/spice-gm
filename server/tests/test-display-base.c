@@ -21,8 +21,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#ifndef _WIN32
 #include <sys/wait.h>
 #include <sys/select.h>
+#endif
 #include <sys/types.h>
 #include <getopt.h>
 #include <pthread.h>

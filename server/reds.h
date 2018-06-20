@@ -19,7 +19,6 @@
 #define REDS_H_
 
 #include <stdint.h>
-#include <sys/uio.h>
 #include <spice/vd_agent.h>
 #include <common/marshaller.h>
 #include <common/messages.h>

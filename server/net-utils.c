@@ -24,11 +24,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sys/types.h>
+#ifndef _WIN32
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
+#endif
 
 #include <common/log.h>
 

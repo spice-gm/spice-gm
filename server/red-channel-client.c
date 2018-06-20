@@ -22,12 +22,14 @@
 #include <glib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#ifndef _WIN32
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/ioctl.h>
+#endif
 #ifdef HAVE_LINUX_SOCKIOS_H
 #include <linux/sockios.h> /* SIOCOUTQ */
 #endif
