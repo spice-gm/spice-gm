@@ -33,6 +33,7 @@
 #include <common/log.h>
 
 #include "net-utils.h"
+#include "sys-socket.h"
 
 /**
  * red_socket_set_keepalive:
@@ -99,6 +100,15 @@ bool red_socket_set_no_delay(int fd, bool no_delay)
  */
 bool red_socket_set_non_blocking(int fd, bool non_blocking)
 {
+#ifdef _WIN32
+    u_long ioctl_nonblocking = 1;
+
+    if (ioctlsocket(fd, FIONBIO, &ioctl_nonblocking) != 0) {
+        spice_warning("ioctlsocket(FIONBIO) failed, %d", WSAGetLastError());
+        return false;
+    }
+    return true;
+#else
     int flags;
 
     if ((flags = fcntl(fd, F_GETFL)) == -1) {
@@ -118,6 +128,7 @@ bool red_socket_set_non_blocking(int fd, bool non_blocking)
     }
 
     return true;
+#endif
 }
 
 /**
