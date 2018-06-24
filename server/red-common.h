@@ -35,6 +35,7 @@
 
 #include "spice.h"
 #include "utils.h"
+#include "sys-socket.h"
 
 #define SPICE_UPCAST(type, ptr) \
     (verify_expr(SPICE_OFFSETOF(type, base) == 0,SPICE_CONTAINEROF(ptr, type, base)))

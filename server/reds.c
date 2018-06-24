@@ -106,6 +106,7 @@ static void adapter_timer_remove(const SpiceCoreInterfaceInternal *iface, SpiceT
 static SpiceWatch *adapter_watch_add(const SpiceCoreInterfaceInternal *iface,
                                      int fd, int event_mask, SpiceWatchFunc func, void *opaque)
 {
+    // note: Qemu API is fine having a SOCKET on Windows
     return iface->public_interface->watch_add(fd, event_mask, func, opaque);
 }
 
@@ -2659,7 +2660,7 @@ static int reds_init_socket(const char *addr, int portnr, int family)
         len = SUN_LEN(&local);
         if (bind(slisten, (struct sockaddr *)&local, len) == -1) {
             perror("bind");
-            close(slisten);
+            socket_close(slisten);
             return -1;
         }
 
@@ -2707,7 +2708,7 @@ static int reds_init_socket(const char *addr, int portnr, int family)
             freeaddrinfo(res);
             goto listen;
         }
-        close(slisten);
+        socket_close(slisten);
     }
     spice_warning("binding socket to %s:%d failed", addr, portnr);
     freeaddrinfo(res);
@@ -2716,7 +2717,7 @@ static int reds_init_socket(const char *addr, int portnr, int family)
 listen:
     if (listen(slisten, SOMAXCONN) != 0) {
         spice_warning("listen: %s", strerror(errno));
-        close(slisten);
+        socket_close(slisten);
         return -1;
     }
     return slisten;
@@ -2754,14 +2755,14 @@ static void reds_cleanup_net(SpiceServer *reds)
     if (reds->listen_socket != -1) {
        reds_core_watch_remove(reds, reds->listen_watch);
        if (reds->config->spice_listen_socket_fd != reds->listen_socket) {
-          close(reds->listen_socket);
+          socket_close(reds->listen_socket);
        }
        reds->listen_watch = NULL;
        reds->listen_socket = -1;
     }
     if (reds->secure_listen_socket != -1) {
        reds_core_watch_remove(reds, reds->secure_listen_watch);
-       close(reds->secure_listen_socket);
+       socket_close(reds->secure_listen_socket);
        reds->secure_listen_watch = NULL;
        reds->secure_listen_socket = -1;
     }
