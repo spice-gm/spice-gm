@@ -199,6 +199,7 @@ static int read_safe(int fd, uint8_t *buf, size_t size, int block)
     }
 
     if (!block) {
+#ifndef _WIN32
         struct pollfd pollfd = {.fd = fd, .events = POLLIN, .revents = 0};
         while ((ret = poll(&pollfd, 1, 0)) == -1) {
             if (errno == EINTR) {
@@ -211,6 +212,15 @@ static int read_safe(int fd, uint8_t *buf, size_t size, int block)
         if (!(pollfd.revents & POLLIN)) {
             return 0;
         }
+#else
+        struct timeval tv = { 0, 0 };
+        fd_set fds;
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+        if (select(1, &fds, NULL, NULL, &tv) < 1) {
+            return 0;
+        }
+#endif
     }
     while (read_size < size) {
         ret = socket_read(fd, buf + read_size, size - read_size);
@@ -219,6 +229,16 @@ static int read_safe(int fd, uint8_t *buf, size_t size, int block)
                 spice_debug("EINTR in read");
                 continue;
             }
+#ifdef _WIN32
+            // Windows turns this socket not-blocking
+            if (errno == EAGAIN) {
+                fd_set fds;
+                FD_ZERO(&fds);
+                FD_SET(fd, &fds);
+                select(1, &fds, NULL, NULL, NULL);
+                continue;
+            }
+#endif
             return -1;
         }
         if (ret == 0) {
