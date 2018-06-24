@@ -35,6 +35,7 @@
 #include "test-glib-compat.h"
 #include "basic-event-loop.h"
 #include "test-display-base.h"
+#include "sys-socket.h"
 
 #define PKI_DIR SPICE_TOP_SRCDIR "/server/tests/pki/"
 
@@ -70,11 +71,11 @@ static void server_leaks(void)
     g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
                           "*SSL_accept failed*");
     g_assert_cmpint(socketpair(AF_LOCAL, SOCK_STREAM, 0, sv), ==, 0);
-    close(sv[1]);
+    socket_close(sv[1]);
     result = spice_server_add_ssl_client(server, sv[0], 1);
     g_assert_cmpint(result, ==, -1);
     /* if the function fails, it should not close the socket */
-    g_assert_cmpint(close(sv[0]), ==, 0);
+    g_assert_cmpint(socket_close(sv[0]), ==, 0);
 
     spice_server_destroy(server);
     basic_event_loop_destroy();
