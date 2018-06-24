@@ -113,8 +113,8 @@ dispatcher_finalize(GObject *object)
 {
     Dispatcher *self = DISPATCHER(object);
     g_free(self->priv->messages);
-    close(self->priv->send_fd);
-    close(self->priv->recv_fd);
+    socket_close(self->priv->send_fd);
+    socket_close(self->priv->recv_fd);
     pthread_mutex_destroy(&self->priv->lock);
     g_free(self->priv->payload);
     G_OBJECT_CLASS(dispatcher_parent_class)->finalize(object);
@@ -213,7 +213,7 @@ static int read_safe(int fd, uint8_t *buf, size_t size, int block)
         }
     }
     while (read_size < size) {
-        ret = read(fd, buf + read_size, size - read_size);
+        ret = socket_read(fd, buf + read_size, size - read_size);
         if (ret == -1) {
             if (errno == EINTR) {
                 spice_debug("EINTR in read");
@@ -240,7 +240,7 @@ static int write_safe(int fd, uint8_t *buf, size_t size)
     int ret;
 
     while (written_size < size) {
-        ret = write(fd, buf + written_size, size - written_size);
+        ret = socket_write(fd, buf + written_size, size - written_size);
         if (ret == -1) {
             if (errno != EINTR) {
                 return -1;
