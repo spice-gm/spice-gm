@@ -89,17 +89,19 @@ static int has_automated_tests = 0; //automated test flag
 // between multiple threads so use a mutex
 static pthread_mutex_t timer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-__attribute__((noreturn))
-static void sigchld_handler(SPICE_GNUC_UNUSED int signal_num) // wait for the child process and exit
+// wait for the child process and exit
+static void child_exited(GPid pid, gint status, gpointer user_data)
 {
-    int status;
-    wait(&status);
+    g_spawn_close_pid(pid);
     exit(0);
 }
 
 static void regression_test(void)
 {
-    pid_t pid;
+    GPid pid;
+    GError *error = NULL;
+    gboolean retval;
+    gchar **argv;
 
     if (--rects != 0) {
         return;
@@ -111,17 +113,17 @@ static void regression_test(void)
         return;
     }
 
-    pid = fork();
-    if (pid == 0) {
-        char buf[PATH_MAX];
-        char *argv[] = { NULL };
-        char *envp[] = {buf, NULL};
+    argv = g_strsplit("./regression-test.py", " ", -1);
+    retval = g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH|G_SPAWN_DO_NOT_REAP_CHILD,
+                           NULL, NULL, &pid, &error);
+    g_strfreev(argv);
+    g_assert(retval);
 
-        snprintf(buf, sizeof(buf), "PATH=%s", getenv("PATH"));
-        execve("regression-test.py", argv, envp);
-    } else if (pid > 0) {
-        return;
-    }
+    GSource *source = g_child_watch_source_new(pid);
+    g_source_set_callback(source, (GSourceFunc)(void*)child_exited, NULL, NULL);
+    guint id = g_source_attach(source, basic_event_loop_get_context());
+    g_assert(id != 0);
+    g_source_unref(source);
 }
 
 static void set_cmd(QXLCommandExt *ext, uint32_t type, QXLPHYSICAL data)
@@ -967,11 +969,6 @@ void test_destroy(Test *test)
 
 static void init_automated(void)
 {
-    struct sigaction sa;
-
-    memset(&sa, 0, sizeof sa);
-    sa.sa_handler = &sigchld_handler;
-    sigaction(SIGCHLD, &sa, NULL);
 }
 
 static __attribute__((noreturn))

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from subprocess import PIPE, Popen
-import Image
-import ImageChops
+from PIL import Image
+from PIL import ImageChops
 
 
 def spicy_screenshot():
