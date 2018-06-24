@@ -123,6 +123,7 @@ static gboolean watch_func(GIOChannel *source, GIOCondition condition,
                            gpointer data)
 {
     SpiceWatch *watch = data;
+    // this works also under Windows despite the name
     int fd = g_io_channel_unix_get_fd(source);
 
     watch->func(fd, giocondition_to_spice_event(condition), watch->opaque);
@@ -162,7 +163,11 @@ static SpiceWatch *watch_add(const SpiceCoreInterfaceInternal *iface,
 
     watch = g_new0(SpiceWatch, 1);
     watch->context = iface->main_context;
+#ifndef _WIN32
     watch->channel = g_io_channel_unix_new(fd);
+#else
+    watch->channel = g_io_channel_win32_new_socket(fd);
+#endif
     watch->func = func;
     watch->opaque = opaque;
 
