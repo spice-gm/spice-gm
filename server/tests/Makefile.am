@@ -53,11 +53,9 @@ check_PROGRAMS =				\
 	test-codecs-parsing			\
 	test-options				\
 	test-stat				\
-	test-stream				\
 	test-agent-msg-filter			\
 	test-loop				\
 	test-qxl-parsing			\
-	test-stat-file				\
 	test-leaks				\
 	test-vdagent				\
 	test-fail-on-null-core-interface	\
@@ -67,6 +65,13 @@ check_PROGRAMS =				\
 	test-listen				\
 	test-record				\
 	$(NULL)
+
+if !OS_WIN32
+check_PROGRAMS +=				\
+	test-stream				\
+	test-stat-file				\
+	$(NULL)
+endif
 
 noinst_PROGRAMS =				\
 	test-display-no-ssl			\

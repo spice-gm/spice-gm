@@ -40,11 +40,9 @@ tests = [
   ['test-codecs-parsing', true],
   ['test-options', true],
   ['test-stat', true],
-  ['test-stream', true],
   ['test-agent-msg-filter', true],
   ['test-loop', true],
   ['test-qxl-parsing', true],
-  ['test-stat-file', true],
   ['test-leaks', true],
   ['test-vdagent', true],
   ['test-fail-on-null-core-interface', true],
@@ -63,6 +61,13 @@ tests = [
 
 if spice_server_has_sasl
   tests += [['test-sasl', true]]
+endif
+
+if host_machine.system() != 'windows'
+  tests += [
+    ['test-stream', true],
+    ['test-stat-file', true],
+  ]
 endif
 
 if spice_server_has_gstreamer
