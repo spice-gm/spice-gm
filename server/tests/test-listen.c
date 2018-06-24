@@ -27,7 +27,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <gio/gio.h>
+#ifndef _WIN32
 #include <gio/gunixsocketaddress.h>
+#endif
 
 #include "test-glib-compat.h"
 
@@ -211,7 +213,11 @@ static GThread *fake_client_new(GThreadFunc thread_func,
     ThreadData *thread_data = g_new0(ThreadData, 1);
 
     if (port == -1) {
+#ifndef _WIN32
         thread_data->connectable = G_SOCKET_CONNECTABLE(g_unix_socket_address_new(hostname));
+#else
+        g_assert_not_reached();
+#endif
     } else {
         g_assert_cmpuint(port, >, 0);
         g_assert_cmpuint(port, <, 65536);
@@ -317,6 +323,7 @@ static void test_connect_plain_and_tls(void)
     spice_server_destroy(server);
 }
 
+#ifndef _WIN32
 static void test_connect_unix(void)
 {
     GThread *thread;
@@ -342,6 +349,7 @@ static void test_connect_unix(void)
     test_event_loop_destroy(&event_loop);
     spice_server_destroy(server);
 }
+#endif
 
 static void test_connect_ko(void)
 {
@@ -365,7 +373,9 @@ int main(int argc, char **argv)
     g_test_add_func("/server/listen/connect_plain", test_connect_plain);
     g_test_add_func("/server/listen/connect_tls", test_connect_tls);
     g_test_add_func("/server/listen/connect_both", test_connect_plain_and_tls);
+#ifndef _WIN32
     g_test_add_func("/server/listen/connect_unix", test_connect_unix);
+#endif
     g_test_add_func("/server/listen/connect_ko", test_connect_ko);
 
     return g_test_run();
