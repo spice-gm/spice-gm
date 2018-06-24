@@ -966,95 +966,95 @@ RedsState* red_qxl_get_server(QXLState *qxl_state)
 
 void red_qxl_attach_worker(QXLInstance *qxl)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
-    interface->attache_worker(qxl, &qxl->st->qxl_worker);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
+    qxl_interface->attache_worker(qxl, &qxl->st->qxl_worker);
 }
 
 void red_qxl_set_compression_level(QXLInstance *qxl, int level)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
-    interface->set_compression_level(qxl, level);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
+    qxl_interface->set_compression_level(qxl, level);
 }
 
 void red_qxl_get_init_info(QXLInstance *qxl, QXLDevInitInfo *info)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    interface->get_init_info(qxl, info);
+    qxl_interface->get_init_info(qxl, info);
 }
 
 int red_qxl_get_command(QXLInstance *qxl, struct QXLCommandExt *cmd)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    return interface->get_command(qxl, cmd);
+    return qxl_interface->get_command(qxl, cmd);
 }
 
 int red_qxl_req_cmd_notification(QXLInstance *qxl)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    return interface->req_cmd_notification(qxl);
+    return qxl_interface->req_cmd_notification(qxl);
 }
 
 void red_qxl_release_resource(QXLInstance *qxl, struct QXLReleaseInfoExt release_info)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    interface->release_resource(qxl, release_info);
+    qxl_interface->release_resource(qxl, release_info);
 }
 
 int red_qxl_get_cursor_command(QXLInstance *qxl, struct QXLCommandExt *cmd)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    return interface->get_cursor_command(qxl, cmd);
+    return qxl_interface->get_cursor_command(qxl, cmd);
 }
 
 int red_qxl_req_cursor_notification(QXLInstance *qxl)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    return interface->req_cursor_notification(qxl);
+    return qxl_interface->req_cursor_notification(qxl);
 }
 
 void red_qxl_notify_update(QXLInstance *qxl, uint32_t update_id)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    interface->notify_update(qxl, update_id);
+    qxl_interface->notify_update(qxl, update_id);
 }
 
 int red_qxl_flush_resources(QXLInstance *qxl)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    return interface->flush_resources(qxl);
+    return qxl_interface->flush_resources(qxl);
 }
 
 void red_qxl_update_area_complete(QXLInstance *qxl, uint32_t surface_id,
                                   struct QXLRect *updated_rects,
                                   uint32_t num_updated_rects)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    interface->update_area_complete(qxl, surface_id, updated_rects, num_updated_rects);
+    qxl_interface->update_area_complete(qxl, surface_id, updated_rects, num_updated_rects);
 }
 
 void red_qxl_set_client_capabilities(QXLInstance *qxl,
                                      uint8_t client_present,
                                      uint8_t caps[SPICE_CAPABILITIES_SIZE])
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
     if (qxl->st->running) {
-        interface->set_client_capabilities(qxl, client_present, caps);
+        qxl_interface->set_client_capabilities(qxl, client_present, caps);
     }
 }
 
 void red_qxl_async_complete(QXLInstance *qxl, uint64_t cookie)
 {
-    QXLInterface *interface = qxl_get_interface(qxl);
+    QXLInterface *qxl_interface = qxl_get_interface(qxl);
 
-    interface->async_complete(qxl, cookie);
+    qxl_interface->async_complete(qxl, cookie);
 }

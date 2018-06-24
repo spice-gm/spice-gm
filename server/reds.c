@@ -1260,9 +1260,9 @@ void reds_release_agent_data_buffer(RedsState *reds, uint8_t *buf)
 static void reds_on_main_agent_monitors_config(RedsState *reds,
         MainChannelClient *mcc, const void *message, size_t size)
 {
-    const unsigned int MAX_MONITORS = 256;
+    const unsigned int MAX_NUM_MONITORS = 256;
     const unsigned int MAX_MONITOR_CONFIG_SIZE =
-       sizeof(VDAgentMonitorsConfig) + MAX_MONITORS * sizeof(VDAgentMonConfig);
+       sizeof(VDAgentMonitorsConfig) + MAX_NUM_MONITORS * sizeof(VDAgentMonConfig);
 
     VDAgentMessage *msg_header;
     VDAgentMonitorsConfig *monitors_config;
@@ -3385,12 +3385,12 @@ static int spice_server_char_device_remove_interface(RedsState *reds, SpiceBaseI
 SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
                                                   SpiceBaseInstance *sin)
 {
-    const SpiceBaseInterface *interface = sin->sif;
+    const SpiceBaseInterface *base_interface = sin->sif;
 
-    if (strcmp(interface->type, SPICE_INTERFACE_KEYBOARD) == 0) {
+    if (strcmp(base_interface->type, SPICE_INTERFACE_KEYBOARD) == 0) {
         spice_debug("SPICE_INTERFACE_KEYBOARD");
-        if (interface->major_version != SPICE_INTERFACE_KEYBOARD_MAJOR ||
-            interface->minor_version > SPICE_INTERFACE_KEYBOARD_MINOR) {
+        if (base_interface->major_version != SPICE_INTERFACE_KEYBOARD_MAJOR ||
+            base_interface->minor_version > SPICE_INTERFACE_KEYBOARD_MINOR) {
             spice_warning("unsupported keyboard interface");
             return -1;
         }
@@ -3398,10 +3398,10 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
                                         SPICE_UPCAST(SpiceKbdInstance, sin)) != 0) {
             return -1;
         }
-    } else if (strcmp(interface->type, SPICE_INTERFACE_MOUSE) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_MOUSE) == 0) {
         spice_debug("SPICE_INTERFACE_MOUSE");
-        if (interface->major_version != SPICE_INTERFACE_MOUSE_MAJOR ||
-            interface->minor_version > SPICE_INTERFACE_MOUSE_MINOR) {
+        if (base_interface->major_version != SPICE_INTERFACE_MOUSE_MAJOR ||
+            base_interface->minor_version > SPICE_INTERFACE_MOUSE_MINOR) {
             spice_warning("unsupported mouse interface");
             return -1;
         }
@@ -3409,12 +3409,12 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
                                      SPICE_UPCAST(SpiceMouseInstance, sin)) != 0) {
             return -1;
         }
-    } else if (strcmp(interface->type, SPICE_INTERFACE_QXL) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_QXL) == 0) {
         QXLInstance *qxl;
 
         spice_debug("SPICE_INTERFACE_QXL");
-        if (interface->major_version != SPICE_INTERFACE_QXL_MAJOR ||
-            interface->minor_version > SPICE_INTERFACE_QXL_MINOR) {
+        if (base_interface->major_version != SPICE_INTERFACE_QXL_MAJOR ||
+            base_interface->minor_version > SPICE_INTERFACE_QXL_MINOR) {
             spice_warning("unsupported qxl interface");
             return -1;
         }
@@ -3438,11 +3438,11 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
          * be called. */
         red_qxl_attach_worker(qxl);
         red_qxl_set_compression_level(qxl, calc_compression_level(reds));
-    } else if (strcmp(interface->type, SPICE_INTERFACE_TABLET) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_TABLET) == 0) {
         SpiceTabletInstance *tablet = SPICE_UPCAST(SpiceTabletInstance, sin);
         spice_debug("SPICE_INTERFACE_TABLET");
-        if (interface->major_version != SPICE_INTERFACE_TABLET_MAJOR ||
-            interface->minor_version > SPICE_INTERFACE_TABLET_MINOR) {
+        if (base_interface->major_version != SPICE_INTERFACE_TABLET_MAJOR ||
+            base_interface->minor_version > SPICE_INTERFACE_TABLET_MINOR) {
             spice_warning("unsupported tablet interface");
             return -1;
         }
@@ -3454,41 +3454,41 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
             inputs_channel_set_tablet_logical_size(reds->inputs_channel, reds->monitor_mode.x_res, reds->monitor_mode.y_res);
         }
 
-    } else if (strcmp(interface->type, SPICE_INTERFACE_PLAYBACK) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_PLAYBACK) == 0) {
         spice_debug("SPICE_INTERFACE_PLAYBACK");
-        if (interface->major_version != SPICE_INTERFACE_PLAYBACK_MAJOR ||
-            interface->minor_version > SPICE_INTERFACE_PLAYBACK_MINOR) {
+        if (base_interface->major_version != SPICE_INTERFACE_PLAYBACK_MAJOR ||
+            base_interface->minor_version > SPICE_INTERFACE_PLAYBACK_MINOR) {
             spice_warning("unsupported playback interface");
             return -1;
         }
         snd_attach_playback(reds, SPICE_UPCAST(SpicePlaybackInstance, sin));
 
-    } else if (strcmp(interface->type, SPICE_INTERFACE_RECORD) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_RECORD) == 0) {
         spice_debug("SPICE_INTERFACE_RECORD");
-        if (interface->major_version != SPICE_INTERFACE_RECORD_MAJOR ||
-            interface->minor_version > SPICE_INTERFACE_RECORD_MINOR) {
+        if (base_interface->major_version != SPICE_INTERFACE_RECORD_MAJOR ||
+            base_interface->minor_version > SPICE_INTERFACE_RECORD_MINOR) {
             spice_warning("unsupported record interface");
             return -1;
         }
         snd_attach_record(reds, SPICE_UPCAST(SpiceRecordInstance, sin));
 
-    } else if (strcmp(interface->type, SPICE_INTERFACE_CHAR_DEVICE) == 0) {
-        if (interface->major_version != SPICE_INTERFACE_CHAR_DEVICE_MAJOR ||
-            interface->minor_version > SPICE_INTERFACE_CHAR_DEVICE_MINOR) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_CHAR_DEVICE) == 0) {
+        if (base_interface->major_version != SPICE_INTERFACE_CHAR_DEVICE_MAJOR ||
+            base_interface->minor_version > SPICE_INTERFACE_CHAR_DEVICE_MINOR) {
             spice_warning("unsupported char device interface");
             return -1;
         }
         spice_server_char_device_add_interface(reds, sin);
 
-    } else if (strcmp(interface->type, SPICE_INTERFACE_MIGRATION) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_MIGRATION) == 0) {
         spice_debug("SPICE_INTERFACE_MIGRATION");
         if (reds->migration_interface) {
             spice_warning("already have migration");
             return -1;
         }
 
-        if (interface->major_version != SPICE_INTERFACE_MIGRATION_MAJOR ||
-            interface->minor_version > SPICE_INTERFACE_MIGRATION_MINOR) {
+        if (base_interface->major_version != SPICE_INTERFACE_MIGRATION_MAJOR ||
+            base_interface->minor_version > SPICE_INTERFACE_MIGRATION_MINOR) {
             spice_warning("unsupported migration interface");
             return -1;
         }
@@ -3502,30 +3502,30 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
 SPICE_GNUC_VISIBLE int spice_server_remove_interface(SpiceBaseInstance *sin)
 {
     RedsState *reds;
-    const SpiceBaseInterface *interface;
+    const SpiceBaseInterface *base_interface;
 
     g_return_val_if_fail(sin != NULL, -1);
 
-    interface = sin->sif;
-    if (strcmp(interface->type, SPICE_INTERFACE_TABLET) == 0) {
+    base_interface = sin->sif;
+    if (strcmp(base_interface->type, SPICE_INTERFACE_TABLET) == 0) {
         SpiceTabletInstance *tablet = SPICE_UPCAST(SpiceTabletInstance, sin);
         g_return_val_if_fail(tablet->st != NULL, -1);
         reds = spice_tablet_state_get_server(tablet->st);
         spice_debug("remove SPICE_INTERFACE_TABLET");
         inputs_channel_detach_tablet(reds->inputs_channel, tablet);
         reds_update_mouse_mode(reds);
-    } else if (strcmp(interface->type, SPICE_INTERFACE_PLAYBACK) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_PLAYBACK) == 0) {
         spice_debug("remove SPICE_INTERFACE_PLAYBACK");
         snd_detach_playback(SPICE_UPCAST(SpicePlaybackInstance, sin));
-    } else if (strcmp(interface->type, SPICE_INTERFACE_RECORD) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_RECORD) == 0) {
         spice_debug("remove SPICE_INTERFACE_RECORD");
         snd_detach_record(SPICE_UPCAST(SpiceRecordInstance, sin));
-    } else if (strcmp(interface->type, SPICE_INTERFACE_CHAR_DEVICE) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_CHAR_DEVICE) == 0) {
         SpiceCharDeviceInstance *char_device = SPICE_UPCAST(SpiceCharDeviceInstance, sin);
         g_return_val_if_fail(char_device->st != NULL, -1);
         reds = red_char_device_get_server(char_device->st);
         return spice_server_char_device_remove_interface(reds, sin);
-    } else if (strcmp(interface->type, SPICE_INTERFACE_QXL) == 0) {
+    } else if (strcmp(base_interface->type, SPICE_INTERFACE_QXL) == 0) {
         QXLInstance *qxl;
 
         qxl = SPICE_UPCAST(QXLInstance, sin);
