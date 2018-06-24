@@ -210,15 +210,22 @@ static int req_display_notification(QXLInstance *qin)
 
 static void end_replay(void)
 {
-    int child_status;
-
     /* FIXME: wait threads and end cleanly */
     spice_replay_free(replay);
 
     if (client_pid) {
         g_debug("kill %" G_PID_FORMAT, client_pid);
+#ifndef _WIN32
+        int child_status;
+
         kill(client_pid, SIGINT);
         waitpid(client_pid, &child_status, 0);
+#else
+        TerminateProcess(client_pid, 0);
+        WaitForSingleObject(client_pid, INFINITE);
+#endif
+        g_spawn_close_pid(client_pid);
+        client_pid = 0;
     }
 }
 
