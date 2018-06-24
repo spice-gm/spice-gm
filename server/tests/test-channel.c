@@ -28,6 +28,7 @@
 #include "red-client.h"
 #include "cursor-channel.h"
 #include "net-utils.h"
+#include "win-alarm.h"
 
 /*
  * Declare a RedTestChannel to be used for the test

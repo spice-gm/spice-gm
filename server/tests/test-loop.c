@@ -31,6 +31,7 @@
 #include <spice/macros.h>
 #include <common/log.h>
 #include "basic-event-loop.h"
+#include "win-alarm.h"
 
 static SpiceCoreInterface *core = NULL;
 static GMainLoop *loop = NULL;

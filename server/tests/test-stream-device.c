@@ -33,6 +33,7 @@
 #include "test-glib-compat.h"
 #include "stream-channel.h"
 #include "reds.h"
+#include "win-alarm.h"
 
 static SpiceCharDeviceInstance vmc_instance;
 

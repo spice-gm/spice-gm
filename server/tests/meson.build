@@ -11,6 +11,8 @@ test_lib_sources = [
   'test-display-base.h',
   'test-glib-compat.c',
   'test-glib-compat.h',
+  'win-alarm.c',
+  'win-alarm.h',
 ]
 
 test_libs = []

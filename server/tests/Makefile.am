@@ -35,6 +35,8 @@ libtest_a_SOURCES =				\
 	test-display-base.h			\
 	test-glib-compat.c			\
 	test-glib-compat.h			\
+	win-alarm.c				\
+	win-alarm.h				\
 	$(NULL)
 
 LDADD =								\
