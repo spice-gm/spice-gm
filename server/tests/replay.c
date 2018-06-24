@@ -390,8 +390,11 @@ int main(int argc, char **argv)
 
     if (strncmp(file[0], "-", 1) == 0) {
         fd = stdin;
+#ifdef _WIN32
+        _setmode(fileno(fd), _O_BINARY);
+#endif
     } else {
-        fd = fopen(file[0], "r");
+        fd = fopen(file[0], "rb");
     }
     if (fd == NULL) {
         g_printerr("error opening %s\n", file[0]);
