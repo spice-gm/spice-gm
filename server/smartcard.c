@@ -345,6 +345,11 @@ void smartcard_char_device_attach_client(SpiceCharDeviceInstance *char_device,
         dev->priv->scc = NULL;
         smartcard_channel_client_set_char_device(scc, NULL);
         red_channel_client_disconnect(RED_CHANNEL_CLIENT(scc));
+    } else {
+        SpiceCharDeviceInterface *sif = spice_char_device_get_interface(char_device);
+        if (sif->state) {
+            sif->state(char_device, 1);
+        }
     }
 }
 
@@ -377,11 +382,21 @@ gboolean smartcard_char_device_notify_reader_remove(RedCharDeviceSmartcard *dev)
 void smartcard_char_device_detach_client(RedCharDeviceSmartcard *smartcard,
                                          SmartCardChannelClient *scc)
 {
+    SpiceCharDeviceInterface *sif;
+    SpiceCharDeviceInstance *sin;
+
+    g_object_get(smartcard, "sin", &sin, NULL);
+    sif = spice_char_device_get_interface(sin);
+
     spice_assert(smartcard->priv->scc == scc);
     red_char_device_client_remove(RED_CHAR_DEVICE(smartcard),
                                   red_channel_client_get_client(RED_CHANNEL_CLIENT(scc)));
     smartcard_channel_client_set_char_device(scc, NULL);
     smartcard->priv->scc = NULL;
+
+    if (sif->state) {
+        sif->state(sin, 0);
+    }
 }
 
 SmartCardChannelClient* smartcard_char_device_get_client(RedCharDeviceSmartcard *smartcard)
