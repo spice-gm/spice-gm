@@ -2354,7 +2354,7 @@ static void reds_handle_ssl_accept(int fd, int event, void *data)
 {
     RedLinkInfo *link = (RedLinkInfo *)data;
     RedsState *reds = link->reds;
-    int return_code = red_stream_ssl_accept(link->stream);
+    RedStreamSslStatus return_code = red_stream_ssl_accept(link->stream);
 
     switch (return_code) {
         case RED_STREAM_SSL_STATUS_ERROR:
@@ -2410,7 +2410,7 @@ error:
 static RedLinkInfo *reds_init_client_ssl_connection(RedsState *reds, int socket)
 {
     RedLinkInfo *link;
-    int ssl_status;
+    RedStreamSslStatus ssl_status;
 
     link = reds_init_client_connection(reds, socket);
     if (link == NULL) {

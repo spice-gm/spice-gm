@@ -62,7 +62,7 @@ RedStream *red_stream_new(RedsState *reds, int socket);
 void red_stream_set_core_interface(RedStream *stream, SpiceCoreInterfaceInternal *core);
 bool red_stream_is_ssl(RedStream *stream);
 RedStreamSslStatus red_stream_ssl_accept(RedStream *stream);
-int red_stream_enable_ssl(RedStream *stream, SSL_CTX *ctx);
+RedStreamSslStatus red_stream_enable_ssl(RedStream *stream, SSL_CTX *ctx);
 int red_stream_get_family(const RedStream *stream);
 bool red_stream_is_plain_unix(const RedStream *stream);
 bool red_stream_set_no_delay(RedStream *stream, bool no_delay);

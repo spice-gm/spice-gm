@@ -506,7 +506,7 @@ RedStreamSslStatus red_stream_ssl_accept(RedStream *stream)
     return RED_STREAM_SSL_STATUS_ERROR;
 }
 
-int red_stream_enable_ssl(RedStream *stream, SSL_CTX *ctx)
+RedStreamSslStatus red_stream_enable_ssl(RedStream *stream, SSL_CTX *ctx)
 {
     BIO *sbio;
 
