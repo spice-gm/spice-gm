@@ -21,6 +21,7 @@
 #include <climits>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 
 #include <pthread.h>
 #include <unistd.h>
@@ -3866,7 +3867,7 @@ SPICE_GNUC_VISIBLE int spice_server_set_ticket(SpiceServer *reds,
     on_activating_ticketing(reds);
     reds->config->ticketing_enabled = TRUE;
     if (lifetime == 0) {
-        reds->config->taTicket.expiration_time = INT_MAX;
+        reds->config->taTicket.expiration_time = std::numeric_limits<time_t>::max();
     } else {
         time_t now = spice_get_monotonic_time_ns() / NSEC_PER_SEC;
         reds->config->taTicket.expiration_time = now + lifetime;
