@@ -2098,8 +2098,7 @@ static void reds_handle_ticket(void *opaque)
             goto error;
         }
 
-        //todo: use monotonic time
-        time(&ltime);
+        ltime = spice_get_monotonic_time_ns() / NSEC_PER_SEC;
         expired = (reds->config->taTicket.expiration_time < ltime);
 
         if (expired) {
@@ -3832,7 +3831,7 @@ SPICE_GNUC_VISIBLE int spice_server_set_ticket(SpiceServer *reds,
     if (lifetime == 0) {
         reds->config->taTicket.expiration_time = INT_MAX;
     } else {
-        time_t now = time(NULL);
+        time_t now = spice_get_monotonic_time_ns() / NSEC_PER_SEC;
         reds->config->taTicket.expiration_time = now + lifetime;
     }
     if (passwd != NULL) {
