@@ -374,22 +374,11 @@ red_qxl_create_primary_surface_sync(QXLState *qxl_state, uint32_t surface_id,
     red_qxl_create_primary_surface_complete(qxl_state, surface);
 }
 
-static void
-red_qxl_create_primary_surface(QXLState *qxl_state, uint32_t surface_id,
-                               QXLDevSurfaceCreate *surface, int async, uint64_t cookie)
-{
-    if (async) {
-        red_qxl_create_primary_surface_async(qxl_state, surface_id, surface, cookie);
-    } else {
-        red_qxl_create_primary_surface_sync(qxl_state, surface_id, surface);
-    }
-}
-
 static void qxl_worker_create_primary_surface(QXLWorker *qxl_worker, uint32_t surface_id,
                                       QXLDevSurfaceCreate *surface)
 {
     QXLState *qxl_state = SPICE_CONTAINEROF(qxl_worker, QXLState, qxl_worker);
-    red_qxl_create_primary_surface(qxl_state, surface_id, surface, 0, 0);
+    red_qxl_create_primary_surface_sync(qxl_state, surface_id, surface);
 }
 
 static void red_qxl_reset_image_cache(QXLState *qxl_state)
@@ -445,21 +434,10 @@ static void red_qxl_destroy_surface_wait_async(QXLState *qxl_state,
     dispatcher_send_message(qxl_state->dispatcher, message, &payload);
 }
 
-static void red_qxl_destroy_surface_wait(QXLState *qxl_state,
-                                         uint32_t surface_id,
-                                         int async, uint64_t cookie)
-{
-    if (async) {
-        red_qxl_destroy_surface_wait_async(qxl_state, surface_id, cookie);
-    } else {
-        red_qxl_destroy_surface_wait_sync(qxl_state, surface_id);
-    }
-}
-
 static void qxl_worker_destroy_surface_wait(QXLWorker *qxl_worker, uint32_t surface_id)
 {
     QXLState *qxl_state = SPICE_CONTAINEROF(qxl_worker, QXLState, qxl_worker);
-    red_qxl_destroy_surface_wait(qxl_state, surface_id, 0, 0);
+    red_qxl_destroy_surface_wait_sync(qxl_state, surface_id);
 }
 
 static void red_qxl_reset_memslots(QXLState *qxl_state)
@@ -685,7 +663,7 @@ SPICE_GNUC_VISIBLE
 void spice_qxl_create_primary_surface(QXLInstance *instance, uint32_t surface_id,
                                 QXLDevSurfaceCreate *surface)
 {
-    red_qxl_create_primary_surface(instance->st, surface_id, surface, 0, 0);
+    red_qxl_create_primary_surface_sync(instance->st, surface_id, surface);
 }
 
 SPICE_GNUC_VISIBLE
@@ -703,7 +681,7 @@ void spice_qxl_reset_cursor(QXLInstance *instance)
 SPICE_GNUC_VISIBLE
 void spice_qxl_destroy_surface_wait(QXLInstance *instance, uint32_t surface_id)
 {
-    red_qxl_destroy_surface_wait(instance->st, surface_id, 0, 0);
+    red_qxl_destroy_surface_wait_sync(instance->st, surface_id);
 }
 
 SPICE_GNUC_VISIBLE
@@ -742,13 +720,13 @@ SPICE_GNUC_VISIBLE
 void spice_qxl_create_primary_surface_async(QXLInstance *instance, uint32_t surface_id,
                                 QXLDevSurfaceCreate *surface, uint64_t cookie)
 {
-    red_qxl_create_primary_surface(instance->st, surface_id, surface, 1, cookie);
+    red_qxl_create_primary_surface_async(instance->st, surface_id, surface, cookie);
 }
 
 SPICE_GNUC_VISIBLE
 void spice_qxl_destroy_surface_async(QXLInstance *instance, uint32_t surface_id, uint64_t cookie)
 {
-    red_qxl_destroy_surface_wait(instance->st, surface_id, 1, cookie);
+    red_qxl_destroy_surface_wait_async(instance->st, surface_id, cookie);
 }
 
 SPICE_GNUC_VISIBLE
