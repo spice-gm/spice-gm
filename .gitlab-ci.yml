@@ -24,7 +24,7 @@ meson-makecheck:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    meson build -Dcelt051=enabled || (cat build/meson-logs/meson-log.txt && exit 1)
+    meson --buildtype=release build -Dcelt051=enabled || (cat build/meson-logs/meson-log.txt && exit 1)
   - ninja -C build
   - (cd build && meson test) || (cat build/meson-logs/testlog.txt && exit 1)
 
@@ -39,7 +39,7 @@ options:
 
 meson-options:
   script:
-  - meson -Dstatistics=true -Dsasl=false -Dcelt051=disabled build
+  - meson --buildtype=release -Dstatistics=true -Dsasl=false -Dcelt051=disabled build
   - ninja -C build
   - (cd build && meson test) || (cat build/meson-logs/testlog.txt && exit 1)
 
