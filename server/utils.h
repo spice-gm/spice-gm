@@ -66,11 +66,6 @@ static inline red_time_t spice_get_monotonic_time_ns(void)
 
 #define MSEC_PER_SEC 1000
 
-static inline red_time_t spice_get_monotonic_time_ms(void)
-{
-    return g_get_monotonic_time() / 1000;
-}
-
 int rgb32_data_has_alpha(int width, int height, size_t stride,
                          const uint8_t *data, int *all_set_out);
 

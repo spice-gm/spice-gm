@@ -3004,7 +3004,7 @@ static void migrate_timeout(void *opaque)
 
 uint32_t reds_get_mm_time(void)
 {
-    return spice_get_monotonic_time_ms();
+    return g_get_monotonic_time() / 1000;
 }
 
 void reds_enable_mm_time(RedsState *reds)
