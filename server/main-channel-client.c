@@ -503,7 +503,7 @@ void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping,
     uint64_t roundtrip;
     RedChannelClient* rcc = RED_CHANNEL_CLIENT(mcc);
 
-    roundtrip = g_get_monotonic_time() - ping->timestamp;
+    roundtrip = spice_get_monotonic_time_ns() / NSEC_PER_MICROSEC - ping->timestamp;
 
     if (ping->id != mcc->priv->net_test_id) {
         /*
@@ -749,7 +749,7 @@ static void main_channel_marshall_ping(RedChannelClient *rcc,
 
     red_channel_client_init_send_data(rcc, SPICE_MSG_PING);
     ping.id = main_channel_client_next_ping_id(mcc);
-    ping.timestamp = g_get_monotonic_time();
+    ping.timestamp = spice_get_monotonic_time_ns() / NSEC_PER_MICROSEC;
     spice_marshall_msg_ping(m, &ping);
 
     while (size_left > 0) {

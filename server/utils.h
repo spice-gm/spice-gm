@@ -54,8 +54,9 @@ typedef int64_t red_time_t;
 
 #define NSEC_PER_SEC      1000000000LL
 #define NSEC_PER_MILLISEC 1000000LL
+#define NSEC_PER_MICROSEC 1000
 
-/* FIXME: consider g_get_monotonic_time (), but in microseconds */
+/* g_get_monotonic_time() does not have enough precision */
 static inline red_time_t spice_get_monotonic_time_ns(void)
 {
     struct timespec time;
