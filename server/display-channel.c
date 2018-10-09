@@ -215,7 +215,7 @@ int display_channel_get_streams_timeout(DisplayChannel *display)
         if (delta < NSEC_PER_MILLISEC) {
             return 0;
         }
-        timeout = MIN(timeout, (unsigned int)(delta / (NSEC_PER_MILLISEC)));
+        timeout = MIN(timeout, (unsigned int)(delta / NSEC_PER_MILLISEC));
     }
     return timeout;
 }
