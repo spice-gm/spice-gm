@@ -27,8 +27,8 @@
 #include <common/marshaller.h>
 #include <common/messages.h>
 #include <common/generated_server_marshallers.h>
+#include <common/demarshallers.h>
 
-#include "demarshallers.h"
 #include "spice.h"
 #include "red-common.h"
 #include "reds.h"

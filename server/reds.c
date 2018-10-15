@@ -58,7 +58,6 @@
 #include "main-dispatcher.h"
 #include "sound.h"
 #include "stat.h"
-#include "demarshallers.h"
 #include "char-device.h"
 #include "migration-protocol.h"
 #ifdef USE_SMARTCARD

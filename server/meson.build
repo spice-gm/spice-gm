@@ -61,7 +61,6 @@ spice_server_sources = [
   'dcc.h',
   'dcc-private.h',
   'dcc-send.c',
-  'demarshallers.h',
   'dispatcher.c',
   'dispatcher.h',
   'display-channel.c',
