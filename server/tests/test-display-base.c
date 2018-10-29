@@ -894,10 +894,10 @@ void test_set_command_list(Test *test, Command *commands, int num_commands)
     test->num_commands = num_commands;
 }
 
-static gboolean ignore_bind_failures(const gchar *log_domain,
-                                     GLogLevelFlags log_level,
-                                     const gchar *message,
-                                     gpointer user_data)
+static gboolean ignore_in_use_failures(const gchar *log_domain,
+                                       GLogLevelFlags log_level,
+                                       const gchar *message,
+                                       gpointer user_data)
 {
     if (!g_str_equal (log_domain, G_LOG_DOMAIN)) {
         return true;
@@ -905,7 +905,8 @@ static gboolean ignore_bind_failures(const gchar *log_domain,
     if ((log_level & G_LOG_LEVEL_WARNING) == 0)  {
         return true;
     }
-    if (strstr(message, "reds_init_socket: binding socket to ") == NULL) {
+    if (strstr(message, "reds_init_socket: binding socket to ") == NULL || // bind failure
+        strstr(message, "reds_init_socket: listen: ") == NULL) { // listen failure
         g_print("XXX [%s]\n", message);
         return true;
     }
@@ -929,7 +930,7 @@ Test* test_new(SpiceCoreInterface* core)
     // some common initialization for all display tests
     port = BASE_PORT;
 
-    g_test_log_set_fatal_handler(ignore_bind_failures, NULL);
+    g_test_log_set_fatal_handler(ignore_in_use_failures, NULL);
     for (port = BASE_PORT; port < BASE_PORT + 10; port++) {
         SpiceServer* server = spice_server_new();
         spice_server_set_noauth(server);
