@@ -889,6 +889,26 @@ void spice_qxl_set_device_info(QXLInstance *instance,
 
     instance->st->monitors_count = device_display_id_count;
     instance->st->max_monitors = device_display_id_count;
+
+    reds_send_device_display_info(red_qxl_get_server(instance->st));
+}
+
+const char* red_qxl_get_device_address(const QXLInstance *qxl)
+{
+    const QXLState *qxl_state = qxl->st;
+    return qxl_state->device_address;
+}
+
+const uint32_t* red_qxl_get_device_display_ids(const QXLInstance *qxl)
+{
+    const QXLState *qxl_state = qxl->st;
+    return qxl_state->device_display_ids;
+}
+
+size_t red_qxl_get_monitors_count(const QXLInstance *qxl)
+{
+    const QXLState *qxl_state = qxl->st;
+    return qxl_state->monitors_count;
 }
 
 void red_qxl_init(RedsState *reds, QXLInstance *qxl)

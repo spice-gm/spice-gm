@@ -40,6 +40,9 @@ void red_qxl_put_gl_scanout(QXLInstance *qxl, SpiceMsgDisplayGlScanoutUnix *scan
 void red_qxl_gl_draw_async_complete(QXLInstance *qxl);
 int red_qxl_check_qxl_version(QXLInstance *qxl, int major, int minor);
 SpiceServer* red_qxl_get_server(QXLState *qxl);
+const char* red_qxl_get_device_address(const QXLInstance *qxl);
+const uint32_t* red_qxl_get_device_display_ids(const QXLInstance *qxl);
+size_t red_qxl_get_monitors_count(const QXLInstance *qxl);
 
 /* Wrappers around QXLInterface vfuncs */
 void red_qxl_get_init_info(QXLInstance *qxl, QXLDevInitInfo *info);

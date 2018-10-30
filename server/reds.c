@@ -257,6 +257,7 @@ typedef struct __attribute__ ((__packed__)) VDInternalBuf {
     VDAgentMessage header;
     union {
         VDAgentMouseState mouse_state;
+        VDAgentGraphicsDeviceInfo graphics_device_info;
     }
     u;
 } VDInternalBuf;
@@ -894,6 +895,65 @@ static RedPipeItem *vdi_port_read_one_msg_from_device(RedCharDevice *self,
     return NULL;
 }
 
+void reds_send_device_display_info(RedsState *reds)
+{
+    if (!reds->agent_dev->priv->agent_attached) {
+        return;
+    }
+    g_debug("Sending device display info to the agent:");
+
+    size_t message_size = sizeof(VDAgentGraphicsDeviceInfo);
+    QXLInstance *qxl;
+    FOREACH_QXL_INSTANCE(reds, qxl) {
+        message_size +=
+            (sizeof(VDAgentDeviceDisplayInfo) + strlen(red_qxl_get_device_address(qxl)) + 1) *
+            red_qxl_get_monitors_count(qxl);
+    }
+
+    RedCharDeviceWriteBuffer *char_dev_buf = vdagent_new_write_buffer(reds->agent_dev,
+                                         VD_AGENT_GRAPHICS_DEVICE_INFO,
+                                         message_size,
+                                         true);
+
+    if (!char_dev_buf) {
+        reds->pending_device_display_info_message = true;
+        return;
+    }
+
+    VDInternalBuf *internal_buf = (VDInternalBuf *)char_dev_buf->buf;
+    VDAgentGraphicsDeviceInfo *graphics_device_info = &internal_buf->u.graphics_device_info;
+    graphics_device_info->count = 0;
+
+    VDAgentDeviceDisplayInfo *device_display_info = graphics_device_info->display_info;
+    FOREACH_QXL_INSTANCE(reds, qxl) {
+        for (size_t i = 0; i < red_qxl_get_monitors_count(qxl); ++i) {
+            device_display_info->channel_id = qxl->id;
+            device_display_info->monitor_id = i;
+            device_display_info->device_display_id = red_qxl_get_device_display_ids(qxl)[i];
+
+            strcpy((char*) device_display_info->device_address, red_qxl_get_device_address(qxl));
+
+            device_display_info->device_address_len =
+                strlen((char*) device_display_info->device_address) + 1;
+
+            g_debug("   channel_id: %u monitor_id: %u, device_address: %s, device_display_id: %u",
+                    device_display_info->channel_id,
+                    device_display_info->monitor_id,
+                    device_display_info->device_address,
+                    device_display_info->device_display_id);
+
+            device_display_info = (VDAgentDeviceDisplayInfo*) ((char*) device_display_info +
+                    sizeof(VDAgentDeviceDisplayInfo) + device_display_info->device_address_len);
+
+            graphics_device_info->count++;
+        }
+    }
+
+    reds->pending_device_display_info_message = false;
+
+    red_char_device_write_buffer_add(RED_CHAR_DEVICE(reds->agent_dev), char_dev_buf);
+}
+
 /* after calling this, we unref the message, and the ref is in the instance side */
 static void vdi_port_send_msg_to_client(RedCharDevice *self,
                                         RedPipeItem *msg,
@@ -924,6 +984,11 @@ static void vdi_port_on_free_self_token(RedCharDevice *self)
     if (reds->inputs_channel && reds->pending_mouse_event) {
         spice_debug("pending mouse event");
         reds_handle_agent_mouse_event(reds, inputs_channel_get_mouse_state(reds->inputs_channel));
+    }
+
+    if (reds->pending_device_display_info_message) {
+        spice_debug("pending device display info message");
+        reds_send_device_display_info(reds);
     }
 }
 
@@ -1061,6 +1126,8 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
                                                   client,
                                                   num_tokens);
     }
+
+    reds_send_device_display_info(reds);
 
     agent_msg_filter_config(&reds->agent_dev->priv->write_filter, reds->config->agent_copypaste,
                             reds->config->agent_file_xfer,
