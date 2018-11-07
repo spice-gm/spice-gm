@@ -218,10 +218,14 @@ void red_char_device_send_to_client_tokens_set(RedCharDevice *dev,
                                                uint32_t tokens);
 /** Write to device **/
 
-RedCharDeviceWriteBuffer *red_char_device_write_buffer_get(RedCharDevice *dev,
-                                                           RedClient *client, int size);
-RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_server_no_token(
-    RedCharDevice *dev, int size);
+RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_client(RedCharDevice *dev,
+                                                                  RedClient *client,
+                                                                  int size);
+
+/* Returns NULL if use_token == true and no tokens are available */
+RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_server(RedCharDevice *dev,
+                                                                  int size,
+                                                                  bool use_token);
 
 /* Either add the buffer to the write queue or release it */
 void red_char_device_write_buffer_add(RedCharDevice *dev,

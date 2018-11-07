@@ -144,8 +144,7 @@ smartcard_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
         spice_assert(smartcard_char_device_get_client(smartcard) || scc->priv->smartcard);
         spice_assert(!scc->priv->write_buf);
         scc->priv->write_buf =
-            red_char_device_write_buffer_get(RED_CHAR_DEVICE(smartcard), client,
-                                             size);
+            red_char_device_write_buffer_get_client(RED_CHAR_DEVICE(smartcard), client, size);
 
         if (!scc->priv->write_buf) {
             spice_error("failed to allocate write buffer");

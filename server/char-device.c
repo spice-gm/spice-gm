@@ -595,20 +595,22 @@ error:
     return NULL;
 }
 
-RedCharDeviceWriteBuffer *red_char_device_write_buffer_get(RedCharDevice *dev,
-                                                           RedClient *client,
-                                                           int size)
+RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_client(RedCharDevice *dev,
+                                                                  RedClient *client,
+                                                                  int size)
 {
-   return  __red_char_device_write_buffer_get(dev, client, size,
-             client ? WRITE_BUFFER_ORIGIN_CLIENT : WRITE_BUFFER_ORIGIN_SERVER,
-             0);
+    spice_assert(client);
+    return  __red_char_device_write_buffer_get(dev, client, size,
+            WRITE_BUFFER_ORIGIN_CLIENT,
+            0);
 }
 
-RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_server_no_token(
-    RedCharDevice *dev, int size)
+RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_server(RedCharDevice *dev,
+                                                                  int size,
+                                                                  bool use_token)
 {
-   return  __red_char_device_write_buffer_get(dev, NULL, size,
-             WRITE_BUFFER_ORIGIN_SERVER_NO_TOKEN, 0);
+    return  __red_char_device_write_buffer_get(dev, NULL, size,
+            use_token ? WRITE_BUFFER_ORIGIN_SERVER : WRITE_BUFFER_ORIGIN_SERVER_NO_TOKEN, 0);
 }
 
 static RedCharDeviceWriteBuffer *red_char_device_write_buffer_ref(RedCharDeviceWriteBuffer *write_buf)

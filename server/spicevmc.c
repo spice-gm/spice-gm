@@ -510,9 +510,9 @@ static bool handle_compressed_msg(RedVmcChannel *channel, RedChannelClient *rcc,
     int decompressed_size;
     RedCharDeviceWriteBuffer *write_buf;
 
-    write_buf = red_char_device_write_buffer_get(channel->chardev,
-                                                 red_channel_client_get_client(rcc),
-                                                 compressed_data_msg->uncompressed_size);
+    write_buf = red_char_device_write_buffer_get_client(channel->chardev,
+                                                        red_channel_client_get_client(rcc),
+                                                        compressed_data_msg->uncompressed_size);
     if (!write_buf) {
         return FALSE;
     }
@@ -596,9 +596,9 @@ static uint8_t *spicevmc_red_channel_alloc_msg_rcv_buf(RedChannelClient *rcc,
 
         assert(!channel->recv_from_client_buf);
 
-        channel->recv_from_client_buf = red_char_device_write_buffer_get(channel->chardev,
-                                                                         client,
-                                                                         size);
+        channel->recv_from_client_buf = red_char_device_write_buffer_get_client(channel->chardev,
+                                                                                client,
+                                                                                size);
         if (!channel->recv_from_client_buf) {
             spice_error("failed to allocate write buffer");
             return NULL;

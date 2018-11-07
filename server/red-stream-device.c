@@ -228,7 +228,7 @@ handle_msg_invalid(StreamDevice *dev, SpiceCharDeviceInstance *sin, const char *
 
     RedCharDevice *char_dev = RED_CHAR_DEVICE(dev);
     RedCharDeviceWriteBuffer *buf =
-        red_char_device_write_buffer_get_server_no_token(char_dev, total_size);
+        red_char_device_write_buffer_get_server(char_dev, total_size, false);
     buf->buf_used = total_size;
 
     StreamDevHeader *const hdr = (StreamDevHeader *)buf->buf;
@@ -517,7 +517,7 @@ stream_device_stream_start(void *opaque, StreamMsgStartStop *start,
 
     RedCharDevice *char_dev = RED_CHAR_DEVICE(dev);
     RedCharDeviceWriteBuffer *buf =
-        red_char_device_write_buffer_get_server_no_token(char_dev, total_size);
+        red_char_device_write_buffer_get_server(char_dev, total_size, false);
     buf->buf_used = total_size;
 
     StreamDevHeader *hdr = (StreamDevHeader *)buf->buf;
@@ -662,7 +662,7 @@ send_capabilities(RedCharDevice *char_dev)
     int total_size = sizeof(StreamDevHeader) + msg_size;
 
     RedCharDeviceWriteBuffer *buf =
-        red_char_device_write_buffer_get_server_no_token(char_dev, total_size);
+        red_char_device_write_buffer_get_server(char_dev, total_size, false);
     buf->buf_used = total_size;
 
     StreamDevHeader *const hdr = (StreamDevHeader *)buf->buf;

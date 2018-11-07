@@ -562,8 +562,8 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
             uint32_t total_msg_size;
 
             total_msg_size = sizeof(VDIChunkHeader) + sizeof(VDAgentMessage);
-            char_dev_buf = red_char_device_write_buffer_get_server_no_token(
-                               RED_CHAR_DEVICE(reds->agent_dev), total_msg_size);
+            char_dev_buf = red_char_device_write_buffer_get_server(
+                               RED_CHAR_DEVICE(reds->agent_dev), total_msg_size, false);
             char_dev_buf->buf_used = total_msg_size;
             internal_buf = (VDInternalBuf *)char_dev_buf->buf;
             internal_buf->chunk_header.port = VDP_SERVER_PORT;
@@ -936,9 +936,9 @@ void reds_handle_agent_mouse_event(RedsState *reds, const VDAgentMouseState *mou
 
     total_msg_size = sizeof(VDIChunkHeader) + sizeof(VDAgentMessage) +
                      sizeof(VDAgentMouseState);
-    char_dev_buf = red_char_device_write_buffer_get(RED_CHAR_DEVICE(reds->agent_dev),
-                                                    NULL,
-                                                    total_msg_size);
+    char_dev_buf = red_char_device_write_buffer_get_server(RED_CHAR_DEVICE(reds->agent_dev),
+                                                           total_msg_size,
+                                                           true);
 
     if (!char_dev_buf) {
         reds->pending_mouse_event = TRUE;
@@ -1094,9 +1094,10 @@ uint8_t *reds_get_agent_data_buffer(RedsState *reds, MainChannelClient *mcc, siz
 
     spice_assert(dev->priv->recv_from_client_buf == NULL);
     client = red_channel_client_get_client(RED_CHANNEL_CLIENT(mcc));
-    dev->priv->recv_from_client_buf = red_char_device_write_buffer_get(RED_CHAR_DEVICE(dev),
-                                                                       client,
-                                                                       size + sizeof(VDIChunkHeader));
+    dev->priv->recv_from_client_buf =
+        red_char_device_write_buffer_get_client(RED_CHAR_DEVICE(dev),
+                                                client,
+                                                size + sizeof(VDIChunkHeader));
     /* check if buffer was allocated, as flow control is enabled for
      * this device this is a normal condition */
     if (!dev->priv->recv_from_client_buf) {
