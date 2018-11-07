@@ -504,6 +504,33 @@ static void reds_reset_vdp(RedsState *reds)
     }
 }
 
+static RedCharDeviceWriteBuffer *vdagent_new_write_buffer(RedCharDeviceVDIPort *agent_dev,
+                                                          uint32_t type,
+                                                          size_t size,
+                                                          bool use_token)
+{
+    uint32_t total_msg_size = sizeof(VDIChunkHeader) + sizeof(VDAgentMessage) + size;
+
+    RedCharDeviceWriteBuffer *char_dev_buf;
+        char_dev_buf = red_char_device_write_buffer_get_server(RED_CHAR_DEVICE(agent_dev),
+                                                               total_msg_size,
+                                                               use_token);
+    if (!char_dev_buf) {
+        return NULL;  // no token was available
+    }
+
+    char_dev_buf->buf_used = total_msg_size;
+    VDInternalBuf *internal_buf = (VDInternalBuf *)char_dev_buf->buf;
+    internal_buf->chunk_header.port = VDP_SERVER_PORT;
+    internal_buf->chunk_header.size = sizeof(VDAgentMessage) + size;
+    internal_buf->header.protocol = VD_AGENT_PROTOCOL;
+    internal_buf->header.type = type;
+    internal_buf->header.opaque = 0;
+    internal_buf->header.size = size;
+
+    return char_dev_buf;
+}
+
 static int reds_main_channel_connected(RedsState *reds)
 {
     return main_channel_is_connected(reds->main_channel);
@@ -557,24 +584,13 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
     if (g_list_length(reds->clients) == 0) {
         /* Let the agent know the client is disconnected */
         if (reds->agent_dev->priv->agent_attached) {
-            RedCharDeviceWriteBuffer *char_dev_buf;
-            VDInternalBuf *internal_buf;
-            uint32_t total_msg_size;
+            RedCharDeviceWriteBuffer *char_dev_buf =
+                vdagent_new_write_buffer(reds->agent_dev,
+                                         VD_AGENT_CLIENT_DISCONNECTED,
+                                         0,
+                                         false);
 
-            total_msg_size = sizeof(VDIChunkHeader) + sizeof(VDAgentMessage);
-            char_dev_buf = red_char_device_write_buffer_get_server(
-                               RED_CHAR_DEVICE(reds->agent_dev), total_msg_size, false);
-            char_dev_buf->buf_used = total_msg_size;
-            internal_buf = (VDInternalBuf *)char_dev_buf->buf;
-            internal_buf->chunk_header.port = VDP_SERVER_PORT;
-            internal_buf->chunk_header.size = sizeof(VDAgentMessage);
-            internal_buf->header.protocol = VD_AGENT_PROTOCOL;
-            internal_buf->header.type = VD_AGENT_CLIENT_DISCONNECTED;
-            internal_buf->header.opaque = 0;
-            internal_buf->header.size = 0;
-
-            red_char_device_write_buffer_add(RED_CHAR_DEVICE(reds->agent_dev),
-                                             char_dev_buf);
+            red_char_device_write_buffer_add(RED_CHAR_DEVICE(reds->agent_dev), char_dev_buf);
         }
 
         /* Reset write filter to start with clean state on client reconnect */
@@ -926,37 +942,25 @@ int reds_has_vdagent(RedsState *reds)
 
 void reds_handle_agent_mouse_event(RedsState *reds, const VDAgentMouseState *mouse_state)
 {
-    RedCharDeviceWriteBuffer *char_dev_buf;
-    VDInternalBuf *internal_buf;
-    uint32_t total_msg_size;
-
     if (!reds->inputs_channel || !reds->agent_dev->priv->agent_attached) {
         return;
     }
 
-    total_msg_size = sizeof(VDIChunkHeader) + sizeof(VDAgentMessage) +
-                     sizeof(VDAgentMouseState);
-    char_dev_buf = red_char_device_write_buffer_get_server(RED_CHAR_DEVICE(reds->agent_dev),
-                                                           total_msg_size,
-                                                           true);
+    RedCharDeviceWriteBuffer *char_dev_buf = vdagent_new_write_buffer(reds->agent_dev,
+                                                                      VD_AGENT_MOUSE_STATE,
+                                                                      sizeof(VDAgentMouseState),
+                                                                      true);
 
     if (!char_dev_buf) {
         reds->pending_mouse_event = TRUE;
-
         return;
     }
+
     reds->pending_mouse_event = FALSE;
 
-    internal_buf = (VDInternalBuf *)char_dev_buf->buf;
-    internal_buf->chunk_header.port = VDP_SERVER_PORT;
-    internal_buf->chunk_header.size = sizeof(VDAgentMessage) + sizeof(VDAgentMouseState);
-    internal_buf->header.protocol = VD_AGENT_PROTOCOL;
-    internal_buf->header.type = VD_AGENT_MOUSE_STATE;
-    internal_buf->header.opaque = 0;
-    internal_buf->header.size = sizeof(VDAgentMouseState);
+    VDInternalBuf *internal_buf = (VDInternalBuf *)char_dev_buf->buf;
     internal_buf->u.mouse_state = *mouse_state;
 
-    char_dev_buf->buf_used = total_msg_size;
     red_char_device_write_buffer_add(RED_CHAR_DEVICE(reds->agent_dev), char_dev_buf);
 }
 
