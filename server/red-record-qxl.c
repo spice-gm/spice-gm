@@ -815,6 +815,7 @@ void red_record_qxl_command(RedRecord *record, RedMemSlotInfo *slots,
     pthread_mutex_unlock(&record->lock);
 }
 
+#ifndef _WIN32
 /**
  * Redirects child output to the file specified
  */
@@ -827,6 +828,7 @@ static void child_output_setup(gpointer user_data)
     }
     close(fd);
 }
+#endif
 
 RedRecord *red_record_new(const char *filename)
 {
@@ -843,6 +845,7 @@ RedRecord *red_record_new(const char *filename)
 
     filter = getenv("SPICE_WORKER_RECORD_FILTER");
     if (filter) {
+#ifndef _WIN32
         gint argc;
         gchar **argv = NULL;
         GError *error = NULL;
@@ -868,6 +871,10 @@ RedRecord *red_record_new(const char *filename)
         }
         close(fd_in);
         g_spawn_close_pid(child_pid);
+#else
+        // TODO
+        spice_warning("recorder filter not supported under Windows");
+#endif
     }
 
     if (fwrite(header, sizeof(header)-1, 1, f) != 1) {
