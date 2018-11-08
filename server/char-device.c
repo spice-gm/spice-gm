@@ -531,9 +531,9 @@ static void red_char_device_write_retry(void *opaque)
     red_char_device_write_to_device(dev);
 }
 
-static RedCharDeviceWriteBuffer *__red_char_device_write_buffer_get(
-    RedCharDevice *dev, RedClient *client,
-    int size, WriteBufferOrigin origin, int migrated_data_tokens)
+static RedCharDeviceWriteBuffer *
+red_char_device_write_buffer_get(RedCharDevice *dev, RedClient *client, int size,
+                                 WriteBufferOrigin origin, int migrated_data_tokens)
 {
     RedCharDeviceWriteBuffer *ret;
 
@@ -600,17 +600,16 @@ RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_client(RedCharDevice 
                                                                   int size)
 {
     spice_assert(client);
-    return  __red_char_device_write_buffer_get(dev, client, size,
-            WRITE_BUFFER_ORIGIN_CLIENT,
-            0);
+    return  red_char_device_write_buffer_get(dev, client, size, WRITE_BUFFER_ORIGIN_CLIENT, 0);
 }
 
 RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_server(RedCharDevice *dev,
                                                                   int size,
                                                                   bool use_token)
 {
-    return  __red_char_device_write_buffer_get(dev, NULL, size,
-            use_token ? WRITE_BUFFER_ORIGIN_SERVER : WRITE_BUFFER_ORIGIN_SERVER_NO_TOKEN, 0);
+    WriteBufferOrigin origin =
+        use_token ? WRITE_BUFFER_ORIGIN_SERVER : WRITE_BUFFER_ORIGIN_SERVER_NO_TOKEN;
+    return  red_char_device_write_buffer_get(dev, NULL, size, origin, 0);
 }
 
 static RedCharDeviceWriteBuffer *red_char_device_write_buffer_ref(RedCharDeviceWriteBuffer *write_buf)
@@ -964,12 +963,12 @@ bool red_char_device_restore(RedCharDevice *dev,
     if (mig_data->write_size > 0) {
         if (mig_data->write_num_client_tokens) {
             dev->priv->cur_write_buf =
-                __red_char_device_write_buffer_get(dev, dev_client->client,
+                red_char_device_write_buffer_get(dev, dev_client->client,
                     mig_data->write_size, WRITE_BUFFER_ORIGIN_CLIENT,
                     mig_data->write_num_client_tokens);
         } else {
             dev->priv->cur_write_buf =
-                __red_char_device_write_buffer_get(dev, NULL,
+                red_char_device_write_buffer_get(dev, NULL,
                     mig_data->write_size, WRITE_BUFFER_ORIGIN_SERVER, 0);
         }
         /* the first write buffer contains all the data that was saved for migration */
