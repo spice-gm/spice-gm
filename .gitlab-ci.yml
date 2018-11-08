@@ -8,7 +8,6 @@ before_script:
     -y
   - dnf copr enable @spice/nightly -y
   - dnf builddep spice -y
-  - dnf downgrade asciidoc -y
 
 makecheck:
   script:
