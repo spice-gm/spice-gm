@@ -17,7 +17,7 @@
 # This file should be updated if GLib introduces a new deliberate one-time leak,
 # or another false race positive in Valgrind: please file bugs at:
 #
-# https://bugzilla.gnome.org/enter_bug.cgi?product=glib
+# https://gitlab.gnome.org/GNOME/glib/issues/new
 
 {
 	gnutls-init-calloc
@@ -49,6 +49,36 @@
 	...
 	fun:create_tokens_inlock
 	fun:initialize_module_inlock_reentrant
+}
+
+# One-time allocation from libc for getpwnam() results
+{
+	g-local-vfs-getpwnam
+	Memcheck:Leak
+	fun:malloc
+	...
+	fun:getpwnam
+	fun:g_local_vfs_parse_name
+}
+
+{
+	glib-init-malloc
+	Memcheck:Leak
+	fun:malloc
+	...
+	fun:g_quark_init
+	...
+	fun:glib_init_ctor
+}
+
+{
+	glib-init-calloc
+	Memcheck:Leak
+	fun:calloc
+	...
+	fun:g_quark_init
+	...
+	fun:glib_init_ctor
 }
 
 {
@@ -230,6 +260,18 @@
 	fun:g_proxy_resolver_gnome_init
 	...
 	fun:_g_io_module_get_default
+}
+
+# One-time getaddrinfo() configuration loading
+{
+	g-threaded-resolver-getaddrinfo-config
+	Memcheck:Leak
+	fun:malloc
+	...
+	fun:__resolv_conf_allocate
+	...
+	fun:getaddrinfo
+	fun:do_lookup_by_name
 }
 
 # memcheck checks that the third argument to ioctl() is a valid pointer, but
@@ -500,16 +542,6 @@
 	Helgrind:Race
 	...
 	fun:g_object_new_valist
-}
-
-{
-	getaddrinfo
-	Memcheck:Leak
-	fun:malloc
-	...
-	fun:__resolv_conf_allocate
-	...
-	fun:getaddrinfo
 }
 
 {
