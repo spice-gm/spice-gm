@@ -572,3 +572,13 @@
 	...
 	fun:gnutls_rnd
 }
+
+{
+	gnutls_tls_p11_kit_leak
+	Memcheck:Leak
+	fun:malloc
+	...
+	fun:__tls_get_addr
+	...
+	fun:p11_kit_modules_load
+}
