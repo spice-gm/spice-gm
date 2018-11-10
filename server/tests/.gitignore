@@ -27,5 +27,6 @@ test-vdagent
 test-gst
 test-leaks
 test-sasl
+test-record
 /test-*.log
 /test-*.trs

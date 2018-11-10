@@ -47,6 +47,7 @@ tests = [
   ['test-channel', true],
   ['test-stream-device', true],
   ['test-listen', true],
+  ['test-record', true],
   ['test-display-no-ssl', false],
   ['test-display-streaming', false],
   ['test-playback', false],
