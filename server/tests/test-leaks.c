@@ -50,7 +50,7 @@ static void server_leaks(void)
     core = basic_event_loop_init();
     g_assert_nonnull(core);
 
-    result = spice_server_set_tls(server, 5913,
+    result = spice_server_set_tls(server, 5922,
                                   PKI_DIR "ca-cert.pem",
                                   PKI_DIR "server-cert.pem",
                                   PKI_DIR "server-key.pem",
