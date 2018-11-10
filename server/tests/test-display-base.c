@@ -905,8 +905,9 @@ static gboolean ignore_in_use_failures(const gchar *log_domain,
     if ((log_level & G_LOG_LEVEL_WARNING) == 0)  {
         return true;
     }
-    if (strstr(message, "reds_init_socket: binding socket to ") == NULL || // bind failure
-        strstr(message, "reds_init_socket: listen: ") == NULL) { // listen failure
+    if (strstr(message, "reds_init_socket: binding socket to ") == NULL && // bind failure
+        strstr(message, "reds_init_socket: listen: ") == NULL && // listen failure
+        strstr(message, "Failed to open SPICE sockets") == NULL) { // global
         g_print("XXX [%s]\n", message);
         return true;
     }
