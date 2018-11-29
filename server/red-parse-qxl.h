@@ -67,6 +67,7 @@ typedef struct RedUpdateCmd {
 } RedUpdateCmd;
 
 typedef struct RedMessage {
+    QXLInstance *qxl;
     QXLReleaseInfoExt release_info_ext;
     int len;
     uint8_t *data;
@@ -121,7 +122,7 @@ bool red_get_update_cmd(RedMemSlotInfo *slots, int group_id,
                         RedUpdateCmd *red, QXLPHYSICAL addr);
 void red_put_update_cmd(RedUpdateCmd *red);
 
-bool red_get_message(RedMemSlotInfo *slots, int group_id,
+bool red_get_message(QXLInstance *qxl, RedMemSlotInfo *slots, int group_id,
                      RedMessage *red, QXLPHYSICAL addr);
 void red_put_message(RedMessage *red);
 

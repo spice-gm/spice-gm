@@ -1292,7 +1292,7 @@ void red_put_update_cmd(RedUpdateCmd *red)
     /* nothing yet */
 }
 
-bool red_get_message(RedMemSlotInfo *slots, int group_id,
+bool red_get_message(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group_id,
                      RedMessage *red, QXLPHYSICAL addr)
 {
     QXLMessage *qxl;
@@ -1310,6 +1310,7 @@ bool red_get_message(RedMemSlotInfo *slots, int group_id,
     if (qxl == NULL) {
         return false;
     }
+    red->qxl = qxl_instance;
     red->release_info_ext.info      = &qxl->release_info;
     red->release_info_ext.group_id  = group_id;
     red->data                       = qxl->data;
@@ -1326,7 +1327,9 @@ bool red_get_message(RedMemSlotInfo *slots, int group_id,
 
 void red_put_message(RedMessage *red)
 {
-    /* nothing yet */
+    if (red->qxl != NULL) {
+        red_qxl_release_resource(red->qxl, red->release_info_ext);
+    }
 }
 
 static unsigned int surface_format_to_bpp(uint32_t format)

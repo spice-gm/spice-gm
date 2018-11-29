@@ -232,14 +232,13 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
         case QXL_CMD_MESSAGE: {
             RedMessage message;
 
-            if (!red_get_message(&worker->mem_slots, ext_cmd.group_id,
+            if (!red_get_message(worker->qxl, &worker->mem_slots, ext_cmd.group_id,
                                  &message, ext_cmd.cmd.data)) {
                 break;
             }
 #ifdef DEBUG
             spice_warning("MESSAGE: %.*s", message.len, message.data);
 #endif
-            red_qxl_release_resource(worker->qxl, message.release_info_ext);
             red_put_message(&message);
             break;
         }
