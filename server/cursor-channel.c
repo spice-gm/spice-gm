@@ -26,7 +26,6 @@
 #include "cursor-channel.h"
 #include "cursor-channel-client.h"
 #include "reds.h"
-#include "red-qxl.h"
 
 typedef struct RedCursorPipeItem {
     RedPipeItem base;
@@ -62,20 +61,16 @@ static RedCursorPipeItem *cursor_pipe_item_new(RedCursorCmd *cmd)
 
     red_pipe_item_init_full(&item->base, RED_PIPE_ITEM_TYPE_CURSOR,
                             cursor_pipe_item_free);
-    item->red_cursor = cmd;
+    item->red_cursor = red_cursor_cmd_ref(cmd);
 
     return item;
 }
 
 static void cursor_pipe_item_free(RedPipeItem *base)
 {
-    RedCursorCmd *cursor_cmd;
     RedCursorPipeItem *pipe_item = SPICE_UPCAST(RedCursorPipeItem, base);
 
-    cursor_cmd = pipe_item->red_cursor;
-    red_put_cursor_cmd(cursor_cmd);
-    g_free(cursor_cmd);
-
+    red_cursor_cmd_unref(pipe_item->red_cursor);
     g_free(pipe_item);
 }
 

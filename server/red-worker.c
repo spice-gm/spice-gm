@@ -96,13 +96,15 @@ static gboolean red_process_cursor_cmd(RedWorker *worker, const QXLCommandExt *e
 {
     RedCursorCmd *cursor_cmd;
 
-    cursor_cmd = g_new0(RedCursorCmd, 1);
-    if (!red_get_cursor_cmd(&worker->mem_slots, ext->group_id, cursor_cmd, ext->cmd.data)) {
-        g_free(cursor_cmd);
+    cursor_cmd = red_cursor_cmd_new(worker->qxl, &worker->mem_slots,
+                                    ext->group_id, ext->cmd.data);
+    if (cursor_cmd == NULL) {
         return FALSE;
     }
-    cursor_cmd->qxl = worker->qxl;
+
     cursor_channel_process_cmd(worker->cursor_channel, cursor_cmd);
+    red_cursor_cmd_unref(cursor_cmd);
+
     return TRUE;
 }
 

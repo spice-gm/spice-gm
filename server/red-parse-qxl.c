@@ -1465,8 +1465,9 @@ static void red_put_cursor(SpiceCursor *red)
     g_free(red->data);
 }
 
-bool red_get_cursor_cmd(RedMemSlotInfo *slots, int group_id,
-                        RedCursorCmd *red, QXLPHYSICAL addr)
+static bool red_get_cursor_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
+                               int group_id, RedCursorCmd *red,
+                               QXLPHYSICAL addr)
 {
     QXLCursorCmd *qxl;
 
@@ -1474,6 +1475,7 @@ bool red_get_cursor_cmd(RedMemSlotInfo *slots, int group_id,
     if (qxl == NULL) {
         return false;
     }
+    red->qxl = qxl_instance;
     red->release_info_ext.info      = &qxl->release_info;
     red->release_info_ext.group_id  = group_id;
 
@@ -1494,7 +1496,24 @@ bool red_get_cursor_cmd(RedMemSlotInfo *slots, int group_id,
     return true;
 }
 
-void red_put_cursor_cmd(RedCursorCmd *red)
+RedCursorCmd *red_cursor_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                                 int group_id, QXLPHYSICAL addr)
+{
+    RedCursorCmd *cmd;
+
+    cmd = g_new0(RedCursorCmd, 1);
+
+    cmd->refs = 1;
+
+    if (!red_get_cursor_cmd(qxl, slots, group_id, cmd, addr)) {
+        red_cursor_cmd_unref(cmd);
+        return NULL;
+    }
+
+    return cmd;
+}
+
+static void red_put_cursor_cmd(RedCursorCmd *red)
 {
     switch (red->type) {
     case QXL_CURSOR_SET:
@@ -1504,4 +1523,19 @@ void red_put_cursor_cmd(RedCursorCmd *red)
     if (red->qxl) {
         red_qxl_release_resource(red->qxl, red->release_info_ext);
     }
+}
+
+RedCursorCmd *red_cursor_cmd_ref(RedCursorCmd *red)
+{
+    red->refs++;
+    return red;
+}
+
+void red_cursor_cmd_unref(RedCursorCmd *red)
+{
+    if (--red->refs) {
+        return;
+    }
+    red_put_cursor_cmd(red);
+    g_free(red);
 }

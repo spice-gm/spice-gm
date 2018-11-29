@@ -93,6 +93,7 @@ typedef struct RedSurfaceCmd {
 typedef struct RedCursorCmd {
     QXLInstance *qxl;
     QXLReleaseInfoExt release_info_ext;
+    int refs;
     uint8_t type;
     union {
         struct {
@@ -131,8 +132,9 @@ bool red_get_surface_cmd(RedMemSlotInfo *slots, int group_id,
                          RedSurfaceCmd *red, QXLPHYSICAL addr);
 void red_put_surface_cmd(RedSurfaceCmd *red);
 
-bool red_get_cursor_cmd(RedMemSlotInfo *slots, int group_id,
-                        RedCursorCmd *red, QXLPHYSICAL addr);
-void red_put_cursor_cmd(RedCursorCmd *red);
+RedCursorCmd *red_cursor_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                                 int group_id, QXLPHYSICAL addr);
+RedCursorCmd *red_cursor_cmd_ref(RedCursorCmd *cmd);
+void red_cursor_cmd_unref(RedCursorCmd *cmd);
 
 #endif /* RED_PARSE_QXL_H_ */
