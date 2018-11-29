@@ -198,15 +198,16 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
         worker->display_poll_tries = 0;
         switch (ext_cmd.cmd.type) {
         case QXL_CMD_DRAW: {
-            RedDrawable *red_drawable = red_drawable_new(worker->qxl); // returns with 1 ref
+            RedDrawable *red_drawable;
+            red_drawable = red_drawable_new(worker->qxl, &worker->mem_slots,
+                                            ext_cmd.group_id, ext_cmd.cmd.data,
+                                            ext_cmd.flags); // returns with 1 ref
 
-            if (red_get_drawable(&worker->mem_slots, ext_cmd.group_id,
-                                 red_drawable, ext_cmd.cmd.data, ext_cmd.flags)) {
+            if (red_drawable != NULL) {
                 display_channel_process_draw(worker->display_channel, red_drawable,
                                              worker->process_display_generation);
+                red_drawable_unref(red_drawable);
             }
-            // release the red_drawable
-            red_drawable_unref(red_drawable);
             break;
         }
         case QXL_CMD_UPDATE: {

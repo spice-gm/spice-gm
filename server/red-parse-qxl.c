@@ -1170,8 +1170,8 @@ static bool red_get_compat_drawable(RedMemSlotInfo *slots, int group_id,
     return true;
 }
 
-bool red_get_drawable(RedMemSlotInfo *slots, int group_id,
-                      RedDrawable *red, QXLPHYSICAL addr, uint32_t flags)
+static bool red_get_drawable(RedMemSlotInfo *slots, int group_id,
+                             RedDrawable *red, QXLPHYSICAL addr, uint32_t flags)
 {
     bool ret;
 
@@ -1183,7 +1183,7 @@ bool red_get_drawable(RedMemSlotInfo *slots, int group_id,
     return ret;
 }
 
-void red_put_drawable(RedDrawable *red)
+static void red_put_drawable(RedDrawable *red)
 {
     red_put_clip(&red->clip);
     if (red->self_bitmap_image) {
@@ -1232,12 +1232,19 @@ void red_put_drawable(RedDrawable *red)
     }
 }
 
-RedDrawable *red_drawable_new(QXLInstance *qxl)
+RedDrawable *red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                              int group_id, QXLPHYSICAL addr,
+                              uint32_t flags)
 {
-    RedDrawable * red = g_new0(RedDrawable, 1);
+    RedDrawable *red = g_new0(RedDrawable, 1);
 
     red->refs = 1;
     red->qxl = qxl;
+
+    if (!red_get_drawable(slots, group_id, red, addr, flags)) {
+       red_drawable_unref(red);
+       return NULL;
+    }
 
     return red;
 }

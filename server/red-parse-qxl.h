@@ -110,13 +110,11 @@ typedef struct RedCursorCmd {
 
 void red_get_rect_ptr(SpiceRect *red, const QXLRect *qxl);
 
-RedDrawable *red_drawable_new(QXLInstance *qxl);
+RedDrawable *red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                              int group_id, QXLPHYSICAL addr,
+                              uint32_t flags);
 RedDrawable *red_drawable_ref(RedDrawable *drawable);
 void red_drawable_unref(RedDrawable *red_drawable);
-
-bool red_get_drawable(RedMemSlotInfo *slots, int group_id,
-                      RedDrawable *red, QXLPHYSICAL addr, uint32_t flags);
-void red_put_drawable(RedDrawable *red);
 
 bool red_get_update_cmd(RedMemSlotInfo *slots, int group_id,
                         RedUpdateCmd *red, QXLPHYSICAL addr);
