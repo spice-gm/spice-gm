@@ -286,7 +286,6 @@ static void stop_streams(DisplayChannel *display)
 void display_channel_surface_unref(DisplayChannel *display, uint32_t surface_id)
 {
     RedSurface *surface = &display->priv->surfaces[surface_id];
-    QXLInstance *qxl = display->priv->qxl;
     DisplayChannelClient *dcc;
 
     if (--surface->refs != 0) {
@@ -301,12 +300,10 @@ void display_channel_surface_unref(DisplayChannel *display, uint32_t surface_id)
 
     surface->context.canvas->ops->destroy(surface->context.canvas);
     if (surface->create_cmd != NULL) {
-        red_qxl_release_resource(qxl, surface->create_cmd->release_info_ext);
         red_surface_cmd_unref(surface->create_cmd);
         surface->create_cmd = NULL;
     }
     if (surface->destroy_cmd != NULL) {
-        red_qxl_release_resource(qxl, surface->destroy_cmd->release_info_ext);
         red_surface_cmd_unref(surface->destroy_cmd);
         surface->destroy_cmd = NULL;
     }

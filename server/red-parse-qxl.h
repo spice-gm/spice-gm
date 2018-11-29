@@ -85,6 +85,7 @@ typedef struct RedSurfaceCreate {
 } RedSurfaceCreate;
 
 typedef struct RedSurfaceCmd {
+    QXLInstance *qxl;
     QXLReleaseInfoExt release_info_ext;
     int refs;
     uint32_t surface_id;
