@@ -213,19 +213,20 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
             break;
         }
         case QXL_CMD_UPDATE: {
-            RedUpdateCmd update;
+            RedUpdateCmd *update;
 
-            if (!red_get_update_cmd(worker->qxl, &worker->mem_slots, ext_cmd.group_id,
-                                    &update, ext_cmd.cmd.data)) {
+            update = red_update_cmd_new(worker->qxl, &worker->mem_slots,
+                                        ext_cmd.group_id, ext_cmd.cmd.data);
+            if (update == NULL) {
                 break;
             }
-            if (!display_channel_validate_surface(worker->display_channel, update.surface_id)) {
+            if (!display_channel_validate_surface(worker->display_channel, update->surface_id)) {
                 spice_warning("Invalid surface in QXL_CMD_UPDATE");
             } else {
-                display_channel_draw(worker->display_channel, &update.area, update.surface_id);
-                red_qxl_notify_update(worker->qxl, update.update_id);
+                display_channel_draw(worker->display_channel, &update->area, update->surface_id);
+                red_qxl_notify_update(worker->qxl, update->update_id);
             }
-            red_put_update_cmd(&update);
+            red_update_cmd_unref(update);
             break;
         }
         case QXL_CMD_MESSAGE: {

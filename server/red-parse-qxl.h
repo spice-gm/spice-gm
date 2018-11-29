@@ -62,6 +62,7 @@ typedef struct RedDrawable {
 typedef struct RedUpdateCmd {
     QXLInstance *qxl;
     QXLReleaseInfoExt release_info_ext;
+    int refs;
     SpiceRect area;
     uint32_t update_id;
     uint32_t surface_id;
@@ -120,9 +121,10 @@ RedDrawable *red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
 RedDrawable *red_drawable_ref(RedDrawable *drawable);
 void red_drawable_unref(RedDrawable *red_drawable);
 
-bool red_get_update_cmd(QXLInstance *qxl, RedMemSlotInfo *slots, int group_id,
-                        RedUpdateCmd *red, QXLPHYSICAL addr);
-void red_put_update_cmd(RedUpdateCmd *red);
+RedUpdateCmd *red_update_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                                 int group_id, QXLPHYSICAL addr);
+RedUpdateCmd *red_update_cmd_ref(RedUpdateCmd *red);
+void red_update_cmd_unref(RedUpdateCmd *red);
 
 RedMessage *red_message_new(QXLInstance *qxl, RedMemSlotInfo *slots,
                             int group_id, QXLPHYSICAL addr);
