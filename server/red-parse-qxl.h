@@ -59,14 +59,6 @@ typedef struct RedDrawable {
     } u;
 } RedDrawable;
 
-static inline RedDrawable *red_drawable_ref(RedDrawable *drawable)
-{
-    drawable->refs++;
-    return drawable;
-}
-
-void red_drawable_unref(RedDrawable *red_drawable);
-
 typedef struct RedUpdateCmd {
     QXLReleaseInfoExt release_info_ext;
     SpiceRect area;
@@ -117,6 +109,10 @@ typedef struct RedCursorCmd {
 } RedCursorCmd;
 
 void red_get_rect_ptr(SpiceRect *red, const QXLRect *qxl);
+
+RedDrawable *red_drawable_new(QXLInstance *qxl);
+RedDrawable *red_drawable_ref(RedDrawable *drawable);
+void red_drawable_unref(RedDrawable *red_drawable);
 
 bool red_get_drawable(RedMemSlotInfo *slots, int group_id,
                       RedDrawable *red, QXLPHYSICAL addr, uint32_t flags);

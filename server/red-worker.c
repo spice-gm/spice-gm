@@ -92,16 +92,6 @@ struct RedWorker {
     GMainLoop *loop;
 };
 
-void red_drawable_unref(RedDrawable *red_drawable)
-{
-    if (--red_drawable->refs) {
-        return;
-    }
-    red_qxl_release_resource(red_drawable->qxl, red_drawable->release_info_ext);
-    red_put_drawable(red_drawable);
-    g_free(red_drawable);
-}
-
 static gboolean red_process_cursor_cmd(RedWorker *worker, const QXLCommandExt *ext)
 {
     RedCursorCmd *cursor_cmd;
@@ -156,16 +146,6 @@ static int red_process_cursor(RedWorker *worker, int *ring_is_empty)
     }
     worker->was_blocked = TRUE;
     return n;
-}
-
-static RedDrawable *red_drawable_new(QXLInstance *qxl)
-{
-    RedDrawable * red = g_new0(RedDrawable, 1);
-
-    red->refs = 1;
-    red->qxl = qxl;
-
-    return red;
 }
 
 static gboolean red_process_surface_cmd(RedWorker *worker, QXLCommandExt *ext, gboolean loadvm)

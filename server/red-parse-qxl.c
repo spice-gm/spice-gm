@@ -1232,6 +1232,32 @@ void red_put_drawable(RedDrawable *red)
     }
 }
 
+RedDrawable *red_drawable_new(QXLInstance *qxl)
+{
+    RedDrawable * red = g_new0(RedDrawable, 1);
+
+    red->refs = 1;
+    red->qxl = qxl;
+
+    return red;
+}
+
+RedDrawable *red_drawable_ref(RedDrawable *drawable)
+{
+    drawable->refs++;
+    return drawable;
+}
+
+void red_drawable_unref(RedDrawable *red_drawable)
+{
+    if (--red_drawable->refs) {
+        return;
+    }
+    red_qxl_release_resource(red_drawable->qxl, red_drawable->release_info_ext);
+    red_put_drawable(red_drawable);
+    g_free(red_drawable);
+}
+
 bool red_get_update_cmd(RedMemSlotInfo *slots, int group_id,
                         RedUpdateCmd *red, QXLPHYSICAL addr)
 {
