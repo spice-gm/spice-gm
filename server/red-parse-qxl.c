@@ -1268,8 +1268,9 @@ void red_drawable_unref(RedDrawable *red_drawable)
     g_free(red_drawable);
 }
 
-bool red_get_update_cmd(RedMemSlotInfo *slots, int group_id,
-                        RedUpdateCmd *red, QXLPHYSICAL addr)
+bool red_get_update_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
+                        int group_id, RedUpdateCmd *red,
+                        QXLPHYSICAL addr)
 {
     QXLUpdateCmd *qxl;
 
@@ -1277,9 +1278,9 @@ bool red_get_update_cmd(RedMemSlotInfo *slots, int group_id,
     if (qxl == NULL) {
         return false;
     }
+    red->qxl = qxl_instance;
     red->release_info_ext.info     = &qxl->release_info;
     red->release_info_ext.group_id = group_id;
-
 
     red_get_rect_ptr(&red->area, &qxl->area);
     red->update_id  = qxl->update_id;
@@ -1289,7 +1290,9 @@ bool red_get_update_cmd(RedMemSlotInfo *slots, int group_id,
 
 void red_put_update_cmd(RedUpdateCmd *red)
 {
-    /* nothing yet */
+    if (red->qxl != NULL) {
+        red_qxl_release_resource(red->qxl, red->release_info_ext);
+    }
 }
 
 static bool red_get_message(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group_id,

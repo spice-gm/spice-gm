@@ -215,7 +215,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
         case QXL_CMD_UPDATE: {
             RedUpdateCmd update;
 
-            if (!red_get_update_cmd(&worker->mem_slots, ext_cmd.group_id,
+            if (!red_get_update_cmd(worker->qxl, &worker->mem_slots, ext_cmd.group_id,
                                     &update, ext_cmd.cmd.data)) {
                 break;
             }
@@ -225,7 +225,6 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
                 display_channel_draw(worker->display_channel, &update.area, update.surface_id);
                 red_qxl_notify_update(worker->qxl, update.update_id);
             }
-            red_qxl_release_resource(worker->qxl, update.release_info_ext);
             red_put_update_cmd(&update);
             break;
         }
