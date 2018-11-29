@@ -85,6 +85,31 @@ static void deinit_qxl_surface(QXLSurfaceCmd *qxl)
     g_free(from_physical(qxl->u.surface_create.data));
 }
 
+static void test_memslot_invalid_group_id(void)
+{
+    RedMemSlotInfo mem_info;
+    init_meminfo(&mem_info);
+
+    memslot_get_virt(&mem_info, 0, 16, 1);
+}
+
+static void test_memslot_invalid_slot_id(void)
+{
+    RedMemSlotInfo mem_info;
+    init_meminfo(&mem_info);
+
+    memslot_get_virt(&mem_info, 1 << mem_info.memslot_id_shift, 16, 0);
+}
+
+static void test_memslot_invalid_addresses(void)
+{
+    g_test_trap_subprocess("/server/memslot-invalid-addresses/subprocess/group_id", 0, 0);
+    g_test_trap_assert_stderr("*group_id too big*");
+
+    g_test_trap_subprocess("/server/memslot-invalid-addresses/subprocess/slot_id", 0, 0);
+    g_test_trap_assert_stderr("*slot_id 1 too big*");
+}
+
 static void test_no_issues(void)
 {
     RedMemSlotInfo mem_info;
@@ -268,6 +293,11 @@ static void test_circular_small_chunks(void)
 int main(int argc, char *argv[])
 {
     g_test_init(&argc, &argv, NULL);
+
+    /* try to use invalid memslot group/slot */
+    g_test_add_func("/server/memslot-invalid-addresses", test_memslot_invalid_addresses);
+    g_test_add_func("/server/memslot-invalid-addresses/subprocess/group_id", test_memslot_invalid_group_id);
+    g_test_add_func("/server/memslot-invalid-addresses/subprocess/slot_id", test_memslot_invalid_slot_id);
 
     /* try to create a surface with no issues, should succeed */
     g_test_add_func("/server/qxl-parsing-no-issues", test_no_issues);

@@ -97,13 +97,13 @@ void *memslot_get_virt(RedMemSlotInfo *info, QXLPHYSICAL addr, uint32_t add_size
 
     MemSlot *slot;
 
-    if (group_id > info->num_memslots_groups) {
+    if (group_id >= info->num_memslots_groups) {
         spice_critical("group_id too big");
         return NULL;
     }
 
     slot_id = memslot_get_id(info, addr);
-    if (slot_id > info->num_memslots) {
+    if (slot_id >= info->num_memslots) {
         print_memslots(info);
         spice_critical("slot_id %d too big, addr=%" PRIx64, slot_id, addr);
         return NULL;
