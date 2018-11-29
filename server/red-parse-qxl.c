@@ -1008,7 +1008,7 @@ static void red_put_clip(SpiceClip *red)
     }
 }
 
-static bool red_get_native_drawable(RedMemSlotInfo *slots, int group_id,
+static bool red_get_native_drawable(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group_id,
                                     RedDrawable *red, QXLPHYSICAL addr, uint32_t flags)
 {
     QXLDrawable *qxl;
@@ -1018,6 +1018,7 @@ static bool red_get_native_drawable(RedMemSlotInfo *slots, int group_id,
     if (qxl == NULL) {
         return false;
     }
+    red->qxl = qxl_instance;
     red->release_info_ext.info     = &qxl->release_info;
     red->release_info_ext.group_id = group_id;
 
@@ -1088,7 +1089,7 @@ static bool red_get_native_drawable(RedMemSlotInfo *slots, int group_id,
     return true;
 }
 
-static bool red_get_compat_drawable(RedMemSlotInfo *slots, int group_id,
+static bool red_get_compat_drawable(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group_id,
                                     RedDrawable *red, QXLPHYSICAL addr, uint32_t flags)
 {
     QXLCompatDrawable *qxl;
@@ -1097,6 +1098,7 @@ static bool red_get_compat_drawable(RedMemSlotInfo *slots, int group_id,
     if (qxl == NULL) {
         return false;
     }
+    red->qxl = qxl_instance;
     red->release_info_ext.info     = &qxl->release_info;
     red->release_info_ext.group_id = group_id;
 
@@ -1170,15 +1172,15 @@ static bool red_get_compat_drawable(RedMemSlotInfo *slots, int group_id,
     return true;
 }
 
-static bool red_get_drawable(RedMemSlotInfo *slots, int group_id,
+static bool red_get_drawable(QXLInstance *qxl, RedMemSlotInfo *slots, int group_id,
                              RedDrawable *red, QXLPHYSICAL addr, uint32_t flags)
 {
     bool ret;
 
     if (flags & QXL_COMMAND_FLAG_COMPAT) {
-        ret = red_get_compat_drawable(slots, group_id, red, addr, flags);
+        ret = red_get_compat_drawable(qxl, slots, group_id, red, addr, flags);
     } else {
-        ret = red_get_native_drawable(slots, group_id, red, addr, flags);
+        ret = red_get_native_drawable(qxl, slots, group_id, red, addr, flags);
     }
     return ret;
 }
@@ -1230,6 +1232,9 @@ static void red_put_drawable(RedDrawable *red)
         red_put_whiteness(&red->u.whiteness);
         break;
     }
+    if (red->qxl != NULL) {
+        red_qxl_release_resource(red->qxl, red->release_info_ext);
+    }
 }
 
 RedDrawable *red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
@@ -1239,9 +1244,8 @@ RedDrawable *red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
     RedDrawable *red = g_new0(RedDrawable, 1);
 
     red->refs = 1;
-    red->qxl = qxl;
 
-    if (!red_get_drawable(slots, group_id, red, addr, flags)) {
+    if (!red_get_drawable(qxl, slots, group_id, red, addr, flags)) {
        red_drawable_unref(red);
        return NULL;
     }
@@ -1260,7 +1264,6 @@ void red_drawable_unref(RedDrawable *red_drawable)
     if (--red_drawable->refs) {
         return;
     }
-    red_qxl_release_resource(red_drawable->qxl, red_drawable->release_info_ext);
     red_put_drawable(red_drawable);
     g_free(red_drawable);
 }
