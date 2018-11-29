@@ -1292,8 +1292,8 @@ void red_put_update_cmd(RedUpdateCmd *red)
     /* nothing yet */
 }
 
-bool red_get_message(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group_id,
-                     RedMessage *red, QXLPHYSICAL addr)
+static bool red_get_message(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group_id,
+                            RedMessage *red, QXLPHYSICAL addr)
 {
     QXLMessage *qxl;
     int memslot_id;
@@ -1325,11 +1325,43 @@ bool red_get_message(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group
     return true;
 }
 
-void red_put_message(RedMessage *red)
+static void red_put_message(RedMessage *red)
 {
     if (red->qxl != NULL) {
         red_qxl_release_resource(red->qxl, red->release_info_ext);
     }
+}
+
+RedMessage *red_message_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                            int group_id, QXLPHYSICAL addr)
+{
+    RedMessage *red;
+
+    red = g_new0(RedMessage, 1);
+
+    red->refs = 1;
+
+    if (!red_get_message(qxl, slots, group_id, red, addr)) {
+        red_message_unref(red);
+        return NULL;
+    }
+
+    return red;
+}
+
+RedMessage *red_message_ref(RedMessage *red)
+{
+    red->refs++;
+    return red;
+}
+
+void red_message_unref(RedMessage *red)
+{
+    if (--red->refs) {
+        return;
+    }
+    red_put_message(red);
+    g_free(red);
 }
 
 static unsigned int surface_format_to_bpp(uint32_t format)

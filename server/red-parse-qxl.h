@@ -69,6 +69,7 @@ typedef struct RedUpdateCmd {
 typedef struct RedMessage {
     QXLInstance *qxl;
     QXLReleaseInfoExt release_info_ext;
+    int refs;
     int len;
     uint8_t *data;
 } RedMessage;
@@ -122,9 +123,10 @@ bool red_get_update_cmd(RedMemSlotInfo *slots, int group_id,
                         RedUpdateCmd *red, QXLPHYSICAL addr);
 void red_put_update_cmd(RedUpdateCmd *red);
 
-bool red_get_message(QXLInstance *qxl, RedMemSlotInfo *slots, int group_id,
-                     RedMessage *red, QXLPHYSICAL addr);
-void red_put_message(RedMessage *red);
+RedMessage *red_message_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                            int group_id, QXLPHYSICAL addr);
+RedMessage *red_message_ref(RedMessage *red);
+void red_message_unref(RedMessage *red);
 
 bool red_validate_surface(uint32_t width, uint32_t height,
                           int32_t stride, uint32_t format);
