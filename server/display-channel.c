@@ -300,11 +300,15 @@ void display_channel_surface_unref(DisplayChannel *display, uint32_t surface_id)
     spice_assert(surface->context.canvas);
 
     surface->context.canvas->ops->destroy(surface->context.canvas);
-    if (surface->create.info) {
-        red_qxl_release_resource(qxl, surface->create);
+    if (surface->create_cmd != NULL) {
+        red_qxl_release_resource(qxl, surface->create_cmd->release_info_ext);
+        red_surface_cmd_unref(surface->create_cmd);
+        surface->create_cmd = NULL;
     }
-    if (surface->destroy.info) {
-        red_qxl_release_resource(qxl, surface->destroy);
+    if (surface->destroy_cmd != NULL) {
+        red_qxl_release_resource(qxl, surface->destroy_cmd->release_info_ext);
+        red_surface_cmd_unref(surface->destroy_cmd);
+        surface->destroy_cmd = NULL;
     }
 
     region_destroy(&surface->draw_dirty_region);
@@ -2161,8 +2165,8 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
         }
         memset(data, 0, height*abs(stride));
     }
-    surface->create.info = NULL;
-    surface->destroy.info = NULL;
+    g_warn_if_fail(surface->create_cmd == NULL);
+    g_warn_if_fail(surface->destroy_cmd == NULL);
     ring_init(&surface->current);
     ring_init(&surface->current_list);
     ring_init(&surface->depend_on_me);
@@ -2306,7 +2310,7 @@ display_channel_constructed(GObject *object)
 }
 
 void display_channel_process_surface_cmd(DisplayChannel *display,
-                                         const RedSurfaceCmd *surface_cmd,
+                                         RedSurfaceCmd *surface_cmd,
                                          int loadvm)
 {
     uint32_t surface_id;
@@ -2342,7 +2346,7 @@ void display_channel_process_surface_cmd(DisplayChannel *display,
                                        reloaded_surface,
                                        // reloaded surfaces will be sent on demand
                                        !reloaded_surface);
-        surface->create = surface_cmd->release_info_ext;
+        surface->create_cmd = red_surface_cmd_ref(surface_cmd);
         break;
     }
     case QXL_SURFACE_CMD_DESTROY:
@@ -2350,7 +2354,7 @@ void display_channel_process_surface_cmd(DisplayChannel *display,
             spice_warning("avoiding destroying a surface twice");
             break;
         }
-        surface->destroy = surface_cmd->release_info_ext;
+        surface->destroy_cmd = red_surface_cmd_ref(surface_cmd);
         display_channel_destroy_surface(display, surface_id);
         break;
     default:

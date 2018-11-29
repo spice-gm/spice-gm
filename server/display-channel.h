@@ -147,7 +147,7 @@ void                       display_channel_process_draw              (DisplayCha
                                                                       RedDrawable *red_drawable,
                                                                       uint32_t process_commands_generation);
 void                       display_channel_process_surface_cmd       (DisplayChannel *display,
-                                                                      const RedSurfaceCmd *surface_cmd,
+                                                                      RedSurfaceCmd *surface_cmd,
                                                                       int loadvm);
 void                       display_channel_update_compression        (DisplayChannel *display,
                                                                       DisplayChannelClient *dcc);

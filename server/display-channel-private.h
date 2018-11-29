@@ -52,7 +52,12 @@ typedef struct RedSurface {
     QRegion draw_dirty_region;
 
     //fix me - better handling here
-    QXLReleaseInfoExt create, destroy;
+    /* 'create_cmd' holds surface data through a pointer to guest memory, it
+     * must be valid as long as the surface is valid */
+    RedSurfaceCmd *create_cmd;
+    /* QEMU expects the guest data for the command to be valid as long as the
+     * surface is valid */
+    RedSurfaceCmd *destroy_cmd;
 } RedSurface;
 
 typedef struct MonitorsConfig {
