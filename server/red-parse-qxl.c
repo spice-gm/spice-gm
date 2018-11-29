@@ -1444,8 +1444,8 @@ bool red_validate_surface(uint32_t width, uint32_t height,
     return true;
 }
 
-bool red_get_surface_cmd(RedMemSlotInfo *slots, int group_id,
-                         RedSurfaceCmd *red, QXLPHYSICAL addr)
+static bool red_get_surface_cmd(RedMemSlotInfo *slots, int group_id,
+                                RedSurfaceCmd *red, QXLPHYSICAL addr)
 {
     QXLSurfaceCmd *qxl;
     uint64_t size;
@@ -1484,9 +1484,41 @@ bool red_get_surface_cmd(RedMemSlotInfo *slots, int group_id,
     return true;
 }
 
-void red_put_surface_cmd(RedSurfaceCmd *red)
+static void red_put_surface_cmd(RedSurfaceCmd *red)
 {
     /* nothing yet */
+}
+
+RedSurfaceCmd *red_surface_cmd_new(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
+                                   int group_id, QXLPHYSICAL addr)
+{
+    RedSurfaceCmd *cmd;
+
+    cmd = g_new0(RedSurfaceCmd, 1);
+
+    cmd->refs = 1;
+
+    if (!red_get_surface_cmd(slots, group_id, cmd, addr)) {
+        g_free(cmd);
+        return NULL;
+    }
+
+    return cmd;
+}
+
+RedSurfaceCmd *red_surface_cmd_ref(RedSurfaceCmd *cmd)
+{
+    cmd->refs++;
+    return cmd;
+}
+
+void red_surface_cmd_unref(RedSurfaceCmd *cmd)
+{
+    if (--cmd->refs) {
+        return;
+    }
+    red_put_surface_cmd(cmd);
+    g_free(cmd);
 }
 
 static bool red_get_cursor(RedMemSlotInfo *slots, int group_id,

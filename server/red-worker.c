@@ -152,16 +152,17 @@ static int red_process_cursor(RedWorker *worker, int *ring_is_empty)
 
 static gboolean red_process_surface_cmd(RedWorker *worker, QXLCommandExt *ext, gboolean loadvm)
 {
-    RedSurfaceCmd surface_cmd;
+    RedSurfaceCmd *surface_cmd;
 
-    if (!red_get_surface_cmd(&worker->mem_slots, ext->group_id, &surface_cmd, ext->cmd.data)) {
-        return FALSE;
+    surface_cmd = red_surface_cmd_new(worker->qxl, &worker->mem_slots,
+                                      ext->group_id, ext->cmd.data);
+    if (surface_cmd == NULL) {
+        return false;
     }
-    display_channel_process_surface_cmd(worker->display_channel, &surface_cmd, loadvm);
-    // display_channel_process_surface_cmd() takes ownership of 'release_info_ext',
-    // we don't need to release it ourselves
-    red_put_surface_cmd(&surface_cmd);
-    return TRUE;
+    display_channel_process_surface_cmd(worker->display_channel, surface_cmd, loadvm);
+    red_surface_cmd_unref(surface_cmd);
+
+    return true;
 }
 
 static int red_process_display(RedWorker *worker, int *ring_is_empty)

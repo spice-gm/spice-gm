@@ -88,14 +88,16 @@ static void deinit_qxl_surface(QXLSurfaceCmd *qxl)
 static void test_no_issues(void)
 {
     RedMemSlotInfo mem_info;
-    RedSurfaceCmd cmd;
+    RedSurfaceCmd *cmd;
     QXLSurfaceCmd qxl;
 
     init_meminfo(&mem_info);
     init_qxl_surface(&qxl);
 
     /* try to create a surface with no issues, should succeed */
-    g_assert_true(red_get_surface_cmd(&mem_info, 0, &cmd, to_physical(&qxl)));
+    cmd = red_surface_cmd_new(NULL, &mem_info, 0, to_physical(&qxl));
+    g_assert_nonnull(cmd);
+    red_surface_cmd_unref(cmd);
 
     deinit_qxl_surface(&qxl);
     memslot_info_destroy(&mem_info);
@@ -104,7 +106,7 @@ static void test_no_issues(void)
 static void test_stride_too_small(void)
 {
     RedMemSlotInfo mem_info;
-    RedSurfaceCmd cmd;
+    RedSurfaceCmd *cmd;
     QXLSurfaceCmd qxl;
 
     init_meminfo(&mem_info);
@@ -115,7 +117,8 @@ static void test_stride_too_small(void)
      * This can be used to cause buffer overflows so refuse it.
      */
     qxl.u.surface_create.stride = 256;
-    g_assert_false(red_get_surface_cmd(&mem_info, 0, &cmd, to_physical(&qxl)));
+    cmd = red_surface_cmd_new(NULL, &mem_info, 0, to_physical(&qxl));
+    g_assert_null(cmd);
 
     deinit_qxl_surface(&qxl);
     memslot_info_destroy(&mem_info);
@@ -124,7 +127,7 @@ static void test_stride_too_small(void)
 static void test_too_big_image(void)
 {
     RedMemSlotInfo mem_info;
-    RedSurfaceCmd cmd;
+    RedSurfaceCmd *cmd;
     QXLSurfaceCmd qxl;
 
     init_meminfo(&mem_info);
@@ -140,7 +143,8 @@ static void test_too_big_image(void)
     qxl.u.surface_create.stride = 0x08000004 * 4;
     qxl.u.surface_create.width = 0x08000004;
     qxl.u.surface_create.height = 0x40000020;
-    g_assert_false(red_get_surface_cmd(&mem_info, 0, &cmd, to_physical(&qxl)));
+    cmd = red_surface_cmd_new(NULL, &mem_info, 0, to_physical(&qxl));
+    g_assert_null(cmd);
 
     deinit_qxl_surface(&qxl);
     memslot_info_destroy(&mem_info);
