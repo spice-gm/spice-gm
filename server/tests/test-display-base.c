@@ -943,7 +943,7 @@ Test* test_new(SpiceCoreInterface* core)
         spice_server_destroy(server);
     }
 
-    g_assert(test->server != NULL);
+    g_assert_nonnull(test->server);
 
     printf("TESTER: listening on port %d (unsecure)\n", port);
     g_test_log_set_fatal_handler(NULL, NULL);

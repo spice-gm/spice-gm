@@ -29,6 +29,8 @@
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
 
+#include "test-glib-compat.h"
+
 /* Arbitrary base port, we want a port which is not in use by the system, and
  * by another of our tests (in case of parallel runs)
  */
@@ -189,8 +191,8 @@ static gpointer check_no_connect_thread(gpointer data)
     GIOStream *stream;
 
     stream = fake_client_connect(connectable, &error);
-    g_assert(error != NULL);
-    g_assert(stream == NULL);
+    g_assert_nonnull(error);
+    g_assert_null(stream);
     g_clear_error(&error);
 
     g_object_unref(connectable);
