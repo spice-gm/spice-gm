@@ -39,6 +39,7 @@ struct StreamDevice {
         StreamMsgCapabilities capabilities;
         StreamMsgCursorSet cursor_set;
         StreamMsgCursorMove cursor_move;
+        StreamMsgDeviceDisplayInfo device_display_info;
         uint8_t buf[STREAM_MSG_CAPABILITIES_MAX_BYTES];
     } *msg;
     uint32_t msg_pos;
@@ -51,6 +52,7 @@ struct StreamDevice {
     CursorChannel *cursor_channel;
     SpiceTimer *close_timer;
     uint32_t frame_mmtime;
+    StreamDeviceDisplayInfo device_display_info;
 };
 
 struct StreamDeviceClass {
@@ -66,8 +68,8 @@ static void char_device_set_state(RedCharDevice *char_dev, int state);
 typedef bool StreamMsgHandler(StreamDevice *dev, SpiceCharDeviceInstance *sin)
     SPICE_GNUC_WARN_UNUSED_RESULT;
 
-static StreamMsgHandler handle_msg_format, handle_msg_data, handle_msg_cursor_set,
-    handle_msg_cursor_move, handle_msg_capabilities;
+static StreamMsgHandler handle_msg_format, handle_msg_device_display_info, handle_msg_data,
+    handle_msg_cursor_set, handle_msg_cursor_move, handle_msg_capabilities;
 
 static bool handle_msg_invalid(StreamDevice *dev, SpiceCharDeviceInstance *sin,
                                const char *error_msg) SPICE_GNUC_WARN_UNUSED_RESULT;
@@ -148,6 +150,13 @@ stream_device_partial_read(StreamDevice *dev, SpiceCharDeviceInstance *sin)
             handled = handle_msg_invalid(dev, sin, "Wrong size for StreamMsgFormat");
         } else {
             handled = handle_msg_format(dev, sin);
+        }
+        break;
+    case STREAM_TYPE_DEVICE_DISPLAY_INFO:
+        if (dev->hdr.size > sizeof(StreamMsgDeviceDisplayInfo) + MAX_DEVICE_ADDRESS_LEN) {
+            handled = handle_msg_invalid(dev, sin, "StreamMsgDeviceDisplayInfo too large");
+        } else {
+            handled = handle_msg_device_display_info(dev, sin);
         }
         break;
     case STREAM_TYPE_DATA:
@@ -272,6 +281,71 @@ handle_msg_format(StreamDevice *dev, SpiceCharDeviceInstance *sin)
     dev->msg->format.width = GUINT32_FROM_LE(dev->msg->format.width);
     dev->msg->format.height = GUINT32_FROM_LE(dev->msg->format.height);
     stream_channel_change_format(dev->stream_channel, &dev->msg->format);
+    return true;
+}
+
+static bool
+handle_msg_device_display_info(StreamDevice *dev, SpiceCharDeviceInstance *sin)
+{
+    SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
+
+    if (spice_extra_checks) {
+        spice_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
+        spice_assert(dev->hdr.type == STREAM_TYPE_DEVICE_DISPLAY_INFO);
+    }
+
+    if (dev->msg_len < dev->hdr.size) {
+        dev->msg = g_realloc(dev->msg, dev->hdr.size);
+        dev->msg_len = dev->hdr.size;
+    }
+
+    /* read from device */
+    ssize_t n = sif->read(sin, dev->msg->buf + dev->msg_pos, dev->hdr.size - dev->msg_pos);
+    if (n <= 0) {
+        return dev->msg_pos == dev->hdr.size;
+    }
+
+    dev->msg_pos += n;
+    if (dev->msg_pos != dev->hdr.size) { /* some bytes are still missing */
+        return false;
+    }
+
+    StreamMsgDeviceDisplayInfo *display_info_msg = &dev->msg->device_display_info;
+
+    size_t device_address_len = GUINT32_FROM_LE(display_info_msg->device_address_len);
+    if (device_address_len > MAX_DEVICE_ADDRESS_LEN) {
+        g_warning("Received a device address longer than %u (%zu), "
+                  "will be truncated!", MAX_DEVICE_ADDRESS_LEN, device_address_len);
+        device_address_len = sizeof(dev->device_display_info.device_address);
+    }
+
+    if (device_address_len == 0) {
+        g_warning("Zero length device_address in  DeviceDisplayInfo message, ignoring.");
+        return true;
+    }
+
+    if (display_info_msg->device_address + device_address_len > (uint8_t*) dev->msg + dev->hdr.size) {
+        g_warning("Malformed DeviceDisplayInfo message, device_address length (%zu) "
+                  "goes beyond the end of the message, ignoring.", device_address_len);
+        return true;
+    }
+
+    strncpy(dev->device_display_info.device_address,
+            (char*) display_info_msg->device_address,
+            device_address_len);
+
+    // make sure the string is terminated
+    dev->device_display_info.device_address[device_address_len - 1] = '\0';
+
+    dev->device_display_info.stream_id = GUINT32_FROM_LE(display_info_msg->stream_id);
+    dev->device_display_info.device_display_id = GUINT32_FROM_LE(display_info_msg->device_display_id);
+
+    g_debug("Received DeviceDisplayInfo from the streaming agent: stream_id %u, "
+            "device_address %s, device_display_id %u",
+            dev->device_display_info.stream_id,
+            dev->device_display_info.device_address,
+            dev->device_display_info.device_display_id);
+
     return true;
 }
 

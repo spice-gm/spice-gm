@@ -37,11 +37,11 @@
 #include "dispatcher.h"
 #include "red-parse-qxl.h"
 #include "red-channel-client.h"
+#include "display-limits.h"
 
 #include "red-qxl.h"
 
 
-#define MAX_DEVICE_ADDRESS_LEN 256
 #define MAX_MONITORS_COUNT 16
 
 struct QXLState {

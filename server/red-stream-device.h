@@ -19,6 +19,7 @@
 #ifndef STREAM_DEVICE_H
 #define STREAM_DEVICE_H
 
+#include "display-limits.h"
 #include "char-device.h"
 
 G_BEGIN_DECLS
@@ -41,6 +42,13 @@ typedef struct StreamDeviceClass StreamDeviceClass;
     (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_STREAM_DEVICE, StreamDeviceClass))
 
 GType stream_device_get_type(void) G_GNUC_CONST;
+
+typedef struct StreamDeviceDisplayInfo {
+    uint32_t stream_id;
+    char device_address[MAX_DEVICE_ADDRESS_LEN];
+    uint32_t device_display_id;
+} StreamDeviceDisplayInfo;
+
 StreamDevice *stream_device_connect(RedsState *reds, SpiceCharDeviceInstance *sin);
 
 /* Create channel for the streaming device.
