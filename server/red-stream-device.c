@@ -19,6 +19,8 @@
 #include <config.h>
 #endif
 
+#include <common/recorder.h>
+
 #include "red-stream-device.h"
 
 #include "stream-channel.h"
@@ -69,6 +71,8 @@ static StreamMsgHandler handle_msg_format, handle_msg_data, handle_msg_cursor_se
 
 static bool handle_msg_invalid(StreamDevice *dev, SpiceCharDeviceInstance *sin,
                                const char *error_msg) SPICE_GNUC_WARN_UNUSED_RESULT;
+
+RECORDER(stream_device_data, 32, "Stream device data packet");
 
 static void
 close_timer_func(void *opaque)
@@ -324,6 +328,8 @@ handle_msg_data(StreamDevice *dev, SpiceCharDeviceInstance *sin)
      */
     if (dev->msg_pos == 0) {
         dev->frame_mmtime = reds_get_mm_time();
+        record(stream_device_data, "Stream data packet size %u mm_time %u",
+               dev->hdr.size, dev->frame_mmtime);
         if (dev->msg_len < dev->hdr.size) {
             g_free(dev->msg);
             dev->msg = g_malloc(dev->hdr.size);

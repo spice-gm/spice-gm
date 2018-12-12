@@ -20,6 +20,7 @@
 #endif
 
 #include <common/generated_server_marshallers.h>
+#include <common/recorder.h>
 #include <spice/stream-device.h>
 
 #include "red-channel-client.h"
@@ -115,6 +116,8 @@ typedef struct StreamDataItem {
 #define PRIMARY_SURFACE_ID 0
 
 static void stream_channel_client_on_disconnect(RedChannelClient *rcc);
+
+RECORDER(stream_channel_data, 32, "Stream channel data packet");
 
 static void
 stream_channel_client_class_init(StreamChannelClientClass *klass)
@@ -289,6 +292,8 @@ stream_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
         red_pipe_item_ref(pipe_item);
         spice_marshaller_add_by_ref_full(m, item->data.data, item->data.data_size,
                                          marshaller_unref_pipe_item, pipe_item);
+        record(stream_channel_data, "Stream data packet size %u mm_time %u",
+               item->data.data_size, item->data.base.multi_media_time);
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_DESTROY: {
