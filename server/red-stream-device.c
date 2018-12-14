@@ -346,6 +346,8 @@ handle_msg_device_display_info(StreamDevice *dev, SpiceCharDeviceInstance *sin)
             dev->device_display_info.device_address,
             dev->device_display_info.device_display_id);
 
+    reds_send_device_display_info(red_char_device_get_server(RED_CHAR_DEVICE(dev)));
+
     return true;
 }
 
@@ -803,6 +805,22 @@ stream_device_init(StreamDevice *dev)
 {
     dev->msg = g_malloc(sizeof(*dev->msg));
     dev->msg_len = sizeof(*dev->msg);
+}
+
+StreamDeviceDisplayInfo *stream_device_get_device_display_info(StreamDevice *dev)
+{
+    return &dev->device_display_info;
+}
+
+int32_t stream_device_get_stream_channel_id(StreamDevice *dev)
+{
+    if (dev->stream_channel == NULL) {
+        return -1;
+    }
+
+    int32_t channel_id;
+    g_object_get(dev->stream_channel, "id", &channel_id, NULL);
+    return channel_id;
 }
 
 static StreamDevice *

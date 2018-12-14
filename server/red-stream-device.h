@@ -56,6 +56,13 @@ StreamDevice *stream_device_connect(RedsState *reds, SpiceCharDeviceInstance *si
  */
 void stream_device_create_channel(StreamDevice *dev);
 
+StreamDeviceDisplayInfo *stream_device_get_device_display_info(StreamDevice *dev);
+
+/**
+ * Returns -1 if the StreamDevice doesn't have a channel yet.
+ */
+int32_t stream_device_get_stream_channel_id(StreamDevice *dev);
+
 G_END_DECLS
 
 #endif /* STREAM_DEVICE_H */

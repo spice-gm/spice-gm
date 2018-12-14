@@ -902,12 +902,31 @@ void reds_send_device_display_info(RedsState *reds)
     }
     g_debug("Sending device display info to the agent:");
 
-    size_t message_size = sizeof(VDAgentGraphicsDeviceInfo);
     QXLInstance *qxl;
+    RedCharDevice *dev;
+
+    size_t message_size = sizeof(VDAgentGraphicsDeviceInfo);
+
+    // size for the qxl device info
     FOREACH_QXL_INSTANCE(reds, qxl) {
         message_size +=
             (sizeof(VDAgentDeviceDisplayInfo) + strlen(red_qxl_get_device_address(qxl)) + 1) *
             red_qxl_get_monitors_count(qxl);
+    }
+
+    // size for the stream device info
+    GLIST_FOREACH(reds->char_devices, RedCharDevice, dev) {
+        if (IS_STREAM_DEVICE(dev)) {
+            size_t device_address_len =
+                strlen(stream_device_get_device_display_info(STREAM_DEVICE(dev))->device_address);
+
+            if (device_address_len == 0) {
+                // the device info wasn't set (yet), don't send it
+                continue;
+            }
+
+            message_size += (sizeof(VDAgentDeviceDisplayInfo) + device_address_len + 1);
+        }
     }
 
     RedCharDeviceWriteBuffer *char_dev_buf = vdagent_new_write_buffer(reds->agent_dev,
@@ -925,6 +944,8 @@ void reds_send_device_display_info(RedsState *reds)
     graphics_device_info->count = 0;
 
     VDAgentDeviceDisplayInfo *device_display_info = graphics_device_info->display_info;
+
+    // add the qxl devices to the message
     FOREACH_QXL_INSTANCE(reds, qxl) {
         for (size_t i = 0; i < red_qxl_get_monitors_count(qxl); ++i) {
             device_display_info->channel_id = qxl->id;
@@ -936,7 +957,45 @@ void reds_send_device_display_info(RedsState *reds)
             device_display_info->device_address_len =
                 strlen((char*) device_display_info->device_address) + 1;
 
-            g_debug("   channel_id: %u monitor_id: %u, device_address: %s, device_display_id: %u",
+            g_debug("   (qxl)    channel_id: %u monitor_id: %u, device_address: %s, device_display_id: %u",
+                    device_display_info->channel_id,
+                    device_display_info->monitor_id,
+                    device_display_info->device_address,
+                    device_display_info->device_display_id);
+
+            device_display_info = (VDAgentDeviceDisplayInfo*) ((char*) device_display_info +
+                    sizeof(VDAgentDeviceDisplayInfo) + device_display_info->device_address_len);
+
+            graphics_device_info->count++;
+        }
+    }
+
+    // add the stream devices to the message
+    GLIST_FOREACH(reds->char_devices, RedCharDevice, dev) {
+        if (IS_STREAM_DEVICE(dev)) {
+            StreamDevice *stream_dev = STREAM_DEVICE(dev);
+            StreamDeviceDisplayInfo *info = stream_device_get_device_display_info(stream_dev);
+            size_t device_address_len = strlen(info->device_address);
+
+            if (device_address_len == 0) {
+                // the device info wasn't set (yet), don't send it
+                continue;
+            }
+
+            int32_t channel_id = stream_device_get_stream_channel_id(stream_dev);
+            if (channel_id == -1) {
+                g_warning("DeviceDisplayInfo set but no stream channel exists");
+                continue;
+            }
+
+            device_display_info->channel_id = channel_id;
+            device_display_info->monitor_id = info->stream_id;
+            device_display_info->device_display_id = info->device_display_id;
+
+            strcpy((char*) device_display_info->device_address, info->device_address);
+            device_display_info->device_address_len = device_address_len + 1;
+
+            g_debug("   (stream) channel_id: %u monitor_id: %u, device_address: %s, device_display_id: %u",
                     device_display_info->channel_id,
                     device_display_info->monitor_id,
                     device_display_info->device_address,
