@@ -73,12 +73,12 @@ static void playback_timer_cb(SPICE_GNUC_UNUSED void *opaque)
 
     get_frame();
     if (!frame) {
-        /* continue waiting until there is a channel */
+        /* continue waiting until there is a client */
         core->timer_start(playback_timer, 100);
         return;
     }
 
-    /* we have a channel */
+    /* we have a client */
     gettimeofday(&cur, NULL);
     cur_usec = cur.tv_usec + cur.tv_sec * 1e6;
     if (last_sent_usec == 0) {
