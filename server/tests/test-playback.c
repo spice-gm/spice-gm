@@ -88,9 +88,6 @@ static void playback_timer_cb(SPICE_GNUC_UNUSED void *opaque)
     }
     last_sent_usec = cur_usec;
     while (samples_to_send > num_samples && frame) {
-#if 0
-    printf("samples_to_send = %d\n", samples_to_send);
-#endif
         samples_to_send -= num_samples;
         for (i = 0 ; i < num_samples; ++i) {
             frame[i] = (((uint16_t)((1<<14)*sin((t+i)/10))) << 16) + (((uint16_t)((1<<14)*sin((t+i)/10))));
