@@ -90,7 +90,8 @@ static void playback_timer_cb(SPICE_GNUC_UNUSED void *opaque)
     while (samples_to_send > num_samples && frame) {
         samples_to_send -= num_samples;
         for (i = 0 ; i < num_samples; ++i) {
-            frame[i] = (((uint16_t)((1<<14)*sin((t+i)/10))) << 16) + (((uint16_t)((1<<14)*sin((t+i)/10))));
+            uint16_t level = (1<<14) * sin((t+i)/10.0);
+            frame[i] = (level << 16) + level;
         }
         t += num_samples;
         spice_server_playback_put_samples(&playback_instance, frame);
