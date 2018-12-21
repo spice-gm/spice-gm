@@ -96,10 +96,8 @@ static void playback_timer_cb(SPICE_GNUC_UNUSED void *opaque)
             frame[i] = (((uint16_t)((1<<14)*sin((t+i)/10))) << 16) + (((uint16_t)((1<<14)*sin((t+i)/10))));
         }
         t += num_samples;
-        if (frame) {
-            spice_server_playback_put_samples(&playback_instance, frame);
-            frame = NULL;
-        }
+        spice_server_playback_put_samples(&playback_instance, frame);
+        frame = NULL;
         get_frame();
     }
     core->timer_start(playback_timer, playback_timer_ms);
