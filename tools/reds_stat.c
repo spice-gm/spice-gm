@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     size_t shm_size;
     size_t shm_old_size;
     int shm_name_len;
-    int ret = -1;
+    int ret = EXIT_FAILURE;
     int fd;
     struct stat st;
     unsigned header_size = sizeof(SpiceStat);
@@ -102,18 +102,18 @@ int main(int argc, char **argv)
 
     if (argc > 2 || !kvm_pid) {
         fprintf(stderr, "usage: reds_stat [qemu_pid] (e.g. `pgrep qemu`)\n");
-        return -1;
+        return ret;
     }
     shm_name_len = strlen(SPICE_STAT_SHM_NAME) + 64;
     if (!(shm_name = (char *)malloc(shm_name_len))) {
         perror("malloc");
-        return -1;
+        return ret;
     }
     snprintf(shm_name, shm_name_len, SPICE_STAT_SHM_NAME, kvm_pid);
     if ((fd = shm_open(shm_name, O_RDONLY, 0444)) == -1) {
         perror("shm_open");
         free(shm_name);
-        return -1;
+        return ret;
     }
     shm_size = sizeof(SpiceStat);
     reds_stat = (SpiceStat *)mmap(NULL, shm_size, PROT_READ, MAP_SHARED, fd, 0);
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
         print_stat_tree(reds_stat->root_index, 0);
         sleep(1);
     }
-    ret = 0;
+    ret = EXIT_SUCCESS;
 
 error:
     free(values);
