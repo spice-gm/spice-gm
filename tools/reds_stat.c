@@ -101,7 +101,7 @@ int main(int argc, char **argv)
     }
 
     if (argc > 2 || !kvm_pid) {
-        printf("usage: reds_stat [qemu_pid] (e.g. `pgrep qemu`)\n");
+        fprintf(stderr, "usage: reds_stat [qemu_pid] (e.g. `pgrep qemu`)\n");
         return -1;
     }
     shm_name_len = strlen(SPICE_STAT_SHM_NAME) + 64;
@@ -128,11 +128,11 @@ int main(int argc, char **argv)
         goto error;
     }
     if (reds_stat->magic != SPICE_STAT_MAGIC) {
-        printf("bad magic %u\n", reds_stat->magic);
+        fprintf(stderr, "bad magic %u\n", reds_stat->magic);
         goto error;
     }
     if (reds_stat->version != SPICE_STAT_VERSION) {
-        printf("bad version %u\n", reds_stat->version);
+        fprintf(stderr, "bad version %u\n", reds_stat->version);
         goto error;
     }
     while (1) {
