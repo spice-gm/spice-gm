@@ -2,12 +2,15 @@ image: fedora:latest
 
 before_script:
   - >
-    dnf install 'dnf-command(copr)' git libtool make libasan orc-devel
+    dnf install 'dnf-command(debuginfo-install)' git libtool make libasan orc-devel
     python3 python3-six python3-pyparsing glib-networking
     asciidoc bzip2 meson ninja-build
+    glib2-devel celt051-devel pixman-devel alsa-lib-devel openssl-devel libjpeg-turbo-devel
+    libcacard-devel cyrus-sasl-devel lz4-devel opus-devel
+    gstreamer1-devel gstreamer1-plugins-base-devel
     -y
-  - dnf copr enable @spice/nightly -y
-  - dnf builddep spice -y
+  - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
+  - (cd spice-protocol && ./autogen.sh --prefix=/usr && make install)
 
 makecheck:
   script:
