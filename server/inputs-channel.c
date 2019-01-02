@@ -170,7 +170,7 @@ static void kbd_push_scan(SpiceKbdInstance *sin, uint8_t scan)
     if (!sin) {
         return;
     }
-    sif = SPICE_CONTAINEROF(sin->base.sif, SpiceKbdInterface, base);
+    sif = SPICE_UPCAST(SpiceKbdInterface, sin->base.sif);
 
     /* track XT scan code set 1 key state */
     if (scan >= 0xe0 && scan <= 0xe2) {
@@ -193,7 +193,7 @@ static uint8_t kbd_get_leds(SpiceKbdInstance *sin)
     if (!sin) {
         return 0;
     }
-    sif = SPICE_CONTAINEROF(sin->base.sif, SpiceKbdInterface, base);
+    sif = SPICE_UPCAST(SpiceKbdInterface, sin->base.sif);
     return sif->get_leds(sin);
 }
 
@@ -288,7 +288,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         inputs_channel_client_on_mouse_motion(icc);
         if (mouse && reds_get_mouse_mode(reds) == SPICE_MOUSE_MODE_SERVER) {
             SpiceMouseInterface *sif;
-            sif = SPICE_CONTAINEROF(mouse->base.sif, SpiceMouseInterface, base);
+            sif = SPICE_UPCAST(SpiceMouseInterface, mouse->base.sif);
             sif->motion(mouse,
                         mouse_motion->dx, mouse_motion->dy, 0,
                         RED_MOUSE_STATE_TO_LOCAL(mouse_motion->buttons_state));
@@ -306,7 +306,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         spice_assert((reds_config_get_agent_mouse(reds) && reds_has_vdagent(reds)) || tablet);
         if (!reds_config_get_agent_mouse(reds) || !reds_has_vdagent(reds)) {
             SpiceTabletInterface *sif;
-            sif = SPICE_CONTAINEROF(tablet->base.sif, SpiceTabletInterface, base);
+            sif = SPICE_UPCAST(SpiceTabletInterface, tablet->base.sif);
             sif->position(tablet, pos->x, pos->y, RED_MOUSE_STATE_TO_LOCAL(pos->buttons_state));
             break;
         }

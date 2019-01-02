@@ -439,7 +439,7 @@ static void reds_mig_cleanup(RedsState *reds)
         if (reds->mig_wait_connect || reds->mig_wait_disconnect) {
             SpiceMigrateInterface *sif;
             spice_assert(reds->migration_interface);
-            sif = SPICE_CONTAINEROF(reds->migration_interface->base.sif, SpiceMigrateInterface, base);
+            sif = SPICE_UPCAST(SpiceMigrateInterface, reds->migration_interface->base.sif);
             if (reds->mig_wait_connect) {
                 sif->migrate_connect_complete(reds->migration_interface);
             } else {
@@ -3136,7 +3136,7 @@ static int spice_server_char_device_add_interface(SpiceServer *reds,
                                            SpiceBaseInstance *sin)
 {
     SpiceCharDeviceInstance* char_device =
-            SPICE_CONTAINEROF(sin, SpiceCharDeviceInstance, base);
+            SPICE_UPCAST(SpiceCharDeviceInstance, sin);
     RedCharDevice *dev_state = NULL;
 
     spice_debug("CHAR_DEVICE %s", char_device->subtype);
@@ -3193,7 +3193,7 @@ static int spice_server_char_device_add_interface(SpiceServer *reds,
 static int spice_server_char_device_remove_interface(RedsState *reds, SpiceBaseInstance *sin)
 {
     SpiceCharDeviceInstance* char_device =
-            SPICE_CONTAINEROF(sin, SpiceCharDeviceInstance, base);
+            SPICE_UPCAST(SpiceCharDeviceInstance, sin);
 
     spice_debug("remove CHAR_DEVICE %s", char_device->subtype);
     if (strcmp(char_device->subtype, SUBTYPE_VDAGENT) == 0) {
@@ -3231,7 +3231,8 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
             spice_warning("unsupported keyboard interface");
             return -1;
         }
-        if (inputs_channel_set_keyboard(reds->inputs_channel, SPICE_CONTAINEROF(sin, SpiceKbdInstance, base)) != 0) {
+        if (inputs_channel_set_keyboard(reds->inputs_channel,
+                                        SPICE_UPCAST(SpiceKbdInstance, sin)) != 0) {
             return -1;
         }
     } else if (strcmp(interface->type, SPICE_INTERFACE_MOUSE) == 0) {
@@ -3241,7 +3242,8 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
             spice_warning("unsupported mouse interface");
             return -1;
         }
-        if (inputs_channel_set_mouse(reds->inputs_channel, SPICE_CONTAINEROF(sin, SpiceMouseInstance, base)) != 0) {
+        if (inputs_channel_set_mouse(reds->inputs_channel,
+                                     SPICE_UPCAST(SpiceMouseInstance, sin)) != 0) {
             return -1;
         }
     } else if (strcmp(interface->type, SPICE_INTERFACE_QXL) == 0) {
@@ -3254,7 +3256,7 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
             return -1;
         }
 
-        qxl = SPICE_CONTAINEROF(sin, QXLInstance, base);
+        qxl = SPICE_UPCAST(QXLInstance, sin);
         red_qxl_init(reds, qxl);
         reds->qxl_instances = g_list_prepend(reds->qxl_instances, qxl);
 
@@ -3266,7 +3268,7 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
         red_qxl_attach_worker(qxl);
         red_qxl_set_compression_level(qxl, calc_compression_level(reds));
     } else if (strcmp(interface->type, SPICE_INTERFACE_TABLET) == 0) {
-        SpiceTabletInstance *tablet = SPICE_CONTAINEROF(sin, SpiceTabletInstance, base);
+        SpiceTabletInstance *tablet = SPICE_UPCAST(SpiceTabletInstance, sin);
         spice_debug("SPICE_INTERFACE_TABLET");
         if (interface->major_version != SPICE_INTERFACE_TABLET_MAJOR ||
             interface->minor_version > SPICE_INTERFACE_TABLET_MINOR) {
@@ -3288,7 +3290,7 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
             spice_warning("unsupported playback interface");
             return -1;
         }
-        snd_attach_playback(reds, SPICE_CONTAINEROF(sin, SpicePlaybackInstance, base));
+        snd_attach_playback(reds, SPICE_UPCAST(SpicePlaybackInstance, sin));
 
     } else if (strcmp(interface->type, SPICE_INTERFACE_RECORD) == 0) {
         spice_debug("SPICE_INTERFACE_RECORD");
@@ -3297,7 +3299,7 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
             spice_warning("unsupported record interface");
             return -1;
         }
-        snd_attach_record(reds, SPICE_CONTAINEROF(sin, SpiceRecordInstance, base));
+        snd_attach_record(reds, SPICE_UPCAST(SpiceRecordInstance, sin));
 
     } else if (strcmp(interface->type, SPICE_INTERFACE_CHAR_DEVICE) == 0) {
         if (interface->major_version != SPICE_INTERFACE_CHAR_DEVICE_MAJOR ||
@@ -3319,7 +3321,7 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
             spice_warning("unsupported migration interface");
             return -1;
         }
-        reds->migration_interface = SPICE_CONTAINEROF(sin, SpiceMigrateInstance, base);
+        reds->migration_interface = SPICE_UPCAST(SpiceMigrateInstance, sin);
         reds->migration_interface->st = (SpiceMigrateState *)(intptr_t)1; // dummy pointer
     }
 
@@ -3335,7 +3337,7 @@ SPICE_GNUC_VISIBLE int spice_server_remove_interface(SpiceBaseInstance *sin)
 
     interface = sin->sif;
     if (strcmp(interface->type, SPICE_INTERFACE_TABLET) == 0) {
-        SpiceTabletInstance *tablet = SPICE_CONTAINEROF(sin, SpiceTabletInstance, base);
+        SpiceTabletInstance *tablet = SPICE_UPCAST(SpiceTabletInstance, sin);
         g_return_val_if_fail(tablet->st != NULL, -1);
         reds = spice_tablet_state_get_server(tablet->st);
         spice_debug("remove SPICE_INTERFACE_TABLET");
@@ -3343,19 +3345,19 @@ SPICE_GNUC_VISIBLE int spice_server_remove_interface(SpiceBaseInstance *sin)
         reds_update_mouse_mode(reds);
     } else if (strcmp(interface->type, SPICE_INTERFACE_PLAYBACK) == 0) {
         spice_debug("remove SPICE_INTERFACE_PLAYBACK");
-        snd_detach_playback(SPICE_CONTAINEROF(sin, SpicePlaybackInstance, base));
+        snd_detach_playback(SPICE_UPCAST(SpicePlaybackInstance, sin));
     } else if (strcmp(interface->type, SPICE_INTERFACE_RECORD) == 0) {
         spice_debug("remove SPICE_INTERFACE_RECORD");
-        snd_detach_record(SPICE_CONTAINEROF(sin, SpiceRecordInstance, base));
+        snd_detach_record(SPICE_UPCAST(SpiceRecordInstance, sin));
     } else if (strcmp(interface->type, SPICE_INTERFACE_CHAR_DEVICE) == 0) {
-        SpiceCharDeviceInstance *char_device = SPICE_CONTAINEROF(sin, SpiceCharDeviceInstance, base);
+        SpiceCharDeviceInstance *char_device = SPICE_UPCAST(SpiceCharDeviceInstance, sin);
         g_return_val_if_fail(char_device->st != NULL, -1);
         reds = red_char_device_get_server(char_device->st);
         return spice_server_char_device_remove_interface(reds, sin);
     } else if (strcmp(interface->type, SPICE_INTERFACE_QXL) == 0) {
         QXLInstance *qxl;
 
-        qxl = SPICE_CONTAINEROF(sin, QXLInstance, base);
+        qxl = SPICE_UPCAST(QXLInstance, sin);
         g_return_val_if_fail(qxl->st != NULL, -1);
         reds = red_qxl_get_server(qxl->st);
         reds->qxl_instances = g_list_remove(reds->qxl_instances, qxl);
@@ -4083,7 +4085,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_connect(SpiceServer *reds, const cha
         main_channel_migrate_src_complete(reds->main_channel, FALSE);
     }
 
-    sif = SPICE_CONTAINEROF(reds->migration_interface->base.sif, SpiceMigrateInterface, base);
+    sif = SPICE_UPCAST(SpiceMigrateInterface, reds->migration_interface->base.sif);
 
     if (!reds_set_migration_dest_info(reds, dest, port, secure_port, cert_subject)) {
         sif->migrate_connect_complete(reds->migration_interface);
@@ -4149,7 +4151,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_end(SpiceServer *reds, int completed
 
     spice_assert(reds->migration_interface);
 
-    sif = SPICE_CONTAINEROF(reds->migration_interface->base.sif, SpiceMigrateInterface, base);
+    sif = SPICE_UPCAST(SpiceMigrateInterface, reds->migration_interface->base.sif);
     if (completed && !reds->expect_migrate && g_list_length(reds->clients) > 0) {
         spice_warning("spice_server_migrate_info was not called, disconnecting clients");
         reds_disconnect(reds);

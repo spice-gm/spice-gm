@@ -32,7 +32,7 @@
 
 static inline QXLInterface * qxl_get_interface(QXLInstance *qxl)
 {
-    return SPICE_CONTAINEROF(qxl->base.sif, QXLInterface, base);
+    return SPICE_UPCAST(QXLInterface, qxl->base.sif);
 }
 
 /* main thread only */
