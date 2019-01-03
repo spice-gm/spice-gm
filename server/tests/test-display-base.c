@@ -21,7 +21,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <signal.h>
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <sys/types.h>
