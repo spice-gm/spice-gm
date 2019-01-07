@@ -227,7 +227,7 @@ static replay_t read_binary(SpiceReplay *replay, const char *prefix, size_t *siz
     uint8_t *zlib_buffer;
     z_stream strm;
 
-    snprintf(template, sizeof(template), "binary %%d %s %%ld:%%n", prefix);
+    snprintf(template, sizeof(template), "binary %%d %s %%" PRIdPTR ":%%n", prefix);
     replay_fscanf_check(replay, template, &with_zlib, size, &replay->end_pos);
     if (replay->error) {
         return REPLAY_ERROR;
