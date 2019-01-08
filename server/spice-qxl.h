@@ -101,9 +101,9 @@ void spice_qxl_monitors_config_async(QXLInstance *instance, QXLPHYSICAL monitors
                                      int group_id, uint64_t cookie);
 /* since spice 0.12.3 */
 void spice_qxl_driver_unload(QXLInstance *instance);
-/* since spice 0.12.6 */
+/* since spice 0.12.6, deprecated since 0.14.2, spice_qxl_set_device_info replaces it */
 void spice_qxl_set_max_monitors(QXLInstance *instance,
-                                unsigned int max_monitors);
+                                unsigned int max_monitors) SPICE_GNUC_DEPRECATED;
 /* since spice 0.13.1 */
 void spice_qxl_gl_scanout(QXLInstance *instance,
                           int fd,

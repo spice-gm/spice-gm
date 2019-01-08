@@ -888,6 +888,7 @@ void spice_qxl_set_device_info(QXLInstance *instance,
     }
 
     instance->st->monitors_count = device_display_id_count;
+    instance->st->max_monitors = device_display_id_count;
 }
 
 void red_qxl_init(RedsState *reds, QXLInstance *qxl)
