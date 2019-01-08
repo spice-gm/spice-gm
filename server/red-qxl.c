@@ -41,6 +41,9 @@
 #include "red-qxl.h"
 
 
+#define MAX_DEVICE_ADDRESS_LEN 256
+#define MAX_MONITORS_COUNT 16
+
 struct QXLState {
     QXLWorker qxl_worker;
     QXLInstance *qxl;
@@ -53,6 +56,9 @@ struct QXLState {
     unsigned int max_monitors;
     RedsState *reds;
     RedWorker *worker;
+    char device_address[MAX_DEVICE_ADDRESS_LEN];
+    uint32_t device_display_ids[MAX_MONITORS_COUNT];
+    size_t monitors_count;  // length of ^^^
 
     pthread_mutex_t scanout_mutex;
     SpiceMsgDisplayGlScanoutUnix scanout;
@@ -844,6 +850,44 @@ void red_qxl_gl_draw_async_complete(QXLInstance *qxl)
     uint64_t cookie = qxl->st->gl_draw_cookie;
     qxl->st->gl_draw_cookie = GL_DRAW_COOKIE_INVALID;
     red_qxl_async_complete(qxl, cookie);
+}
+
+SPICE_GNUC_VISIBLE
+void spice_qxl_set_device_info(QXLInstance *instance,
+                               const char *device_address,
+                               uint32_t device_display_id_start,
+                               uint32_t device_display_id_count)
+{
+    g_return_if_fail(device_address != NULL);
+
+    size_t da_len = strnlen(device_address, MAX_DEVICE_ADDRESS_LEN);
+    if (da_len >= MAX_DEVICE_ADDRESS_LEN) {
+        spice_error("Device address too long: %lu > %u", da_len, MAX_DEVICE_ADDRESS_LEN);
+        return;
+    }
+
+    if (device_display_id_count > MAX_MONITORS_COUNT) {
+        spice_error("Device display ID count (%u) is greater than limit %u",
+                    device_display_id_count,
+                    MAX_MONITORS_COUNT);
+        return;
+    }
+
+    g_strlcpy(instance->st->device_address, device_address, MAX_DEVICE_ADDRESS_LEN);
+
+    g_debug("QXL Instance %d setting device address \"%s\" and monitor -> device display mapping:",
+            instance->id,
+            device_address);
+
+    // store the mapping monitor_id -> device_display_id
+    for (uint32_t monitor_id = 0; monitor_id < device_display_id_count; ++monitor_id) {
+        uint32_t device_display_id = device_display_id_start + monitor_id;
+        instance->st->device_display_ids[monitor_id] = device_display_id;
+        g_debug("   monitor ID %u -> device display ID %u",
+                monitor_id, device_display_id);
+    }
+
+    instance->st->monitors_count = device_display_id_count;
 }
 
 void red_qxl_init(RedsState *reds, QXLInstance *qxl)

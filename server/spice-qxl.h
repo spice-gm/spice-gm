@@ -115,6 +115,52 @@ void spice_qxl_gl_draw_async(QXLInstance *instance,
                              uint32_t w, uint32_t h,
                              uint64_t cookie);
 
+/* since spice 0.14.2 */
+
+/**
+ * spice_qxl_set_device_info:
+ * @instance the QXL instance to set the path to
+ * @device_address the path of the device this QXL instance belongs to
+ * @device_display_id_start the starting device display ID of this interface,
+ *                          i.e. the one monitor ID 0 maps to
+ * @device_display_id_count the total number of device display IDs on this
+ *                          interface
+ *
+ * Sets the device information for this QXL interface, i.e. the hardware
+ * address (e.g. PCI) of the graphics device and the IDs of the displays of the
+ * graphics device that are exposed by this interface (device display IDs).
+ *
+ * The supported device address format is:
+ * "pci/<DOMAIN>/<SLOT>.<FUNCTION>/.../<SLOT>.<FUNCTION>"
+ *
+ * The "pci" identifies the rest of the string as a PCI address. It is the only
+ * supported address at the moment, other identifiers can be introduced later.
+ * <DOMAIN> is the PCI domain, followed by <SLOT>.<FUNCTION> of any PCI bridges
+ * in the chain leading to the device. The last <SLOT>.<FUNCTION> is the
+ * graphics device. All of <DOMAIN>, <SLOT>, <FUNCTION> are hexadecimal numbers
+ * with the following number of digits:
+ *   <DOMAIN>: 4
+ *   <SLOT>: 2
+ *   <FUNCTION>: 1
+ *
+ * The device_display_id_{start,count} denotes the sequence of device display
+ * IDs that map to the zero-based sequence of monitor IDs provided by monitors
+ * config on this interface. For example with device_display_id_start = 2 and
+ * device_display_id_count = 3 you get the following mapping:
+ * monitor_id  ->  device_display_id
+ *          0  ->  2
+ *          1  ->  3
+ *          2  ->  4
+ *
+ * Note this example is unsupported in practice. The only supported cases are
+ * either a single device display ID (count = 1) or multiple device display IDs
+ * in a sequence starting from 0.
+ */
+void spice_qxl_set_device_info(QXLInstance *instance,
+                               const char *device_address,
+                               uint32_t device_display_id_start,
+                               uint32_t device_display_id_count);
+
 typedef struct QXLDevInitInfo {
     uint32_t num_memslots_groups;
     uint32_t num_memslots;
