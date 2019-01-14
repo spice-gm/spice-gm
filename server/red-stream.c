@@ -903,7 +903,7 @@ static void red_sasl_handle_auth_step(void *opaque)
         red_stream_write_u32_le(stream, serveroutlen);
         red_stream_write_all(stream, serverout, serveroutlen);
     } else {
-        red_stream_write_u32_le(stream, serveroutlen);
+        red_stream_write_u32_le(stream, 0);
     }
 
     /* Whether auth is complete */
