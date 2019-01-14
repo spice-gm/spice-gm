@@ -500,7 +500,7 @@ RedStreamSslStatus red_stream_ssl_accept(RedStream *stream)
         }
     }
 
-    ERR_print_errors_fp(stderr);
+    red_dump_openssl_errors();
     spice_warning("SSL_accept failed, error=%d", ssl_error);
     SSL_free(stream->priv->ssl);
     stream->priv->ssl = NULL;

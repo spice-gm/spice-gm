@@ -73,4 +73,6 @@ int rgb32_data_has_alpha(int width, int height, size_t stride,
 const char *red_channel_type_to_str(int type);
 int red_channel_name_to_type(const char *name);
 
+void red_dump_openssl_errors(void);
+
 #endif /* UTILS_H_ */

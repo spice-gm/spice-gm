@@ -1705,11 +1705,13 @@ static bool reds_send_link_ack(RedsState *reds, RedLinkInfo *link)
         || !red_link_info_test_capability(link, SPICE_COMMON_CAP_AUTH_SASL)) {
         if (!(link->tiTicketing.rsa = RSA_new())) {
             spice_warning("RSA new failed");
+            red_dump_openssl_errors();
             return FALSE;
         }
 
         if (!(bio = BIO_new(BIO_s_mem()))) {
             spice_warning("BIO new failed");
+            red_dump_openssl_errors();
             return FALSE;
         }
 
@@ -1717,9 +1719,9 @@ static bool reds_send_link_ack(RedsState *reds, RedLinkInfo *link)
                                 SPICE_TICKET_KEY_PAIR_LENGTH,
                                 link->tiTicketing.bn,
                                 NULL) != 1) {
-            spice_warning("Failed to generate %d bits RSA key: %s",
-                          SPICE_TICKET_KEY_PAIR_LENGTH,
-                          ERR_error_string(ERR_get_error(), NULL));
+            spice_warning("Failed to generate %d bits RSA key",
+                          SPICE_TICKET_KEY_PAIR_LENGTH);
+            red_dump_openssl_errors();
             goto end;
         }
         link->tiTicketing.rsa_size = RSA_size(link->tiTicketing.rsa);
@@ -2019,6 +2021,7 @@ static void openssl_init(RedLinkInfo *link)
     link->tiTicketing.bn = BN_new();
 
     if (!link->tiTicketing.bn) {
+        red_dump_openssl_errors();
         spice_error("OpenSSL BIGNUMS alloc failed");
     }
 
@@ -2217,8 +2220,8 @@ static void reds_handle_ticket(void *opaque)
                                         link->tiTicketing.rsa,
                                         RSA_PKCS1_OAEP_PADDING);
     if (password_size == -1) {
-        spice_warning("failed to decrypt RSA encrypted password: %s",
-                      ERR_error_string(ERR_get_error(), NULL));
+        spice_warning("failed to decrypt RSA encrypted password");
+        red_dump_openssl_errors();
         goto error;
     }
     password[password_size] = '\0';
@@ -2817,6 +2820,7 @@ static int load_dh_params(SSL_CTX *ctx, char *file)
 
     if ((bio = BIO_new_file(file, "r")) == NULL) {
         spice_warning("Could not open DH file");
+        red_dump_openssl_errors();
         return -1;
     }
 
@@ -2824,12 +2828,14 @@ static int load_dh_params(SSL_CTX *ctx, char *file)
     BIO_free(bio);
     if (ret == 0) {
         spice_warning("Could not read DH params");
+        red_dump_openssl_errors();
         return -1;
     }
 
 
     if (SSL_CTX_set_tmp_dh(ctx, ret) < 0) {
         spice_warning("Could not set DH params");
+        red_dump_openssl_errors();
         return -1;
     }
 
@@ -2877,6 +2883,7 @@ static void openssl_thread_setup(void)
      * don't do it twice to avoid possible races.
      */
     if (CRYPTO_get_locking_callback() != NULL) {
+        red_dump_openssl_errors();
         return;
     }
 
@@ -2924,6 +2931,7 @@ static int reds_init_ssl(RedsState *reds)
     reds->ctx = SSL_CTX_new(ssl_method);
     if (!reds->ctx) {
         spice_warning("Could not allocate new SSL context");
+        red_dump_openssl_errors();
         return -1;
     }
 
@@ -2936,6 +2944,7 @@ static int reds_init_ssl(RedsState *reds)
         spice_debug("Loaded certificates from %s", reds->config->ssl_parameters.certs_file);
     } else {
         spice_warning("Could not load certificates from %s", reds->config->ssl_parameters.certs_file);
+        red_dump_openssl_errors();
         return -1;
     }
 
@@ -2957,6 +2966,7 @@ static int reds_init_ssl(RedsState *reds)
         spice_debug("Loaded CA certificates from %s", reds->config->ssl_parameters.ca_certificate_file);
     } else {
         spice_warning("Could not use CA file %s", reds->config->ssl_parameters.ca_certificate_file);
+        red_dump_openssl_errors();
         return -1;
     }
 

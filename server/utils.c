@@ -20,6 +20,7 @@
 
 #include <glib.h>
 #include <spice/enums.h>
+#include <openssl/err.h>
 #include <common/macros.h>
 
 #include "utils.h"
@@ -113,4 +114,17 @@ int red_channel_name_to_type(const char *name)
         }
     }
     return -1;
+}
+
+void red_dump_openssl_errors(void)
+{
+    int ssl_error;
+
+    ssl_error = ERR_get_error();
+    while (ssl_error != 0) {
+        char error_str[256];
+        ERR_error_string_n(ssl_error, error_str, sizeof(error_str));
+        g_warning("%s", error_str);
+        ssl_error = ERR_get_error();
+    }
 }
