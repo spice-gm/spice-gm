@@ -45,3 +45,8 @@ option('manual',
     type : 'boolean',
     value : true,
     description : 'Build SPICE manual')
+
+option('recorder',
+    type : 'boolean',
+    value : false,
+    description: 'Enable recorder instrumentation')
