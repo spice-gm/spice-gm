@@ -451,12 +451,6 @@ static void image_encoders_init_zlib(ImageEncoders *enc)
 {
     enc->zlib_data.usr.more_space = zlib_usr_more_space;
     enc->zlib_data.usr.more_input = zlib_usr_more_input;
-
-    enc->zlib = zlib_encoder_create(&enc->zlib_data.usr, ZLIB_DEFAULT_COMPRESSION_LEVEL);
-
-    if (!enc->zlib) {
-        spice_critical("create zlib encoder failed");
-    }
 }
 
 void image_encoders_init(ImageEncoders *enc, ImageEncoderSharedData *shared_data)
@@ -494,8 +488,10 @@ void image_encoders_free(ImageEncoders *enc)
     lz4_encoder_destroy(enc->lz4);
     enc->lz4 = NULL;
 #endif
-    zlib_encoder_destroy(enc->zlib);
-    enc->zlib = NULL;
+    if (enc->zlib != NULL) {
+        zlib_encoder_destroy(enc->zlib);
+        enc->zlib = NULL;
+    }
     pthread_mutex_destroy(&enc->glz_drawables_inst_to_free_lock);
 }
 
@@ -1260,6 +1256,13 @@ bool image_encoders_compress_glz(ImageEncoders *enc,
 
     if (!enable_zlib_glz_wrap || (glz_size < MIN_GLZ_SIZE_FOR_ZLIB)) {
         goto glz;
+    }
+    if (enc->zlib == NULL) {
+        enc->zlib = zlib_encoder_create(&enc->zlib_data.usr, ZLIB_DEFAULT_COMPRESSION_LEVEL);
+        if (enc->zlib == NULL) {
+            g_warning("creating zlib encoder failed");
+            goto glz;
+        }
     }
     stat_start_time_init(&start_time, &enc->shared_data->zlib_glz_stat);
     zlib_data = &enc->zlib_data;
