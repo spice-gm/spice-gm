@@ -26,7 +26,6 @@
 
 #include "red-channel.h"
 
-typedef struct AsyncCommand AsyncCommand;
 typedef struct RedWorker RedWorker;
 
 RedWorker* red_worker_new(QXLInstance *qxl,
