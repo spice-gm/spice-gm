@@ -122,7 +122,7 @@ void spice_qxl_gl_draw_async(QXLInstance *instance,
  * @instance the QXL instance to set the path to
  * @device_address the path of the device this QXL instance belongs to
  * @device_display_id_start the starting device display ID of this interface,
- *                          i.e. the one monitor ID 0 maps to
+ *                          i.e. the device display ID of monitor ID 0
  * @device_display_id_count the total number of device display IDs on this
  *                          interface
  *
@@ -145,16 +145,28 @@ void spice_qxl_gl_draw_async(QXLInstance *instance,
  *
  * The device_display_id_{start,count} denotes the sequence of device display
  * IDs that map to the zero-based sequence of monitor IDs provided by monitors
- * config on this interface. For example with device_display_id_start = 2 and
- * device_display_id_count = 3 you get the following mapping:
- * monitor_id  ->  device_display_id
- *          0  ->  2
- *          1  ->  3
- *          2  ->  4
+ * config on this interface.
  *
- * Note this example is unsupported in practice. The only supported cases are
- * either a single device display ID (count = 1) or multiple device display IDs
- * in a sequence starting from 0.
+ * Example 1:
+ *   A QXL graphics device with 3 heads (monitors).
+ *
+ *   device_display_id_start = 0
+ *   device_display_id_count = 3
+ *
+ *   Results in the following mapping of monitor_id  ->  device_display_id:
+ *   0  ->  0
+ *   1  ->  1
+ *   2  ->  2
+ *
+ * Example 2:
+ *   A virtio graphics device, multiple monitors, a QXL interface for each
+ *   monitor. On the QXL interface for the third monitor:
+ *
+ *   device_display_id_start = 2
+ *   device_display_id_count = 1
+ *
+ *   Results in the following mapping of monitor_id  ->  device_display_id:
+ *   0  ->  2
  */
 void spice_qxl_set_device_info(QXLInstance *instance,
                                const char *device_address,
