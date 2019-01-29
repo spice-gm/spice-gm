@@ -389,8 +389,10 @@ void smartcard_channel_client_set_char_device(SmartCardChannelClient *scc,
     }
 
     scc->priv->smartcard = device;
-    g_object_add_weak_pointer(G_OBJECT(scc->priv->smartcard),
-                              (gpointer*)&scc->priv->smartcard);
+    if (scc->priv->smartcard) {
+        g_object_add_weak_pointer(G_OBJECT(scc->priv->smartcard),
+                                  (gpointer*)&scc->priv->smartcard);
+    }
 }
 
 RedCharDeviceSmartcard* smartcard_channel_client_get_char_device(SmartCardChannelClient *scc)
