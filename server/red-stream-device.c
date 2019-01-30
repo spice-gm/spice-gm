@@ -330,9 +330,9 @@ handle_msg_device_display_info(StreamDevice *dev, SpiceCharDeviceInstance *sin)
         return true;
     }
 
-    strncpy(dev->device_display_info.device_address,
-            (char*) display_info_msg->device_address,
-            device_address_len);
+    memcpy(dev->device_display_info.device_address,
+           (char*) display_info_msg->device_address,
+           device_address_len);
 
     // make sure the string is terminated
     dev->device_display_info.device_address[device_address_len - 1] = '\0';
