@@ -45,6 +45,7 @@
 #include "red-qxl.h"
 #include "cursor-channel.h"
 #include "tree.h"
+#include "red-record-qxl.h"
 
 // compatibility for FreeBSD
 #ifdef HAVE_PTHREAD_NP_H

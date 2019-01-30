@@ -22,21 +22,11 @@
 #include <setjmp.h>
 #include <common/rect.h>
 
-#include "red-stream.h"
-#include "cache-item.h"
-#include "pixmap-cache.h"
-#include "stat.h"
 #include "reds.h"
-#include "memslot.h"
 #include "red-parse-qxl.h"
-#include "red-record-qxl.h"
 #include "red-channel.h"
-#include "dispatcher.h"
 #include "main-channel.h"
-#include "migration-protocol.h"
-#include "main-dispatcher.h"
 #include "spice-bitmap-utils.h"
-#include "utils.h"
 #include "tree.h"
 #include "video-stream.h"
 #include "dcc.h"
