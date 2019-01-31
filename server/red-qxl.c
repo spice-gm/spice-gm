@@ -862,7 +862,8 @@ void spice_qxl_set_device_info(QXLInstance *instance,
 
     size_t da_len = strnlen(device_address, MAX_DEVICE_ADDRESS_LEN);
     if (da_len >= MAX_DEVICE_ADDRESS_LEN) {
-        spice_error("Device address too long: %lu > %u", da_len, MAX_DEVICE_ADDRESS_LEN);
+        spice_error("Device address too long: %"G_GSIZE_FORMAT" > %u",
+                    da_len, MAX_DEVICE_ADDRESS_LEN);
         return;
     }
 
