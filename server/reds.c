@@ -978,7 +978,7 @@ void reds_send_device_display_info(RedsState *reds)
     GLIST_FOREACH(reds->char_devices, RedCharDevice, dev) {
         if (IS_STREAM_DEVICE(dev)) {
             StreamDevice *stream_dev = STREAM_DEVICE(dev);
-            StreamDeviceDisplayInfo *info = stream_device_get_device_display_info(stream_dev);
+            const StreamDeviceDisplayInfo *info = stream_device_get_device_display_info(stream_dev);
             size_t device_address_len = strlen(info->device_address);
 
             if (device_address_len == 0) {

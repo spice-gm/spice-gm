@@ -807,7 +807,7 @@ stream_device_init(StreamDevice *dev)
     dev->msg_len = sizeof(*dev->msg);
 }
 
-StreamDeviceDisplayInfo *stream_device_get_device_display_info(StreamDevice *dev)
+const StreamDeviceDisplayInfo *stream_device_get_device_display_info(StreamDevice *dev)
 {
     return &dev->device_display_info;
 }
