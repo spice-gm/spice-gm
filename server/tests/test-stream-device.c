@@ -491,6 +491,75 @@ static void test_stream_device_data_message(TestFixture *fixture, gconstpointer 
     g_assert_cmpint(send_data_bytes, ==, 1017);
 }
 
+static void test_display_info(TestFixture *fixture, gconstpointer user_data)
+{
+    // initialize a QXL interface. This must be done before receiving the display info message from
+    // the stream
+    test_add_display_interface(test);
+    // qxl device supports 2 monitors
+    spice_qxl_set_device_info(&test->qxl_instance, "pci/0/1.2", 0, 2);
+
+    // craft a message from the mock stream device that provides display info to the server for the
+    // given stream
+    static const char address[] = "pci/a/b.cde";
+    StreamMsgDeviceDisplayInfo info = {
+        .stream_id = GUINT32_TO_LE(0x01020304),
+        .device_display_id = GUINT32_TO_LE(0x0a0b0c0d),
+        .device_address_len = GUINT32_TO_LE(sizeof(address)),
+    };
+    uint8_t *p = message;
+    p = add_stream_hdr(p, STREAM_TYPE_DEVICE_DISPLAY_INFO, sizeof(info) + sizeof(address));
+    memcpy(p, &info, sizeof(info));
+    p += sizeof(info);
+    strcpy((char*)p, address);
+    p += sizeof(address);
+
+    *message_sizes_end = p - message;
+    ++message_sizes_end;
+
+    // parse the simulated display info message from the stream device so the server now has display
+    // info for the mock stream device
+    test_kick();
+
+    // build the buffer to send to the agent for display information
+    SpiceMarshaller *m = spice_marshaller_new();
+    reds_marshall_device_display_info(test->server, m);
+    int to_free;
+    size_t buf_len;
+    uint8_t *buf = spice_marshaller_linearize(m, 0, &buf_len, &to_free);
+
+    // check output buffer. The message that we send to the vdagent should combine display info for
+    // the stream device that we crafted above and the qxl device.
+    static const uint8_t expected_buffer[] = {
+        /* device count */        3,  0,  0,  0,
+
+        /* channel_id */          0,  0,  0,  0,
+        /* monitor_id */          0,  0,  0,  0,
+        /* device_display_id */   0,  0,  0,  0,
+        /* device_address_len */ 10,  0,  0,  0,
+        /* device_address */    'p','c','i','/','0','/','1','.','2',  0,
+
+        /* channel_id */          0,  0,  0,  0,
+        /* monitor_id */          1,  0,  0,  0,
+        /* device_display_id */   1,  0,  0,  0,
+        /* device_address_len */ 10,  0,  0,  0,
+        /* device_address */    'p','c', 'i','/','0','/','1','.','2',  0,
+
+        /* channel_id */          1,  0,  0,  0,
+        /* monitor_id */          4,  3,  2,  1,
+        /* device_display_id */  13, 12, 11, 10,
+        /* device_address_len */ 12,  0,  0,  0,
+        /* device_address */    'p','c','i','/','a','/','b','.','c','d','e',  0
+    };
+    g_assert_cmpint(buf_len, ==, sizeof(expected_buffer));
+    g_assert_true(memcmp(buf, expected_buffer, buf_len) == 0);
+
+    if (to_free) {
+        free(buf);
+    }
+    spice_marshaller_destroy(m);
+}
+
 static void test_add(const char *name, void (*func)(TestFixture *, gconstpointer), gconstpointer arg)
 {
     g_test_add(name, TestFixture, arg, test_stream_device_setup, func, test_stream_device_teardown);
@@ -516,6 +585,7 @@ int main(int argc, char *argv[])
              test_stream_device_huge_data, NULL);
     test_add("/server/stream-device-data-message",
              test_stream_device_data_message, NULL);
+    test_add("/server/display-info", test_display_info, NULL);
 
     return g_test_run();
 }
