@@ -1203,9 +1203,19 @@ Server side
 
 If the virtual machine was started using QEMU directly, SPICE server logs will be output to
 your console stdout.
+
 When using libvirt, logs are located in `/var/log/libvirt/qemu/` for the qemu
 system instance (`qemu:///system`), and in `~/.cache/libvirt/qemu/log` for the
 qemu session instance (`qemu:///session`).
+
+It's possible to get more verbose output by setting the `G_MESSAGES_DEBUG`
+environment variable to `Spice` or `all` before starting QEMU as described in
+https://developer.gnome.org/glib/stable/glib-running.html[GLib documentation].
+
+When using libvirt, the environment variable needs to be set from the XML
+domain definition as described in
+https://libvirt.org/drvqemu.html#qemucommand[libvirt documentation].
+
 
 Client side
 -----------
