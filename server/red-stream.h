@@ -67,7 +67,9 @@ int red_stream_get_family(const RedStream *stream);
 bool red_stream_is_plain_unix(const RedStream *stream);
 bool red_stream_set_no_delay(RedStream *stream, bool no_delay);
 int red_stream_get_no_delay(RedStream *stream);
+#ifndef _WIN32
 int red_stream_send_msgfd(RedStream *stream, int fd);
+#endif
 
 /**
  * Set auto flush flag.

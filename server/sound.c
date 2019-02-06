@@ -773,7 +773,6 @@ static void record_channel_send_item(RedChannelClient *rcc, G_GNUC_UNUSED RedPip
 
 static bool snd_channel_client_config_socket(RedChannelClient *rcc)
 {
-    int tos;
     RedStream *stream = red_channel_client_get_stream(rcc);
     RedClient *red_client = red_channel_client_get_client(rcc);
     MainChannelClient *mcc = red_client_get_main(red_client);
@@ -789,7 +788,8 @@ static bool snd_channel_client_config_socket(RedChannelClient *rcc)
     }
 #endif
 
-    tos = IPTOS_LOWDELAY;
+#ifdef IPTOS_LOWDELAY
+    int tos = IPTOS_LOWDELAY;
     if (setsockopt(stream->socket, IPPROTO_IP, IP_TOS, (void*)&tos, sizeof(tos)) == -1) {
         if (errno != ENOTSUP) {
             red_channel_warning(red_channel_client_get_channel(rcc),
@@ -797,6 +797,7 @@ static bool snd_channel_client_config_socket(RedChannelClient *rcc)
                                 strerror(errno));
         }
     }
+#endif
 
     red_stream_set_no_delay(stream, !main_channel_client_is_low_bandwidth(mcc));
 

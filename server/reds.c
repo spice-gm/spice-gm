@@ -2644,9 +2644,11 @@ static int reds_init_socket(const char *addr, int portnr, int family)
     static const int on=1, off=0;
     struct addrinfo ai,*res,*e;
     char port[33];
-    int slisten, rc, len;
+    int slisten, rc;
 
     if (family == AF_UNIX) {
+#ifndef _WIN32
+        int len;
         struct sockaddr_un local = { 0, };
 
         if ((slisten = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
@@ -2665,6 +2667,9 @@ static int reds_init_socket(const char *addr, int portnr, int family)
         }
 
         goto listen;
+#else
+        return -1;
+#endif
     }
 
     memset(&ai,0, sizeof(ai));

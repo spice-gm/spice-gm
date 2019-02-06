@@ -39,7 +39,7 @@
 #include "reds.h"
 
 // compatibility for *BSD systems
-#ifndef TCP_CORK
+#if !defined(TCP_CORK) && !defined(_WIN32)
 #define TCP_CORK TCP_NOPUSH
 #endif
 
@@ -100,6 +100,7 @@ struct RedStreamPrivate {
     SpiceCoreInterfaceInternal *core;
 };
 
+#ifndef _WIN32
 /**
  * Set TCP_CORK on socket
  */
@@ -109,6 +110,12 @@ static int socket_set_cork(int socket, int enabled)
     SPICE_VERIFY(sizeof(enabled) == sizeof(int));
     return setsockopt(socket, IPPROTO_TCP, TCP_CORK, &enabled, sizeof(enabled));
 }
+#else
+static inline int socket_set_cork(int socket, int enabled)
+{
+    return -1;
+}
+#endif
 
 static ssize_t stream_write_cb(RedStream *s, const void *buf, size_t size)
 {
@@ -316,6 +323,7 @@ int red_stream_get_no_delay(RedStream *stream)
     return red_socket_get_no_delay(stream->socket);
 }
 
+#ifndef _WIN32
 int red_stream_send_msgfd(RedStream *stream, int fd)
 {
     struct msghdr msgh = { 0, };
@@ -358,6 +366,7 @@ int red_stream_send_msgfd(RedStream *stream, int fd)
 
     return r;
 }
+#endif
 
 ssize_t red_stream_writev(RedStream *s, const struct iovec *iov, int iovcnt)
 {

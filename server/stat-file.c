@@ -17,6 +17,7 @@
 */
 #include <config.h>
 
+#ifndef _WIN32
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -234,3 +235,4 @@ void stat_file_remove_counter(RedStatFile *stat_file, uint64_t *counter)
 {
     stat_file_remove(stat_file, (SpiceStatNode *)(counter - SPICE_OFFSETOF(SpiceStatNode, value)));
 }
+#endif

@@ -409,10 +409,12 @@ int main(int argc, char **argv)
     }
     g_strfreev(file);
     file = NULL;
+#ifndef _WIN32
     if (fcntl(fileno(fd), FD_CLOEXEC) < 0) {
         perror("fcntl failed");
         exit(1);
     }
+#endif
     fseek(fd, 0L, SEEK_END);
     total_size = ftell(fd);
     fseek(fd, 0L, SEEK_SET);

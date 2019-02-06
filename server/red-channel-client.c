@@ -622,6 +622,7 @@ static void red_channel_client_restore_main_sender(RedChannelClient *rcc)
 
 static void red_channel_client_msg_sent(RedChannelClient *rcc)
 {
+#ifndef _WIN32
     int fd;
 
     if (spice_marshaller_get_fd(rcc->priv->send_data.marshaller, &fd)) {
@@ -635,6 +636,7 @@ static void red_channel_client_msg_sent(RedChannelClient *rcc)
         if (fd != -1)
             close(fd);
     }
+#endif
 
     red_channel_client_clear_sent_item(rcc);
 

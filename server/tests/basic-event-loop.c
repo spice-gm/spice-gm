@@ -68,12 +68,14 @@ void basic_event_loop_quit(void)
 
 static void ignore_sigpipe(void)
 {
+#ifndef _WIN32
     struct sigaction act;
 
     memset(&act, 0, sizeof(act));
     sigfillset(&act.sa_mask);
     act.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &act, NULL);
+#endif
 }
 
 static SpiceTimer* base_timer_add(SpiceTimerFunc func, void *opaque)

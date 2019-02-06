@@ -1143,22 +1143,28 @@ static void *red_worker_main(void *arg)
 
 bool red_worker_run(RedWorker *worker)
 {
+#ifndef _WIN32
     sigset_t thread_sig_mask;
     sigset_t curr_sig_mask;
+#endif
     int r;
 
     spice_return_val_if_fail(worker, FALSE);
     spice_return_val_if_fail(!worker->thread, FALSE);
 
+#ifndef _WIN32
     sigfillset(&thread_sig_mask);
     sigdelset(&thread_sig_mask, SIGILL);
     sigdelset(&thread_sig_mask, SIGFPE);
     sigdelset(&thread_sig_mask, SIGSEGV);
     pthread_sigmask(SIG_SETMASK, &thread_sig_mask, &curr_sig_mask);
+#endif
     if ((r = pthread_create(&worker->thread, NULL, red_worker_main, worker))) {
         spice_error("create thread failed %d", r);
     }
+#ifndef _WIN32
     pthread_sigmask(SIG_SETMASK, &curr_sig_mask, NULL);
+#endif
     pthread_setname_np(worker->thread, "SPICE Worker");
 
     return r == 0;

@@ -10,6 +10,7 @@ AM_LDFLAGS = \
 	$(LIBRT) \
 	$(NULL)
 
+if !OS_WIN32
 noinst_PROGRAMS = \
 	reds_stat \
 	$(NULL)
@@ -17,6 +18,7 @@ noinst_PROGRAMS = \
 reds_stat_SOURCES = \
 	reds_stat.c \
 	$(NULL)
+endif
 
 EXTRA_DIST = \
 	meson.build \
