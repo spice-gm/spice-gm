@@ -207,4 +207,79 @@ SPICE_CONSTRUCTOR_FUNC(socket_win32_init)
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 }
+
+int socket_newpair(int type, int protocol, int sv[2])
+{
+    struct sockaddr_in sa, sa2;
+    socklen_t addrlen;
+    SOCKET s, pairs[2];
+
+    if (!sv) {
+        return -1;
+    }
+
+    /* create a listener */
+    s = socket(AF_INET, type, 0);
+    if (s == INVALID_SOCKET) {
+        return -1;
+    }
+
+    pairs[1] = INVALID_SOCKET;
+
+    pairs[0] = socket(AF_INET, type, 0);
+    if (pairs[0] == INVALID_SOCKET) {
+        goto cleanup;
+    }
+
+    /* bind to a random port */
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sa.sin_port = 0;
+    if (bind(s, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
+        goto cleanup;
+    }
+    if (listen(s, 1) < 0) {
+        goto cleanup;
+    }
+
+    /* connect to kernel choosen port */
+    addrlen = sizeof(sa);
+    if (getsockname(s, (struct sockaddr*) &sa, &addrlen) < 0) {
+        goto cleanup;
+    }
+    if (connect(pairs[0], (struct sockaddr*) &sa, sizeof(sa)) < 0) {
+        goto cleanup;
+    }
+    addrlen = sizeof(sa2);
+    pairs[1] = accept(s, (struct sockaddr*) &sa2, &addrlen);
+    if (pairs[1] == INVALID_SOCKET) {
+        goto cleanup;
+    }
+
+    /* check proper connection */
+    addrlen = sizeof(sa);
+    if (getsockname(pairs[0], (struct sockaddr*) &sa, &addrlen) < 0) {
+        goto cleanup;
+    }
+    addrlen = sizeof(sa2);
+    if (getpeername(pairs[1], (struct sockaddr*) &sa2, &addrlen) < 0) {
+        goto cleanup;
+    }
+    if (sa.sin_family != sa2.sin_family || sa.sin_port != sa2.sin_port
+        || sa.sin_addr.s_addr != sa2.sin_addr.s_addr) {
+        goto cleanup;
+    }
+
+    closesocket(s);
+    sv[0] = pairs[0];
+    sv[1] = pairs[1];
+    return 0;
+
+cleanup:
+    socket_win32_set_errno();
+    closesocket(s);
+    closesocket(pairs[0]);
+    closesocket(pairs[1]);
+    return -1;
+}
 #endif

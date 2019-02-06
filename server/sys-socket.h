@@ -134,6 +134,9 @@ socket_accept(int sock, struct sockaddr *addr, int *addrlen)
 }
 #undef accept
 #define accept socket_accept
+
+int socket_newpair(int type, int protocol, int sv[2]);
+#define socketpair(family, type, protocol, sv) socket_newpair(type, protocol, sv)
 #endif
 
 #endif // RED_SYS_SOCKET_H_
