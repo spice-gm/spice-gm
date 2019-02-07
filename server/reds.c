@@ -281,9 +281,7 @@ struct RedCharDeviceVDIPortClass
     RedCharDeviceClass parent_class;
 };
 
-G_DEFINE_TYPE(RedCharDeviceVDIPort, red_char_device_vdi_port, RED_TYPE_CHAR_DEVICE)
-
-#define RED_CHAR_DEVICE_VDIPORT_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), RED_TYPE_CHAR_DEVICE_VDIPORT, RedCharDeviceVDIPortPrivate))
+G_DEFINE_TYPE_WITH_PRIVATE(RedCharDeviceVDIPort, red_char_device_vdi_port, RED_TYPE_CHAR_DEVICE)
 
 static RedCharDeviceVDIPort *red_char_device_vdi_port_new(RedsState *reds);
 
@@ -4601,7 +4599,7 @@ static void red_char_device_vdi_port_constructed(GObject *object)
 static void
 red_char_device_vdi_port_init(RedCharDeviceVDIPort *self)
 {
-    self->priv = RED_CHAR_DEVICE_VDIPORT_PRIVATE(self);
+    self->priv = red_char_device_vdi_port_get_instance_private(self);
 
     self->priv->read_state = VDI_PORT_READ_STATE_READ_HEADER;
     self->priv->receive_pos = (uint8_t *)&self->priv->vdi_chunk_header;
@@ -4632,8 +4630,6 @@ red_char_device_vdi_port_class_init(RedCharDeviceVDIPortClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     RedCharDeviceClass *char_dev_class = RED_CHAR_DEVICE_CLASS(klass);
-
-    g_type_class_add_private(klass, sizeof (RedCharDeviceVDIPortPrivate));
 
     object_class->finalize = red_char_device_vdi_port_finalize;
     object_class->constructed = red_char_device_vdi_port_constructed;

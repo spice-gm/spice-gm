@@ -46,11 +46,6 @@
  * main_dispatcher_handle_<event_name> - handler for callback from main thread
  *   seperate from self because it may send an ack or do other work in the future.
  */
-
-G_DEFINE_TYPE(MainDispatcher, main_dispatcher, TYPE_DISPATCHER)
-
-#define MAIN_DISPATCHER_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE((o), TYPE_MAIN_DISPATCHER, MainDispatcherPrivate))
-
 struct MainDispatcherPrivate
 {
     SpiceCoreInterfaceInternal *core; /* weak */
@@ -58,6 +53,7 @@ struct MainDispatcherPrivate
     SpiceWatch *watch;
 };
 
+G_DEFINE_TYPE_WITH_PRIVATE(MainDispatcher, main_dispatcher, TYPE_DISPATCHER)
 
 enum {
     PROP0,
@@ -113,8 +109,6 @@ main_dispatcher_class_init(MainDispatcherClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
-    g_type_class_add_private(klass, sizeof(MainDispatcherPrivate));
-
     object_class->constructed = main_dispatcher_constructed;
     object_class->finalize = main_dispatcher_finalize;
     object_class->get_property = main_dispatcher_get_property;
@@ -140,7 +134,7 @@ main_dispatcher_class_init(MainDispatcherClass *klass)
 static void
 main_dispatcher_init(MainDispatcher *self)
 {
-    self->priv = MAIN_DISPATCHER_PRIVATE(self);
+    self->priv = main_dispatcher_get_instance_private(self);
 }
 
 enum {

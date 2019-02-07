@@ -35,11 +35,6 @@
 #define CURSOR_CACHE_HASH_KEY(id) ((id) & CURSOR_CACHE_HASH_MASK)
 #define CURSOR_CLIENT_TIMEOUT 30000000000ULL //nano
 
-G_DEFINE_TYPE(CursorChannelClient, cursor_channel_client, TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT)
-
-#define CURSOR_CHANNEL_CLIENT_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE((o), TYPE_CURSOR_CHANNEL_CLIENT, CursorChannelClientPrivate))
-
 struct CursorChannelClientPrivate
 {
     RedCacheItem *cursor_cache[CURSOR_CACHE_HASH_SIZE];
@@ -48,6 +43,9 @@ struct CursorChannelClientPrivate
     uint32_t cursor_cache_items;
 };
 
+G_DEFINE_TYPE_WITH_PRIVATE(CursorChannelClient, cursor_channel_client,
+                           TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT)
+
 static void cursor_channel_client_on_disconnect(RedChannelClient *rcc);
 
 static void
@@ -55,15 +53,13 @@ cursor_channel_client_class_init(CursorChannelClientClass *klass)
 {
     RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
 
-    g_type_class_add_private(klass, sizeof(CursorChannelClientPrivate));
-
     client_class->on_disconnect = cursor_channel_client_on_disconnect;
 }
 
 static void
 cursor_channel_client_init(CursorChannelClient *self)
 {
-    self->priv = CURSOR_CHANNEL_CLIENT_PRIVATE(self);
+    self->priv = cursor_channel_client_get_instance_private(self);
     ring_init(&self->priv->cursor_cache_lru);
     self->priv->cursor_cache_available = CLIENT_CURSOR_CACHE_SIZE;
 }

@@ -22,10 +22,6 @@
 
 G_DEFINE_TYPE(SmartCardChannelClient, smart_card_channel_client, RED_TYPE_CHANNEL_CLIENT)
 
-#define SMARTCARD_CHANNEL_CLIENT_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE((o), TYPE_SMARTCARD_CHANNEL_CLIENT, \
-                                 SmartCardChannelClientPrivate))
-
 struct SmartCardChannelClientPrivate
 {
     RedCharDeviceSmartcard *smartcard;
@@ -103,7 +99,7 @@ static void smart_card_channel_client_class_init(SmartCardChannelClientClass *kl
 static void
 smart_card_channel_client_init(SmartCardChannelClient *self)
 {
-    self->priv = SMARTCARD_CHANNEL_CLIENT_PRIVATE(self);
+    self->priv = smart_card_channel_client_get_instance_private(self);
 }
 
 SmartCardChannelClient* smartcard_channel_client_create(RedChannel *channel,

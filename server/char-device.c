@@ -84,9 +84,7 @@ struct RedCharDevicePrivate {
     SpiceServer *reds;
 };
 
-G_DEFINE_TYPE(RedCharDevice, red_char_device, G_TYPE_OBJECT)
-
-#define RED_CHAR_DEVICE_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), RED_TYPE_CHAR_DEVICE, RedCharDevicePrivate))
+G_DEFINE_TYPE_WITH_PRIVATE(RedCharDevice, red_char_device, G_TYPE_OBJECT)
 
 enum {
     PROP_0,
@@ -1119,8 +1117,6 @@ red_char_device_class_init(RedCharDeviceClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
-    g_type_class_add_private(klass, sizeof (RedCharDevicePrivate));
-
     object_class->get_property = red_char_device_get_property;
     object_class->set_property = red_char_device_set_property;
     object_class->finalize = red_char_device_finalize;
@@ -1180,7 +1176,7 @@ SPICE_GNUC_VISIBLE void spice_server_port_event(SpiceCharDeviceInstance *sin, ui
 static void
 red_char_device_init(RedCharDevice *self)
 {
-    self->priv = RED_CHAR_DEVICE_PRIVATE(self);
+    self->priv = red_char_device_get_instance_private(self);
 
     g_queue_init(&self->priv->write_queue);
     g_queue_init(&self->priv->write_bufs_pool);

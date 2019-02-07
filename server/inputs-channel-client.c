@@ -22,11 +22,6 @@
 #include "migration-protocol.h"
 #include "red-channel-client.h"
 
-G_DEFINE_TYPE(InputsChannelClient, inputs_channel_client, RED_TYPE_CHANNEL_CLIENT)
-
-#define INPUTS_CHANNEL_CLIENT_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE((o), TYPE_INPUTS_CHANNEL_CLIENT, InputsChannelClientPrivate))
-
 // TODO: RECEIVE_BUF_SIZE used to be the same for inputs_channel and main_channel
 // since it was defined once in reds.c which contained both.
 // Now that they are split we can give a more fitting value for inputs - what
@@ -43,6 +38,8 @@ struct InputsChannelClientPrivate
     uint16_t motion_count;
     uint8_t recv_buf[RECEIVE_BUF_SIZE];
 };
+
+G_DEFINE_TYPE_WITH_PRIVATE(InputsChannelClient, inputs_channel_client, RED_TYPE_CHANNEL_CLIENT)
 
 static uint8_t *
 inputs_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
@@ -77,8 +74,6 @@ inputs_channel_client_class_init(InputsChannelClientClass *klass)
 {
     RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
 
-    g_type_class_add_private(klass, sizeof(InputsChannelClientPrivate));
-
     client_class->alloc_recv_buf = inputs_channel_client_alloc_msg_rcv_buf;
     client_class->release_recv_buf = inputs_channel_client_release_msg_rcv_buf;
     client_class->on_disconnect = inputs_channel_client_on_disconnect;
@@ -87,7 +82,7 @@ inputs_channel_client_class_init(InputsChannelClientClass *klass)
 static void
 inputs_channel_client_init(InputsChannelClient *self)
 {
-    self->priv = INPUTS_CHANNEL_CLIENT_PRIVATE(self);
+    self->priv = inputs_channel_client_get_instance_private(self);
 }
 
 RedChannelClient* inputs_channel_client_create(RedChannel *channel,

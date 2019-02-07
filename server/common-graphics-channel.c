@@ -26,16 +26,6 @@
 
 #define CHANNEL_RECEIVE_BUF_SIZE 1024
 
-G_DEFINE_ABSTRACT_TYPE(CommonGraphicsChannel, common_graphics_channel, RED_TYPE_CHANNEL)
-
-G_DEFINE_TYPE(CommonGraphicsChannelClient, common_graphics_channel_client, RED_TYPE_CHANNEL_CLIENT)
-
-#define GRAPHICS_CHANNEL_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE((o), TYPE_COMMON_GRAPHICS_CHANNEL, CommonGraphicsChannelPrivate))
-#define GRAPHICS_CHANNEL_CLIENT_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE((o), TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT, \
-    CommonGraphicsChannelClientPrivate))
-
 struct CommonGraphicsChannelPrivate
 {
     int during_target_migrate; /* TRUE when the client that is associated with the channel
@@ -45,10 +35,15 @@ struct CommonGraphicsChannelPrivate
                                   of the primary surface) */
 };
 
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(CommonGraphicsChannel, common_graphics_channel,
+                                    RED_TYPE_CHANNEL)
+
 struct CommonGraphicsChannelClientPrivate {
     uint8_t recv_buf[CHANNEL_RECEIVE_BUF_SIZE];
 };
 
+G_DEFINE_TYPE_WITH_PRIVATE(CommonGraphicsChannelClient, common_graphics_channel_client,
+                           RED_TYPE_CHANNEL_CLIENT)
 
 static uint8_t *common_alloc_recv_buf(RedChannelClient *rcc, uint16_t type, uint32_t size)
 {
@@ -103,13 +98,12 @@ bool common_channel_client_config_socket(RedChannelClient *rcc)
 static void
 common_graphics_channel_class_init(CommonGraphicsChannelClass *klass)
 {
-    g_type_class_add_private(klass, sizeof(CommonGraphicsChannelPrivate));
 }
 
 static void
 common_graphics_channel_init(CommonGraphicsChannel *self)
 {
-    self->priv = GRAPHICS_CHANNEL_PRIVATE(self);
+    self->priv = common_graphics_channel_get_instance_private(self);
 }
 
 void common_graphics_channel_set_during_target_migrate(CommonGraphicsChannel *self, gboolean value)
@@ -125,15 +119,13 @@ gboolean common_graphics_channel_get_during_target_migrate(CommonGraphicsChannel
 static void
 common_graphics_channel_client_init(CommonGraphicsChannelClient *self)
 {
-    self->priv = GRAPHICS_CHANNEL_CLIENT_PRIVATE(self);
+    self->priv = common_graphics_channel_client_get_instance_private(self);
 }
 
 static void
 common_graphics_channel_client_class_init(CommonGraphicsChannelClientClass *klass)
 {
     RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
-
-    g_type_class_add_private(klass, sizeof(CommonGraphicsChannelClientPrivate));
 
     client_class->config_socket = common_channel_client_config_socket;
     client_class->alloc_recv_buf = common_alloc_recv_buf;

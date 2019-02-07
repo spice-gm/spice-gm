@@ -83,13 +83,6 @@ red_smartcard_channel_new(RedsState *reds)
                         NULL);
 }
 
-
-G_DEFINE_TYPE(RedCharDeviceSmartcard, red_char_device_smartcard, RED_TYPE_CHAR_DEVICE)
-
-#define RED_CHAR_DEVICE_SMARTCARD_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), RED_TYPE_CHAR_DEVICE_SMARTCARD, \
-                                  RedCharDeviceSmartcardPrivate))
-
 struct RedCharDeviceSmartcardPrivate {
     uint32_t             reader_id;
     /* read_from_device buffer */
@@ -101,6 +94,8 @@ struct RedCharDeviceSmartcardPrivate {
     SmartCardChannelClient    *scc; // client providing the remote card
     int                  reader_added; // has reader_add been sent to the device
 };
+
+G_DEFINE_TYPE_WITH_PRIVATE(RedCharDeviceSmartcard, red_char_device_smartcard, RED_TYPE_CHAR_DEVICE)
 
 typedef struct RedMsgItem {
     RedPipeItem base;
@@ -609,8 +604,6 @@ red_char_device_smartcard_class_init(RedCharDeviceSmartcardClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     RedCharDeviceClass *char_dev_class = RED_CHAR_DEVICE_CLASS(klass);
 
-    g_type_class_add_private(klass, sizeof (RedCharDeviceSmartcardPrivate));
-
     object_class->finalize = red_char_device_smartcard_finalize;
 
     char_dev_class->read_one_msg_from_device = smartcard_read_msg_from_device;
@@ -622,7 +615,7 @@ red_char_device_smartcard_class_init(RedCharDeviceSmartcardClass *klass)
 static void
 red_char_device_smartcard_init(RedCharDeviceSmartcard *self)
 {
-    self->priv = RED_CHAR_DEVICE_SMARTCARD_PRIVATE(self);
+    self->priv = red_char_device_smartcard_get_instance_private(self);
 
     self->priv->reader_id = VSCARD_UNDEFINED_READER_ID;
     self->priv->buf_size = APDUBufSize + sizeof(VSCMsgHeader);

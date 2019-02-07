@@ -187,10 +187,8 @@ static bool red_channel_client_config_socket(RedChannelClient *rcc);
 
 G_DEFINE_TYPE_WITH_CODE(RedChannelClient, red_channel_client, G_TYPE_OBJECT,
                         G_IMPLEMENT_INTERFACE(G_TYPE_INITABLE,
-                                              red_channel_client_initable_interface_init))
-
-#define CHANNEL_CLIENT_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE((o), RED_TYPE_CHANNEL_CLIENT, RedChannelClientPrivate))
+                                              red_channel_client_initable_interface_init);
+                        G_ADD_PRIVATE(RedChannelClient));
 
 static gboolean red_channel_client_initable_init(GInitable *initable,
                                                  GCancellable *cancellable,
@@ -404,7 +402,6 @@ static void red_channel_client_class_init(RedChannelClientClass *klass)
     GParamSpec *spec;
 
     g_debug("%s", G_STRFUNC);
-    g_type_class_add_private(klass, sizeof(RedChannelClientPrivate));
 
     object_class->get_property = red_channel_client_get_property;
     object_class->set_property = red_channel_client_set_property;
@@ -454,7 +451,7 @@ static void red_channel_client_class_init(RedChannelClientClass *klass)
 static void
 red_channel_client_init(RedChannelClient *self)
 {
-    self->priv = CHANNEL_CLIENT_PRIVATE(self);
+    self->priv = red_channel_client_get_instance_private(self);
     // blocks send message (maybe use send_data.blocked + block flags)
     self->priv->ack_data.messages_window = ~0;
     self->priv->ack_data.client_generation = ~0;

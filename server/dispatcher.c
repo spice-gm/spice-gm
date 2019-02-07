@@ -44,11 +44,6 @@ typedef struct DispatcherMessage {
     dispatcher_handle_message handler;
 } DispatcherMessage;
 
-
-G_DEFINE_TYPE(Dispatcher, dispatcher, G_TYPE_OBJECT)
-
-#define DISPATCHER_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TYPE_DISPATCHER, DispatcherPrivate))
-
 struct DispatcherPrivate {
     int recv_fd;
     int send_fd;
@@ -62,6 +57,8 @@ struct DispatcherPrivate {
     void *opaque;
     dispatcher_handle_any_message any_handler;
 };
+
+G_DEFINE_TYPE_WITH_PRIVATE(Dispatcher, dispatcher, G_TYPE_OBJECT)
 
 enum {
     PROP_0,
@@ -144,8 +141,6 @@ dispatcher_class_init(DispatcherClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
-    g_type_class_add_private(klass, sizeof (DispatcherPrivate));
-
     object_class->get_property = dispatcher_get_property;
     object_class->set_property = dispatcher_set_property;
     object_class->constructed = dispatcher_constructed;
@@ -165,7 +160,7 @@ dispatcher_class_init(DispatcherClass *klass)
 static void
 dispatcher_init(Dispatcher *self)
 {
-    self->priv = DISPATCHER_PRIVATE(self);
+    self->priv = dispatcher_get_instance_private(self);
 }
 
 Dispatcher *

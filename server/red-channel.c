@@ -65,11 +65,6 @@
  * If a call to red_channel_client_destroy is made from another location, it must be called
  * from the channel's thread.
 */
-
-G_DEFINE_ABSTRACT_TYPE(RedChannel, red_channel, G_TYPE_OBJECT)
-
-#define CHANNEL_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE((o), RED_TYPE_CHANNEL, RedChannelPrivate))
-
 struct RedChannelPrivate
 {
     uint32_t type;
@@ -98,6 +93,8 @@ struct RedChannelPrivate
     RedsState *reds;
     RedStatNode stat;
 };
+
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(RedChannel, red_channel, G_TYPE_OBJECT)
 
 enum {
     PROP0,
@@ -219,8 +216,6 @@ red_channel_class_init(RedChannelClass *klass)
     GParamSpec *spec;
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
-    g_type_class_add_private(klass, sizeof (RedChannelPrivate));
-
     object_class->get_property = red_channel_get_property;
     object_class->set_property = red_channel_set_property;
     object_class->finalize = red_channel_finalize;
@@ -289,7 +284,7 @@ red_channel_class_init(RedChannelClass *klass)
 static void
 red_channel_init(RedChannel *self)
 {
-    self->priv = CHANNEL_PRIVATE(self);
+    self->priv = red_channel_get_instance_private(self);
 
     red_channel_set_common_cap(self, SPICE_COMMON_CAP_MINI_HEADER);
     self->priv->thread_id = pthread_self();

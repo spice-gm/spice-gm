@@ -40,11 +40,6 @@ typedef enum {
 
 #define CLIENT_CONNECTIVITY_TIMEOUT (MSEC_PER_SEC * 30)
 
-G_DEFINE_TYPE(MainChannelClient, main_channel_client, RED_TYPE_CHANNEL_CLIENT)
-
-#define MAIN_CHANNEL_CLIENT_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE((o), TYPE_MAIN_CHANNEL_CLIENT, MainChannelClientPrivate))
-
 // approximate max receive message size for main channel
 #define MAIN_CHANNEL_RECEIVE_BUF_SIZE \
     (4096 + (REDS_AGENT_WINDOW_SIZE + REDS_NUM_INTERNAL_AGENT_MESSAGES) * SPICE_AGENT_MAX_DATA_SIZE)
@@ -65,6 +60,8 @@ struct MainChannelClientPrivate {
     bool initial_channels_list_sent;
     uint8_t recv_buf[MAIN_CHANNEL_RECEIVE_BUF_SIZE];
 };
+
+G_DEFINE_TYPE_WITH_PRIVATE(MainChannelClient, main_channel_client, RED_TYPE_CHANNEL_CLIENT)
 
 typedef struct RedPingPipeItem {
     RedPipeItem base;
@@ -211,8 +208,6 @@ static void main_channel_client_class_init(MainChannelClientClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
 
-    g_type_class_add_private(klass, sizeof(MainChannelClientPrivate));
-
     object_class->get_property = main_channel_client_get_property;
     object_class->set_property = main_channel_client_set_property;
 
@@ -235,7 +230,7 @@ static void main_channel_client_class_init(MainChannelClientClass *klass)
 
 static void main_channel_client_init(MainChannelClient *self)
 {
-    self->priv = MAIN_CHANNEL_CLIENT_PRIVATE(self);
+    self->priv = main_channel_client_get_instance_private(self);
     self->priv->bitrate_per_sec = ~0;
 }
 
