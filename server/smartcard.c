@@ -103,7 +103,7 @@ typedef struct RedMsgItem {
     VSCMsgHeader* vheader;
 } RedMsgItem;
 
-static RedMsgItem *smartcard_get_vsc_msg_item(VSCMsgHeader *vheader);
+static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader);
 
 static struct Readers {
     uint32_t num;
@@ -194,8 +194,6 @@ static void smartcard_remove_client(RedCharDevice *self, RedClient *client)
 RedMsgItem *smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard *dev,
                                                          VSCMsgHeader *vheader)
 {
-    VSCMsgHeader *sent_header;
-
     vheader->type = ntohl(vheader->type);
     vheader->length = ntohl(vheader->length);
     vheader->reader_id = ntohl(vheader->reader_id);
@@ -213,11 +211,7 @@ RedMsgItem *smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard 
                             vheader->type);
     }
     if (dev->priv->scc) {
-        sent_header = g_memdup(vheader, sizeof(*vheader) + vheader->length);
-        /* We patch the reader_id, since the device only knows about itself, and
-         * we know about the sum of readers. */
-        sent_header->reader_id = dev->priv->reader_id;
-        return smartcard_get_vsc_msg_item(sent_header);
+        return smartcard_new_vsc_msg_item(dev->priv->reader_id, vheader);
     }
     return NULL;
 }
@@ -456,13 +450,16 @@ static void smartcard_free_vsc_msg_item(RedPipeItem *base)
     g_free(item);
 }
 
-static RedMsgItem *smartcard_get_vsc_msg_item(VSCMsgHeader *vheader)
+static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader)
 {
     RedMsgItem *msg_item = g_new0(RedMsgItem, 1);
 
     red_pipe_item_init_full(&msg_item->base, RED_PIPE_ITEM_TYPE_SMARTCARD_DATA,
                             smartcard_free_vsc_msg_item);
-    msg_item->vheader = vheader;
+    msg_item->vheader = g_memdup(vheader, sizeof(*vheader) + vheader->length);
+    /* We patch the reader_id, since the device only knows about itself, and
+     * we know about the sum of readers. */
+    msg_item->vheader->reader_id = reader_id;
     return msg_item;
 }
 
