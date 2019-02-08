@@ -207,7 +207,7 @@ RedMsgItem *smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard 
             break;
     }
     /* We pass any VSC_Error right now - might need to ignore some? */
-    if (dev->priv->reader_id == VSCARD_UNDEFINED_READER_ID && vheader->type != VSC_Init) {
+    if (dev->priv->reader_id == VSCARD_UNDEFINED_READER_ID) {
         red_channel_warning(red_channel_client_get_channel(RED_CHANNEL_CLIENT(dev->priv->scc)),
                             "error: reader_id not assigned for message of type %d",
                             vheader->type);
