@@ -100,6 +100,9 @@ SpiceCoreInterfaceInternal* reds_get_core_interface(RedsState *reds);
 void reds_update_client_mouse_allowed(RedsState *reds);
 MainDispatcher* reds_get_main_dispatcher(RedsState *reds);
 
+/* Marshal VDAgentGraphicsDeviceInfo structure */
+void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m);
+
 /* Get the recording object stored in RedsState.
  * You should free with red_record_unref.
  */

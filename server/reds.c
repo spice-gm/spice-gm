@@ -897,78 +897,33 @@ static RedPipeItem *vdi_port_read_one_msg_from_device(RedCharDevice *self,
     return NULL;
 }
 
-void reds_send_device_display_info(RedsState *reds)
+void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
 {
-    if (!reds->agent_dev->priv->agent_attached) {
-        return;
-    }
-    g_debug("Sending device display info to the agent:");
-
     QXLInstance *qxl;
     RedCharDevice *dev;
 
-    size_t message_size = sizeof(VDAgentGraphicsDeviceInfo);
-
-    // size for the qxl device info
-    FOREACH_QXL_INSTANCE(reds, qxl) {
-        message_size +=
-            (sizeof(VDAgentDeviceDisplayInfo) + strlen(red_qxl_get_device_address(qxl)) + 1) *
-            red_qxl_get_monitors_count(qxl);
-    }
-
-    // size for the stream device info
-    GLIST_FOREACH(reds->char_devices, RedCharDevice, dev) {
-        if (IS_STREAM_DEVICE(dev)) {
-            size_t device_address_len =
-                strlen(stream_device_get_device_display_info(STREAM_DEVICE(dev))->device_address);
-
-            if (device_address_len == 0) {
-                // the device info wasn't set (yet), don't send it
-                continue;
-            }
-
-            message_size += (sizeof(VDAgentDeviceDisplayInfo) + device_address_len + 1);
-        }
-    }
-
-    RedCharDeviceWriteBuffer *char_dev_buf = vdagent_new_write_buffer(reds->agent_dev,
-                                         VD_AGENT_GRAPHICS_DEVICE_INFO,
-                                         message_size,
-                                         true);
-
-    if (!char_dev_buf) {
-        reds->pending_device_display_info_message = true;
-        return;
-    }
-
-    VDInternalBuf *internal_buf = (VDInternalBuf *)char_dev_buf->buf;
-    VDAgentGraphicsDeviceInfo *graphics_device_info = &internal_buf->u.graphics_device_info;
-    graphics_device_info->count = 0;
-
-    VDAgentDeviceDisplayInfo *device_display_info = graphics_device_info->display_info;
+    uint32_t device_count = 0;
+    void *device_count_ptr = spice_marshaller_add_uint32(m, device_count);
 
     // add the qxl devices to the message
     FOREACH_QXL_INSTANCE(reds, qxl) {
+        const char *const device_address = red_qxl_get_device_address(qxl);
+        const size_t device_address_len = strlen(device_address) + 1;
+        if (device_address_len == 1) {
+            continue;
+        }
         for (size_t i = 0; i < red_qxl_get_monitors_count(qxl); ++i) {
-            device_display_info->channel_id = qxl->id;
-            device_display_info->monitor_id = i;
-            device_display_info->device_display_id = red_qxl_get_device_display_ids(qxl)[i];
+            spice_marshaller_add_uint32(m, qxl->id);
+            spice_marshaller_add_uint32(m, i);
+            spice_marshaller_add_uint32(m, red_qxl_get_device_display_ids(qxl)[i]);
+            spice_marshaller_add_uint32(m, device_address_len);
+            spice_marshaller_add(m, (void*) device_address, device_address_len);
+            ++device_count;
 
-            strcpy((char*) device_display_info->device_address, red_qxl_get_device_address(qxl));
-
-            device_display_info->device_address_len =
-                strlen((char*) device_display_info->device_address) + 1;
-
-            g_debug("   (qxl)    channel_id: %u monitor_id: %u, device_address: %s, device_display_id: %u",
-                    device_display_info->channel_id,
-                    device_display_info->monitor_id,
-                    device_display_info->device_address,
-                    device_display_info->device_display_id);
-
-            device_display_info = (VDAgentDeviceDisplayInfo*) ((char*) device_display_info +
-                    sizeof(VDAgentDeviceDisplayInfo) + device_display_info->device_address_len);
-
-            graphics_device_info->count++;
+            g_debug("   (qxl)    channel_id: %u monitor_id: %zu, device_address: %s, "
+                    "device_display_id: %u",
+                    qxl->id, i, device_address,
+                    red_qxl_get_device_display_ids(qxl)[i]);
         }
     }
 
@@ -977,9 +932,9 @@ void reds_send_device_display_info(RedsState *reds)
         if (IS_STREAM_DEVICE(dev)) {
             StreamDevice *stream_dev = STREAM_DEVICE(dev);
             const StreamDeviceDisplayInfo *info = stream_device_get_device_display_info(stream_dev);
-            size_t device_address_len = strlen(info->device_address);
+            size_t device_address_len = strlen(info->device_address) + 1;
 
-            if (device_address_len == 0) {
+            if (device_address_len == 1) {
                 // the device info wasn't set (yet), don't send it
                 continue;
             }
@@ -990,25 +945,53 @@ void reds_send_device_display_info(RedsState *reds)
                 continue;
             }
 
-            device_display_info->channel_id = channel_id;
-            device_display_info->monitor_id = info->stream_id;
-            device_display_info->device_display_id = info->device_display_id;
+            spice_marshaller_add_uint32(m, channel_id);
+            spice_marshaller_add_uint32(m, info->stream_id);
+            spice_marshaller_add_uint32(m, info->device_display_id);
+            spice_marshaller_add_uint32(m, device_address_len);
+            spice_marshaller_add(m, (void*) info->device_address, device_address_len);
+            ++device_count;
 
-            strcpy((char*) device_display_info->device_address, info->device_address);
-            device_display_info->device_address_len = device_address_len + 1;
-
-            g_debug("   (stream) channel_id: %u monitor_id: %u, device_address: %s, device_display_id: %u",
-                    device_display_info->channel_id,
-                    device_display_info->monitor_id,
-                    device_display_info->device_address,
-                    device_display_info->device_display_id);
-
-            device_display_info = (VDAgentDeviceDisplayInfo*) ((char*) device_display_info +
-                    sizeof(VDAgentDeviceDisplayInfo) + device_display_info->device_address_len);
-
-            graphics_device_info->count++;
+            g_debug("   (stream) channel_id: %u monitor_id: %u, device_address: %s, "
+                    "device_display_id: %u",
+                    channel_id, info->stream_id, info->device_address,
+                    info->device_display_id);
         }
     }
+    spice_marshaller_set_uint32(m, device_count_ptr, device_count);
+}
+
+void reds_send_device_display_info(RedsState *reds)
+{
+    if (!reds->agent_dev->priv->agent_attached) {
+        return;
+    }
+    g_debug("Sending device display info to the agent:");
+
+    SpiceMarshaller *m = spice_marshaller_new();
+    reds_marshall_device_display_info(reds, m);
+
+    RedCharDeviceWriteBuffer *char_dev_buf = vdagent_new_write_buffer(reds->agent_dev,
+                                         VD_AGENT_GRAPHICS_DEVICE_INFO,
+                                         spice_marshaller_get_total_size(m),
+                                         true);
+
+    if (!char_dev_buf) {
+        spice_marshaller_destroy(m);
+        reds->pending_device_display_info_message = true;
+        return;
+    }
+
+    VDInternalBuf *internal_buf = (VDInternalBuf *)char_dev_buf->buf;
+
+    int free_info;
+    size_t len_info;
+    uint8_t *info = spice_marshaller_linearize(m, 0, &len_info, &free_info);
+    memcpy(&internal_buf->u.graphics_device_info, info, len_info);
+    if (free_info) {
+        free(info);
+    }
+    spice_marshaller_destroy(m);
 
     reds->pending_device_display_info_message = false;
 
