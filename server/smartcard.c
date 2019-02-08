@@ -198,11 +198,8 @@ RedMsgItem *smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard 
     vheader->length = ntohl(vheader->length);
     vheader->reader_id = ntohl(vheader->reader_id);
 
-    switch (vheader->type) {
-        case VSC_Init:
-            return NULL;
-        default:
-            break;
+    if (vheader->type == VSC_Init) {
+        return NULL;
     }
     /* We pass any VSC_Error right now - might need to ignore some? */
     if (dev->priv->reader_id == VSCARD_UNDEFINED_READER_ID) {
@@ -210,10 +207,10 @@ RedMsgItem *smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard 
                             "error: reader_id not assigned for message of type %d",
                             vheader->type);
     }
-    if (dev->priv->scc) {
-        return smartcard_new_vsc_msg_item(dev->priv->reader_id, vheader);
+    if (dev->priv->scc == NULL) {
+        return NULL;
     }
-    return NULL;
+    return smartcard_new_vsc_msg_item(dev->priv->reader_id, vheader);
 }
 
 static int smartcard_char_device_add_to_readers(RedsState *reds, SpiceCharDeviceInstance *char_device)
