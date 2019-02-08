@@ -103,7 +103,7 @@ typedef struct RedMsgItem {
     VSCMsgHeader* vheader;
 } RedMsgItem;
 
-static RedMsgItem *smartcard_get_vsc_msg_item(RedChannelClient *rcc, VSCMsgHeader *vheader);
+static RedMsgItem *smartcard_get_vsc_msg_item(VSCMsgHeader *vheader);
 
 static struct Readers {
     uint32_t num;
@@ -217,8 +217,7 @@ RedMsgItem *smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard 
         /* We patch the reader_id, since the device only knows about itself, and
          * we know about the sum of readers. */
         sent_header->reader_id = dev->priv->reader_id;
-        return smartcard_get_vsc_msg_item(RED_CHANNEL_CLIENT(dev->priv->scc),
-                                          sent_header);
+        return smartcard_get_vsc_msg_item(sent_header);
     }
     return NULL;
 }
@@ -457,8 +456,7 @@ static void smartcard_free_vsc_msg_item(RedPipeItem *base)
     g_free(item);
 }
 
-static RedMsgItem *smartcard_get_vsc_msg_item(RedChannelClient *rcc,
-                                              VSCMsgHeader *vheader)
+static RedMsgItem *smartcard_get_vsc_msg_item(VSCMsgHeader *vheader)
 {
     RedMsgItem *msg_item = g_new0(RedMsgItem, 1);
 
