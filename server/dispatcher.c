@@ -259,7 +259,7 @@ static int dispatcher_handle_single_read(Dispatcher *dispatcher)
         return 0;
     }
     if (ret == 0) {
-        /* no messsage */
+        /* no message */
         return 0;
     }
     if (type >= dispatcher->priv->max_message_type) {
