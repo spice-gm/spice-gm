@@ -1164,6 +1164,11 @@ SPICE_GNUC_VISIBLE void spice_server_port_event(SpiceCharDeviceInstance *sin, ui
     return klass->port_event(sin->st, event);
 }
 
+SpiceCharDeviceInstance *red_char_device_get_device_instance(RedCharDevice *dev)
+{
+    return dev->priv->sin;
+}
+
 static void
 red_char_device_init(RedCharDevice *self)
 {
