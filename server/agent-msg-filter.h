@@ -33,11 +33,18 @@ typedef enum {
 } AgentMsgFilterResult;
 
 typedef struct AgentMsgFilter {
+    // bytes of message we still need to read
     int msg_data_to_read;
+    // status of current message, we need to store in case the same message is split into multiple
+    // chunks
     AgentMsgFilterResult result;
     gboolean copy_paste_enabled;
     gboolean file_xfer_enabled;
+    // device should pass monitor information to reds instead of passing to agent,
+    // used for messages from the guest to the agent
     gboolean use_client_monitors_config;
+    // discard all messages, used for example when device is disabled to discard
+    // pending data
     gboolean discard_all;
 } AgentMsgFilter;
 
