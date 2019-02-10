@@ -48,7 +48,6 @@
  */
 struct MainDispatcherPrivate
 {
-    SpiceCoreInterfaceInternal *core; /* weak */
     RedsState *reds; /* weak */
     SpiceWatch *watch;
 };
@@ -58,7 +57,6 @@ G_DEFINE_TYPE_WITH_PRIVATE(MainDispatcher, main_dispatcher, TYPE_DISPATCHER)
 enum {
     PROP0,
     PROP_SPICE_SERVER,
-    PROP_CORE_INTERFACE
 };
 
 static void
@@ -72,9 +70,6 @@ main_dispatcher_get_property(GObject    *object,
     switch (property_id) {
         case PROP_SPICE_SERVER:
              g_value_set_pointer(value, self->priv->reds);
-            break;
-        case PROP_CORE_INTERFACE:
-             g_value_set_pointer(value, self->priv->core);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -92,9 +87,6 @@ main_dispatcher_set_property(GObject      *object,
     switch (property_id) {
         case PROP_SPICE_SERVER:
             self->priv->reds = g_value_get_pointer(value);
-            break;
-        case PROP_CORE_INTERFACE:
-            self->priv->core = g_value_get_pointer(value);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -119,14 +111,6 @@ main_dispatcher_class_init(MainDispatcherClass *klass)
                                     g_param_spec_pointer("spice-server",
                                                          "spice-server",
                                                          "The spice server associated with this dispatcher",
-                                                         G_PARAM_READWRITE |
-                                                         G_PARAM_CONSTRUCT_ONLY));
-
-    g_object_class_install_property(object_class,
-                                    PROP_CORE_INTERFACE,
-                                    g_param_spec_pointer("core-interface",
-                                                         "core-interface",
-                                                         "The SpiceCoreInterface server associated with this dispatcher",
                                                          G_PARAM_READWRITE |
                                                          G_PARAM_CONSTRUCT_ONLY));
 }
@@ -284,11 +268,10 @@ static void dispatcher_handle_read(int fd, int event, void *opaque)
  * Reds routines shouldn't be exposed. Instead reds.c should register the callbacks,
  * and the corresponding operations should be made only via main_dispatcher.
  */
-MainDispatcher* main_dispatcher_new(RedsState *reds, SpiceCoreInterfaceInternal *core)
+MainDispatcher* main_dispatcher_new(RedsState *reds)
 {
     MainDispatcher *self = g_object_new(TYPE_MAIN_DISPATCHER,
                                         "spice-server", reds,
-                                        "core-interface", core,
                                         "max-message-type", MAIN_DISPATCHER_NUM_MESSAGES,
                                         NULL);
     return self;
@@ -302,10 +285,10 @@ void main_dispatcher_constructed(GObject *object)
     dispatcher_set_opaque(DISPATCHER(self), self);
 
     self->priv->watch =
-        self->priv->core->watch_add(self->priv->core,
-                                    dispatcher_get_recv_fd(DISPATCHER(self)),
-                                    SPICE_WATCH_EVENT_READ, dispatcher_handle_read,
-                                    DISPATCHER(self));
+        reds_core_watch_add(self->priv->reds,
+                            dispatcher_get_recv_fd(DISPATCHER(self)),
+                            SPICE_WATCH_EVENT_READ, dispatcher_handle_read,
+                            DISPATCHER(self));
     dispatcher_register_handler(DISPATCHER(self), MAIN_DISPATCHER_CHANNEL_EVENT,
                                 main_dispatcher_handle_channel_event,
                                 sizeof(MainDispatcherChannelEventMessage), false);
@@ -324,7 +307,7 @@ static void main_dispatcher_finalize(GObject *object)
 {
     MainDispatcher *self = MAIN_DISPATCHER(object);
 
-    self->priv->core->watch_remove(self->priv->core, self->priv->watch);
+    reds_core_watch_remove(self->priv->reds, self->priv->watch);
     self->priv->watch = NULL;
     G_OBJECT_CLASS(main_dispatcher_parent_class)->finalize(object);
 }

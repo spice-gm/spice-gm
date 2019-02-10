@@ -59,6 +59,6 @@ void main_dispatcher_set_mm_time_latency(MainDispatcher *self, RedClient *client
  */
 void main_dispatcher_client_disconnect(MainDispatcher *self, RedClient *client);
 
-MainDispatcher* main_dispatcher_new(RedsState *reds, SpiceCoreInterfaceInternal *core);
+MainDispatcher* main_dispatcher_new(RedsState *reds);
 
 #endif /* MAIN_DISPATCHER_H_ */
