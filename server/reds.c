@@ -1612,7 +1612,7 @@ bool reds_handle_migrate_data(RedsState *reds, MainChannelClient *mcc,
                 }
             }
         } else {
-            /* restore agent starts when the agent gets attached */
+            /* restore agent state when the agent gets attached */
             spice_debug("saving mig_data");
             spice_assert(agent_dev->priv->plug_generation == 0);
             agent_dev->priv->mig_data = g_memdup(mig_data, size);
