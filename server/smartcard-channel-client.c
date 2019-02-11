@@ -20,8 +20,6 @@
 
 #include "smartcard-channel-client.h"
 
-G_DEFINE_TYPE(SmartCardChannelClient, smart_card_channel_client, RED_TYPE_CHANNEL_CLIENT)
-
 struct SmartCardChannelClientPrivate
 {
     RedCharDeviceSmartcard *smartcard;
@@ -32,6 +30,9 @@ struct SmartCardChannelClientPrivate
     int msg_in_write_buf; /* was the client msg received into a RedCharDeviceWriteBuffer
                            * or was it explicitly malloced */
 };
+
+G_DEFINE_TYPE_WITH_PRIVATE(SmartCardChannelClient, smart_card_channel_client,
+                           RED_TYPE_CHANNEL_CLIENT)
 
 typedef struct RedErrorItem {
     RedPipeItem base;
@@ -83,8 +84,6 @@ static void smart_card_channel_client_finalize(GObject *object)
 static void smart_card_channel_client_class_init(SmartCardChannelClientClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
-
-    g_type_class_add_private(klass, sizeof(SmartCardChannelClientPrivate));
 
     RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
     client_class->alloc_recv_buf = smartcard_channel_client_alloc_msg_rcv_buf;
