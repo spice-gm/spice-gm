@@ -847,7 +847,7 @@ static RedPipeItem *vdi_port_read_one_msg_from_device(RedCharDevice *self,
             dev->priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
             /* fall through */
         case VDI_PORT_READ_STATE_GET_BUFF: {
-            if (!(dev->priv->current_read_buf = vdi_port_get_read_buf(reds->agent_dev))) {
+            if (!(dev->priv->current_read_buf = vdi_port_get_read_buf(dev))) {
                 return NULL;
             }
             dev->priv->receive_pos = dev->priv->current_read_buf->data;
@@ -877,7 +877,7 @@ static RedPipeItem *vdi_port_read_one_msg_from_device(RedCharDevice *self,
             } else {
                 dev->priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
             }
-            switch (vdi_port_read_buf_process(reds->agent_dev, dispatch_buf)) {
+            switch (vdi_port_read_buf_process(dev, dispatch_buf)) {
             case AGENT_MSG_FILTER_OK:
                 agent_adjust_capabilities((VDAgentMessage *) dispatch_buf->data,
                                           reds->config->agent_copypaste,
@@ -1234,7 +1234,7 @@ void reds_release_agent_data_buffer(RedsState *reds, uint8_t *buf)
     spice_assert(buf == dev->priv->recv_from_client_buf->buf + sizeof(VDIChunkHeader));
     /* if we pushed the buffer the buffer is attached to the channel so don't free it */
     if (!dev->priv->recv_from_client_buf_pushed) {
-        red_char_device_write_buffer_release(RED_CHAR_DEVICE(reds->agent_dev),
+        red_char_device_write_buffer_release(RED_CHAR_DEVICE(dev),
                                              &dev->priv->recv_from_client_buf);
     }
     dev->priv->recv_from_client_buf = NULL;
@@ -1299,7 +1299,7 @@ void reds_on_main_agent_data(RedsState *reds, MainChannelClient *mcc, const void
     VDIChunkHeader *header;
     AgentMsgFilterResult res;
 
-    res = agent_msg_filter_process_data(&reds->agent_dev->priv->write_filter,
+    res = agent_msg_filter_process_data(&dev->priv->write_filter,
                                         message, size);
     switch (res) {
     case AGENT_MSG_FILTER_OK:
@@ -1314,8 +1314,8 @@ void reds_on_main_agent_data(RedsState *reds, MainChannelClient *mcc, const void
         return;
     }
 
-    spice_assert(reds->agent_dev->priv->recv_from_client_buf);
-    spice_assert(message == reds->agent_dev->priv->recv_from_client_buf->buf + sizeof(VDIChunkHeader));
+    spice_assert(dev->priv->recv_from_client_buf);
+    spice_assert(message == dev->priv->recv_from_client_buf->buf + sizeof(VDIChunkHeader));
     // TODO - start tracking agent data per channel
     header =  (VDIChunkHeader *)dev->priv->recv_from_client_buf->buf;
     header->port = VDP_CLIENT_PORT;
@@ -1323,7 +1323,7 @@ void reds_on_main_agent_data(RedsState *reds, MainChannelClient *mcc, const void
     dev->priv->recv_from_client_buf->buf_used = sizeof(VDIChunkHeader) + size;
 
     dev->priv->recv_from_client_buf_pushed = TRUE;
-    red_char_device_write_buffer_add(RED_CHAR_DEVICE(reds->agent_dev), dev->priv->recv_from_client_buf);
+    red_char_device_write_buffer_add(RED_CHAR_DEVICE(dev), dev->priv->recv_from_client_buf);
 }
 
 void reds_on_main_migrate_connected(RedsState *reds, int seamless)
@@ -1378,7 +1378,7 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
                     !agent_dev->priv->read_filter.msg_data_to_read);
 
         read_buf->len = read_data_len;
-        switch (vdi_port_read_buf_process(reds->agent_dev, read_buf)) {
+        switch (vdi_port_read_buf_process(agent_dev, read_buf)) {
         case AGENT_MSG_FILTER_OK:
             agent_adjust_capabilities((VDAgentMessage *)read_buf->data,
                                       reds->config->agent_copypaste,
@@ -1435,8 +1435,8 @@ void reds_marshall_migrate_data(RedsState *reds, SpiceMarshaller *m)
         return;
     }
 
-    red_char_device_migrate_data_marshall(RED_CHAR_DEVICE(reds->agent_dev), m);
-    spice_marshaller_add_uint8(m, reds->agent_dev->priv->client_agent_started);
+    red_char_device_migrate_data_marshall(RED_CHAR_DEVICE(agent_dev), m);
+    spice_marshaller_add_uint8(m, agent_dev->priv->client_agent_started);
 
     mig_data.agent2client.chunk_header = agent_dev->priv->vdi_chunk_header;
 
@@ -1514,7 +1514,7 @@ static int reds_agent_state_restore(RedsState *reds, SpiceMigrateDataMain *mig_d
             uint32_t cur_buf_size;
 
             agent_dev->priv->read_state = VDI_PORT_READ_STATE_READ_DATA;
-            agent_dev->priv->current_read_buf = vdi_port_get_read_buf(reds->agent_dev);
+            agent_dev->priv->current_read_buf = vdi_port_get_read_buf(agent_dev);
             spice_assert(agent_dev->priv->current_read_buf);
             partial_msg_header = (uint8_t *)mig_data + mig_data->agent2client.msg_header_ptr -
                 sizeof(SpiceMiniDataHeader);
