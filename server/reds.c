@@ -224,11 +224,11 @@ typedef struct RedVDIReadBuf {
     uint8_t data[SPICE_AGENT_MAX_DATA_SIZE];
 } RedVDIReadBuf;
 
-enum {
+typedef enum {
     VDI_PORT_READ_STATE_READ_HEADER,
     VDI_PORT_READ_STATE_GET_BUFF,
     VDI_PORT_READ_STATE_READ_DATA,
-};
+} VDIPortReadStates;
 
 struct RedCharDeviceVDIPortPrivate {
     gboolean agent_attached;
@@ -242,7 +242,7 @@ struct RedCharDeviceVDIPortPrivate {
 
     /* read from agent */
     uint32_t num_read_buf;
-    uint32_t read_state;
+    VDIPortReadStates read_state;
     uint32_t message_receive_len;
     uint8_t *receive_pos;
     uint32_t receive_len;
