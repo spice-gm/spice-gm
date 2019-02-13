@@ -179,7 +179,8 @@ spice_server_libs = both_libraries('spice-server', spice_server_sources,
                                    include_directories : spice_server_include,
                                    link_args : compiler.get_supported_link_arguments(spice_server_link_args),
                                    link_depends : spice_server_syms,
-                                   dependencies : spice_server_deps)
+                                   dependencies : spice_server_deps,
+                                   gnu_symbol_visibility : 'hidden')
 
 spice_server_shared_lib = spice_server_libs.get_shared_lib()
 spice_server_static_lib = spice_server_libs.get_static_lib()

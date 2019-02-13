@@ -4,7 +4,7 @@
 project('spice', 'c',
         version : run_command('build-aux/git-version-gen', '${MESON_SOURCE_ROOT}/.tarball-version', check : true).stdout().strip(),
         license : 'LGPLv2.1',
-        meson_version : '>= 0.47.2')
+        meson_version : '>= 0.48')
 
 message('Updating submodules')
 run_command('build-aux/meson/check-spice-common', check : true)
@@ -36,8 +36,7 @@ spice_server_so_version = '@0@.@1@.@2@'.format(spice_server_current - spice_serv
 message('libspice.so version: ' + spice_server_so_version)
 
 # some global vars
-spice_server_global_cflags = ['-fvisibility=hidden',
-                              '-DSPICE_SERVER_INTERNAL',
+spice_server_global_cflags = ['-DSPICE_SERVER_INTERNAL',
                               '-DG_LOG_DOMAIN="Spice"',
                               '-DHAVE_CONFIG_H',
                               #'-Werror',
