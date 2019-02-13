@@ -167,14 +167,12 @@ endif
 
 # smartcard check
 spice_server_has_smartcard = false
-if get_option('smartcard')
-  smartcard_dep = dependency('libcacard', required : false, version : '>= 2.5.1')
-  if smartcard_dep.found()
-    spice_server_deps += smartcard_dep
-    spice_server_config_data.set('USE_SMARTCARD', '1')
-    spice_server_has_smartcard = true
-    spice_server_requires += 'libcacard >= 2.5.1 '
-  endif
+smartcard_dep = dependency('libcacard', required : get_option('smartcard'), version : '>= 2.5.1')
+if smartcard_dep.found()
+  spice_server_deps += smartcard_dep
+  spice_server_config_data.set('USE_SMARTCARD', '1')
+  spice_server_has_smartcard = true
+  spice_server_requires += 'libcacard >= 2.5.1 '
 endif
 
 #
