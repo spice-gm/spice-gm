@@ -3378,6 +3378,14 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
         }
 
         qxl = SPICE_UPCAST(QXLInstance, sin);
+        if (qxl->id < 0) {
+            spice_warning("invalid QXL ID");
+            return -1;
+        }
+        if (reds_find_channel(reds, SPICE_CHANNEL_DISPLAY, qxl->id)) {
+            spice_warning("QXL ID already allocated");
+            return -1;
+        }
         red_qxl_init(reds, qxl);
         reds->qxl_instances = g_list_prepend(reds->qxl_instances, qxl);
 
