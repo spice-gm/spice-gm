@@ -172,20 +172,9 @@ if get_option('smartcard')
   if smartcard_dep.found()
     spice_server_deps += smartcard_dep
     spice_server_config_data.set('USE_SMARTCARD', '1')
-  else
-    smartcard012_dep = dependency('libcacard', required : false, version : '>= 0.1.2')
-    if smartcard012_dep.found()
-      spice_server_deps += smartcard012_dep
-      spice_server_config_data.set('USE_SMARTCARD_012', '1')
-    endif
+    spice_server_has_smartcard = true
+    spice_server_requires += 'libcacard >= 2.5.1 '
   endif
-
-  spice_server_has_smartcard = smartcard_dep.found() or smartcard012_dep.found()
-  if not spice_server_has_smartcard
-    error('Building with smartcard support but dependency not found')
-  endif
-
-  spice_server_requires += 'libcacard >= 0.1.2 '
 endif
 
 #
