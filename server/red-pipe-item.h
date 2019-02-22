@@ -19,8 +19,8 @@
 #ifndef RED_PIPE_ITEM_H_
 #define RED_PIPE_ITEM_H_
 
-#include <glib.h>
-#include <common/ring.h>
+#include <stddef.h>
+#include <inttypes.h>
 
 typedef struct RedPipeItem RedPipeItem;
 
