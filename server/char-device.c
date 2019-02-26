@@ -903,7 +903,7 @@ void red_char_device_migrate_data_marshall(RedCharDevice *dev,
     write_to_dev_size = 0;
     write_to_dev_tokens = 0;
 
-    m2 = spice_marshaller_get_ptr_submarshaller(m, 0);
+    m2 = spice_marshaller_get_ptr_submarshaller(m);
     if (dev->priv->cur_write_buf) {
         uint32_t buf_remaining = dev->priv->cur_write_buf->buf + dev->priv->cur_write_buf->buf_used -
                                  dev->priv->cur_write_buf_pos;

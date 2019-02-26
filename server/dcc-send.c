@@ -1792,7 +1792,7 @@ static void display_channel_marshall_migrate_data_surfaces(DisplayChannelClient 
                                                            SpiceMarshaller *m,
                                                            int lossy)
 {
-    SpiceMarshaller *m2 = spice_marshaller_get_ptr_submarshaller(m, 0);
+    SpiceMarshaller *m2 = spice_marshaller_get_ptr_submarshaller(m);
     uint32_t num_surfaces_created;
     uint8_t *num_surfaces_created_ptr;
     uint32_t i;

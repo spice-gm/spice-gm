@@ -1478,7 +1478,7 @@ void reds_marshall_migrate_data(RedsState *reds, SpiceMarshaller *m)
                          sizeof(VDIChunkHeader));
     spice_marshaller_add_uint8(m, mig_data.agent2client.msg_header_done);
     spice_marshaller_add_uint32(m, mig_data.agent2client.msg_header_partial_len);
-    m2 = spice_marshaller_get_ptr_submarshaller(m, 0);
+    m2 = spice_marshaller_get_ptr_submarshaller(m);
     spice_marshaller_add(m2, agent_dev->priv->current_read_buf->data,
                          mig_data.agent2client.msg_header_partial_len);
     spice_marshaller_add_uint32(m, mig_data.agent2client.msg_remaining);
