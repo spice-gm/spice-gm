@@ -231,9 +231,9 @@ typedef enum {
 } VDIPortReadStates;
 
 struct RedCharDeviceVDIPortPrivate {
-    gboolean agent_attached;
+    bool agent_attached;
     uint32_t plug_generation;
-    int client_agent_started;
+    bool client_agent_started;
     bool agent_supports_graphics_device_info;
 
     /* write to agent */
@@ -486,7 +486,7 @@ static void reds_reset_vdp(RedsState *reds)
      * to be sent from the client. This TODO will require server, protocol, and client changes */
     dev->priv->write_filter.result = AGENT_MSG_FILTER_DISCARD;
     dev->priv->write_filter.discard_all = TRUE;
-    dev->priv->client_agent_started = FALSE;
+    dev->priv->client_agent_started = false;
     dev->priv->agent_supports_graphics_device_info = false;
 
     /*  The client's tokens are set once when the main channel is initialized
@@ -1151,7 +1151,7 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
     spice_assert(reds->vdagent->st && reds->vdagent->st == dev_state);
     rcc = RED_CHANNEL_CLIENT(mcc);
     client = red_channel_client_get_client(rcc);
-    reds->agent_dev->priv->client_agent_started = TRUE;
+    reds->agent_dev->priv->client_agent_started = true;
     /*
      * Note that in older releases, send_tokens were set to ~0 on both client
      * and server. The server ignored the client given tokens.
@@ -3156,7 +3156,7 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
     RedCharDeviceVDIPort *dev = reds->agent_dev;
     SpiceCharDeviceInterface *sif;
 
-    dev->priv->agent_attached = TRUE;
+    dev->priv->agent_attached = true;
     red_char_device_reset_dev_instance(RED_CHAR_DEVICE(dev), sin);
 
     reds->vdagent = sin;
