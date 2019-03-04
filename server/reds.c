@@ -234,6 +234,7 @@ struct RedCharDeviceVDIPortPrivate {
     gboolean agent_attached;
     uint32_t plug_generation;
     int client_agent_started;
+    bool agent_supports_graphics_device_info;
 
     /* write to agent */
     RedCharDeviceWriteBuffer *recv_from_client_buf;
@@ -486,6 +487,7 @@ static void reds_reset_vdp(RedsState *reds)
     dev->priv->write_filter.result = AGENT_MSG_FILTER_DISCARD;
     dev->priv->write_filter.discard_all = TRUE;
     dev->priv->client_agent_started = FALSE;
+    dev->priv->agent_supports_graphics_device_info = false;
 
     /*  The client's tokens are set once when the main channel is initialized
      *  and once upon agent's connection with SPICE_MSG_MAIN_AGENT_CONNECTED_TOKENS.
@@ -813,6 +815,11 @@ static void reds_adjust_agent_capabilities(RedsState *reds, VDAgentMessage *mess
     if (!reds->config->agent_file_xfer) {
         VD_AGENT_SET_CAPABILITY(capabilities->caps, VD_AGENT_CAP_FILE_XFER_DISABLED);
     }
+
+    size_t caps_size = VD_AGENT_CAPS_SIZE_FROM_MSG_SIZE(message->size);
+    reds->agent_dev->priv->agent_supports_graphics_device_info =
+        VD_AGENT_HAS_CAPABILITY(capabilities->caps, caps_size, VD_AGENT_CAP_GRAPHICS_DEVICE_INFO);
+    reds_send_device_display_info(reds);
 }
 
 /* reads from the device till completes reading a message that is addressed to the client,
@@ -965,6 +972,10 @@ void reds_send_device_display_info(RedsState *reds)
     if (!reds->agent_dev->priv->agent_attached) {
         return;
     }
+    if (!reds->agent_dev->priv->agent_supports_graphics_device_info) {
+        return;
+    }
+
     g_debug("Sending device display info to the agent:");
 
     SpiceMarshaller *m = spice_marshaller_new();
