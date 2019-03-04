@@ -793,8 +793,9 @@ static void vdi_port_read_buf_free(RedPipeItem *base)
     g_free(buf);
 }
 
-static void agent_adjust_capabilities(VDAgentMessage *message,
-                                      bool clipboard_enabled, bool xfer_enabled)
+/* certain agent capabilities can be overridden and disabled in the server. In these cases, unset
+ * these capabilities before sending them on to the client */
+static void reds_adjust_agent_capabilities(RedsState *reds, VDAgentMessage *message)
 {
     VDAgentAnnounceCapabilities *capabilities;
 
@@ -803,13 +804,13 @@ static void agent_adjust_capabilities(VDAgentMessage *message,
     }
     capabilities = (VDAgentAnnounceCapabilities *) message->data;
 
-    if (!clipboard_enabled) {
+    if (!reds->config->agent_copypaste) {
         VD_AGENT_CLEAR_CAPABILITY(capabilities->caps, VD_AGENT_CAP_CLIPBOARD);
         VD_AGENT_CLEAR_CAPABILITY(capabilities->caps, VD_AGENT_CAP_CLIPBOARD_BY_DEMAND);
         VD_AGENT_CLEAR_CAPABILITY(capabilities->caps, VD_AGENT_CAP_CLIPBOARD_SELECTION);
     }
 
-    if (!xfer_enabled) {
+    if (!reds->config->agent_file_xfer) {
         VD_AGENT_SET_CAPABILITY(capabilities->caps, VD_AGENT_CAP_FILE_XFER_DISABLED);
     }
 }
@@ -879,9 +880,7 @@ static RedPipeItem *vdi_port_read_one_msg_from_device(RedCharDevice *self,
             }
             switch (vdi_port_read_buf_process(dev, dispatch_buf)) {
             case AGENT_MSG_FILTER_OK:
-                agent_adjust_capabilities((VDAgentMessage *) dispatch_buf->data,
-                                          reds->config->agent_copypaste,
-                                          reds->config->agent_file_xfer);
+                reds_adjust_agent_capabilities(reds, (VDAgentMessage *) dispatch_buf->data);
                 return &dispatch_buf->base;
             case AGENT_MSG_FILTER_PROTO_ERROR:
                 reds_agent_remove(reds);
@@ -1380,9 +1379,7 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
         read_buf->len = read_data_len;
         switch (vdi_port_read_buf_process(agent_dev, read_buf)) {
         case AGENT_MSG_FILTER_OK:
-            agent_adjust_capabilities((VDAgentMessage *)read_buf->data,
-                                      reds->config->agent_copypaste,
-                                      reds->config->agent_file_xfer);
+            reds_adjust_agent_capabilities(reds, (VDAgentMessage *)read_buf->data);
             main_channel_client_push_agent_data(mcc,
                                                 read_buf->data,
                                                 read_buf->len,
