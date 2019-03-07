@@ -179,10 +179,11 @@ static void monitors_config_debug(MonitorsConfig *mc)
     int i;
 
     spice_debug("monitors config count:%d max:%d", mc->count, mc->max_allowed);
-    for (i = 0; i < mc->count; i++)
-        spice_debug("+%d+%d %dx%d",
+    for (i = 0; i < mc->count; i++) {
+        spice_debug("head #%d +%d+%d %dx%d", i,
                     mc->heads[i].x, mc->heads[i].y,
                     mc->heads[i].width, mc->heads[i].height);
+    }
 }
 
 static MonitorsConfig* monitors_config_new(QXLHead *heads, ssize_t nheads, ssize_t max)
