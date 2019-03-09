@@ -369,7 +369,9 @@ static void before_reattach_stream(DisplayChannel *display,
 #ifdef STREAM_STATS
             agent->stats.num_drops_pipe++;
 #endif
-            agent->video_encoder->notify_server_frame_drop(agent->video_encoder);
+            if (agent->video_encoder) {
+                agent->video_encoder->notify_server_frame_drop(agent->video_encoder);
+            }
         }
     }
 }
