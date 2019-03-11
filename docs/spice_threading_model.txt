@@ -1,7 +1,7 @@
 How does SPICE handle threading
 -------------------------------
 
-Lots of code run in a single thread.
+Lots of code runs in a single thread.
 
 Qemu usually calls SPICE from its main thread except on callbacks to code
 already running in different threads.
