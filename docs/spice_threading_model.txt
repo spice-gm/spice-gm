@@ -39,6 +39,20 @@ connect, disconnect and migrate. Connect and migrate are asynchronous (the job
 is done while the current thread is doing something else) while disconnect is
 synchronous (the main thread will wait for termination).
 
+One aspect to take into consideration is the event scheduling. SPICE uses some
+`SpiceCoreInterface` to handle events. As the events will be handled from a
+thread based on the core interface you have to use the correct core. Each
+channel has an associated core interface which can be retrieved using
+`red_channel_get_core_interface`. There's also a main core interface you can get
+using `reds_get_core_interface`. `reds_core_timer_*` and `reds_core_watch_*`
+functions use the main core interface.
+Even though multiple channel types run in the main thread and so could use
+directly the main code interface, for coherence, rule simplicity and to allows
+the code to be moved in a separate thread easily if needed, it's advisable to
+use the channel core interface (that will be the main core interface in this
+case).
+Currently character devices and not channel code runs in the main thread.
+
 Reference counting and ownership
 --------------------------------
 ->  pointer
