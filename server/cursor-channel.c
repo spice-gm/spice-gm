@@ -367,11 +367,23 @@ cursor_channel_finalize(GObject *object)
 }
 
 static void
+cursor_channel_constructed(GObject *object)
+{
+    RedChannel *red_channel = RED_CHANNEL(object);
+    RedsState *reds = red_channel_get_server(red_channel);
+
+    G_OBJECT_CLASS(cursor_channel_parent_class)->constructed(object);
+
+    reds_register_channel(reds, red_channel);
+}
+
+static void
 cursor_channel_class_init(CursorChannelClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
 
+    object_class->constructed = cursor_channel_constructed;
     object_class->finalize = cursor_channel_finalize;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_CURSOR, NULL);

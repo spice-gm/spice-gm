@@ -1322,7 +1322,6 @@ RedWorker* red_worker_new(QXLInstance *qxl,
     red_channel_init_stat_node(channel, &worker->stat, "cursor_channel");
     red_channel_register_client_cbs(channel, client_cursor_cbs);
     g_object_set_data(G_OBJECT(channel), "dispatcher", dispatcher);
-    reds_register_channel(reds, channel);
 
     // TODO: handle seamless migration. Temp, setting migrate to FALSE
     worker->display_channel = display_channel_new(reds, qxl, &worker->core, FALSE,
@@ -1333,7 +1332,6 @@ RedWorker* red_worker_new(QXLInstance *qxl,
     red_channel_init_stat_node(channel, &worker->stat, "display_channel");
     red_channel_register_client_cbs(channel, client_display_cbs);
     g_object_set_data(G_OBJECT(channel), "dispatcher", dispatcher);
-    reds_register_channel(reds, channel);
 
     return worker;
 }

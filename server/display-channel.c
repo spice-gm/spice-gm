@@ -2305,6 +2305,8 @@ display_channel_constructed(GObject *object)
     red_channel_set_cap(channel, SPICE_DISPLAY_CAP_PREF_COMPRESSION);
     red_channel_set_cap(channel, SPICE_DISPLAY_CAP_PREF_VIDEO_CODEC_TYPE);
     red_channel_set_cap(channel, SPICE_DISPLAY_CAP_STREAM_REPORT);
+
+    reds_register_channel(reds, channel);
 }
 
 void display_channel_process_surface_cmd(DisplayChannel *display,
