@@ -380,6 +380,14 @@ void stat_remove_counter(SpiceServer *reds, RedStatCounter *counter)
 void reds_register_channel(RedsState *reds, RedChannel *channel)
 {
     spice_assert(reds);
+
+    uint32_t this_type, this_id;
+    g_object_get(channel, "channel-type", &this_type, "id", &this_id, NULL);
+    if (spice_extra_checks) {
+        g_assert(reds_find_channel(reds, this_type, this_id) == NULL);
+    } else {
+        g_warn_if_fail(reds_find_channel(reds, this_type, this_id) == NULL);
+    }
     reds->channels = g_list_prepend(reds->channels, channel);
     // create new channel in the client if possible
     main_channel_registered_new_channel(reds->main_channel, channel);
