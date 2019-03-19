@@ -28,9 +28,7 @@
 
 typedef struct RedWorker RedWorker;
 
-RedWorker* red_worker_new(QXLInstance *qxl,
-                          const ClientCbs *client_cursor_cbs,
-                          const ClientCbs *client_display_cbs);
+RedWorker* red_worker_new(QXLInstance *qxl);
 bool       red_worker_run(RedWorker *worker);
 void red_worker_free(RedWorker *worker);
 
@@ -51,14 +49,14 @@ enum {
     RED_WORKER_MESSAGE_OOM,
     RED_WORKER_MESSAGE_READY, /* unused */
 
-    RED_WORKER_MESSAGE_DISPLAY_CONNECT,
-    RED_WORKER_MESSAGE_DISPLAY_DISCONNECT,
-    RED_WORKER_MESSAGE_DISPLAY_MIGRATE,
+    RED_WORKER_MESSAGE_DISPLAY_CONNECT_DEPRECATED,
+    RED_WORKER_MESSAGE_DISPLAY_DISCONNECT_DEPRECATED,
+    RED_WORKER_MESSAGE_DISPLAY_MIGRATE_DEPRECATED,
     RED_WORKER_MESSAGE_START,
     RED_WORKER_MESSAGE_STOP,
-    RED_WORKER_MESSAGE_CURSOR_CONNECT,
-    RED_WORKER_MESSAGE_CURSOR_DISCONNECT,
-    RED_WORKER_MESSAGE_CURSOR_MIGRATE,
+    RED_WORKER_MESSAGE_CURSOR_CONNECT_DEPRECATED,
+    RED_WORKER_MESSAGE_CURSOR_DISCONNECT_DEPRECATED,
+    RED_WORKER_MESSAGE_CURSOR_MIGRATE_DEPRECATED,
     RED_WORKER_MESSAGE_SET_COMPRESSION,
     RED_WORKER_MESSAGE_SET_STREAMING_VIDEO,
     RED_WORKER_MESSAGE_SET_MOUSE_MODE,
@@ -96,36 +94,6 @@ enum {
 
     RED_WORKER_MESSAGE_COUNT // LAST
 };
-
-typedef struct RedWorkerMessageDisplayConnect {
-    RedClient * client;
-    RedStream * stream;
-    RedChannelCapabilities caps;   // red_worker should reset
-    int migration;
-} RedWorkerMessageDisplayConnect;
-
-typedef struct RedWorkerMessageDisplayDisconnect {
-    RedChannelClient *rcc;
-} RedWorkerMessageDisplayDisconnect;
-
-typedef struct RedWorkerMessageDisplayMigrate {
-    RedChannelClient *rcc;
-} RedWorkerMessageDisplayMigrate;
-
-typedef struct RedWorkerMessageCursorConnect {
-    RedClient *client;
-    RedStream *stream;
-    int migration;
-    RedChannelCapabilities caps;   // red_worker should reset
-} RedWorkerMessageCursorConnect;
-
-typedef struct RedWorkerMessageCursorDisconnect {
-    RedChannelClient *rcc;
-} RedWorkerMessageCursorDisconnect;
-
-typedef struct RedWorkerMessageCursorMigrate {
-    RedChannelClient *rcc;
-} RedWorkerMessageCursorMigrate;
 
 typedef struct RedWorkerMessageUpdate {
     uint32_t surface_id;

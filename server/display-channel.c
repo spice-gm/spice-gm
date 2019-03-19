@@ -2227,6 +2227,7 @@ static SpiceCanvas *image_surfaces_get(SpiceImageSurfaces *surfaces, uint32_t su
 DisplayChannel* display_channel_new(RedsState *reds,
                                     QXLInstance *qxl,
                                     const SpiceCoreInterfaceInternal *core,
+                                    Dispatcher *dispatcher,
                                     int migrate, int stream_video,
                                     GArray *video_codecs,
                                     uint32_t n_surfaces)
@@ -2246,6 +2247,7 @@ DisplayChannel* display_channel_new(RedsState *reds,
                            "n-surfaces", n_surfaces,
                            "video-codecs", video_codecs,
                            "handle-acks", TRUE,
+                           "dispatcher", dispatcher,
                            NULL);
     if (display) {
         display_channel_set_stream_video(display, stream_video);

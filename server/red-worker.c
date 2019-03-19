@@ -695,20 +695,19 @@ static void handle_dev_create_primary_surface_async(void *opaque, void *payload)
     red_qxl_async_complete(worker->qxl, msg->base.cookie);
 }
 
-static void handle_dev_display_connect(void *opaque, void *payload)
+static void
+handle_dev_display_connect(RedChannel *channel, RedClient *client,
+                           RedStream *stream, int migration,
+                           RedChannelCapabilities *caps)
 {
-    RedWorkerMessageDisplayConnect *msg = payload;
-    RedWorker *worker = opaque;
-    DisplayChannel *display = worker->display_channel;
+    DisplayChannel *display = DISPLAY_CHANNEL(channel);
     DisplayChannelClient *dcc;
+    RedWorker *worker = g_object_get_data(G_OBJECT(channel), "worker");
 
     spice_debug("connect new client");
-    spice_return_if_fail(display);
 
-    dcc = dcc_new(display, msg->client, msg->stream, msg->migration, &msg->caps,
+    dcc = dcc_new(display, client, stream, migration, caps,
                   worker->image_compression, worker->jpeg_state, worker->zlib_glz_state);
-    g_object_unref(msg->client);
-    red_channel_capabilities_reset(&msg->caps);
     if (!dcc) {
         return;
     }
@@ -717,30 +716,23 @@ static void handle_dev_display_connect(void *opaque, void *payload)
     dcc_start(dcc);
 }
 
-static void handle_dev_display_disconnect(void *opaque, void *payload)
+static void
+handle_dev_display_disconnect(RedChannelClient *rcc)
 {
-    RedWorkerMessageDisplayDisconnect *msg = payload;
-    RedChannelClient *rcc = msg->rcc;
-    RedWorker *worker = opaque;
+    RedChannel *channel = red_channel_client_get_channel(rcc);
+    RedWorker *worker = g_object_get_data(G_OBJECT(channel), "worker");
 
     spice_debug("disconnect display client");
-    spice_assert(rcc);
 
     guest_set_client_capabilities(worker);
 
     red_channel_client_disconnect(rcc);
 }
 
-static void handle_dev_display_migrate(void *opaque, void *payload)
+static void handle_dev_display_migrate(RedChannelClient *rcc)
 {
-    RedWorkerMessageDisplayMigrate *msg = payload;
-    RedWorker *worker = opaque;
-
-    RedChannelClient *rcc = msg->rcc;
-    spice_debug("migrate display client");
-    spice_assert(rcc);
-    red_migrate_display(worker->display_channel, rcc);
-    g_object_unref(rcc);
+    DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
+    red_migrate_display(display, rcc);
 }
 
 static inline uint32_t qxl_monitors_config_size(uint32_t heads)
@@ -790,40 +782,6 @@ static void handle_dev_monitors_config_async(void *opaque, void *payload)
                                            MIN(max_allowed, msg->max_monitors));
 async_complete:
     red_qxl_async_complete(worker->qxl, msg->base.cookie);
-}
-
-/* TODO: special, perhaps use another dispatcher? */
-static void handle_dev_cursor_connect(void *opaque, void *payload)
-{
-    RedWorkerMessageCursorConnect *msg = payload;
-    RedWorker *worker = opaque;
-
-    spice_debug("cursor connect");
-    cursor_channel_connect(worker->cursor_channel,
-                           msg->client, msg->stream, msg->migration,
-                           &msg->caps);
-    g_object_unref(msg->client);
-    red_channel_capabilities_reset(&msg->caps);
-}
-
-static void handle_dev_cursor_disconnect(void *opaque, void *payload)
-{
-    RedWorkerMessageCursorDisconnect *msg = payload;
-    RedChannelClient *rcc = msg->rcc;
-
-    spice_debug("disconnect cursor client");
-    spice_return_if_fail(rcc);
-    red_channel_client_disconnect(rcc);
-}
-
-static void handle_dev_cursor_migrate(void *opaque, void *payload)
-{
-    RedWorkerMessageCursorMigrate *msg = payload;
-    RedChannelClient *rcc = msg->rcc;
-
-    spice_debug("migrate cursor client");
-    cursor_channel_client_migrate(rcc);
-    g_object_unref(rcc);
 }
 
 static void handle_dev_set_compression(void *opaque, void *payload)
@@ -999,36 +957,6 @@ static void worker_dispatcher_record(void *opaque, uint32_t message_type, void *
 static void register_callbacks(Dispatcher *dispatcher)
 {
     /* TODO: register cursor & display specific msg in respective channel files */
-    dispatcher_register_handler(dispatcher,
-                                RED_WORKER_MESSAGE_DISPLAY_CONNECT,
-                                handle_dev_display_connect,
-                                sizeof(RedWorkerMessageDisplayConnect),
-                                false);
-    dispatcher_register_handler(dispatcher,
-                                RED_WORKER_MESSAGE_DISPLAY_DISCONNECT,
-                                handle_dev_display_disconnect,
-                                sizeof(RedWorkerMessageDisplayDisconnect),
-                                true);
-    dispatcher_register_handler(dispatcher,
-                                RED_WORKER_MESSAGE_DISPLAY_MIGRATE,
-                                handle_dev_display_migrate,
-                                sizeof(RedWorkerMessageDisplayMigrate),
-                                false);
-    dispatcher_register_handler(dispatcher,
-                                RED_WORKER_MESSAGE_CURSOR_CONNECT,
-                                handle_dev_cursor_connect,
-                                sizeof(RedWorkerMessageCursorConnect),
-                                false);
-    dispatcher_register_handler(dispatcher,
-                                RED_WORKER_MESSAGE_CURSOR_DISCONNECT,
-                                handle_dev_cursor_disconnect,
-                                sizeof(RedWorkerMessageCursorDisconnect),
-                                true);
-    dispatcher_register_handler(dispatcher,
-                                RED_WORKER_MESSAGE_CURSOR_MIGRATE,
-                                handle_dev_cursor_migrate,
-                                sizeof(RedWorkerMessageCursorMigrate),
-                                false);
     dispatcher_register_handler(dispatcher,
                                 RED_WORKER_MESSAGE_UPDATE,
                                 handle_dev_update,
@@ -1260,9 +1188,7 @@ static GSourceFuncs worker_source_funcs = {
     .dispatch = worker_source_dispatch,
 };
 
-RedWorker* red_worker_new(QXLInstance *qxl,
-                          const ClientCbs *client_cursor_cbs,
-                          const ClientCbs *client_display_cbs)
+RedWorker* red_worker_new(QXLInstance *qxl)
 {
     QXLDevInitInfo init_info;
     RedWorker *worker;
@@ -1318,21 +1244,31 @@ RedWorker* red_worker_new(QXLInstance *qxl,
     worker->event_timeout = INF_EVENT_WAIT;
 
     worker->cursor_channel = cursor_channel_new(reds, qxl->id,
-                                                &worker->core);
+                                                &worker->core, dispatcher);
     channel = RED_CHANNEL(worker->cursor_channel);
     red_channel_init_stat_node(channel, &worker->stat, "cursor_channel");
-    red_channel_register_client_cbs(channel, client_cursor_cbs);
-    g_object_set_data(G_OBJECT(channel), "dispatcher", dispatcher);
+
+    ClientCbs client_cursor_cbs = { NULL, };
+    client_cursor_cbs.connect = (channel_client_connect_proc) cursor_channel_connect;
+    client_cursor_cbs.disconnect = NULL;
+    client_cursor_cbs.migrate = cursor_channel_client_migrate;
+    red_channel_register_client_cbs(channel, &client_cursor_cbs);
 
     // TODO: handle seamless migration. Temp, setting migrate to FALSE
-    worker->display_channel = display_channel_new(reds, qxl, &worker->core, FALSE,
+    worker->display_channel = display_channel_new(reds, qxl, &worker->core, dispatcher,
+                                                  FALSE,
                                                   reds_get_streaming_video(reds),
                                                   reds_get_video_codecs(reds),
                                                   init_info.n_surfaces);
     channel = RED_CHANNEL(worker->display_channel);
     red_channel_init_stat_node(channel, &worker->stat, "display_channel");
-    red_channel_register_client_cbs(channel, client_display_cbs);
-    g_object_set_data(G_OBJECT(channel), "dispatcher", dispatcher);
+    g_object_set_data(G_OBJECT(channel), "worker", worker);
+
+    ClientCbs client_display_cbs = { NULL, };
+    client_display_cbs.connect = handle_dev_display_connect;
+    client_display_cbs.disconnect = handle_dev_display_disconnect;
+    client_display_cbs.migrate = handle_dev_display_migrate;
+    red_channel_register_client_cbs(channel, &client_display_cbs);
 
     return worker;
 }

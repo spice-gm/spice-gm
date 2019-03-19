@@ -1283,9 +1283,6 @@ static void replay_handle_dev_input(QXLWorker *worker, SpiceReplay *replay,
         break;
     case RED_WORKER_MESSAGE_UPDATE:
         // XXX do anything? we record the correct bitmaps already.
-    case RED_WORKER_MESSAGE_DISPLAY_CONNECT:
-        // we want to ignore this one - it is sent on client connection, we
-        // shall have our own clients
     case RED_WORKER_MESSAGE_WAKEUP:
         // safe to ignore
         break;

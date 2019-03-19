@@ -228,7 +228,8 @@ static void cursor_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_it
 }
 
 CursorChannel* cursor_channel_new(RedsState *server, int id,
-                                  const SpiceCoreInterfaceInternal *core)
+                                  const SpiceCoreInterfaceInternal *core,
+                                  Dispatcher *dispatcher)
 {
     spice_debug("create cursor channel");
     return g_object_new(TYPE_CURSOR_CHANNEL,
@@ -238,6 +239,7 @@ CursorChannel* cursor_channel_new(RedsState *server, int id,
                         "id", id,
                         "migration-flags", 0,
                         "handle-acks", TRUE,
+                        "dispatcher", dispatcher,
                         NULL);
 }
 

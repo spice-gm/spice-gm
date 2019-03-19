@@ -696,7 +696,7 @@ stream_device_create_channel(StreamDevice *dev)
 
     StreamChannel *stream_channel = stream_channel_new(reds, id);
 
-    CursorChannel *cursor_channel = cursor_channel_new(reds, id, core);
+    CursorChannel *cursor_channel = cursor_channel_new(reds, id, core, NULL);
     ClientCbs client_cbs = { NULL, };
     client_cbs.connect = (channel_client_connect_proc) cursor_channel_connect;
     client_cbs.migrate = cursor_channel_client_migrate;

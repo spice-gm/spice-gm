@@ -99,6 +99,7 @@ struct Drawable {
 DisplayChannel*            display_channel_new                       (RedsState *reds,
                                                                       QXLInstance *qxl,
                                                                       const SpiceCoreInterfaceInternal *core,
+                                                                      Dispatcher *dispatcher,
                                                                       int migrate,
                                                                       int stream_video,
                                                                       GArray *video_codecs,

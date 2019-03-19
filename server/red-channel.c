@@ -90,6 +90,12 @@ struct RedChannelPrivate
     // TODO: when different channel_clients are in different threads
     // from Channel -> need to protect!
     pthread_t thread_id;
+    /* Setting dispatcher allows the channel to execute code in the right
+     * thread.
+     * thread_id will be used to check the channel thread and automatically
+     * use the dispatcher if the thread is different.
+     */
+    Dispatcher *dispatcher;
     RedsState *reds;
     RedStatNode stat;
 };
@@ -103,7 +109,8 @@ enum {
     PROP_TYPE,
     PROP_ID,
     PROP_HANDLE_ACKS,
-    PROP_MIGRATION_FLAGS
+    PROP_MIGRATION_FLAGS,
+    PROP_DISPATCHER,
 };
 
 static void
@@ -133,6 +140,9 @@ red_channel_get_property(GObject *object,
             break;
         case PROP_MIGRATION_FLAGS:
             g_value_set_uint(value, self->priv->migration_flags);
+            break;
+        case PROP_DISPATCHER:
+            g_value_set_object(value, self->priv->dispatcher);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -167,6 +177,10 @@ red_channel_set_property(GObject *object,
         case PROP_MIGRATION_FLAGS:
             self->priv->migration_flags = g_value_get_uint(value);
             break;
+        case PROP_DISPATCHER:
+            g_clear_object(&self->priv->dispatcher);
+            self->priv->dispatcher = g_value_dup_object(value);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
     }
@@ -177,6 +191,7 @@ red_channel_finalize(GObject *object)
 {
     RedChannel *self = RED_CHANNEL(object);
 
+    g_clear_object(&self->priv->dispatcher);
     red_channel_capabilities_reset(&self->priv->local_caps);
 
     G_OBJECT_CLASS(red_channel_parent_class)->finalize(object);
@@ -279,6 +294,14 @@ red_channel_class_init(RedChannelClass *klass)
                              G_PARAM_CONSTRUCT_ONLY |
                              G_PARAM_STATIC_STRINGS);
     g_object_class_install_property(object_class, PROP_MIGRATION_FLAGS, spec);
+
+    spec = g_param_spec_object("dispatcher", "dispatcher",
+                               "Dispatcher bound to channel thread",
+                               TYPE_DISPATCHER,
+                               G_PARAM_STATIC_STRINGS
+                               | G_PARAM_READWRITE
+                               | G_PARAM_CONSTRUCT_ONLY);
+    g_object_class_install_property(object_class, PROP_DISPATCHER, spec);
 }
 
 static void
@@ -483,11 +506,49 @@ void red_channel_disconnect(RedChannel *channel)
     red_channel_foreach_client(channel, red_channel_client_disconnect);
 }
 
+typedef struct RedMessageConnect {
+    RedChannel *channel;
+    RedClient *client;
+    RedStream *stream;
+    RedChannelCapabilities caps;
+    int migration;
+} RedMessageConnect;
+
+static void handle_dispatcher_connect(void *opaque, void *payload)
+{
+    RedMessageConnect *msg = payload;
+    RedChannel *channel = msg->channel;
+
+    channel->priv->client_cbs.connect(channel, msg->client, msg->stream,
+                                      msg->migration, &msg->caps);
+    g_object_unref(msg->client);
+    red_channel_capabilities_reset(&msg->caps);
+}
+
 void red_channel_connect(RedChannel *channel, RedClient *client,
                          RedStream *stream, int migration,
                          RedChannelCapabilities *caps)
 {
-    channel->priv->client_cbs.connect(channel, client, stream, migration, caps);
+    if (channel->priv->dispatcher == NULL ||
+        pthread_equal(pthread_self(), channel->priv->thread_id)) {
+        channel->priv->client_cbs.connect(channel, client, stream, migration, caps);
+        return;
+    }
+
+    Dispatcher *dispatcher = channel->priv->dispatcher;
+
+    // get a reference potentially the main channel can be destroyed in
+    // the main thread causing RedClient to be destroyed before using it
+    RedMessageConnect payload = {
+        .channel = channel,
+        .client = g_object_ref(client),
+        .stream = stream,
+        .migration = migration
+    };
+    red_channel_capabilities_init(&payload.caps, caps);
+
+    dispatcher_send_message_custom(dispatcher, handle_dispatcher_connect,
+                                   &payload, sizeof(payload), false);
 }
 
 GList *red_channel_get_clients(RedChannel *channel)
@@ -690,12 +751,55 @@ const RedChannelCapabilities* red_channel_get_local_capabilities(RedChannel *sel
     return &self->priv->local_caps;
 }
 
+typedef struct RedMessageMigrate {
+    RedChannelClient *rcc;
+} RedMessageMigrate;
+
+static void handle_dispatcher_migrate(void *opaque, void *payload)
+{
+    RedMessageMigrate *msg = payload;
+    RedChannel *channel = red_channel_client_get_channel(msg->rcc);
+
+    channel->priv->client_cbs.migrate(msg->rcc);
+    g_object_unref(msg->rcc);
+}
+
 void red_channel_migrate_client(RedChannel *channel, RedChannelClient *rcc)
 {
-    channel->priv->client_cbs.migrate(rcc);
+    if (channel->priv->dispatcher == NULL ||
+        pthread_equal(pthread_self(), channel->priv->thread_id)) {
+        channel->priv->client_cbs.migrate(rcc);
+        return;
+    }
+
+    RedMessageMigrate payload = { .rcc = g_object_ref(rcc) };
+    dispatcher_send_message_custom(channel->priv->dispatcher, handle_dispatcher_migrate,
+                                   &payload, sizeof(payload), false);
+}
+
+typedef struct RedMessageDisconnect {
+    RedChannelClient *rcc;
+} RedMessageDisconnect;
+
+static void handle_dispatcher_disconnect(void *opaque, void *payload)
+{
+    RedMessageDisconnect *msg = payload;
+    RedChannel *channel = red_channel_client_get_channel(msg->rcc);
+
+    channel->priv->client_cbs.disconnect(msg->rcc);
 }
 
 void red_channel_disconnect_client(RedChannel *channel, RedChannelClient *rcc)
 {
-    channel->priv->client_cbs.disconnect(rcc);
+    if (channel->priv->dispatcher == NULL ||
+        pthread_equal(pthread_self(), channel->priv->thread_id)) {
+        channel->priv->client_cbs.disconnect(rcc);
+        return;
+    }
+
+    // TODO: we turned it to be sync, due to client_destroy . Should we support async? - for this we will need ref count
+    // for channels
+    RedMessageDisconnect payload = { .rcc = rcc };
+    dispatcher_send_message_custom(channel->priv->dispatcher, handle_dispatcher_disconnect,
+                                   &payload, sizeof(payload), true);
 }

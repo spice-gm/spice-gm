@@ -75,102 +75,6 @@ int red_qxl_check_qxl_version(QXLInstance *qxl, int major, int minor)
             ((qxl_major == major) && (qxl_minor >= minor)));
 }
 
-static void red_qxl_set_display_peer(RedChannel *channel, RedClient *client,
-                                     RedStream *stream, int migration,
-                                     RedChannelCapabilities *caps)
-{
-    RedWorkerMessageDisplayConnect payload = {0,};
-    Dispatcher *dispatcher;
-
-    spice_debug("%s", "");
-    dispatcher = (Dispatcher *)g_object_get_data(G_OBJECT(channel), "dispatcher");
-    // get a reference potentially the main channel can be destroyed in
-    // the main thread causing RedClient to be destroyed before using it
-    payload.client = g_object_ref(client);
-    payload.stream = stream;
-    payload.migration = migration;
-    red_channel_capabilities_init(&payload.caps, caps);
-
-    dispatcher_send_message(dispatcher,
-                            RED_WORKER_MESSAGE_DISPLAY_CONNECT,
-                            &payload);
-}
-
-static void red_qxl_disconnect_display_peer(RedChannelClient *rcc)
-{
-    RedWorkerMessageDisplayDisconnect payload;
-    Dispatcher *dispatcher;
-    RedChannel *channel = red_channel_client_get_channel(rcc);
-
-    dispatcher = (Dispatcher *)g_object_get_data(G_OBJECT(channel), "dispatcher");
-
-    payload.rcc = rcc;
-
-    // TODO: we turned it to be sync, due to client_destroy . Should we support async? - for this we will need ref count
-    // for channels
-    dispatcher_send_message(dispatcher,
-                            RED_WORKER_MESSAGE_DISPLAY_DISCONNECT,
-                            &payload);
-}
-
-static void red_qxl_display_migrate(RedChannelClient *rcc)
-{
-    RedWorkerMessageDisplayMigrate payload;
-    Dispatcher *dispatcher;
-    RedChannel *channel = red_channel_client_get_channel(rcc);
-
-    dispatcher = (Dispatcher *)g_object_get_data(G_OBJECT(channel), "dispatcher");
-    payload.rcc = g_object_ref(rcc);
-    dispatcher_send_message(dispatcher,
-                            RED_WORKER_MESSAGE_DISPLAY_MIGRATE,
-                            &payload);
-}
-
-static void red_qxl_set_cursor_peer(RedChannel *channel, RedClient *client, RedStream *stream,
-                                    int migration,
-                                    RedChannelCapabilities *caps)
-{
-    RedWorkerMessageCursorConnect payload = {0,};
-    Dispatcher *dispatcher = (Dispatcher *)g_object_get_data(G_OBJECT(channel), "dispatcher");
-    // get a reference potentially the main channel can be destroyed in
-    // the main thread causing RedClient to be destroyed before using it
-    payload.client = g_object_ref(client);
-    payload.stream = stream;
-    payload.migration = migration;
-    red_channel_capabilities_init(&payload.caps, caps);
-
-    dispatcher_send_message(dispatcher,
-                            RED_WORKER_MESSAGE_CURSOR_CONNECT,
-                            &payload);
-}
-
-static void red_qxl_disconnect_cursor_peer(RedChannelClient *rcc)
-{
-    RedWorkerMessageCursorDisconnect payload;
-    Dispatcher *dispatcher;
-    RedChannel *channel = red_channel_client_get_channel(rcc);
-
-    dispatcher = (Dispatcher *)g_object_get_data(G_OBJECT(channel), "dispatcher");
-    payload.rcc = rcc;
-
-    dispatcher_send_message(dispatcher,
-                            RED_WORKER_MESSAGE_CURSOR_DISCONNECT,
-                            &payload);
-}
-
-static void red_qxl_cursor_migrate(RedChannelClient *rcc)
-{
-    RedWorkerMessageCursorMigrate payload;
-    Dispatcher *dispatcher;
-    RedChannel *channel = red_channel_client_get_channel(rcc);
-
-    dispatcher = (Dispatcher *)g_object_get_data(G_OBJECT(channel), "dispatcher");
-    payload.rcc = g_object_ref(rcc);
-    dispatcher_send_message(dispatcher,
-                            RED_WORKER_MESSAGE_CURSOR_MIGRATE,
-                            &payload);
-}
-
 static void red_qxl_update_area(QXLState *qxl_state, uint32_t surface_id,
                                 QXLRect *qxl_area, QXLRect *qxl_dirty_rects,
                                 uint32_t num_dirty_rects, uint32_t clear_dirty_region)
@@ -914,8 +818,6 @@ size_t red_qxl_get_monitors_count(const QXLInstance *qxl)
 void red_qxl_init(RedsState *reds, QXLInstance *qxl)
 {
     QXLState *qxl_state;
-    ClientCbs client_cursor_cbs = { NULL, };
-    ClientCbs client_display_cbs = { NULL, };
 
     spice_return_if_fail(qxl != NULL);
 
@@ -948,17 +850,7 @@ void red_qxl_init(RedsState *reds, QXLInstance *qxl)
     qxl_state->max_monitors = UINT_MAX;
     qxl->st = qxl_state;
 
-    // TODO: move to their respective channel files
-    client_cursor_cbs.connect = red_qxl_set_cursor_peer;
-    client_cursor_cbs.disconnect = red_qxl_disconnect_cursor_peer;
-    client_cursor_cbs.migrate = red_qxl_cursor_migrate;
-
-    client_display_cbs.connect = red_qxl_set_display_peer;
-    client_display_cbs.disconnect = red_qxl_disconnect_display_peer;
-    client_display_cbs.migrate = red_qxl_display_migrate;
-
-    qxl_state->worker = red_worker_new(qxl, &client_cursor_cbs,
-                                       &client_display_cbs);
+    qxl_state->worker = red_worker_new(qxl);
 
     red_worker_run(qxl_state->worker);
 }
