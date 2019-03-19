@@ -341,7 +341,7 @@ void dispatcher_register_handler(Dispatcher *dispatcher, uint32_t message_type,
     DispatcherMessage *msg;
 
     assert(message_type < dispatcher->priv->max_message_type);
-    assert(dispatcher->priv->messages[message_type].handler == 0);
+    assert(dispatcher->priv->messages[message_type].handler == NULL);
     msg = &dispatcher->priv->messages[message_type];
     msg->handler = handler;
     msg->size = size;
