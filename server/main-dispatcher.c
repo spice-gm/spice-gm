@@ -152,10 +152,10 @@ typedef struct MainDispatcherClientDisconnectMessage {
 static void main_dispatcher_handle_channel_event(void *opaque,
                                                  void *payload)
 {
-    MainDispatcher *self = opaque;
+    RedsState *reds = opaque;
     MainDispatcherChannelEventMessage *channel_event = payload;
 
-    reds_handle_channel_event(self->priv->reds, channel_event->event, channel_event->info);
+    reds_handle_channel_event(reds, channel_event->event, channel_event->info);
 }
 
 void main_dispatcher_channel_event(MainDispatcher *self, int event, SpiceChannelEventInfo *info)
@@ -176,30 +176,30 @@ void main_dispatcher_channel_event(MainDispatcher *self, int event, SpiceChannel
 static void main_dispatcher_handle_migrate_complete(void *opaque,
                                                     void *payload)
 {
-    MainDispatcher *self = opaque;
+    RedsState *reds = opaque;
     MainDispatcherMigrateSeamlessDstCompleteMessage *mig_complete = payload;
 
-    reds_on_client_seamless_migrate_complete(self->priv->reds, mig_complete->client);
+    reds_on_client_seamless_migrate_complete(reds, mig_complete->client);
     g_object_unref(mig_complete->client);
 }
 
 static void main_dispatcher_handle_mm_time_latency(void *opaque,
                                                    void *payload)
 {
-    MainDispatcher *self = opaque;
+    RedsState *reds = opaque;
     MainDispatcherMmTimeLatencyMessage *msg = payload;
-    reds_set_client_mm_time_latency(self->priv->reds, msg->client, msg->latency);
+    reds_set_client_mm_time_latency(reds, msg->client, msg->latency);
     g_object_unref(msg->client);
 }
 
 static void main_dispatcher_handle_client_disconnect(void *opaque,
                                                      void *payload)
 {
-    MainDispatcher *self = opaque;
+    RedsState *reds = opaque;
     MainDispatcherClientDisconnectMessage *msg = payload;
 
     spice_debug("client=%p", msg->client);
-    reds_client_disconnect(self->priv->reds, msg->client);
+    reds_client_disconnect(reds, msg->client);
     g_object_unref(msg->client);
 }
 
@@ -273,7 +273,7 @@ void main_dispatcher_constructed(GObject *object)
     MainDispatcher *self = MAIN_DISPATCHER(object);
 
     G_OBJECT_CLASS(main_dispatcher_parent_class)->constructed(object);
-    dispatcher_set_opaque(DISPATCHER(self), self);
+    dispatcher_set_opaque(DISPATCHER(self), self->priv->reds);
 
     self->priv->watch =
         reds_core_watch_add(self->priv->reds,
