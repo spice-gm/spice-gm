@@ -149,22 +149,13 @@ typedef struct MainDispatcherClientDisconnectMessage {
 } MainDispatcherClientDisconnectMessage;
 
 /* channel_event - calls core->channel_event, must be done in main thread */
-static void main_dispatcher_self_handle_channel_event(MainDispatcher *self,
-                                                      int event,
-                                                      SpiceChannelEventInfo *info)
-{
-    reds_handle_channel_event(self->priv->reds, event, info);
-}
-
 static void main_dispatcher_handle_channel_event(void *opaque,
                                                  void *payload)
 {
     MainDispatcher *self = opaque;
     MainDispatcherChannelEventMessage *channel_event = payload;
 
-    main_dispatcher_self_handle_channel_event(self,
-                                              channel_event->event,
-                                              channel_event->info);
+    reds_handle_channel_event(self->priv->reds, channel_event->event, channel_event->info);
 }
 
 void main_dispatcher_channel_event(MainDispatcher *self, int event, SpiceChannelEventInfo *info)
@@ -172,7 +163,7 @@ void main_dispatcher_channel_event(MainDispatcher *self, int event, SpiceChannel
     MainDispatcherChannelEventMessage msg = {0,};
 
     if (pthread_self() == dispatcher_get_thread_id(DISPATCHER(self))) {
-        main_dispatcher_self_handle_channel_event(self, event, info);
+        reds_handle_channel_event(self->priv->reds, event, info);
         return;
     }
     msg.event = event;
