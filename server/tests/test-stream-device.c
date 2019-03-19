@@ -342,6 +342,7 @@ static void test_stream_device(TestFixture *fixture, gconstpointer user_data)
         g_assert(message_sizes_curr - message_sizes == 5 || !device_enabled);
 
         check_vmc_error_message();
+        spice_server_remove_interface(&vmc_instance.base);
     }
 }
 
