@@ -99,6 +99,21 @@ typedef void (*dispatcher_handle_any_message)(void *opaque,
 void dispatcher_send_message(Dispatcher *dispatcher, uint32_t message_type,
                              void *payload);
 
+/* dispatcher_send_message_custom
+ *
+ * Sends a message to the receiving thread.
+ *
+ * If the sent message requires an ACK, this function will block until it
+ * receives an ACK from the receiving thread.
+ *
+ * @handler:      callback to handle message
+ * @payload:      payload
+ * @payload_size: size of payload
+ * @ack:          acknowledge required. Make message synchronous
+ */
+void dispatcher_send_message_custom(Dispatcher *dispatcher, dispatcher_handle_message handler,
+                                    void *payload, uint32_t payload_size, bool ack);
+
 /* dispatcher_register_handler
  *
  * This function registers a message type with the dispatcher, and registers
