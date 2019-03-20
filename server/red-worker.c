@@ -1291,7 +1291,7 @@ RedWorker* red_worker_new(QXLInstance *qxl,
     worker->zlib_glz_state = reds_get_zlib_glz_state(reds);
     worker->driver_cap_monitors_config = 0;
     char worker_str[SPICE_STAT_NODE_NAME_MAX];
-    sprintf(worker_str, "display[%d]", worker->qxl->id);
+    snprintf(worker_str, sizeof(worker_str), "display[%d]", worker->qxl->id & 0xff);
     stat_init_node(&worker->stat, reds, NULL, worker_str, TRUE);
     stat_init_counter(&worker->wakeup_counter, reds, &worker->stat, "wakeups", TRUE);
     stat_init_counter(&worker->command_counter, reds, &worker->stat, "commands", TRUE);
