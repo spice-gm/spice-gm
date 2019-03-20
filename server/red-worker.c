@@ -32,6 +32,7 @@
 
 #include <spice/protocol.h>
 #include <spice/qxl_dev.h>
+#include <spice/stats.h>
 #include <common/lz.h>
 #include <common/rect.h>
 #include <common/region.h>
@@ -1289,7 +1290,7 @@ RedWorker* red_worker_new(QXLInstance *qxl,
     worker->jpeg_state = reds_get_jpeg_state(reds);
     worker->zlib_glz_state = reds_get_zlib_glz_state(reds);
     worker->driver_cap_monitors_config = 0;
-    char worker_str[20];
+    char worker_str[SPICE_STAT_NODE_NAME_MAX];
     sprintf(worker_str, "display[%d]", worker->qxl->id);
     stat_init_node(&worker->stat, reds, NULL, worker_str, TRUE);
     stat_init_counter(&worker->wakeup_counter, reds, &worker->stat, "wakeups", TRUE);
