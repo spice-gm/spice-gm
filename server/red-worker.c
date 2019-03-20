@@ -83,7 +83,7 @@ struct RedWorker {
     RedStatCounter full_loop_counter;
     RedStatCounter total_loop_counter;
 
-    int driver_cap_monitors_config;
+    bool driver_cap_monitors_config;
 
     RedRecord *record;
     GMainLoop *loop;
@@ -646,7 +646,7 @@ static void handle_dev_monitors_config_async(void *opaque, void *payload)
         /* TODO: raise guest bug (requires added QXL interface) */
         goto async_complete;
     }
-    worker->driver_cap_monitors_config = 1;
+    worker->driver_cap_monitors_config = true;
     count = dev_monitors_config->count;
     max_allowed = dev_monitors_config->max_allowed;
     if (count == 0) {
@@ -752,7 +752,7 @@ static void handle_dev_driver_unload(void *opaque, void *payload)
 {
     RedWorker *worker = opaque;
 
-    worker->driver_cap_monitors_config = 0;
+    worker->driver_cap_monitors_config = false;
 }
 
 static
@@ -1076,7 +1076,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
         dispatcher_register_universal_handler(dispatcher, worker_dispatcher_record);
     }
 
-    worker->driver_cap_monitors_config = 0;
+    worker->driver_cap_monitors_config = false;
     char worker_str[SPICE_STAT_NODE_NAME_MAX];
     snprintf(worker_str, sizeof(worker_str), "display[%d]", worker->qxl->id & 0xff);
     stat_init_node(&worker->stat, reds, NULL, worker_str, TRUE);
