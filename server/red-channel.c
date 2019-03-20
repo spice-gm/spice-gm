@@ -70,6 +70,9 @@ struct RedChannelPrivate
     uint32_t type;
     uint32_t id;
 
+    /* "core" interface to register events.
+     * Can be thread specific.
+     */
     SpiceCoreInterfaceInternal *core;
     gboolean handle_acks;
 
