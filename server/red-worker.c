@@ -77,8 +77,6 @@ struct RedWorker {
     RedMemSlotInfo mem_slots;
 
     SpiceImageCompression image_compression;
-    spice_wan_compression_t jpeg_state;
-    spice_wan_compression_t zlib_glz_state;
 
     uint32_t process_display_generation;
     RedStatNode stat;
@@ -1109,8 +1107,6 @@ RedWorker* red_worker_new(QXLInstance *qxl)
     }
 
     worker->image_compression = spice_server_get_image_compression(reds);
-    worker->jpeg_state = reds_get_jpeg_state(reds);
-    worker->zlib_glz_state = reds_get_zlib_glz_state(reds);
     worker->driver_cap_monitors_config = 0;
     char worker_str[SPICE_STAT_NODE_NAME_MAX];
     snprintf(worker_str, sizeof(worker_str), "display[%d]", worker->qxl->id & 0xff);
