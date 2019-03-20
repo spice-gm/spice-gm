@@ -2540,3 +2540,111 @@ void display_channel_debug_oom(DisplayChannel *display, const char *msg)
                 ring_get_length(&display->priv->current_list),
                 red_channel_sum_pipes_size(channel));
 }
+
+static void guest_set_client_capabilities(DisplayChannel *display)
+{
+    int i;
+    RedChannelClient *rcc;
+    uint8_t caps[SPICE_CAPABILITIES_SIZE] = { 0 };
+    int caps_available[] = {
+        SPICE_DISPLAY_CAP_SIZED_STREAM,
+        SPICE_DISPLAY_CAP_MONITORS_CONFIG,
+        SPICE_DISPLAY_CAP_COMPOSITE,
+        SPICE_DISPLAY_CAP_A8_SURFACE,
+    };
+    QXLInterface *qif = qxl_get_interface(display->priv->qxl);
+
+    if (!red_qxl_check_qxl_version(display->priv->qxl, 3, 2)) {
+        return;
+    }
+    if (!qif->set_client_capabilities) {
+        return;
+    }
+#define SET_CAP(a,c)                                                    \
+        ((a)[(c) / 8] |= (1 << ((c) % 8)))
+
+#define CLEAR_CAP(a,c)                                                  \
+        ((a)[(c) / 8] &= ~(1 << ((c) % 8)))
+
+    if (!red_qxl_is_running(display->priv->qxl)) {
+        return;
+    }
+    if ((red_channel_get_n_clients(RED_CHANNEL(display)) == 0)) {
+        red_qxl_set_client_capabilities(display->priv->qxl, FALSE, caps);
+    } else {
+        // Take least common denominator
+        for (i = 0 ; i < SPICE_N_ELEMENTS(caps_available); ++i) {
+            SET_CAP(caps, caps_available[i]);
+        }
+        FOREACH_CLIENT(display, rcc) {
+            for (i = 0 ; i < SPICE_N_ELEMENTS(caps_available); ++i) {
+                if (!red_channel_client_test_remote_cap(rcc, caps_available[i]))
+                    CLEAR_CAP(caps, caps_available[i]);
+            }
+        }
+        red_qxl_set_client_capabilities(display->priv->qxl, TRUE, caps);
+    }
+}
+
+void display_channel_update_qxl_running(DisplayChannel *display, bool running)
+{
+    if (running) {
+        guest_set_client_capabilities(display);
+    }
+}
+
+void
+display_channel_connect(RedChannel *channel, RedClient *client,
+                        RedStream *stream, int migration,
+                        RedChannelCapabilities *caps)
+{
+    DisplayChannel *display = DISPLAY_CHANNEL(channel);
+    DisplayChannelClient *dcc;
+
+    spice_debug("connect new client");
+
+    // FIXME not sure how safe is reading directly from reds
+    SpiceServer *reds = red_channel_get_server(channel);
+    dcc = dcc_new(display, client, stream, migration, caps,
+                  spice_server_get_image_compression(reds), reds_get_jpeg_state(reds),
+                  reds_get_zlib_glz_state(reds));
+    if (!dcc) {
+        return;
+    }
+    display_channel_update_compression(display, dcc);
+    guest_set_client_capabilities(display);
+    dcc_start(dcc);
+}
+
+void display_channel_disconnect(RedChannelClient *rcc)
+{
+    DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
+
+    guest_set_client_capabilities(display);
+
+    red_channel_client_disconnect(rcc);
+}
+
+static void red_migrate_display(DisplayChannel *display, RedChannelClient *rcc)
+{
+    /* We need to stop the streams, and to send upgrade_items to the client.
+     * Otherwise, (1) the client might display lossy regions that we don't track
+     * (streams are not part of the migration data) (2) streams_timeout may occur
+     * after the MIGRATE message has been sent. This can result in messages
+     * being sent to the client after MSG_MIGRATE and before MSG_MIGRATE_DATA (e.g.,
+     * STREAM_CLIP, STREAM_DESTROY, DRAW_COPY)
+     * No message besides MSG_MIGRATE_DATA should be sent after MSG_MIGRATE.
+     * Notice that detach_and_stop_streams won't lead to any dev ram changes, since
+     * handle_dev_stop already took care of releasing all the dev ram resources.
+     */
+    video_stream_detach_and_stop(display);
+    if (red_channel_client_is_connected(rcc)) {
+        red_channel_client_default_migrate(rcc);
+    }
+}
+
+void display_channel_migrate(RedChannelClient *rcc)
+{
+    DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
+    red_migrate_display(display, rcc);
+}

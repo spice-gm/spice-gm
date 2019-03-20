@@ -270,24 +270,6 @@ static bool red_process_is_blocked(RedWorker *worker)
            red_channel_max_pipe_size(RED_CHANNEL(worker->display_channel)) > MAX_PIPE_SIZE;
 }
 
-static void red_migrate_display(DisplayChannel *display, RedChannelClient *rcc)
-{
-    /* We need to stop the streams, and to send upgrade_items to the client.
-     * Otherwise, (1) the client might display lossy regions that we don't track
-     * (streams are not part of the migration data) (2) streams_timeout may occur
-     * after the MIGRATE message has been sent. This can result in messages
-     * being sent to the client after MSG_MIGRATE and before MSG_MIGRATE_DATA (e.g.,
-     * STREAM_CLIP, STREAM_DESTROY, DRAW_COPY)
-     * No message besides MSG_MIGRATE_DATA should be sent after MSG_MIGRATE.
-     * Notice that detach_and_stop_streams won't lead to any dev ram changes, since
-     * handle_dev_stop already took care of releasing all the dev ram resources.
-     */
-    video_stream_detach_and_stop(display);
-    if (red_channel_client_is_connected(rcc)) {
-        red_channel_client_default_migrate(rcc);
-    }
-}
-
 typedef int (*red_process_t)(RedWorker *worker, int *ring_is_empty);
 static void flush_commands(RedWorker *worker, RedChannel *red_channel,
                            red_process_t process)
@@ -350,52 +332,6 @@ static void flush_all_qxl_commands(RedWorker *worker)
 {
     flush_display_commands(worker);
     flush_cursor_commands(worker);
-}
-
-static void guest_set_client_capabilities(RedWorker *worker)
-{
-    int i;
-    RedChannelClient *rcc;
-    uint8_t caps[SPICE_CAPABILITIES_SIZE] = { 0 };
-    int caps_available[] = {
-        SPICE_DISPLAY_CAP_SIZED_STREAM,
-        SPICE_DISPLAY_CAP_MONITORS_CONFIG,
-        SPICE_DISPLAY_CAP_COMPOSITE,
-        SPICE_DISPLAY_CAP_A8_SURFACE,
-    };
-    QXLInterface *qif = qxl_get_interface(worker->qxl);
-
-    if (!red_qxl_check_qxl_version(worker->qxl, 3, 2)) {
-        return;
-    }
-    if (!qif->set_client_capabilities) {
-        return;
-    }
-#define SET_CAP(a,c)                                                    \
-        ((a)[(c) / 8] |= (1 << ((c) % 8)))
-
-#define CLEAR_CAP(a,c)                                                  \
-        ((a)[(c) / 8] &= ~(1 << ((c) % 8)))
-
-    if (!red_qxl_is_running(worker->qxl)) {
-        return;
-    }
-    if ((worker->display_channel == NULL) ||
-        (red_channel_get_n_clients(RED_CHANNEL(worker->display_channel)) == 0)) {
-        red_qxl_set_client_capabilities(worker->qxl, FALSE, caps);
-    } else {
-        // Take least common denominator
-        for (i = 0 ; i < SPICE_N_ELEMENTS(caps_available); ++i) {
-            SET_CAP(caps, caps_available[i]);
-        }
-        FOREACH_CLIENT(worker->display_channel, rcc) {
-            for (i = 0 ; i < SPICE_N_ELEMENTS(caps_available); ++i) {
-                if (!red_channel_client_test_remote_cap(rcc, caps_available[i]))
-                    CLEAR_CAP(caps, caps_available[i]);
-            }
-        }
-        red_qxl_set_client_capabilities(worker->qxl, TRUE, caps);
-    }
 }
 
 static void handle_dev_update_async(void *opaque, void *payload)
@@ -588,6 +524,7 @@ static void handle_dev_stop(void *opaque, void *payload)
     spice_assert(red_qxl_is_running(worker->qxl));
 
     red_qxl_set_running(worker->qxl, false);
+    display_channel_update_qxl_running(worker->display_channel, false);
 
     display_channel_free_glz_drawables(worker->display_channel);
     display_channel_flush_all_surfaces(worker->display_channel);
@@ -616,8 +553,8 @@ static void handle_dev_start(void *opaque, void *payload)
         display_channel_wait_for_migrate_data(worker->display_channel);
     }
     red_qxl_set_running(worker->qxl, true);
+    display_channel_update_qxl_running(worker->display_channel, true);
     worker->event_timeout = 0;
-    guest_set_client_capabilities(worker);
 }
 
 static void handle_dev_wakeup(void *opaque, void *payload)
@@ -692,46 +629,6 @@ static void handle_dev_create_primary_surface_async(void *opaque, void *payload)
     dev_create_primary_surface(worker, msg->surface_id, msg->surface);
     red_qxl_create_primary_surface_complete(worker->qxl->st, &msg->surface);
     red_qxl_async_complete(worker->qxl, msg->base.cookie);
-}
-
-static void
-handle_dev_display_connect(RedChannel *channel, RedClient *client,
-                           RedStream *stream, int migration,
-                           RedChannelCapabilities *caps)
-{
-    DisplayChannel *display = DISPLAY_CHANNEL(channel);
-    DisplayChannelClient *dcc;
-    RedWorker *worker = g_object_get_data(G_OBJECT(channel), "worker");
-
-    spice_debug("connect new client");
-
-    dcc = dcc_new(display, client, stream, migration, caps,
-                  worker->image_compression, worker->jpeg_state, worker->zlib_glz_state);
-    if (!dcc) {
-        return;
-    }
-    display_channel_update_compression(display, dcc);
-    guest_set_client_capabilities(worker);
-    dcc_start(dcc);
-}
-
-static void
-handle_dev_display_disconnect(RedChannelClient *rcc)
-{
-    RedChannel *channel = red_channel_client_get_channel(rcc);
-    RedWorker *worker = g_object_get_data(G_OBJECT(channel), "worker");
-
-    spice_debug("disconnect display client");
-
-    guest_set_client_capabilities(worker);
-
-    red_channel_client_disconnect(rcc);
-}
-
-static void handle_dev_display_migrate(RedChannelClient *rcc)
-{
-    DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
-    red_migrate_display(display, rcc);
 }
 
 static inline uint32_t qxl_monitors_config_size(uint32_t heads)
@@ -1261,12 +1158,11 @@ RedWorker* red_worker_new(QXLInstance *qxl)
                                                   init_info.n_surfaces);
     channel = RED_CHANNEL(worker->display_channel);
     red_channel_init_stat_node(channel, &worker->stat, "display_channel");
-    g_object_set_data(G_OBJECT(channel), "worker", worker);
 
     ClientCbs client_display_cbs = { NULL, };
-    client_display_cbs.connect = handle_dev_display_connect;
-    client_display_cbs.disconnect = handle_dev_display_disconnect;
-    client_display_cbs.migrate = handle_dev_display_migrate;
+    client_display_cbs.connect = display_channel_connect;
+    client_display_cbs.disconnect = display_channel_disconnect;
+    client_display_cbs.migrate = display_channel_migrate;
     red_channel_register_client_cbs(channel, &client_display_cbs);
 
     return worker;
