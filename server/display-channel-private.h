@@ -87,6 +87,7 @@ struct DisplayChannelPrivate
     MonitorsConfig *monitors_config;
 
     uint32_t renderer;
+    SpiceImageCompression image_compression;
     int enable_jpeg;
     int enable_zlib_glz_wrap;
 

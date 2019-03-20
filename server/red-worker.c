@@ -76,8 +76,6 @@ struct RedWorker {
 
     RedMemSlotInfo mem_slots;
 
-    SpiceImageCompression image_compression;
-
     uint32_t process_display_generation;
     RedStatNode stat;
     RedStatCounter wakeup_counter;
@@ -684,7 +682,7 @@ static void handle_dev_set_compression(void *opaque, void *payload)
     RedWorker *worker = opaque;
     SpiceImageCompression image_compression = msg->image_compression;
 
-    worker->image_compression = image_compression;
+    display_channel_set_image_compression(worker->display_channel, image_compression);
 
     display_channel_compress_stats_print(worker->display_channel);
     display_channel_compress_stats_reset(worker->display_channel);
@@ -1078,7 +1076,6 @@ RedWorker* red_worker_new(QXLInstance *qxl)
         dispatcher_register_universal_handler(dispatcher, worker_dispatcher_record);
     }
 
-    worker->image_compression = spice_server_get_image_compression(reds);
     worker->driver_cap_monitors_config = 0;
     char worker_str[SPICE_STAT_NODE_NAME_MAX];
     snprintf(worker_str, sizeof(worker_str), "display[%d]", worker->qxl->id & 0xff);
@@ -1120,6 +1117,8 @@ RedWorker* red_worker_new(QXLInstance *qxl)
                                                   init_info.n_surfaces);
     channel = RED_CHANNEL(worker->display_channel);
     red_channel_init_stat_node(channel, &worker->stat, "display_channel");
+    display_channel_set_image_compression(worker->display_channel,
+                                          spice_server_get_image_compression(reds));
 
     return worker;
 }

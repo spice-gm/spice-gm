@@ -2273,6 +2273,7 @@ display_channel_init(DisplayChannel *self)
     /* must be manually allocated here since g_type_class_add_private() only
      * supports structs smaller than 64k */
     self->priv = g_new0(DisplayChannelPrivate, 1);
+    self->priv->image_compression = SPICE_IMAGE_COMPRESSION_AUTO_GLZ;
     self->priv->pub = self;
 
     image_encoder_shared_init(&self->priv->encoder_shared_data);
@@ -2611,10 +2612,9 @@ display_channel_connect(RedChannel *channel, RedClient *client,
 
     spice_debug("connect new client");
 
-    // FIXME not sure how safe is reading directly from reds
     SpiceServer *reds = red_channel_get_server(channel);
     dcc = dcc_new(display, client, stream, migration, caps,
-                  spice_server_get_image_compression(reds), reds_get_jpeg_state(reds),
+                  display->priv->image_compression, reds_get_jpeg_state(reds),
                   reds_get_zlib_glz_state(reds));
     if (!dcc) {
         return;
@@ -2655,4 +2655,10 @@ static void display_channel_migrate(RedChannelClient *rcc)
 {
     DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
     red_migrate_display(display, rcc);
+}
+
+void display_channel_set_image_compression(DisplayChannel *display,
+                                           SpiceImageCompression image_compression)
+{
+    display->priv->image_compression = image_compression;
 }

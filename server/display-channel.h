@@ -159,6 +159,8 @@ void display_channel_reset_image_cache(DisplayChannel *self);
 void display_channel_debug_oom(DisplayChannel *display, const char *msg);
 
 void display_channel_update_qxl_running(DisplayChannel *display, bool running);
+void display_channel_set_image_compression(DisplayChannel *display,
+                                           SpiceImageCompression image_compression);
 
 G_END_DECLS
 
