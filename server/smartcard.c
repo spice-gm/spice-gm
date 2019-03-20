@@ -535,12 +535,8 @@ red_smartcard_channel_constructed(GObject *object)
 {
     RedSmartcardChannel *self = RED_SMARTCARD_CHANNEL(object);
     RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
-    ClientCbs client_cbs = { NULL, };
 
     G_OBJECT_CLASS(red_smartcard_channel_parent_class)->constructed(object);
-
-    client_cbs.connect = smartcard_connect_client;
-    red_channel_register_client_cbs(RED_CHANNEL(self), &client_cbs);
 
     reds_register_channel(reds, RED_CHANNEL(self));
 }
@@ -559,6 +555,8 @@ red_smartcard_channel_class_init(RedSmartcardChannelClass *klass)
     channel_class->handle_migrate_flush_mark = smartcard_channel_client_handle_migrate_flush_mark;
     channel_class->handle_migrate_data = smartcard_channel_client_handle_migrate_data;
 
+    // client callbacks
+    channel_class->connect = smartcard_connect_client;
 }
 
 static void smartcard_init(RedsState *reds)

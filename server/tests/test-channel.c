@@ -106,24 +106,13 @@ test_connect_client(RedChannel *channel, RedClient *client, RedStream *stream,
 }
 
 static void
-red_test_channel_constructed(GObject *object)
-{
-    G_OBJECT_CLASS(red_test_channel_parent_class)->constructed(object);
-
-    ClientCbs client_cbs = { .connect = test_connect_client, };
-    red_channel_register_client_cbs(RED_CHANNEL(object), &client_cbs);
-}
-
-static void
 red_test_channel_class_init(RedTestChannelClass *klass)
 {
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    object_class->constructed = red_test_channel_constructed;
-
     RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PORT, NULL);
     channel_class->handle_message = red_channel_client_handle_message;
     channel_class->send_item = test_channel_send_item;
+    channel_class->connect = test_connect_client;
 }
 
 static uint8_t *

@@ -443,14 +443,10 @@ stream_channel_connect(RedChannel *red_channel, RedClient *red_client, RedStream
 static void
 stream_channel_constructed(GObject *object)
 {
-    ClientCbs client_cbs = { NULL, };
     RedChannel *red_channel = RED_CHANNEL(object);
     RedsState *reds = red_channel_get_server(red_channel);
 
     G_OBJECT_CLASS(stream_channel_parent_class)->constructed(object);
-
-    client_cbs.connect = stream_channel_connect;
-    red_channel_register_client_cbs(red_channel, &client_cbs);
 
     red_channel_set_cap(red_channel, SPICE_DISPLAY_CAP_MONITORS_CONFIG);
     red_channel_set_cap(red_channel, SPICE_DISPLAY_CAP_STREAM_REPORT);
@@ -470,6 +466,7 @@ stream_channel_class_init(StreamChannelClass *klass)
     channel_class->handle_message = handle_message;
 
     channel_class->send_item = stream_channel_send_item;
+    channel_class->connect = stream_channel_connect;
 }
 
 static void

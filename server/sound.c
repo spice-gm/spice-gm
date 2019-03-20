@@ -1377,15 +1377,10 @@ playback_channel_init(PlaybackChannel *self)
 static void
 playback_channel_constructed(GObject *object)
 {
-    ClientCbs client_cbs = { NULL, };
     SndChannel *self = SND_CHANNEL(object);
     RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
 
     G_OBJECT_CLASS(playback_channel_parent_class)->constructed(object);
-
-    client_cbs.connect = snd_set_playback_peer;
-    client_cbs.migrate = snd_migrate_channel_client;
-    red_channel_register_client_cbs(RED_CHANNEL(self), &client_cbs);
 
     if (snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_CELT_0_5_1, SND_CODEC_ANY_FREQUENCY)) {
         red_channel_set_cap(RED_CHANNEL(self), SPICE_PLAYBACK_CAP_CELT_0_5_1);
@@ -1407,6 +1402,10 @@ playback_channel_class_init(PlaybackChannelClass *klass)
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PLAYBACK, NULL);
     channel_class->handle_message = red_channel_client_handle_message;
     channel_class->send_item = playback_channel_send_item;
+
+    // client callbacks
+    channel_class->connect = snd_set_playback_peer;
+    channel_class->migrate = snd_migrate_channel_client;
 }
 
 void snd_attach_playback(RedsState *reds, SpicePlaybackInstance *sin)
@@ -1427,15 +1426,10 @@ record_channel_init(RecordChannel *self)
 static void
 record_channel_constructed(GObject *object)
 {
-    ClientCbs client_cbs = { NULL, };
     SndChannel *self = SND_CHANNEL(object);
     RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
 
     G_OBJECT_CLASS(record_channel_parent_class)->constructed(object);
-
-    client_cbs.connect = snd_set_record_peer;
-    client_cbs.migrate = snd_migrate_channel_client;
-    red_channel_register_client_cbs(RED_CHANNEL(self), &client_cbs);
 
     if (snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_CELT_0_5_1, SND_CODEC_ANY_FREQUENCY)) {
         red_channel_set_cap(RED_CHANNEL(self), SPICE_RECORD_CAP_CELT_0_5_1);
@@ -1457,6 +1451,10 @@ record_channel_class_init(RecordChannelClass *klass)
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_RECORD, NULL);
     channel_class->handle_message = record_channel_handle_message;
     channel_class->send_item = record_channel_send_item;
+
+    // client callbacks
+    channel_class->connect = snd_set_record_peer;
+    channel_class->migrate = snd_migrate_channel_client;
 }
 
 void snd_attach_record(RedsState *reds, SpiceRecordInstance *sin)

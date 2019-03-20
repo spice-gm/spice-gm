@@ -60,21 +60,6 @@ void                 cursor_channel_do_init     (CursorChannel *cursor);
 void                 cursor_channel_process_cmd (CursorChannel *cursor, RedCursorCmd *cursor_cmd);
 void                 cursor_channel_set_mouse_mode(CursorChannel *cursor, uint32_t mode);
 
-/**
- * Connect a new client to CursorChannel.
- */
-void                 cursor_channel_connect     (CursorChannel *cursor, RedClient *client,
-                                                 RedStream *stream,
-                                                 int migrate,
-                                                 RedChannelCapabilities *caps);
-
-/**
- * Migrate a client channel from a CursorChannel.
- * This is the equivalent of RedChannel client migrate callback.
- * See comment on cursor_channel_new.
- */
-void                 cursor_channel_client_migrate(RedChannelClient *client);
-
 G_END_DECLS
 
 #endif /* CURSOR_CHANNEL_H_ */

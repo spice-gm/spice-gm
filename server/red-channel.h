@@ -63,16 +63,6 @@ typedef void (*channel_client_disconnect_proc)(RedChannelClient *base);
 typedef void (*channel_client_migrate_proc)(RedChannelClient *base);
 
 
-/*
- * callbacks that are triggered from client events.
- * They should be called from the thread that handles the RedClient
- */
-typedef struct {
-    channel_client_connect_proc connect;
-    channel_client_disconnect_proc disconnect;
-    channel_client_migrate_proc migrate;
-} ClientCbs;
-
 static inline gboolean test_capability(const uint32_t *caps, int num_caps, uint32_t cap)
 {
     return VD_AGENT_HAS_CAPABILITY(caps, num_caps, cap);
@@ -107,6 +97,14 @@ struct RedChannelClass
     channel_handle_migrate_flush_mark_proc handle_migrate_flush_mark;
     channel_handle_migrate_data_proc handle_migrate_data;
     channel_handle_migrate_data_get_serial_proc handle_migrate_data_get_serial;
+
+    /*
+     * callbacks that are triggered from client events.
+     * They should be called from the thread that handles the RedClient
+     */
+    channel_client_connect_proc connect;
+    channel_client_disconnect_proc disconnect;
+    channel_client_migrate_proc migrate;
 };
 
 #define FOREACH_CLIENT(_channel, _data) \
@@ -122,7 +120,6 @@ void red_channel_remove_client(RedChannel *channel, RedChannelClient *rcc);
 
 void red_channel_init_stat_node(RedChannel *channel, const RedStatNode *parent, const char *name);
 
-void red_channel_register_client_cbs(RedChannel *channel, const ClientCbs *client_cbs);
 // caps are freed when the channel is destroyed
 void red_channel_set_common_cap(RedChannel *channel, uint32_t cap);
 void red_channel_set_cap(RedChannel *channel, uint32_t cap);

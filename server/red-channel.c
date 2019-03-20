@@ -86,7 +86,6 @@ struct RedChannelPrivate
     RedChannelCapabilities local_caps;
     uint32_t migration_flags;
 
-    ClientCbs client_cbs;
     // TODO: when different channel_clients are in different threads
     // from Channel -> need to protect!
     pthread_t thread_id;
@@ -302,6 +301,10 @@ red_channel_class_init(RedChannelClass *klass)
                                | G_PARAM_READWRITE
                                | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_property(object_class, PROP_DISPATCHER, spec);
+
+    klass->connect = red_channel_client_default_connect;
+    klass->disconnect = red_channel_client_default_disconnect;
+    klass->migrate = red_channel_client_default_migrate;
 }
 
 static void
@@ -311,10 +314,6 @@ red_channel_init(RedChannel *self)
 
     red_channel_set_common_cap(self, SPICE_COMMON_CAP_MINI_HEADER);
     self->priv->thread_id = pthread_self();
-
-    self->priv->client_cbs.connect = red_channel_client_default_connect;
-    self->priv->client_cbs.disconnect = red_channel_client_default_disconnect;
-    self->priv->client_cbs.migrate = red_channel_client_default_migrate;
 }
 
 // utility to avoid possible invalid function cast
@@ -378,20 +377,6 @@ void red_channel_init_stat_node(RedChannel *channel, const RedStatNode *parent, 
 const RedStatNode *red_channel_get_stat_node(RedChannel *channel)
 {
     return &channel->priv->stat;
-}
-
-void red_channel_register_client_cbs(RedChannel *channel, const ClientCbs *client_cbs)
-{
-    spice_assert(client_cbs->connect || channel->priv->type == SPICE_CHANNEL_MAIN);
-    channel->priv->client_cbs.connect = client_cbs->connect;
-
-    if (client_cbs->disconnect) {
-        channel->priv->client_cbs.disconnect = client_cbs->disconnect;
-    }
-
-    if (client_cbs->migrate) {
-        channel->priv->client_cbs.migrate = client_cbs->migrate;
-    }
 }
 
 static void add_capability(uint32_t **caps, int *num_caps, uint32_t cap)
@@ -518,9 +503,9 @@ static void handle_dispatcher_connect(void *opaque, void *payload)
 {
     RedMessageConnect *msg = payload;
     RedChannel *channel = msg->channel;
+    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
-    channel->priv->client_cbs.connect(channel, msg->client, msg->stream,
-                                      msg->migration, &msg->caps);
+    klass->connect(channel, msg->client, msg->stream, msg->migration, &msg->caps);
     g_object_unref(msg->client);
     red_channel_capabilities_reset(&msg->caps);
 }
@@ -531,7 +516,8 @@ void red_channel_connect(RedChannel *channel, RedClient *client,
 {
     if (channel->priv->dispatcher == NULL ||
         pthread_equal(pthread_self(), channel->priv->thread_id)) {
-        channel->priv->client_cbs.connect(channel, client, stream, migration, caps);
+        RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
+        klass->connect(channel, client, stream, migration, caps);
         return;
     }
 
@@ -759,8 +745,9 @@ static void handle_dispatcher_migrate(void *opaque, void *payload)
 {
     RedMessageMigrate *msg = payload;
     RedChannel *channel = red_channel_client_get_channel(msg->rcc);
+    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
-    channel->priv->client_cbs.migrate(msg->rcc);
+    klass->migrate(msg->rcc);
     g_object_unref(msg->rcc);
 }
 
@@ -768,7 +755,8 @@ void red_channel_migrate_client(RedChannel *channel, RedChannelClient *rcc)
 {
     if (channel->priv->dispatcher == NULL ||
         pthread_equal(pthread_self(), channel->priv->thread_id)) {
-        channel->priv->client_cbs.migrate(rcc);
+        RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
+        klass->migrate(rcc);
         return;
     }
 
@@ -785,15 +773,17 @@ static void handle_dispatcher_disconnect(void *opaque, void *payload)
 {
     RedMessageDisconnect *msg = payload;
     RedChannel *channel = red_channel_client_get_channel(msg->rcc);
+    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
-    channel->priv->client_cbs.disconnect(msg->rcc);
+    klass->disconnect(msg->rcc);
 }
 
 void red_channel_disconnect_client(RedChannel *channel, RedChannelClient *rcc)
 {
     if (channel->priv->dispatcher == NULL ||
         pthread_equal(pthread_self(), channel->priv->thread_id)) {
-        channel->priv->client_cbs.disconnect(rcc);
+        RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
+        klass->disconnect(rcc);
         return;
     }
 

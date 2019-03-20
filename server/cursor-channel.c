@@ -335,9 +335,12 @@ void cursor_channel_set_mouse_mode(CursorChannel *cursor, uint32_t mode)
     cursor->mouse_mode = mode;
 }
 
-void cursor_channel_connect(CursorChannel *cursor, RedClient *client, RedStream *stream,
-                            int migrate,
-                            RedChannelCapabilities *caps)
+/**
+ * Connect a new client to CursorChannel.
+ */
+static void
+cursor_channel_connect(CursorChannel *cursor, RedClient *client, RedStream *stream,
+                       int migrate, RedChannelCapabilities *caps)
 {
     CursorChannelClient *ccc;
 
@@ -392,6 +395,10 @@ cursor_channel_class_init(CursorChannelClass *klass)
     channel_class->handle_message = red_channel_client_handle_message;
 
     channel_class->send_item = cursor_channel_send_item;
+
+    // client callbacks
+    channel_class->connect = (channel_client_connect_proc) cursor_channel_connect;
+    channel_class->migrate = cursor_channel_client_migrate;
 }
 
 static void

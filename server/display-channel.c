@@ -26,6 +26,12 @@
 
 G_DEFINE_TYPE(DisplayChannel, display_channel, TYPE_COMMON_GRAPHICS_CHANNEL)
 
+static void display_channel_connect(RedChannel *channel, RedClient *client,
+                                    RedStream *stream, int migration,
+                                    RedChannelCapabilities *caps);
+static void display_channel_disconnect(RedChannelClient *rcc);
+static void display_channel_migrate(RedChannelClient *rcc);
+
 enum {
     PROP0,
     PROP_N_SURFACES,
@@ -2500,6 +2506,11 @@ display_channel_class_init(DisplayChannelClass *klass)
     channel_class->handle_migrate_data = handle_migrate_data;
     channel_class->handle_migrate_data_get_serial = handle_migrate_data_get_serial;
 
+    // client callbacks
+    channel_class->connect = display_channel_connect;
+    channel_class->disconnect = display_channel_disconnect;
+    channel_class->migrate = display_channel_migrate;
+
     g_object_class_install_property(object_class,
                                     PROP_N_SURFACES,
                                     g_param_spec_uint("n-surfaces",
@@ -2590,7 +2601,7 @@ void display_channel_update_qxl_running(DisplayChannel *display, bool running)
     }
 }
 
-void
+static void
 display_channel_connect(RedChannel *channel, RedClient *client,
                         RedStream *stream, int migration,
                         RedChannelCapabilities *caps)
@@ -2613,7 +2624,7 @@ display_channel_connect(RedChannel *channel, RedClient *client,
     dcc_start(dcc);
 }
 
-void display_channel_disconnect(RedChannelClient *rcc)
+static void display_channel_disconnect(RedChannelClient *rcc)
 {
     DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
 
@@ -2640,7 +2651,7 @@ static void red_migrate_display(DisplayChannel *display, RedChannelClient *rcc)
     }
 }
 
-void display_channel_migrate(RedChannelClient *rcc)
+static void display_channel_migrate(RedChannelClient *rcc)
 {
     DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
     red_migrate_display(display, rcc);

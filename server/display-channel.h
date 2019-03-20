@@ -159,11 +159,6 @@ void display_channel_reset_image_cache(DisplayChannel *self);
 void display_channel_debug_oom(DisplayChannel *display, const char *msg);
 
 void display_channel_update_qxl_running(DisplayChannel *display, bool running);
-void display_channel_connect(RedChannel *channel, RedClient *client,
-                             RedStream *stream, int migration,
-                             RedChannelCapabilities *caps);
-void display_channel_disconnect(RedChannelClient *rcc);
-void display_channel_migrate(RedChannelClient *rcc);
 
 G_END_DECLS
 

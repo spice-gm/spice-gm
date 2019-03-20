@@ -185,13 +185,9 @@ static void
 red_vmc_channel_constructed(GObject *object)
 {
     RedVmcChannel *self = RED_VMC_CHANNEL(object);
-    ClientCbs client_cbs = { NULL, };
     RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
 
     G_OBJECT_CLASS(red_vmc_channel_parent_class)->constructed(object);
-
-    client_cbs.connect = spicevmc_connect;
-    red_channel_register_client_cbs(RED_CHANNEL(self), &client_cbs);
 
     red_channel_init_stat_node(RED_CHANNEL(self), NULL, "spicevmc");
     const RedStatNode *stat = red_channel_get_stat_node(RED_CHANNEL(self));
@@ -723,6 +719,9 @@ red_vmc_channel_class_init(RedVmcChannelClass *klass)
     channel_class->send_item = spicevmc_red_channel_send_item;
     channel_class->handle_migrate_flush_mark = spicevmc_channel_client_handle_migrate_flush_mark;
     channel_class->handle_migrate_data = spicevmc_channel_client_handle_migrate_data;
+
+    // client callbacks
+    channel_class->connect = spicevmc_connect;
 }
 
 static void

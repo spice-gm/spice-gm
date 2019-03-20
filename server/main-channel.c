@@ -264,15 +264,11 @@ static void
 main_channel_constructed(GObject *object)
 {
     MainChannel *self = MAIN_CHANNEL(object);
-    ClientCbs client_cbs = { NULL, };
 
     G_OBJECT_CLASS(main_channel_parent_class)->constructed(object);
 
     red_channel_set_cap(RED_CHANNEL(self), SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE);
     red_channel_set_cap(RED_CHANNEL(self), SPICE_MAIN_CAP_SEAMLESS_MIGRATE);
-
-    client_cbs.migrate = main_channel_client_migrate;
-    red_channel_register_client_cbs(RED_CHANNEL(self), &client_cbs);
 }
 
 static void
@@ -295,6 +291,9 @@ main_channel_class_init(MainChannelClass *klass)
     channel_class->send_item = main_channel_client_send_item;
     channel_class->handle_migrate_flush_mark = main_channel_handle_migrate_flush_mark;
     channel_class->handle_migrate_data = main_channel_handle_migrate_data;
+
+    // client callbacks
+    channel_class->migrate = main_channel_client_migrate;
 }
 
 static int main_channel_connect_semi_seamless(MainChannel *main_channel)

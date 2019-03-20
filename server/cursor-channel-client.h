@@ -75,6 +75,12 @@ enum {
     RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE,
 };
 
+/**
+ * Migrate a client channel from a CursorChannel.
+ * This is the equivalent of RedChannel client migrate callback.
+ */
+void                 cursor_channel_client_migrate(RedChannelClient *client);
+
 G_END_DECLS
 
 #endif /* CURSOR_CHANNEL_CLIENT_H_ */

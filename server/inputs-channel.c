@@ -542,16 +542,11 @@ InputsChannel* inputs_channel_new(RedsState *reds)
 static void
 inputs_channel_constructed(GObject *object)
 {
-    ClientCbs client_cbs = { NULL, };
     InputsChannel *self = INPUTS_CHANNEL(object);
     RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
     SpiceCoreInterfaceInternal *core = red_channel_get_core_interface(RED_CHANNEL(self));
 
     G_OBJECT_CLASS(inputs_channel_parent_class)->constructed(object);
-
-    client_cbs.connect = inputs_connect;
-    client_cbs.migrate = inputs_migrate;
-    red_channel_register_client_cbs(RED_CHANNEL(self), &client_cbs);
 
     red_channel_set_cap(RED_CHANNEL(self), SPICE_INPUTS_CAP_KEY_SCANCODE);
     reds_register_channel(reds, RED_CHANNEL(self));
@@ -596,6 +591,10 @@ inputs_channel_class_init(InputsChannelClass *klass)
     channel_class->send_item = inputs_channel_send_item;
     channel_class->handle_migrate_data = inputs_channel_handle_migrate_data;
     channel_class->handle_migrate_flush_mark = inputs_channel_handle_migrate_flush_mark;
+
+    // client callbacks
+    channel_class->connect = inputs_connect;
+    channel_class->migrate = inputs_migrate;
 }
 
 static SpiceKbdInstance* inputs_channel_get_keyboard(InputsChannel *inputs)

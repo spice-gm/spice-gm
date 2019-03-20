@@ -1144,12 +1144,6 @@ RedWorker* red_worker_new(QXLInstance *qxl)
     channel = RED_CHANNEL(worker->cursor_channel);
     red_channel_init_stat_node(channel, &worker->stat, "cursor_channel");
 
-    ClientCbs client_cursor_cbs = { NULL, };
-    client_cursor_cbs.connect = (channel_client_connect_proc) cursor_channel_connect;
-    client_cursor_cbs.disconnect = NULL;
-    client_cursor_cbs.migrate = cursor_channel_client_migrate;
-    red_channel_register_client_cbs(channel, &client_cursor_cbs);
-
     // TODO: handle seamless migration. Temp, setting migrate to FALSE
     worker->display_channel = display_channel_new(reds, qxl, &worker->core, dispatcher,
                                                   FALSE,
@@ -1158,12 +1152,6 @@ RedWorker* red_worker_new(QXLInstance *qxl)
                                                   init_info.n_surfaces);
     channel = RED_CHANNEL(worker->display_channel);
     red_channel_init_stat_node(channel, &worker->stat, "display_channel");
-
-    ClientCbs client_display_cbs = { NULL, };
-    client_display_cbs.connect = display_channel_connect;
-    client_display_cbs.disconnect = display_channel_disconnect;
-    client_display_cbs.migrate = display_channel_migrate;
-    red_channel_register_client_cbs(channel, &client_display_cbs);
 
     return worker;
 }
