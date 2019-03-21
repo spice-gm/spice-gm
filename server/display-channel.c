@@ -2633,8 +2633,10 @@ static void display_channel_disconnect(RedChannelClient *rcc)
     red_channel_client_disconnect(rcc);
 }
 
-static void red_migrate_display(DisplayChannel *display, RedChannelClient *rcc)
+static void display_channel_migrate(RedChannelClient *rcc)
 {
+    DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
+
     /* We need to stop the streams, and to send upgrade_items to the client.
      * Otherwise, (1) the client might display lossy regions that we don't track
      * (streams are not part of the migration data) (2) streams_timeout may occur
@@ -2649,12 +2651,6 @@ static void red_migrate_display(DisplayChannel *display, RedChannelClient *rcc)
     if (red_channel_client_is_connected(rcc)) {
         red_channel_client_default_migrate(rcc);
     }
-}
-
-static void display_channel_migrate(RedChannelClient *rcc)
-{
-    DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
-    red_migrate_display(display, rcc);
 }
 
 void display_channel_set_image_compression(DisplayChannel *display,
