@@ -63,7 +63,6 @@ struct RedWorker {
     pthread_t thread;
     QXLInstance *qxl;
     SpiceWatch *dispatch_watch;
-    int running;
     SpiceCoreInterfaceInternal core;
 
     unsigned int event_timeout;
@@ -115,7 +114,7 @@ static int red_process_cursor(RedWorker *worker, int *ring_is_empty)
     QXLCommandExt ext_cmd;
     int n = 0;
 
-    if (!worker->running) {
+    if (!red_qxl_is_running(worker->qxl)) {
         *ring_is_empty = TRUE;
         return n;
     }
@@ -173,7 +172,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
     int n = 0;
     uint64_t start = spice_get_monotonic_time_ns();
 
-    if (!worker->running) {
+    if (!red_qxl_is_running(worker->qxl)) {
         *ring_is_empty = TRUE;
         return n;
     }
@@ -378,7 +377,7 @@ static void guest_set_client_capabilities(RedWorker *worker)
 #define CLEAR_CAP(a,c)                                                  \
         ((a)[(c) / 8] &= ~(1 << ((c) % 8)))
 
-    if (!worker->running) {
+    if (!red_qxl_is_running(worker->qxl)) {
         return;
     }
     if ((worker->display_channel == NULL) ||
@@ -406,7 +405,7 @@ static void handle_dev_update_async(void *opaque, void *payload)
     QXLRect *qxl_dirty_rects = NULL;
     uint32_t num_dirty_rects = 0;
 
-    spice_return_if_fail(worker->running);
+    spice_return_if_fail(red_qxl_is_running(worker->qxl));
     spice_return_if_fail(qxl_get_interface(worker->qxl)->update_area_complete);
 
     flush_display_commands(worker);
@@ -426,7 +425,7 @@ static void handle_dev_update(void *opaque, void *payload)
     RedWorkerMessageUpdate *msg = payload;
     QXLRect *qxl_dirty_rects = msg->qxl_dirty_rects;
 
-    spice_return_if_fail(worker->running);
+    spice_return_if_fail(red_qxl_is_running(worker->qxl));
 
     flush_display_commands(worker);
     display_channel_update(worker->display_channel,
@@ -586,9 +585,9 @@ static void handle_dev_stop(void *opaque, void *payload)
     RedWorker *worker = opaque;
 
     spice_debug("stop");
-    spice_assert(worker->running);
+    spice_assert(red_qxl_is_running(worker->qxl));
 
-    worker->running = FALSE;
+    red_qxl_set_running(worker->qxl, false);
 
     display_channel_free_glz_drawables(worker->display_channel);
     display_channel_flush_all_surfaces(worker->display_channel);
@@ -606,7 +605,7 @@ static void handle_dev_start(void *opaque, void *payload)
 {
     RedWorker *worker = opaque;
 
-    spice_assert(!worker->running);
+    spice_assert(!red_qxl_is_running(worker->qxl));
     if (worker->cursor_channel) {
         CommonGraphicsChannel *common = COMMON_GRAPHICS_CHANNEL(worker->cursor_channel);
         common_graphics_channel_set_during_target_migrate(common, FALSE);
@@ -616,7 +615,7 @@ static void handle_dev_start(void *opaque, void *payload)
         common_graphics_channel_set_during_target_migrate(common, FALSE);
         display_channel_wait_for_migrate_data(worker->display_channel);
     }
-    worker->running = TRUE;
+    red_qxl_set_running(worker->qxl, true);
     worker->event_timeout = 0;
     guest_set_client_capabilities(worker);
 }
@@ -637,7 +636,7 @@ static void handle_dev_oom(void *opaque, void *payload)
     RedChannel *display_red_channel = RED_CHANNEL(display);
     int ring_is_empty;
 
-    spice_return_if_fail(worker->running);
+    spice_return_if_fail(red_qxl_is_running(worker->qxl));
     // streams? but without streams also leak
     display_channel_debug_oom(display, "OOM1");
     while (red_process_display(worker, &ring_is_empty)) {
@@ -1153,7 +1152,7 @@ static gboolean worker_source_check(GSource *source)
     RedWorkerSource *wsource = SPICE_CONTAINEROF(source, RedWorkerSource, source);
     RedWorker *worker = wsource->worker;
 
-    return worker->running /* TODO && worker->pending_process */;
+    return red_qxl_is_running(worker->qxl) /* TODO && worker->pending_process */;
 }
 
 static gboolean worker_source_dispatch(GSource *source, GSourceFunc callback,

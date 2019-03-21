@@ -44,6 +44,9 @@ const char* red_qxl_get_device_address(const QXLInstance *qxl);
 const uint32_t* red_qxl_get_device_display_ids(const QXLInstance *qxl);
 size_t red_qxl_get_monitors_count(const QXLInstance *qxl);
 
+/* check if QXL is running, should be used inside the worker thread */
+bool red_qxl_is_running(QXLInstance *qxl);
+
 /* Wrappers around QXLInterface vfuncs */
 void red_qxl_get_init_info(QXLInstance *qxl, QXLDevInitInfo *info);
 int red_qxl_get_command(QXLInstance *qxl, struct QXLCommandExt *cmd);

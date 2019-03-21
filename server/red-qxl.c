@@ -59,12 +59,25 @@ struct QXLState {
     uint32_t device_display_ids[MAX_MONITORS_COUNT];
     size_t monitors_count;  // length of ^^^
 
+    bool running;
+
     pthread_mutex_t scanout_mutex;
     SpiceMsgDisplayGlScanoutUnix scanout;
     uint64_t gl_draw_cookie;
 };
 
 #define GL_DRAW_COOKIE_INVALID (~((uint64_t) 0))
+
+bool red_qxl_is_running(QXLInstance *qxl)
+{
+    return qxl->st->running;
+}
+
+/* used by RedWorker */
+void red_qxl_set_running(QXLInstance *qxl, bool running)
+{
+    qxl->st->running = running;
+}
 
 int red_qxl_check_qxl_version(QXLInstance *qxl, int major, int minor)
 {

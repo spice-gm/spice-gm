@@ -35,6 +35,7 @@ void red_worker_free(RedWorker *worker);
 struct Dispatcher *red_qxl_get_dispatcher(QXLInstance *qxl);
 void red_qxl_destroy_primary_surface_complete(QXLState *qxl_state);
 void red_qxl_create_primary_surface_complete(QXLState *qxl_state, const QXLDevSurfaceCreate* surface);
+void red_qxl_set_running(QXLInstance *qxl, bool running);
 
 typedef uint32_t RedWorkerMessage;
 
