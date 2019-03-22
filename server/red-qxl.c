@@ -68,6 +68,7 @@ struct QXLState {
 
 #define GL_DRAW_COOKIE_INVALID (~((uint64_t) 0))
 
+/* used by RedWorker */
 bool red_qxl_is_running(QXLInstance *qxl)
 {
     return qxl->st->running;
@@ -1048,7 +1049,9 @@ void red_qxl_set_client_capabilities(QXLInstance *qxl,
 {
     QXLInterface *interface = qxl_get_interface(qxl);
 
-    interface->set_client_capabilities(qxl, client_present, caps);
+    if (qxl->st->running) {
+        interface->set_client_capabilities(qxl, client_present, caps);
+    }
 }
 
 void red_qxl_async_complete(QXLInstance *qxl, uint64_t cookie)

@@ -2566,9 +2566,6 @@ static void guest_set_client_capabilities(DisplayChannel *display)
 #define CLEAR_CAP(a,c)                                                  \
         ((a)[(c) / 8] &= ~(1 << ((c) % 8)))
 
-    if (!red_qxl_is_running(display->priv->qxl)) {
-        return;
-    }
     if ((red_channel_get_n_clients(RED_CHANNEL(display)) == 0)) {
         red_qxl_set_client_capabilities(display->priv->qxl, FALSE, caps);
     } else {
