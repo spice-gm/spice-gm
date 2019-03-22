@@ -19,4 +19,4 @@ all-local: spice_style.html spice_threading_model.html
 endif
 
 clean-local:
-	rm -f spice_style.html
+	rm -f spice_style.html spice_threading_model.html
