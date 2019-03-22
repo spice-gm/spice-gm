@@ -1979,7 +1979,6 @@ static void red_marshall_image(RedChannelClient *rcc,
     copy.data.scale_mode = 0;
     copy.data.src_bitmap = 0;
     copy.data.mask.flags = 0;
-    copy.data.mask.flags = 0;
     copy.data.mask.pos.x = 0;
     copy.data.mask.pos.y = 0;
     copy.data.mask.bitmap = 0;
