@@ -317,11 +317,13 @@ static int dispatcher_handle_single_read(Dispatcher *dispatcher)
 }
 
 /*
- * dispatcher_handle_recv_read
+ * dispatcher_handle_event
  * doesn't handle being in the middle of a message. all reads are blocking.
  */
-void dispatcher_handle_recv_read(Dispatcher *dispatcher)
+static void dispatcher_handle_event(int fd, int event, void *opaque)
 {
+    Dispatcher *dispatcher = opaque;
+
     while (dispatcher_handle_single_read(dispatcher)) {
     }
 }
@@ -430,14 +432,15 @@ static void setup_dummy_signal_handler(void)
 }
 #endif
 
+SpiceWatch *dispatcher_create_watch(Dispatcher *dispatcher, SpiceCoreInterfaceInternal *core)
+{
+    return core->watch_add(core, dispatcher->priv->recv_fd,
+                           SPICE_WATCH_EVENT_READ, dispatcher_handle_event, dispatcher);
+}
+
 void dispatcher_set_opaque(Dispatcher *self, void *opaque)
 {
     self->priv->opaque = opaque;
-}
-
-int dispatcher_get_recv_fd(Dispatcher *dispatcher)
-{
-    return dispatcher->priv->recv_fd;
 }
 
 pthread_t dispatcher_get_thread_id(Dispatcher *self)

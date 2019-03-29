@@ -247,13 +247,6 @@ void main_dispatcher_client_disconnect(MainDispatcher *self, RedClient *client)
     }
 }
 
-static void dispatcher_handle_read(int fd, int event, void *opaque)
-{
-    Dispatcher *dispatcher = opaque;
-
-    dispatcher_handle_recv_read(dispatcher);
-}
-
 /*
  * FIXME:
  * Reds routines shouldn't be exposed. Instead reds.c should register the callbacks,
@@ -276,10 +269,7 @@ void main_dispatcher_constructed(GObject *object)
     dispatcher_set_opaque(DISPATCHER(self), self->priv->reds);
 
     self->priv->watch =
-        reds_core_watch_add(self->priv->reds,
-                            dispatcher_get_recv_fd(DISPATCHER(self)),
-                            SPICE_WATCH_EVENT_READ, dispatcher_handle_read,
-                            DISPATCHER(self));
+        dispatcher_create_watch(DISPATCHER(self), reds_get_core_interface(self->priv->reds));
     dispatcher_register_handler(DISPATCHER(self), MAIN_DISPATCHER_CHANNEL_EVENT,
                                 main_dispatcher_handle_channel_event,
                                 sizeof(MainDispatcherChannelEventMessage), false);

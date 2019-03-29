@@ -148,29 +148,14 @@ void dispatcher_register_handler(Dispatcher *dispatcher, uint32_t message_type,
 void dispatcher_register_universal_handler(Dispatcher *dispatcher,
                                     dispatcher_handle_any_message handler);
 
-/* dispatcher_handle_recv_read
+/* dispatcher_create_watch
  *
- * A convenience function that is intended to be called by the receiving thread
- * to handle all incoming messages and execute any handlers for those messages.
- * This function will handle all incoming messages until there is no more data
- * to read, so multiple handlers may be executed from a single call to
- * dispatcher_handle_recv_read().
+ * Create a new watch to handle events for the dispatcher.
+ * You should release it before releasing the dispatcher.
  *
- * @dispatcher: Dispatcher instance
+ * @return: newly created watch
  */
-void dispatcher_handle_recv_read(Dispatcher *);
-
-/* dispatcher_get_recv_fd
- *
- * This function returns the file descriptor that is used by the receiving
- * thread to listen for incoming messages. You should not read or write
- * directly to this fd, but should only use it to watch for read events. When
- * there is a read event, you should use dispatcher_handle_recv_read() to
- * handle the incoming messages.
- *
- * @return: receive file descriptor of the dispatcher
- */
-int dispatcher_get_recv_fd(Dispatcher *);
+SpiceWatch *dispatcher_create_watch(Dispatcher *dispatcher, SpiceCoreInterfaceInternal *core);
 
 /* dispatcher_set_opaque
  *

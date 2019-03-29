@@ -980,13 +980,6 @@ static void register_callbacks(Dispatcher *dispatcher)
 
 
 
-static void handle_dev_input(int fd, int event, void *opaque)
-{
-    Dispatcher *dispatcher = opaque;
-
-    dispatcher_handle_recv_read(dispatcher);
-}
-
 typedef struct RedWorkerSource {
     GSource source;
     RedWorker *worker;
@@ -1086,8 +1079,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
     stat_init_counter(&worker->total_loop_counter, reds, &worker->stat, "total_loops", TRUE);
 
     worker->dispatch_watch =
-        worker->core.watch_add(&worker->core, dispatcher_get_recv_fd(dispatcher),
-                               SPICE_WATCH_EVENT_READ, handle_dev_input, dispatcher);
+        dispatcher_create_watch(dispatcher, &worker->core);
     spice_assert(worker->dispatch_watch != NULL);
 
     GSource *source = g_source_new(&worker_source_funcs, sizeof(RedWorkerSource));
