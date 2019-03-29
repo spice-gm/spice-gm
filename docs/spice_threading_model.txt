@@ -31,14 +31,6 @@ The main dispatcher is used to send requests to the main thread.
 The Qxl uses a dispatcher to send requests to the RedWorker which will forward
 to DisplayChannel/CursorChannel.
 
-RedClient may call some RedChannelClient functions using some callbacks
-registered inside ClientCbs. Usually these callbacks are functions that do the
-job directly if the RedChannel is running in the main thread or they use a
-dispatcher to do the job in the right thread. Currently there are 3 callbacks:
-connect, disconnect and migrate. Connect and migrate are asynchronous (the job
-is done while the current thread is doing something else) while disconnect is
-synchronous (the main thread will wait for termination).
-
 One aspect to take into consideration is the event scheduling. SPICE uses some
 `SpiceCoreInterface` to handle events. As the events will be handled from a
 thread based on the core interface you have to use the correct core. Each
