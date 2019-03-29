@@ -202,12 +202,6 @@ typedef struct RedWorkerMessageSetMouseMode {
     uint32_t mode;
 } RedWorkerMessageSetMouseMode;
 
-typedef struct RedWorkerMessageDisplayChannelCreate {
-} RedWorkerMessageDisplayChannelCreate;
-
-typedef struct RedWorkerMessageCursorChannelCreate {
-} RedWorkerMessageCursorChannelCreate;
-
 typedef struct RedWorkerMessageDestroySurfaceWait {
     uint32_t surface_id;
 } RedWorkerMessageDestroySurfaceWait;
