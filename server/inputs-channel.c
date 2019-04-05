@@ -50,6 +50,11 @@ struct InputsChannel
     int src_during_migrate;
     SpiceTimer *key_modifiers_timer;
 
+    // actual ideal modifier states, that the guest should have
+    uint8_t modifiers;
+    // current pressed modifiers
+    uint8_t modifiers_pressed;
+
     SpiceKbdInstance *keyboard;
     SpiceMouseInstance *mouse;
     SpiceTabletInstance *tablet;
@@ -186,6 +191,34 @@ static void kbd_push_scan(SpiceKbdInstance *sin, uint8_t scan)
     sif->push_scan_freg(sin, scan);
 }
 
+static uint8_t scancode_to_modifier_flag(uint8_t scancode)
+{
+    switch (scancode & ~SCAN_CODE_RELEASE) {
+    case CAPS_LOCK_SCAN_CODE:
+        return SPICE_KEYBOARD_MODIFIER_FLAGS_CAPS_LOCK;
+    case NUM_LOCK_SCAN_CODE:
+        return SPICE_KEYBOARD_MODIFIER_FLAGS_NUM_LOCK;
+    case SCROLL_LOCK_SCAN_CODE:
+        return SPICE_KEYBOARD_MODIFIER_FLAGS_SCROLL_LOCK;
+    }
+    return 0;
+}
+
+static void inputs_channel_sync_locks(InputsChannel *inputs_channel, uint8_t scan)
+{
+    uint8_t change_modifier = scancode_to_modifier_flag(scan);
+
+    if (scan & SCAN_CODE_RELEASE) { /* KEY_UP */
+        inputs_channel->modifiers_pressed &= ~change_modifier;
+    } else {  /* KEY_DOWN */
+        if (change_modifier && !(inputs_channel->modifiers_pressed & change_modifier)) {
+            inputs_channel->modifiers ^= change_modifier;
+            inputs_channel->modifiers_pressed |= change_modifier;
+            activate_modifiers_watch(inputs_channel);
+        }
+    }
+}
+
 static uint8_t kbd_get_leds(SpiceKbdInstance *sin)
 {
     SpiceKbdInterface *sif;
@@ -256,11 +289,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
     switch (type) {
     case SPICE_MSGC_INPUTS_KEY_DOWN: {
         SpiceMsgcKeyDown *key_down = message;
-        if (key_down->code == CAPS_LOCK_SCAN_CODE ||
-            key_down->code == NUM_LOCK_SCAN_CODE ||
-            key_down->code == SCROLL_LOCK_SCAN_CODE) {
-            activate_modifiers_watch(inputs_channel);
-        }
+        inputs_channel_sync_locks(inputs_channel, key_down->code);
     }
         /* fallthrough */
     case SPICE_MSGC_INPUTS_KEY_UP: {
@@ -271,6 +300,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
                 break;
             }
             kbd_push_scan(inputs_channel_get_keyboard(inputs_channel), code);
+            inputs_channel_sync_locks(inputs_channel, code);
         }
         break;
     }
@@ -278,6 +308,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         uint8_t *code = message;
         for (i = 0; i < size; i++) {
             kbd_push_scan(inputs_channel_get_keyboard(inputs_channel), code[i]);
+            inputs_channel_sync_locks(inputs_channel, code[i]);
         }
         break;
     }
@@ -380,21 +411,27 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         if (!keyboard) {
             break;
         }
-        leds = kbd_get_leds(keyboard);
-        if ((modifiers->modifiers & SPICE_KEYBOARD_MODIFIER_FLAGS_SCROLL_LOCK) !=
-            (leds & SPICE_KEYBOARD_MODIFIER_FLAGS_SCROLL_LOCK)) {
+        leds = inputs_channel->modifiers;
+        if (!(inputs_channel->modifiers_pressed & SPICE_KEYBOARD_MODIFIER_FLAGS_SCROLL_LOCK) &&
+            ((modifiers->modifiers & SPICE_KEYBOARD_MODIFIER_FLAGS_SCROLL_LOCK) !=
+             (leds & SPICE_KEYBOARD_MODIFIER_FLAGS_SCROLL_LOCK))) {
             kbd_push_scan(keyboard, SCROLL_LOCK_SCAN_CODE);
             kbd_push_scan(keyboard, SCROLL_LOCK_SCAN_CODE | SCAN_CODE_RELEASE);
+            inputs_channel->modifiers ^= SPICE_KEYBOARD_MODIFIER_FLAGS_SCROLL_LOCK;
         }
-        if ((modifiers->modifiers & SPICE_KEYBOARD_MODIFIER_FLAGS_NUM_LOCK) !=
-            (leds & SPICE_KEYBOARD_MODIFIER_FLAGS_NUM_LOCK)) {
+        if (!(inputs_channel->modifiers_pressed & SPICE_KEYBOARD_MODIFIER_FLAGS_NUM_LOCK) &&
+            ((modifiers->modifiers & SPICE_KEYBOARD_MODIFIER_FLAGS_NUM_LOCK) !=
+             (leds & SPICE_KEYBOARD_MODIFIER_FLAGS_NUM_LOCK))) {
             kbd_push_scan(keyboard, NUM_LOCK_SCAN_CODE);
             kbd_push_scan(keyboard, NUM_LOCK_SCAN_CODE | SCAN_CODE_RELEASE);
+            inputs_channel->modifiers ^= SPICE_KEYBOARD_MODIFIER_FLAGS_NUM_LOCK;
         }
-        if ((modifiers->modifiers & SPICE_KEYBOARD_MODIFIER_FLAGS_CAPS_LOCK) !=
-            (leds & SPICE_KEYBOARD_MODIFIER_FLAGS_CAPS_LOCK)) {
+        if (!(inputs_channel->modifiers_pressed & SPICE_KEYBOARD_MODIFIER_FLAGS_CAPS_LOCK) &&
+            ((modifiers->modifiers & SPICE_KEYBOARD_MODIFIER_FLAGS_CAPS_LOCK) !=
+             (leds & SPICE_KEYBOARD_MODIFIER_FLAGS_CAPS_LOCK))) {
             kbd_push_scan(keyboard, CAPS_LOCK_SCAN_CODE);
             kbd_push_scan(keyboard, CAPS_LOCK_SCAN_CODE | SCAN_CODE_RELEASE);
+            inputs_channel->modifiers ^= SPICE_KEYBOARD_MODIFIER_FLAGS_CAPS_LOCK;
         }
         activate_modifiers_watch(inputs_channel);
         break;
@@ -481,14 +518,18 @@ static void inputs_channel_push_keyboard_modifiers(InputsChannel *inputs, uint8_
 
 SPICE_GNUC_VISIBLE int spice_server_kbd_leds(SpiceKbdInstance *sin, int leds)
 {
-    inputs_channel_push_keyboard_modifiers(sin->st->inputs, leds);
+    InputsChannel *inputs_channel = sin->st->inputs;
+    if (inputs_channel) {
+        inputs_channel->modifiers = leds;
+        inputs_channel_push_keyboard_modifiers(inputs_channel, leds);
+    }
     return 0;
 }
 
 static void key_modifiers_sender(void *opaque)
 {
     InputsChannel *inputs = opaque;
-    inputs_channel_push_keyboard_modifiers(inputs, kbd_get_leds(inputs_channel_get_keyboard(inputs)));
+    inputs_channel_push_keyboard_modifiers(inputs, inputs->modifiers);
 }
 
 static bool inputs_channel_handle_migrate_flush_mark(RedChannelClient *rcc)
