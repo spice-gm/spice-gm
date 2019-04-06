@@ -37,7 +37,7 @@ The following optional dependencies increase the available
 functionality
 
     Cyrus-SASL
-    libcacard      >= 0.1.2             (Smartcard support)
+    libcacard      >= 2.5.1             (Smartcard support)
     Opus           >= 1.0.0             (Opus audio encoding support)
     LZ4                                 (LZ4 compression support)
     GStreamer      >= 1.0.0
