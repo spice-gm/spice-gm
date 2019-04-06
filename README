@@ -27,7 +27,7 @@ Or to install into a private user specific location
 The following mandatory dependencies are required in order to
 build SPICE
 
-    Spice protocol >= 0.12.14
+    Spice protocol >= 0.14.0
     Pixman         >= 0.17.7
     OpenSSL
     libjpeg

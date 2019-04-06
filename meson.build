@@ -81,7 +81,7 @@ endif
 #
 # check for mandatory dependencies
 #
-spice_protocol_version='0.12.16'
+spice_protocol_version='0.14.0'
 
 glib_version = '2.38'
 glib_version_info = '>= @0@'.format(glib_version)
