@@ -1,3 +1,24 @@
+Major Changes in 0.14.2:
+========================
+
+Main changes are support for Meson build and graphic device info
+messages allowing to better support multi-monitor configurations.
+
+* CVE-2019-3813: fix off-by-one error in group/slot boundary check
+* support H265 in stream-channel
+* add support for building with meson/ninja
+* minor tests fixes improving CI
+* set char device state for smartcard, allowing Qemu optimization
+* improve red-parse-qxl.c interface making it more consistent
+* add some instrumentation for streaming device
+* QXL interface: add a function to identify monitors in the guest
+  (spice_qxl_set_device_info)
+* add support for GraphicsDeviceInfo messages
+* video-stream: prevent crash on stream reattach
+* make channel client callbacks virtual functions
+* bumped minimum required glib version to 2.38
+* attempt to have a reliable led state for keyboard modifiers
+
 Major Changes in 0.14.1:
 ========================
 
