@@ -38,7 +38,6 @@ message('libspice.so version: ' + spice_server_so_version)
 # some global vars
 spice_server_global_cflags = ['-DSPICE_SERVER_INTERNAL',
                               '-DG_LOG_DOMAIN="Spice"',
-                              '-DHAVE_CONFIG_H',
                               #'-Werror',
                               '-Wall',
                               '-Wextra',

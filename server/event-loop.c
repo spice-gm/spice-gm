@@ -21,9 +21,7 @@
  *
  * const SpiceCoreInterfaceInternal event_loop_core;
  */
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
 
 #include "red-common.h"
 

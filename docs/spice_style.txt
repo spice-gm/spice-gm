@@ -393,9 +393,7 @@ Also in source (no header) files you must include `config.h` at the beginning so
 
 [source,c]
 ----
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
 
 #include <system_headers.h>
 #include <no_spice_no_system_libraries.h>

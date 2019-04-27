@@ -14,8 +14,6 @@
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
 #include <common/sw_canvas.h>
 #include <common/sw_canvas.c>
