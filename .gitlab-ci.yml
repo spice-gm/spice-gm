@@ -93,3 +93,21 @@ makecheck-centos:
     ./autogen.sh --enable-celt051
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
+
+# Same as makecheck job but use Windows build
+makecheck-windows:
+  script:
+  - >
+    dnf install -y
+    wine-core.x86_64 mingw64-gcc-c++
+    mingw64-openssl mingw64-glib2 mingw64-glib-networking mingw64-libjpeg-turbo
+    mingw64-pixman mingw64-opus mingw64-winpthreads mingw64-zlib
+    mingw64-gstreamer1-plugins-base mingw64-gstreamer1-plugins-good mingw64-orc
+  - cd spice-protocol
+  - mingw64-configure
+  - mingw64-make install
+  - cd ..
+  - NOCONFIGURE=yes ./autogen.sh
+  - mingw64-configure --disable-celt051
+  - mingw64-make
+  - mingw64-make LOG_COMPILE=wine -C server check || (cat server/tests/test-suite.log && exit 1)
