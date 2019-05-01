@@ -14,12 +14,18 @@ before_script:
 
 makecheck:
   script:
+  # Also check out-of-tree build
+  - git clean -fdx # cleanup after previous builds
+  - git submodule foreach --recursive git clean -fdx
+  - mkdir builddir
+  - cd builddir
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    ./autogen.sh --enable-celt051
+    ../autogen.sh --enable-celt051
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
+  - cd ..
 
 meson-makecheck:
   script:
