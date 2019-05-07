@@ -194,7 +194,7 @@ AS_VAR_APPEND([SPICE_REQUIRES], [" gobject-2.0 >= $GLIB2_REQUIRED"])
 
 #used only by tests
 AS_IF([test "x$os_win32" != "xyes"],
-      PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= $GLIB2_REQUIRED]))
+      [PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= $GLIB2_REQUIRED])])
 
 PIXMAN_REQUIRED=0.17.7
 PKG_CHECK_MODULES(PIXMAN, pixman-1 >= $PIXMAN_REQUIRED)
