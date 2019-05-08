@@ -670,7 +670,7 @@ static void release_resource(SPICE_GNUC_UNUSED QXLInstance *qin,
     spice_assert(release_info.group_id == MEM_SLOT_GROUP_ID);
     switch (ext->cmd.type) {
         case QXL_CMD_DRAW:
-            test_spice_destroy_update((void*)ext);
+            test_spice_destroy_update(SPICE_CONTAINEROF(ext, SimpleSpiceUpdate, ext));
             break;
         case QXL_CMD_SURFACE:
             g_free(ext);
