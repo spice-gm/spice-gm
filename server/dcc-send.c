@@ -1825,6 +1825,7 @@ static void display_channel_marshall_migrate_data(RedChannelClient *rcc,
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     ImageEncoders *encoders = dcc_get_encoders(dcc);
     SpiceMigrateDataDisplay display_data = {0,};
+    GlzEncDictRestoreData glz_dict_data;
 
     display_channel = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
 
@@ -1846,7 +1847,8 @@ static void display_channel_marshall_migrate_data(RedChannelClient *rcc,
            sizeof(display_data.pixmap_cache_clients));
 
     image_encoders_glz_get_restore_data(encoders, &display_data.glz_dict_id,
-                                        &display_data.glz_dict_data);
+                                        &glz_dict_data);
+    display_data.glz_dict_data = glz_dict_data;
 
     /* all data besided the surfaces ref */
     spice_marshaller_add(base_marshaller,

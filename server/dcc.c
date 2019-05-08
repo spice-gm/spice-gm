@@ -1250,10 +1250,11 @@ bool dcc_handle_message(RedChannelClient *rcc, uint16_t type, uint32_t size, voi
 static int dcc_handle_migrate_glz_dictionary(DisplayChannelClient *dcc,
                                              SpiceMigrateDataDisplay *migrate)
 {
+    GlzEncDictRestoreData glz_dict_data = migrate->glz_dict_data;
     return image_encoders_restore_glz_dictionary(&dcc->priv->encoders,
                                                  red_channel_client_get_client(RED_CHANNEL_CLIENT(dcc)),
                                                  migrate->glz_dict_id,
-                                                 &migrate->glz_dict_data);
+                                                 &glz_dict_data);
 }
 
 static bool restore_surface(DisplayChannelClient *dcc, uint32_t surface_id)
