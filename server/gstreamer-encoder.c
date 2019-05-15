@@ -526,13 +526,13 @@ static uint32_t get_min_playback_delay(SpiceGstEncoder *encoder)
     /* Also factor in the network latency with a margin for jitter. */
     uint32_t net_latency = get_network_latency(encoder) * (1.0 + SPICE_GST_LATENCY_MARGIN);
 
-    return send_time + net_latency;
+    return send_time + net_latency + get_average_encoding_time(encoder) / NSEC_PER_MILLISEC;
 }
 
 static void update_client_playback_delay(SpiceGstEncoder *encoder)
 {
     if (encoder->cbs.update_client_playback_delay) {
-        uint32_t min_delay = get_min_playback_delay(encoder) + get_average_encoding_time(encoder) / NSEC_PER_MILLISEC;
+        uint32_t min_delay = get_min_playback_delay(encoder);
         encoder->cbs.update_client_playback_delay(encoder->cbs.opaque, min_delay);
     }
 }
