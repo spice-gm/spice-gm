@@ -3570,6 +3570,11 @@ static int do_spice_init(RedsState *reds, SpiceCoreInterface *core_interface)
     if (!(reds->mig_timer = reds->core.timer_add(&reds->core, migrate_timeout, reds))) {
         spice_error("migration timer create failed");
     }
+    /* Note that this will not actually send the mm_time to the client because
+     * the main channel is not connected yet. This would have been redundant
+     * with the RED_PIPE_ITEM_TYPE_MAIN_INIT message anyway.
+     */
+    reds_enable_mm_time(reds);
 
     if (reds_init_net(reds) < 0) {
         spice_warning("Failed to open SPICE sockets");
