@@ -64,7 +64,6 @@ libspice_serverinclude_HEADERS =		\
 	spice-audio.h				\
 	spice-char.h				\
 	spice-core.h				\
-	spice-experimental.h			\
 	spice-input.h				\
 	spice-migration.h			\
 	spice-qxl.h				\
