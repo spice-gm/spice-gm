@@ -114,7 +114,7 @@ static void test_multiple_vmc_devices(void)
     g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
                           "*spice_server_char_device_add_interface: vdagent already attached");
     g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
-                          "*spice_server_remove_interface: assertion ?char_device->st != NULL'*");
+                          "*spice_server_remove_interface*: assertion 'char_device->st != NULL'*");
     vmc_instances[0].base.sif = &vmc_interface.base;
     spice_server_add_interface(test->server, &vmc_instances[0].base);
     vmc_instances[1].base.sif = &vmc_interface.base;
@@ -135,7 +135,7 @@ static void test_duplicate_removal(void)
     int status;
 
     g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
-                          "*spice_server_remove_interface: assertion ?char_device->st != NULL'*");
+                          "*spice_server_remove_interface*: assertion 'char_device->st != NULL'*");
     vmc_instance.base.sif = &vmc_interface.base;
     spice_server_add_interface(test->server, &vmc_instance.base);
     status = spice_server_remove_interface(&vmc_instance.base);
