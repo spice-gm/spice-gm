@@ -1011,10 +1011,10 @@ static gboolean create_pipeline(SpiceGstEncoder *encoder)
     }
 
     /* Figure out which parameter controls the GStreamer encoder's bitrate */
-    GObjectClass *class = G_OBJECT_GET_CLASS(encoder->gstenc);
-    encoder->gstenc_bitrate_param = g_object_class_find_property(class, "bitrate");
+    GObjectClass *klass = G_OBJECT_GET_CLASS(encoder->gstenc);
+    encoder->gstenc_bitrate_param = g_object_class_find_property(klass, "bitrate");
     if (encoder->gstenc_bitrate_param == NULL) {
-        encoder->gstenc_bitrate_param = g_object_class_find_property(class, "target-bitrate");
+        encoder->gstenc_bitrate_param = g_object_class_find_property(klass, "target-bitrate");
     }
     if (encoder->gstenc_bitrate_param) {
         encoder->gstenc_bitrate_is_dynamic = (encoder->gstenc_bitrate_param->flags & GST_PARAM_MUTABLE_PLAYING);

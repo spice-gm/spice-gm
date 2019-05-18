@@ -219,14 +219,14 @@ static void hexdump(uint8_t *hex, uint8_t bytes)
 static replay_t read_binary(SpiceReplay *replay, const char *prefix, size_t *size, uint8_t
                             **buf, size_t base_size)
 {
-    char template[1024];
+    char pattern[1024];
     int with_zlib = -1;
     unsigned int zlib_size;
     uint8_t *zlib_buffer;
     z_stream strm;
 
-    snprintf(template, sizeof(template), "binary %%d %s %%" PRIdPTR ":%%n", prefix);
-    replay_fscanf_check(replay, template, &with_zlib, size, &replay->end_pos);
+    snprintf(pattern, sizeof(pattern), "binary %%d %s %%" PRIdPTR ":%%n", prefix);
+    replay_fscanf_check(replay, pattern, &with_zlib, size, &replay->end_pos);
     if (replay->error) {
         return REPLAY_ERROR;
     }
@@ -358,10 +358,10 @@ static void red_replay_point16_ptr(SpiceReplay *replay, QXLPoint16 *qxl)
 
 static void red_replay_rect_ptr(SpiceReplay *replay, const char *prefix, QXLRect *qxl)
 {
-    char template[1024];
+    char pattern[1024];
 
-    snprintf(template, sizeof(template), "rect %s %%d %%d %%d %%d\n%%n", prefix);
-    replay_fscanf_check(replay, template, &qxl->top, &qxl->left, &qxl->bottom, &qxl->right,
+    snprintf(pattern, sizeof(pattern), "rect %s %%d %%d %%d %%d\n%%n", prefix);
+    replay_fscanf_check(replay, pattern, &qxl->top, &qxl->left, &qxl->bottom, &qxl->right,
                         &replay->end_pos);
 }
 
