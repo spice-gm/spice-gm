@@ -132,7 +132,7 @@ struct RedChannelClientPrivate
         SpiceMarshaller *marshaller;
         SpiceDataHeaderOpaque header;
         uint32_t size;
-        int blocked;
+        bool blocked;
         uint64_t last_sent_serial;
 
         struct {
@@ -676,14 +676,14 @@ static gboolean red_channel_client_pipe_remove(RedChannelClient *rcc, RedPipeIte
     return g_queue_remove(&rcc->priv->pipe, item);
 }
 
-bool RedChannelClient::test_remote_common_cap(uint32_t cap)
+bool RedChannelClient::test_remote_common_cap(uint32_t cap) const
 {
     return test_capability(priv->remote_caps.common_caps,
                            priv->remote_caps.num_common_caps,
                            cap);
 }
 
-bool RedChannelClient::test_remote_cap(uint32_t cap)
+bool RedChannelClient::test_remote_cap(uint32_t cap) const
 {
     return test_capability(priv->remote_caps.caps,
                            priv->remote_caps.num_caps,
@@ -1022,7 +1022,7 @@ void RedChannelClient::semi_seamless_migration_complete()
     red_channel_client_start_ping_timer(this, PING_TEST_IDLE_NET_TIMEOUT_MS);
 }
 
-bool RedChannelClient::is_waiting_for_migrate_data()
+bool RedChannelClient::is_waiting_for_migrate_data() const
 {
     return priv->wait_migrate_data;
 }
@@ -1352,7 +1352,7 @@ void RedChannelClient::push()
     g_object_unref(this);
 }
 
-int RedChannelClient::get_roundtrip_ms()
+int RedChannelClient::get_roundtrip_ms() const
 {
     if (priv->latency_monitor.roundtrip < 0) {
         return priv->latency_monitor.roundtrip;
@@ -1538,7 +1538,7 @@ SpiceMarshaller *RedChannelClient::switch_to_urgent_sender()
     return priv->send_data.marshaller;
 }
 
-uint64_t RedChannelClient::get_message_serial()
+uint64_t RedChannelClient::get_message_serial() const
 {
     return priv->send_data.last_sent_serial + 1;
 }
@@ -1663,12 +1663,12 @@ GQueue* RedChannelClient::get_pipe()
     return &priv->pipe;
 }
 
-bool RedChannelClient::is_mini_header()
+bool RedChannelClient::is_mini_header() const
 {
     return priv->is_mini_header;
 }
 
-gboolean RedChannelClient::is_connected()
+bool RedChannelClient::is_connected() const
 {
     return priv->channel
         && (g_list_find(priv->channel->get_clients(), this) != NULL);
@@ -1745,7 +1745,7 @@ void RedChannelClient::disconnect()
     red_client_remove_channel(this);
 }
 
-gboolean RedChannelClient::is_blocked()
+bool RedChannelClient::is_blocked() const
 {
     return priv->send_data.blocked;
 }
@@ -1848,7 +1848,7 @@ bool RedChannelClient::wait_outgoing_item(int64_t timeout)
     }
 }
 
-gboolean RedChannelClient::no_item_being_sent()
+bool RedChannelClient::no_item_being_sent() const
 {
     return priv->send_data.size == 0;
 }
@@ -1869,7 +1869,7 @@ void RedChannelClient::pipe_remove_and_release_pos(GList *item_pos)
 }
 
 /* client mutex should be locked before this call */
-gboolean RedChannelClient::set_migration_seamless()
+bool RedChannelClient::set_migration_seamless()
 {
     gboolean ret = FALSE;
     uint32_t flags;

@@ -106,7 +106,7 @@ struct RedChannelClass
 
 struct RedChannel: public GObject
 {
-    const char *get_name();
+    const char *get_name() const;
 
     void add_client(RedChannelClient *rcc);
     void remove_client(RedChannelClient *rcc);

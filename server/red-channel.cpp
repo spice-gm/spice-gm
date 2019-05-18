@@ -449,7 +449,7 @@ int RedChannel::is_connected()
     return priv->clients != NULL;
 }
 
-const char *RedChannel::get_name()
+const char *RedChannel::get_name() const
 {
     return red_channel_type_to_str(priv->type);
 }

@@ -34,11 +34,11 @@ SPICE_DECLARE_TYPE(RedChannelClient, red_channel_client, CHANNEL_CLIENT);
 
 struct RedChannelClient: public GObject
 {
-    gboolean is_connected();
+    bool is_connected() const;
     static void default_migrate(RedChannelClient *rcc);
-    bool is_waiting_for_migrate_data();
-    bool test_remote_common_cap(uint32_t cap);
-    bool test_remote_cap(uint32_t cap);
+    bool is_waiting_for_migrate_data() const;
+    bool test_remote_common_cap(uint32_t cap) const;
+    bool test_remote_cap(uint32_t cap) const;
     /* shutdown is the only safe thing to do out of the client/channel
      * thread. It will not touch the rings, just shutdown the socket.
      * It should be followed by some way to guarantee a disconnection. */
@@ -49,7 +49,7 @@ struct RedChannelClient: public GObject
     /* when preparing send_data: should call init and then use marshaller */
     void init_send_data(uint16_t msg_type);
 
-    uint64_t get_message_serial();
+    uint64_t get_message_serial() const;
 
     /* When sending a msg. Should first call begin_send_message.
      * It will first send the pending urgent data, if there is any, and then
@@ -69,7 +69,7 @@ struct RedChannelClient: public GObject
     SpiceMarshaller *switch_to_urgent_sender();
 
     /* returns -1 if we don't have an estimation */
-    int get_roundtrip_ms();
+    int get_roundtrip_ms() const;
 
     /* Checks periodically if the connection is still alive */
     void start_connectivity_monitoring(uint32_t timeout_ms);
@@ -89,18 +89,18 @@ struct RedChannelClient: public GObject
     gboolean pipe_is_empty();
     uint32_t get_pipe_size();
     GQueue* get_pipe();
-    bool is_mini_header();
+    bool is_mini_header() const;
 
     void ack_zero_messages_window();
     void ack_set_client_window(int client_window);
     void push_set_ack();
 
-    gboolean is_blocked();
+    bool is_blocked() const;
 
     /* helper for channels that have complex logic that can possibly ready a send */
     int send_message_pending();
 
-    gboolean no_item_being_sent();
+    bool no_item_being_sent() const;
     void push();
     void receive();
     void send();
@@ -131,7 +131,7 @@ struct RedChannelClient: public GObject
     void semi_seamless_migration_complete();
     void init_outgoing_messages_window();
 
-    gboolean set_migration_seamless();
+    bool set_migration_seamless();
 
     /* allow to block or unblock reading */
     void block_read();
