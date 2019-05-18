@@ -307,8 +307,8 @@ static SimpleSpiceUpdate *test_spice_create_update_copy_bits(Test *test, uint32_
     QXLDrawable *drawable;
     int bw, bh;
     QXLRect bbox = {
-        .left = 10,
         .top = 0,
+        .left = 10,
     };
 
     update   = g_new0(SimpleSpiceUpdate, 1);
@@ -530,10 +530,10 @@ static void produce_command(Test *test)
             break;
         case SIMPLE_UPDATE: {
             QXLRect rect = {
-                .left = 0,
-                .right = (test->target_surface == 0 ? test->primary_width : test->width),
                 .top = 0,
-                .bottom = (test->target_surface == 0 ? test->primary_height : test->height)
+                .left = 0,
+                .bottom = (test->target_surface == 0 ? test->primary_height : test->height),
+                .right = (test->target_surface == 0 ? test->primary_width : test->width),
             };
             if (rect.right > 0 && rect.bottom > 0) {
                 spice_qxl_update_area(&test->qxl_instance, test->target_surface, &rect, NULL, 0, 1);
@@ -809,8 +809,8 @@ static QXLInterface display_sif = {
     .req_cursor_notification = req_cursor_notification,
     .notify_update = notify_update,
     .flush_resources = flush_resources,
-    .client_monitors_config = client_monitors_config,
     .set_client_capabilities = set_client_capabilities,
+    .client_monitors_config = client_monitors_config,
 };
 
 /* interface for tests */

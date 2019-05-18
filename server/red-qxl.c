@@ -471,12 +471,12 @@ void spice_qxl_gl_scanout(QXLInstance *qxl,
     }
 
     qxl_state->scanout = (SpiceMsgDisplayGlScanoutUnix) {
-        .flags = y_0_top ? SPICE_GL_SCANOUT_FLAGS_Y0TOP : 0,
         .drm_dma_buf_fd = fd,
         .width = width,
         .height = height,
         .stride = stride,
-        .drm_fourcc_format = format
+        .drm_fourcc_format = format,
+        .flags = y_0_top ? SPICE_GL_SCANOUT_FLAGS_Y0TOP : 0,
     };
 
     pthread_mutex_unlock(&qxl_state->scanout_mutex);

@@ -1357,9 +1357,9 @@ void image_encoder_shared_stat_print(const ImageEncoderSharedData *shared_data)
     /* sum all statistics */
     stat_info_t total = {
         .count = 0,
+        .total = 0,
         .orig_size = 0,
         .comp_size = 0,
-        .total = 0
     };
     stat_sum(&total, &shared_data->off_stat);
     stat_sum(&total, &shared_data->quic_stat);

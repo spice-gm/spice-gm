@@ -494,8 +494,8 @@ typedef struct RedMessageConnect {
     RedChannel *channel;
     RedClient *client;
     RedStream *stream;
-    RedChannelCapabilities caps;
     int migration;
+    RedChannelCapabilities caps;
 } RedMessageConnect;
 
 static void handle_dispatcher_connect(void *opaque, void *payload)
