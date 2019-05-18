@@ -165,8 +165,36 @@ struct RedChannelClientPrivate
     RedStatCounter out_bytes;
 };
 
-static const SpiceDataHeaderOpaque full_header_wrapper;
-static const SpiceDataHeaderOpaque mini_header_wrapper;
+static void full_header_set_msg_type(SpiceDataHeaderOpaque *header, uint16_t type);
+static void full_header_set_msg_size(SpiceDataHeaderOpaque *header, uint32_t size);
+static void full_header_set_msg_serial(SpiceDataHeaderOpaque *header, uint64_t serial);
+static void full_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t sub_list);
+static uint16_t full_header_get_msg_type(SpiceDataHeaderOpaque *header);
+static uint32_t full_header_get_msg_size(SpiceDataHeaderOpaque *header);
+
+static const SpiceDataHeaderOpaque full_header_wrapper = {NULL, sizeof(SpiceDataHeader),
+                                                          full_header_set_msg_type,
+                                                          full_header_set_msg_size,
+                                                          full_header_set_msg_serial,
+                                                          full_header_set_msg_sub_list,
+                                                          full_header_get_msg_type,
+                                                          full_header_get_msg_size};
+
+static void mini_header_set_msg_type(SpiceDataHeaderOpaque *header, uint16_t type);
+static void mini_header_set_msg_size(SpiceDataHeaderOpaque *header, uint32_t size);
+static void mini_header_set_msg_serial(SpiceDataHeaderOpaque *header, uint64_t serial);
+static void mini_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t sub_list);
+static uint16_t mini_header_get_msg_type(SpiceDataHeaderOpaque *header);
+static uint32_t mini_header_get_msg_size(SpiceDataHeaderOpaque *header);
+
+static const SpiceDataHeaderOpaque mini_header_wrapper = {NULL, sizeof(SpiceMiniDataHeader),
+                                                          mini_header_set_msg_type,
+                                                          mini_header_set_msg_size,
+                                                          mini_header_set_msg_serial,
+                                                          mini_header_set_msg_sub_list,
+                                                          mini_header_get_msg_type,
+                                                          mini_header_get_msg_size};
+
 static void red_channel_client_clear_sent_item(RedChannelClient *rcc);
 static void red_channel_client_initable_interface_init(GInitableIface *iface);
 static void red_channel_client_set_message_serial(RedChannelClient *channel, uint64_t);
@@ -883,22 +911,6 @@ static void mini_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t
 {
     spice_error("attempt to set header sub list on mini header");
 }
-
-static const SpiceDataHeaderOpaque full_header_wrapper = {NULL, sizeof(SpiceDataHeader),
-                                                          full_header_set_msg_type,
-                                                          full_header_set_msg_size,
-                                                          full_header_set_msg_serial,
-                                                          full_header_set_msg_sub_list,
-                                                          full_header_get_msg_type,
-                                                          full_header_get_msg_size};
-
-static const SpiceDataHeaderOpaque mini_header_wrapper = {NULL, sizeof(SpiceMiniDataHeader),
-                                                          mini_header_set_msg_type,
-                                                          mini_header_set_msg_size,
-                                                          mini_header_set_msg_serial,
-                                                          mini_header_set_msg_sub_list,
-                                                          mini_header_get_msg_type,
-                                                          mini_header_get_msg_size};
 
 static gboolean red_channel_client_initable_init(GInitable *initable,
                                                  GCancellable *cancellable,
