@@ -24,6 +24,8 @@
 
 #include "spice-core.h"
 
+SPICE_BEGIN_DECLS
+
 /* sound interfaces */
 
 #define SPICE_INTERFACE_PLAYBACK "playback"
@@ -92,5 +94,7 @@ uint32_t spice_server_get_best_playback_rate(SpicePlaybackInstance *sin);
 void     spice_server_set_playback_rate(SpicePlaybackInstance *sin, uint32_t frequency);
 uint32_t spice_server_get_best_record_rate(SpiceRecordInstance *sin);
 void     spice_server_set_record_rate(SpiceRecordInstance *sin, uint32_t frequency);
+
+SPICE_END_DECLS
 
 #endif /* SPICE_AUDIO_H_ */

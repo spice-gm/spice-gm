@@ -24,6 +24,8 @@
 
 #include "spice-core.h"
 
+SPICE_BEGIN_DECLS
+
 /* Don't use features incompatible with a specific spice
    version, so that migration to/from that version works. */
 typedef enum {
@@ -169,5 +171,7 @@ void spice_server_vm_start(SpiceServer *s);
 void spice_server_vm_stop(SpiceServer *s);
 
 int spice_server_get_num_clients(SpiceServer *s) SPICE_GNUC_DEPRECATED;
+
+SPICE_END_DECLS
 
 #endif /* SPICE_SERVER_H_ */

@@ -24,6 +24,8 @@
 
 #include "spice-core.h"
 
+SPICE_BEGIN_DECLS
+
 /* input interfaces */
 
 #define SPICE_INTERFACE_KEYBOARD "keyboard"
@@ -87,5 +89,7 @@ struct SpiceTabletInstance {
     SpiceBaseInstance base;
     SpiceTabletState  *st;
 };
+
+SPICE_END_DECLS
 
 #endif /* SPICE_INPUT_H_ */

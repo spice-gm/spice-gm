@@ -24,6 +24,8 @@
 
 #include "spice-core.h"
 
+SPICE_BEGIN_DECLS
+
 #ifndef SPICE_CAPABILITIES_SIZE
 #define SPICE_CAPABILITIES_SIZE (sizeof(((QXLRom*)0)->client_capabilities))
 #endif
@@ -231,5 +233,7 @@ struct QXLInstance {
     int                id;
     QXLState           *st;
 };
+
+SPICE_END_DECLS
 
 #endif /* SPICE_QXL_H_ */

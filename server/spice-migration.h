@@ -24,6 +24,8 @@
 
 #include "spice-core.h"
 
+SPICE_BEGIN_DECLS
+
 /* migration interface */
 #define SPICE_INTERFACE_MIGRATION "migration"
 #define SPICE_INTERFACE_MIGRATION_MAJOR 1
@@ -57,5 +59,7 @@ int spice_server_migrate_start(SpiceServer *s);
 int spice_server_migrate_end(SpiceServer *s, int completed);
 
 void spice_server_set_seamless_migration(SpiceServer *s, int enable);
+
+SPICE_END_DECLS
 
 #endif /* SPICE_MIGRATION_H_ */

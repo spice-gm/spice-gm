@@ -24,6 +24,8 @@
 
 #include "spice-core.h"
 
+SPICE_BEGIN_DECLS
+
 /* char device interfaces */
 
 #define SPICE_INTERFACE_CHAR_DEVICE "char_device"
@@ -84,5 +86,7 @@ void spice_server_char_device_wakeup(SpiceCharDeviceInstance *sin);
 void spice_server_port_event(SpiceCharDeviceInstance *char_device, uint8_t event);
 /* TODO change return to const char *const * when API break */
 const char** spice_server_char_device_recognized_subtypes(void);
+
+SPICE_END_DECLS
 
 #endif /* SPICE_CHAR_H_ */
