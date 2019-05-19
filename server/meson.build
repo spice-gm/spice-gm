@@ -7,7 +7,7 @@ version_info = meson.project_version().split('.')
 major = '@0@'.format(version_info[0])
 minor = '@0@'.format(version_info[1])
 micro = version_info[2].to_int()
-if not version_info[3].contains('git')
+if not version_info.contains('git')
   micro += 1
 endif
 micro = '@0@'.format(micro)
