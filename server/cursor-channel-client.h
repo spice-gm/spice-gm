@@ -42,9 +42,7 @@ G_BEGIN_DECLS
 #define CURSOR_CHANNEL_CLIENT_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_CURSOR_CHANNEL_CLIENT, CursorChannelClientClass))
 
-typedef struct CursorChannelClient CursorChannelClient;
-typedef struct CursorChannelClientClass CursorChannelClientClass;
-typedef struct CursorChannelClientPrivate CursorChannelClientPrivate;
+struct CursorChannelClientPrivate;
 
 struct CursorChannelClient final: public CommonGraphicsChannelClient
 {

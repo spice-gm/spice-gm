@@ -30,8 +30,8 @@ G_BEGIN_DECLS
  * movements.
  * A pointer to CursorChannel can be converted to a RedChannel.
  */
-typedef struct CursorChannel CursorChannel;
-typedef struct CursorChannelClass CursorChannelClass;
+struct CursorChannel;
+struct CursorChannelClass;
 
 #define TYPE_CURSOR_CHANNEL cursor_channel_get_type()
 

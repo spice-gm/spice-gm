@@ -29,7 +29,7 @@ SPICE_BEGIN_DECLS
 SPICE_DECLARE_TYPE(RedCharDeviceSmartcard, red_char_device_smartcard, CHAR_DEVICE_SMARTCARD);
 #define RED_TYPE_CHAR_DEVICE_SMARTCARD red_char_device_smartcard_get_type()
 
-typedef struct SmartCardChannelClient SmartCardChannelClient;
+struct SmartCardChannelClient;
 
 struct RedCharDeviceSmartcard
 {

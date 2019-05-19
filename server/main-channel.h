@@ -37,8 +37,8 @@ G_BEGIN_DECLS
 #define MAIN_CHANNEL_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_MAIN_CHANNEL, MainChannelClass))
 
-typedef struct MainChannel MainChannel;
-typedef struct MainChannelClass MainChannelClass;
+struct MainChannel;
+struct MainChannelClass;
 
 GType main_channel_get_type(void) G_GNUC_CONST;
 
@@ -53,7 +53,6 @@ struct RedsMigSpice {
     int port;
     int sport;
 };
-typedef struct RedsMigSpice RedsMigSpice;
 
 MainChannel *main_channel_new(RedsState *reds);
 RedClient *main_channel_get_client_by_link_id(MainChannel *main_chan, uint32_t link_id);

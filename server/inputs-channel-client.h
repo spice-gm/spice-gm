@@ -29,18 +29,8 @@ G_BEGIN_DECLS
 
 #define INPUTS_CHANNEL_CLIENT(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_INPUTS_CHANNEL_CLIENT, InputsChannelClient))
-#define INPUTS_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_INPUTS_CHANNEL_CLIENT, InputsChannelClientClass))
-#define IS_INPUTS_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_INPUTS_CHANNEL_CLIENT))
-#define IS_INPUTS_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_INPUTS_CHANNEL_CLIENT))
-#define INPUTS_CHANNEL_CLIENT_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_INPUTS_CHANNEL_CLIENT, InputsChannelClientClass))
 
-typedef struct InputsChannelClient InputsChannelClient;
-typedef struct InputsChannelClientClass InputsChannelClientClass;
-typedef struct InputsChannelClientPrivate InputsChannelClientPrivate;
+struct InputsChannelClientPrivate;
 
 struct InputsChannelClient final: public RedChannelClient
 {

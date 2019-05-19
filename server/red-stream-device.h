@@ -27,8 +27,8 @@ G_BEGIN_DECLS
 /**
  * StreamDevice inherits from RedCharDevice.
  */
-typedef struct StreamDevice StreamDevice;
-typedef struct StreamDeviceClass StreamDeviceClass;
+struct StreamDevice;
+struct StreamDeviceClass;
 
 #define TYPE_STREAM_DEVICE stream_device_get_type()
 

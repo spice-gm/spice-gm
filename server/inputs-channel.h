@@ -39,8 +39,8 @@ G_BEGIN_DECLS
 #define INPUTS_CHANNEL_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_INPUTS_CHANNEL, InputsChannelClass))
 
-typedef struct InputsChannel InputsChannel;
-typedef struct InputsChannelClass InputsChannelClass;
+struct InputsChannel;
+struct InputsChannelClass;
 
 GType inputs_channel_get_type(void) G_GNUC_CONST;
 

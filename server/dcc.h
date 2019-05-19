@@ -42,9 +42,7 @@ G_BEGIN_DECLS
 #define DISPLAY_CHANNEL_CLIENT_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_DISPLAY_CHANNEL_CLIENT, DisplayChannelClientClass))
 
-typedef struct DisplayChannelClient DisplayChannelClient;
-typedef struct DisplayChannelClientClass DisplayChannelClientClass;
-typedef struct DisplayChannelClientPrivate DisplayChannelClientPrivate;
+struct DisplayChannelClientPrivate;
 
 struct DisplayChannelClient final: public CommonGraphicsChannelClient
 {
@@ -76,9 +74,9 @@ GType display_channel_client_get_type(void) G_GNUC_CONST;
 
 #define MAX_PIPE_SIZE 50
 
-typedef struct DisplayChannel DisplayChannel;
-typedef struct VideoStream VideoStream;
-typedef struct VideoStreamAgent VideoStreamAgent;
+struct DisplayChannel;
+struct VideoStream;
+struct VideoStreamAgent;
 
 typedef struct WaitForChannels {
     SpiceMsgWaitForChannels header;

@@ -42,9 +42,7 @@ bool common_channel_client_config_socket(RedChannelClient *rcc);
 #define COMMON_GRAPHICS_CHANNEL_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_COMMON_GRAPHICS_CHANNEL, CommonGraphicsChannelClass))
 
-typedef struct CommonGraphicsChannel CommonGraphicsChannel;
-typedef struct CommonGraphicsChannelClass CommonGraphicsChannelClass;
-typedef struct CommonGraphicsChannelPrivate CommonGraphicsChannelPrivate;
+struct CommonGraphicsChannelPrivate;
 
 struct CommonGraphicsChannel: public RedChannel
 {
@@ -83,9 +81,7 @@ enum {
     (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT, \
     CommonGraphicsChannelClientClass))
 
-typedef struct CommonGraphicsChannelClient CommonGraphicsChannelClient;
-typedef struct CommonGraphicsChannelClientClass CommonGraphicsChannelClientClass;
-typedef struct CommonGraphicsChannelClientPrivate CommonGraphicsChannelClientPrivate;
+struct CommonGraphicsChannelClientPrivate;
 
 struct CommonGraphicsChannelClient: public RedChannelClient
 {

@@ -40,9 +40,9 @@ G_BEGIN_DECLS
 SPICE_DECLARE_TYPE(RedChannel, red_channel, CHANNEL);
 #define RED_TYPE_CHANNEL red_channel_get_type()
 
-typedef struct RedChannelClient RedChannelClient;
-typedef struct RedClient RedClient;
-typedef struct MainChannelClient MainChannelClient;
+struct RedChannelClient;
+struct RedClient;
+struct MainChannelClient;
 
 typedef bool (*channel_handle_message_proc)(RedChannelClient *rcc, uint16_t type,
                                             uint32_t size, void *msg);

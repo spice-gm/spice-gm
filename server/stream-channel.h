@@ -30,8 +30,8 @@ G_BEGIN_DECLS
  * channel with input only by stream.
  * A pointer to StreamChannel can be converted to a RedChannel.
  */
-typedef struct StreamChannel StreamChannel;
-typedef struct StreamChannelClass StreamChannelClass;
+struct StreamChannel;
+struct StreamChannelClass;
 
 #define TYPE_STREAM_CHANNEL stream_channel_get_type()
 
@@ -69,10 +69,10 @@ typedef void (*stream_channel_start_proc)(void *opaque, struct StreamMsgStartSto
 void stream_channel_register_start_cb(StreamChannel *channel,
                                       stream_channel_start_proc cb, void *opaque);
 
-typedef struct StreamQueueStat {
+struct StreamQueueStat {
     uint32_t num_items;
     uint32_t size;
-} StreamQueueStat;
+};
 
 typedef void (*stream_channel_queue_stat_proc)(void *opaque, const StreamQueueStat *stats,
                                                StreamChannel *channel);
