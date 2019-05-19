@@ -19,8 +19,6 @@
 #ifndef DCC_H_
 #define DCC_H_
 
-#include <glib-object.h>
-
 #include "image-encoders.h"
 #include "image-cache.h"
 #include "pixmap-cache.h"
@@ -29,33 +27,29 @@
 
 G_BEGIN_DECLS
 
-#define TYPE_DISPLAY_CHANNEL_CLIENT display_channel_client_get_type()
-
-#define DISPLAY_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_DISPLAY_CHANNEL_CLIENT, DisplayChannelClient))
-#define DISPLAY_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_DISPLAY_CHANNEL_CLIENT, DisplayChannelClientClass))
-#define IS_DISPLAY_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_DISPLAY_CHANNEL_CLIENT))
-#define IS_DISPLAY_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_DISPLAY_CHANNEL_CLIENT))
-#define DISPLAY_CHANNEL_CLIENT_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_DISPLAY_CHANNEL_CLIENT, DisplayChannelClientClass))
-
+struct DisplayChannel;
 struct DisplayChannelClientPrivate;
 
-struct DisplayChannelClient final: public CommonGraphicsChannelClient
+class DisplayChannelClient final: public CommonGraphicsChannelClient
 {
+protected:
+    ~DisplayChannelClient();
+public:
+    DisplayChannelClient(DisplayChannel *display,
+                         RedClient *client, RedStream *stream,
+                         RedChannelCapabilities *caps,
+                         uint32_t id,
+                         SpiceImageCompression image_compression,
+                         spice_wan_compression_t jpeg_state,
+                         spice_wan_compression_t zlib_glz_state);
+
+    virtual bool config_socket() override;
+    virtual void on_disconnect() override;
+
+    DisplayChannelClientPrivate *priv = nullptr;
+
     int is_low_bandwidth;
-
-    DisplayChannelClientPrivate *priv;
 };
-
-struct DisplayChannelClientClass {
-    CommonGraphicsChannelClientClass parent_class;
-};
-
-GType display_channel_client_get_type(void) G_GNUC_CONST;
 
 #define PALETTE_CACHE_HASH_SHIFT 8
 #define PALETTE_CACHE_HASH_SIZE (1 << PALETTE_CACHE_HASH_SHIFT)

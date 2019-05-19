@@ -18,8 +18,6 @@
 #ifndef RED_CHANNEL_CLIENT_H_
 #define RED_CHANNEL_CLIENT_H_
 
-#include <glib-object.h>
-#include <gio/gio.h>
 #include <common/marshaller.h>
 
 #include "red-pipe-item.h"
@@ -28,12 +26,28 @@
 
 G_BEGIN_DECLS
 
-#define RED_TYPE_CHANNEL_CLIENT red_channel_client_get_type()
+struct RedChannelClientPrivate;
 
-SPICE_DECLARE_TYPE(RedChannelClient, red_channel_client, CHANNEL_CLIENT);
-
-struct RedChannelClient: public GObject
+class RedChannelClient
 {
+public:
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    // This is made protected to avoid allocation on stack conflicting with
+    // reference counting
+protected:
+    virtual ~RedChannelClient();
+
+public:
+    RedChannelClient(RedChannel *channel,
+                     RedClient *client,
+                     RedStream *stream,
+                     RedChannelCapabilities *caps,
+                     bool monitor_latency=false);
+    virtual bool init();
+
+    RedChannelClientPrivate *priv = nullptr;
+
     bool is_connected() const;
     static void default_migrate(RedChannelClient *rcc);
     bool is_waiting_for_migrate_data() const;
@@ -137,22 +151,19 @@ struct RedChannelClient: public GObject
     void block_read();
     void unblock_read();
 
-    void ref() { g_object_ref(this); }
-    void unref() { g_object_unref(this); }
-
-    RedChannelClientPrivate *priv;
-};
-
-struct RedChannelClientClass
-{
-    GObjectClass parent_class;
+    void ref() { g_atomic_int_inc(&_ref); }
+    void unref() { if (g_atomic_int_dec_and_test(&_ref)) delete this; }
 
     /* configure socket connected to the client */
-    bool (*config_socket)(RedChannelClient *rcc);
-    uint8_t *(*alloc_recv_buf)(RedChannelClient *channel, uint16_t type, uint32_t size);
-    void (*release_recv_buf)(RedChannelClient *channel, uint16_t type, uint32_t size, uint8_t *msg);
+    virtual bool config_socket() { return true; }
+    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size)=0;
+    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg)=0;
 
-    void (*on_disconnect)(RedChannelClient *rcc);
+    virtual void on_disconnect() {};
+
+    /* Private data */
+private:
+    gint _ref = 1;
 };
 
 #define SPICE_SERVER_ERROR spice_server_error_quark()

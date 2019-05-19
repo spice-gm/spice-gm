@@ -193,6 +193,8 @@ static inline void red_marshall_inval(RedChannelClient *rcc,
     spice_marshall_msg_cursor_inval_one(base_marshaller, &inval_one);
 }
 
+XXX_CAST(RedChannelClient, CursorChannelClient, CURSOR_CHANNEL_CLIENT);
+
 static void cursor_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
 {
     SpiceMarshaller *m = rcc->get_marshaller();
@@ -211,7 +213,7 @@ static void cursor_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_it
         break;
     case RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE:
         cursor_channel_client_reset_cursor_cache(ccc);
-        rcc->init_send_data(SPICE_MSG_CURSOR_INVAL_ALL);
+        ccc->init_send_data(SPICE_MSG_CURSOR_INVAL_ALL);
         break;
     default:
         spice_error("invalid pipe item type");

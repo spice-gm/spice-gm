@@ -30,6 +30,8 @@
 #include "smartcard-channel-client.h"
 #include "migration-protocol.h"
 
+XXX_CAST(RedChannelClient, SmartCardChannelClient, SMARTCARD_CHANNEL_CLIENT)
+
 /*
  * TODO: the code doesn't really support multiple readers.
  * For example: smartcard_char_device_add_to_readers calls smartcard_init,

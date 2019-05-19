@@ -18,7 +18,6 @@
 #ifndef MAIN_CHANNEL_CLIENT_H_
 #define MAIN_CHANNEL_CLIENT_H_
 
-#include <glib-object.h>
 #include <common/messages.h>
 
 #include "red-channel-client.h"
@@ -26,32 +25,24 @@
 
 G_BEGIN_DECLS
 
-#define TYPE_MAIN_CHANNEL_CLIENT main_channel_client_get_type()
-
-#define MAIN_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_MAIN_CHANNEL_CLIENT, MainChannelClient))
-#define MAIN_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_MAIN_CHANNEL_CLIENT, MainChannelClientClass))
-#define IS_MAIN_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_MAIN_CHANNEL_CLIENT))
-#define IS_MAIN_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_MAIN_CHANNEL_CLIENT))
-#define MAIN_CHANNEL_CLIENT_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_MAIN_CHANNEL_CLIENT, MainChannelClientClass))
-
 struct MainChannelClientPrivate;
 
-struct MainChannelClient final: public RedChannelClient
+class MainChannelClient final: public RedChannelClient
 {
-    MainChannelClientPrivate *priv;
-};
+protected:
+    ~MainChannelClient();
+public:
+    MainChannelClient(MainChannel *channel,
+                      RedClient *client,
+                      RedStream *stream,
+                      RedChannelCapabilities *caps,
+                      uint32_t connection_id);
 
-struct MainChannelClientClass
-{
-    RedChannelClientClass parent_class;
+    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
+    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    virtual void on_disconnect() override;
+    MainChannelClientPrivate *const priv = nullptr;
 };
-
-GType main_channel_client_get_type(void) G_GNUC_CONST;
 
 MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient *client,
                                               RedStream *stream, uint32_t connection_id,

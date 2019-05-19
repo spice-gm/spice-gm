@@ -20,68 +20,25 @@
 #include "migration-protocol.h"
 #include "red-channel-client.h"
 
-// TODO: RECEIVE_BUF_SIZE used to be the same for inputs_channel and main_channel
-// since it was defined once in reds.c which contained both.
-// Now that they are split we can give a more fitting value for inputs - what
-// should it be?
-#define REDS_AGENT_WINDOW_SIZE 10
-#define REDS_NUM_INTERNAL_AGENT_MESSAGES 1
+XXX_CAST(RedChannelClient, InputsChannelClient, INPUTS_CHANNEL_CLIENT);
 
-// approximate max receive message size
-#define RECEIVE_BUF_SIZE \
-    (4096 + (REDS_AGENT_WINDOW_SIZE + REDS_NUM_INTERNAL_AGENT_MESSAGES) * SPICE_AGENT_MAX_DATA_SIZE)
-
-struct InputsChannelClientPrivate
+uint8_t *InputsChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 {
-    uint16_t motion_count;
-    uint8_t recv_buf[RECEIVE_BUF_SIZE];
-};
-
-G_DEFINE_TYPE_WITH_PRIVATE(InputsChannelClient, inputs_channel_client, RED_TYPE_CHANNEL_CLIENT)
-
-static uint8_t *
-inputs_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
-                                        uint16_t type, uint32_t size)
-{
-    InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
-
-    if (size > sizeof(icc->priv->recv_buf)) {
-        red_channel_warning(rcc->get_channel(),
-                            "error: too large incoming message");
+    if (size > sizeof(recv_buf)) {
+        red_channel_warning(get_channel(), "error: too large incoming message");
         return NULL;
     }
 
-    return icc->priv->recv_buf;
+    return recv_buf;
 }
 
-static void
-inputs_channel_client_release_msg_rcv_buf(RedChannelClient *rcc,
-                                          uint16_t type, uint32_t size, uint8_t *msg)
+void InputsChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg)
 {
 }
 
-static void inputs_channel_client_on_disconnect(RedChannelClient *rcc)
+void InputsChannelClient::on_disconnect()
 {
-    if (!rcc) {
-        return;
-    }
-    inputs_release_keys(INPUTS_CHANNEL(rcc->get_channel()));
-}
-
-static void
-inputs_channel_client_class_init(InputsChannelClientClass *klass)
-{
-    RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
-
-    client_class->alloc_recv_buf = inputs_channel_client_alloc_msg_rcv_buf;
-    client_class->release_recv_buf = inputs_channel_client_release_msg_rcv_buf;
-    client_class->on_disconnect = inputs_channel_client_on_disconnect;
-}
-
-static void
-inputs_channel_client_init(InputsChannelClient *self)
-{
-    self->priv = (InputsChannelClientPrivate *) inputs_channel_client_get_instance_private(self);
+    inputs_release_keys(INPUTS_CHANNEL(get_channel()));
 }
 
 RedChannelClient* inputs_channel_client_create(RedChannel *channel,
@@ -89,17 +46,11 @@ RedChannelClient* inputs_channel_client_create(RedChannel *channel,
                                                RedStream *stream,
                                                RedChannelCapabilities *caps)
 {
-    RedChannelClient *rcc;
-
-    rcc = (RedChannelClient *)
-          g_initable_new(TYPE_INPUTS_CHANNEL_CLIENT,
-                         NULL, NULL,
-                         "channel", channel,
-                         "client", client,
-                         "stream", stream,
-                         "caps", caps,
-                         NULL);
-
+    auto rcc = new InputsChannelClient(channel, client, stream, caps);
+    if (!rcc->init()) {
+        delete rcc;
+        rcc = nullptr;
+    }
     return rcc;
 }
 
@@ -113,16 +64,16 @@ void inputs_channel_client_send_migrate_data(RedChannelClient *rcc,
 
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_INPUTS_MAGIC);
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_INPUTS_VERSION);
-    spice_marshaller_add_uint16(m, icc->priv->motion_count);
+    spice_marshaller_add_uint16(m, icc->motion_count);
 }
 
 void inputs_channel_client_handle_migrate_data(InputsChannelClient *icc,
                                                uint16_t motion_count)
 {
-    icc->priv->motion_count = motion_count;
+    icc->motion_count = motion_count;
 
-    for (; icc->priv->motion_count >= SPICE_INPUT_MOTION_ACK_BUNCH;
-           icc->priv->motion_count -= SPICE_INPUT_MOTION_ACK_BUNCH) {
+    for (; icc->motion_count >= SPICE_INPUT_MOTION_ACK_BUNCH;
+           icc->motion_count -= SPICE_INPUT_MOTION_ACK_BUNCH) {
         icc->pipe_add_type(RED_PIPE_ITEM_MOUSE_MOTION_ACK);
     }
 }
@@ -131,9 +82,9 @@ void inputs_channel_client_on_mouse_motion(InputsChannelClient *icc)
 {
     InputsChannel *inputs_channel = INPUTS_CHANNEL(icc->get_channel());
 
-    if (++icc->priv->motion_count % SPICE_INPUT_MOTION_ACK_BUNCH == 0 &&
+    if (++icc->motion_count % SPICE_INPUT_MOTION_ACK_BUNCH == 0 &&
         !inputs_channel_is_src_during_migrate(inputs_channel)) {
         icc->pipe_add_type(RED_PIPE_ITEM_MOUSE_MOTION_ACK);
-        icc->priv->motion_count = 0;
+        icc->motion_count = 0;
     }
 }

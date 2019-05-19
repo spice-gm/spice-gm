@@ -28,41 +28,25 @@
 #include "display-limits.h"
 #include "video-stream.h" // TODO remove, put common stuff
 
-#define TYPE_STREAM_CHANNEL_CLIENT stream_channel_client_get_type()
-
-#define STREAM_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_STREAM_CHANNEL_CLIENT, StreamChannelClient))
-#define STREAM_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_STREAM_CHANNEL_CLIENT, StreamChannelClientClass))
-#define IS_STREAM_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_STREAM_CHANNEL_CLIENT))
-#define IS_STREAM_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_STREAM_CHANNEL_CLIENT))
-#define STREAM_CHANNEL_CLIENT_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_STREAM_CHANNEL_CLIENT, StreamChannelClientClass))
-
-typedef struct StreamChannelClient StreamChannelClient;
-typedef struct StreamChannelClientClass StreamChannelClientClass;
-
 /* we need to inherit from CommonGraphicsChannelClient
  * to get buffer handling */
-struct StreamChannelClient final: public CommonGraphicsChannelClient
+class StreamChannelClient final: public CommonGraphicsChannelClient
 {
+protected:
+    ~StreamChannelClient();
+public:
+    using CommonGraphicsChannelClient::CommonGraphicsChannelClient;
+
+    bool handle_preferred_video_codec_type(SpiceMsgcDisplayPreferredVideoCodecType *msg);
+
     /* current video stream id, <0 if not initialized or
      * we are not sending a stream */
-    int stream_id;
+    int stream_id = -1;
     /* Array with SPICE_VIDEO_CODEC_TYPE_ENUM_END elements, with the client
      * preference order (index) as value */
     GArray *client_preferred_video_codecs;
+    virtual void on_disconnect() override;
 };
-
-struct StreamChannelClientClass {
-    CommonGraphicsChannelClientClass parent_class;
-};
-
-GType stream_channel_client_get_type(void) G_GNUC_CONST;
-
-G_DEFINE_TYPE(StreamChannelClient, stream_channel_client, TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT)
 
 struct StreamChannel final: public RedChannel
 {
@@ -114,37 +98,11 @@ typedef struct StreamDataItem {
 
 #define PRIMARY_SURFACE_ID 0
 
-static void stream_channel_client_on_disconnect(RedChannelClient *rcc);
-static bool
-stream_channel_handle_preferred_video_codec_type(RedChannelClient *rcc,
-                                                 SpiceMsgcDisplayPreferredVideoCodecType *msg);
-
 RECORDER(stream_channel_data, 32, "Stream channel data packet");
 
-static void
-stream_channel_client_finalize(GObject *object)
+StreamChannelClient::~StreamChannelClient()
 {
-    StreamChannelClient *self = STREAM_CHANNEL_CLIENT(object);
-    g_clear_pointer(&self->client_preferred_video_codecs, g_array_unref);
-
-    G_OBJECT_CLASS(stream_channel_client_parent_class)->finalize(object);
-}
-
-static void
-stream_channel_client_class_init(StreamChannelClientClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-
-    RedChannelClientClass *channel_class = RED_CHANNEL_CLIENT_CLASS(klass);
-
-    channel_class->on_disconnect = stream_channel_client_on_disconnect;
-    object_class->finalize = stream_channel_client_finalize;
-}
-
-static void
-stream_channel_client_init(StreamChannelClient *client)
-{
-    client->stream_id = -1;
+    g_clear_pointer(&client_preferred_video_codecs, g_array_unref);
 }
 
 static void
@@ -155,10 +113,10 @@ request_new_stream(StreamChannel *channel, StreamMsgStartStop *start)
     }
 }
 
-static void
-stream_channel_client_on_disconnect(RedChannelClient *rcc)
+void
+StreamChannelClient::on_disconnect()
 {
-    StreamChannel *channel = STREAM_CHANNEL(rcc->get_channel());
+    StreamChannel *channel = STREAM_CHANNEL(get_channel());
 
     // if there are still some client connected keep streaming
     // TODO, maybe would be worth sending new codecs if they are better
@@ -179,17 +137,11 @@ static StreamChannelClient*
 stream_channel_client_new(StreamChannel *channel, RedClient *client, RedStream *stream,
                           int mig_target, RedChannelCapabilities *caps)
 {
-    StreamChannelClient *rcc;
-
-    rcc = (StreamChannelClient *)
-          g_initable_new(TYPE_STREAM_CHANNEL_CLIENT,
-                         NULL, NULL,
-                         "channel", channel,
-                         "client", client,
-                         "stream", stream,
-                         "caps", caps,
-                         NULL);
-
+    auto rcc = new StreamChannelClient(RED_CHANNEL(channel), client, stream, caps);
+    if (!rcc->init()) {
+        rcc->unref();
+        rcc = nullptr;
+    }
     return rcc;
 }
 
@@ -226,6 +178,8 @@ marshall_monitors_config(RedChannelClient *rcc, StreamChannel *channel, SpiceMar
     rcc->init_send_data(SPICE_MSG_DISPLAY_MONITORS_CONFIG);
     spice_marshall_msg_display_monitors_config(m, &msg.config);
 }
+
+XXX_CAST(RedChannelClient, StreamChannelClient, STREAM_CHANNEL_CLIENT)
 
 static void
 stream_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
@@ -329,6 +283,8 @@ stream_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
 static bool
 handle_message(RedChannelClient *rcc, uint16_t type, uint32_t size, void *msg)
 {
+    StreamChannelClient *client = STREAM_CHANNEL_CLIENT(rcc);
+
     switch (type) {
     case SPICE_MSGC_DISPLAY_INIT:
     case SPICE_MSGC_DISPLAY_PREFERRED_COMPRESSION:
@@ -340,7 +296,7 @@ handle_message(RedChannelClient *rcc, uint16_t type, uint32_t size, void *msg)
         /* client should not send this message */
         return false;
     case SPICE_MSGC_DISPLAY_PREFERRED_VIDEO_CODEC_TYPE:
-        return stream_channel_handle_preferred_video_codec_type(rcc,
+        return client->handle_preferred_video_codec_type(
             (SpiceMsgcDisplayPreferredVideoCodecType *)msg);
     default:
         return RedChannelClient::handle_message(rcc, type, size, msg);
@@ -407,18 +363,15 @@ stream_channel_get_supported_codecs(StreamChannel *channel, uint8_t *out_codecs)
     return num;
 }
 
-static bool
-stream_channel_handle_preferred_video_codec_type(RedChannelClient *rcc,
-                                                 SpiceMsgcDisplayPreferredVideoCodecType *msg)
+bool
+StreamChannelClient::handle_preferred_video_codec_type(SpiceMsgcDisplayPreferredVideoCodecType *msg)
 {
-    StreamChannelClient *client = STREAM_CHANNEL_CLIENT(rcc);
-
     if (msg->num_of_codecs == 0) {
         return true;
     }
 
-    g_clear_pointer(&client->client_preferred_video_codecs, g_array_unref);
-    client->client_preferred_video_codecs = video_stream_parse_preferred_codecs(msg);
+    g_clear_pointer(&client_preferred_video_codecs, g_array_unref);
+    client_preferred_video_codecs = video_stream_parse_preferred_codecs(msg);
 
     return true;
 }

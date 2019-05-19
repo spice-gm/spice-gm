@@ -21,6 +21,8 @@
 #include "display-channel-private.h"
 #include "red-qxl.h"
 
+XXX_CAST(RedChannelClient, DisplayChannelClient, DISPLAY_CHANNEL_CLIENT);
+
 G_DEFINE_TYPE(DisplayChannel, display_channel, TYPE_COMMON_GRAPHICS_CHANNEL)
 
 static void display_channel_connect(RedChannel *channel, RedClient *client,

@@ -115,6 +115,8 @@ typedef struct IncomingMessageBuffer {
 
 struct RedChannelClientPrivate
 {
+    SPICE_CXX_GLIB_ALLOCATOR
+
     RedChannel *channel;
     RedClient  *client;
     RedStream *stream;
@@ -196,9 +198,7 @@ static const SpiceDataHeaderOpaque mini_header_wrapper = {NULL, sizeof(SpiceMini
                                                           mini_header_get_msg_size};
 
 static void red_channel_client_clear_sent_item(RedChannelClient *rcc);
-static void red_channel_client_initable_interface_init(GInitableIface *iface);
 static void red_channel_client_set_message_serial(RedChannelClient *channel, uint64_t);
-static bool red_channel_client_config_socket(RedChannelClient *rcc);
 
 /*
  * When an error occurs over a channel, we treat it as a warning
@@ -209,24 +209,6 @@ static bool red_channel_client_config_socket(RedChannelClient *rcc);
         red_channel_warning(rcc->priv->channel, format, ## __VA_ARGS__);                 \
         rcc->shutdown();                                                                 \
     } while (0)
-
-G_DEFINE_TYPE_WITH_CODE(RedChannelClient, red_channel_client, G_TYPE_OBJECT,
-                        G_IMPLEMENT_INTERFACE(G_TYPE_INITABLE,
-                                              red_channel_client_initable_interface_init);
-                        G_ADD_PRIVATE(RedChannelClient));
-
-static gboolean red_channel_client_initable_init(GInitable *initable,
-                                                 GCancellable *cancellable,
-                                                 GError **error);
-
-enum {
-    PROP0,
-    PROP_STREAM,
-    PROP_CHANNEL,
-    PROP_CLIENT,
-    PROP_MONITOR_LATENCY,
-    PROP_CAPS
-};
 
 #define PING_TEST_TIMEOUT_MS (MSEC_PER_SEC * 15)
 #define PING_TEST_LONG_TIMEOUT_MS (MSEC_PER_SEC * 60 * 5)
@@ -284,112 +266,60 @@ static void red_channel_client_restart_ping_timer(RedChannelClient *rcc)
     red_channel_client_start_ping_timer(rcc, timeout);
 }
 
-static void
-red_channel_client_get_property(GObject *object,
-                                guint property_id,
-                                GValue *value,
-                                GParamSpec *pspec)
+RedChannelClient::~RedChannelClient()
 {
-    RedChannelClient *self = RED_CHANNEL_CLIENT(object);
+    red_timer_remove(priv->latency_monitor.timer);
+    priv->latency_monitor.timer = NULL;
 
-    switch (property_id)
-    {
-        case PROP_STREAM:
-            g_value_set_pointer(value, self->priv->stream);
-            break;
-        case PROP_CHANNEL:
-            g_value_set_object(value, self->priv->channel);
-            break;
-        case PROP_CLIENT:
-            g_value_set_object(value, self->priv->client);
-            break;
-        case PROP_MONITOR_LATENCY:
-            g_value_set_boolean(value, self->priv->monitor_latency);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+    red_timer_remove(priv->connectivity_monitor.timer);
+    priv->connectivity_monitor.timer = NULL;
+
+    red_stream_free(priv->stream);
+    priv->stream = NULL;
+
+    if (priv->send_data.main.marshaller) {
+        spice_marshaller_destroy(priv->send_data.main.marshaller);
     }
+
+    if (priv->send_data.urgent.marshaller) {
+        spice_marshaller_destroy(priv->send_data.urgent.marshaller);
+    }
+
+    red_channel_capabilities_reset(&priv->remote_caps);
+    if (priv->channel) {
+        g_object_unref(priv->channel);
+    }
+    delete priv;
 }
 
-static void
-red_channel_client_set_property(GObject *object,
-                                guint property_id,
-                                const GValue *value,
-                                GParamSpec *pspec)
+RedChannelClient::RedChannelClient(RedChannel *channel,
+                                   RedClient *client,
+                                   RedStream *stream,
+                                   RedChannelCapabilities *caps,
+                                   bool monitor_latency)
 {
-    RedChannelClient *self = RED_CHANNEL_CLIENT(object);
+    RedChannelClient *self =  this;
 
-    switch (property_id)
-    {
-        case PROP_STREAM:
-            self->priv->stream = (RedStream*) g_value_get_pointer(value);
-            break;
-        case PROP_CHANNEL:
-            if (self->priv->channel)
-                g_object_unref(self->priv->channel);
-            self->priv->channel = (RedChannel *) g_value_dup_object(value);
-            break;
-        case PROP_CLIENT:
-            self->priv->client = (RedClient *) g_value_get_object(value);
-            break;
-        case PROP_MONITOR_LATENCY:
-            self->priv->monitor_latency = g_value_get_boolean(value);
-            break;
-        case PROP_CAPS:
-            {
-                RedChannelCapabilities *caps = (RedChannelCapabilities *) g_value_get_boxed(value);
-                if (caps) {
-                    red_channel_capabilities_reset(&self->priv->remote_caps);
-                    red_channel_capabilities_init(&self->priv->remote_caps, caps);
-                }
-            }
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
+    // XXX initialize
+    priv = new RedChannelClientPrivate();
 
-static void
-red_channel_client_finalize(GObject *object)
-{
-    RedChannelClient *self = RED_CHANNEL_CLIENT(object);
+    // blocks send message (maybe use send_data.blocked + block flags)
+    self->priv->ack_data.messages_window = ~0;
+    self->priv->ack_data.client_generation = ~0;
+    self->priv->ack_data.client_window = CLIENT_ACK_WINDOW;
+    self->priv->send_data.main.marshaller = spice_marshaller_new();
+    self->priv->send_data.urgent.marshaller = spice_marshaller_new();
 
-    red_timer_remove(self->priv->latency_monitor.timer);
-    self->priv->latency_monitor.timer = NULL;
+    self->priv->send_data.marshaller = self->priv->send_data.main.marshaller;
 
-    red_timer_remove(self->priv->connectivity_monitor.timer);
-    self->priv->connectivity_monitor.timer = NULL;
-
-    red_stream_free(self->priv->stream);
-    self->priv->stream = NULL;
-
-    if (self->priv->send_data.main.marshaller) {
-        spice_marshaller_destroy(self->priv->send_data.main.marshaller);
-    }
-
-    if (self->priv->send_data.urgent.marshaller) {
-        spice_marshaller_destroy(self->priv->send_data.urgent.marshaller);
-    }
+    g_queue_init(&self->priv->pipe);
 
     red_channel_capabilities_reset(&self->priv->remote_caps);
-    if (self->priv->channel) {
-        g_object_unref(self->priv->channel);
-    }
+    red_channel_capabilities_init(&self->priv->remote_caps, caps);
 
-    G_OBJECT_CLASS(red_channel_client_parent_class)->finalize(object);
-}
-
-static void red_channel_client_initable_interface_init(GInitableIface *iface)
-{
-    iface->init = red_channel_client_initable_init;
-}
-
-static void red_channel_client_constructed(GObject *object)
-{
-    RedChannelClient *self =  RED_CHANNEL_CLIENT(object);
-
-    RedChannelClientClass *klass = RED_CHANNEL_CLIENT_GET_CLASS(self);
-    spice_assert(klass->alloc_recv_buf && klass->release_recv_buf);
+    priv->channel = (RedChannel*) g_object_ref(channel);
+    priv->client = client;
+    priv->stream = stream;
 
     self->priv->outgoing.pos = 0;
     self->priv->outgoing.size = 0;
@@ -405,79 +335,10 @@ static void red_channel_client_constructed(GObject *object)
     }
     self->priv->incoming.header.data = self->priv->incoming.header_buf;
 
-    RedChannel *channel = self->priv->channel;
     RedsState* reds = channel->get_server();
     const RedStatNode *node = channel->get_stat_node();
     stat_init_counter(&self->priv->out_messages, reds, node, "out_messages", TRUE);
     stat_init_counter(&self->priv->out_bytes, reds, node, "out_bytes", TRUE);
-}
-
-static void red_channel_client_class_init(RedChannelClientClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    GParamSpec *spec;
-
-    g_debug("%s", G_STRFUNC);
-
-    object_class->get_property = red_channel_client_get_property;
-    object_class->set_property = red_channel_client_set_property;
-    object_class->finalize = red_channel_client_finalize;
-    object_class->constructed = red_channel_client_constructed;
-
-    spec = g_param_spec_pointer("stream", "stream",
-                                "Associated RedStream",
-                                G_PARAM_STATIC_STRINGS
-                                | G_PARAM_READWRITE
-                                | G_PARAM_CONSTRUCT_ONLY);
-    g_object_class_install_property(object_class, PROP_STREAM, spec);
-
-    spec = g_param_spec_object("channel", "channel",
-                               "Associated RedChannel",
-                               RED_TYPE_CHANNEL,
-                               G_PARAM_STATIC_STRINGS
-                               | G_PARAM_READWRITE
-                               | G_PARAM_CONSTRUCT_ONLY);
-    g_object_class_install_property(object_class, PROP_CHANNEL, spec);
-
-    spec = g_param_spec_object("client", "client",
-                               "Associated RedClient",
-                               RED_TYPE_CLIENT,
-                               G_PARAM_STATIC_STRINGS
-                               | G_PARAM_READWRITE
-                               | G_PARAM_CONSTRUCT_ONLY);
-    g_object_class_install_property(object_class, PROP_CLIENT, spec);
-
-    spec = g_param_spec_boolean("monitor-latency", "monitor-latency",
-                                "Whether to monitor latency for this client",
-                                FALSE,
-                                G_PARAM_STATIC_STRINGS
-                                | G_PARAM_READWRITE
-                                | G_PARAM_CONSTRUCT_ONLY);
-    g_object_class_install_property(object_class, PROP_MONITOR_LATENCY, spec);
-
-    spec = g_param_spec_boxed("caps", "caps",
-                              "Capabilities",
-                              RED_TYPE_CHANNEL_CAPABILITIES,
-                              G_PARAM_STATIC_STRINGS
-                              | G_PARAM_WRITABLE
-                              | G_PARAM_CONSTRUCT_ONLY);
-    g_object_class_install_property(object_class, PROP_CAPS, spec);
-}
-
-static void
-red_channel_client_init(RedChannelClient *self)
-{
-    self->priv = (RedChannelClientPrivate *) red_channel_client_get_instance_private(self);
-    // blocks send message (maybe use send_data.blocked + block flags)
-    self->priv->ack_data.messages_window = ~0;
-    self->priv->ack_data.client_generation = ~0;
-    self->priv->ack_data.client_window = CLIENT_ACK_WINDOW;
-    self->priv->send_data.main.marshaller = spice_marshaller_new();
-    self->priv->send_data.urgent.marshaller = spice_marshaller_new();
-
-    self->priv->send_data.marshaller = self->priv->send_data.main.marshaller;
-
-    g_queue_init(&self->priv->pipe);
 }
 
 RedChannel* RedChannelClient::get_channel()
@@ -912,13 +773,11 @@ static void mini_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t
     spice_error("attempt to set header sub list on mini header");
 }
 
-static gboolean red_channel_client_initable_init(GInitable *initable,
-                                                 GCancellable *cancellable,
-                                                 GError **error)
+bool RedChannelClient::init()
 {
     GError *local_error = NULL;
     SpiceCoreInterfaceInternal *core;
-    RedChannelClient *self = RED_CHANNEL_CLIENT(initable);
+    RedChannelClient *self = this;
 
     if (!self->priv->stream) {
         g_set_error_literal(&local_error,
@@ -928,7 +787,7 @@ static gboolean red_channel_client_initable_init(GInitable *initable,
         goto cleanup;
     }
 
-    if (!red_channel_client_config_socket(self)) {
+    if (!self->config_socket()) {
         g_set_error_literal(&local_error,
                             SPICE_SERVER_ERROR,
                             SPICE_SERVER_ERROR_FAILED,
@@ -967,7 +826,7 @@ cleanup:
         red_channel_warning(self->get_channel(),
                             "Failed to create channel client: %s",
                             local_error->message);
-        g_propagate_error(error, local_error);
+        g_error_free(local_error);
     }
     return local_error == NULL;
 }
@@ -1046,34 +905,6 @@ void RedChannelClient::shutdown()
         priv->stream->watch = NULL;
         ::shutdown(priv->stream->socket, SHUT_RDWR);
     }
-}
-
-static bool red_channel_client_config_socket(RedChannelClient *rcc)
-{
-    RedChannelClientClass *klass = RED_CHANNEL_CLIENT_GET_CLASS(rcc);
-
-    if (!klass->config_socket) {
-        return TRUE;
-    }
-
-    return klass->config_socket(rcc);
-}
-
-static uint8_t *red_channel_client_alloc_msg_buf(RedChannelClient *rcc,
-                                                 uint16_t type, uint32_t size)
-{
-    RedChannelClientClass *klass = RED_CHANNEL_CLIENT_GET_CLASS(rcc);
-
-    return klass->alloc_recv_buf(rcc, type, size);
-}
-
-static void red_channel_client_release_msg_buf(RedChannelClient *rcc,
-                                               uint16_t type, uint32_t size,
-                                               uint8_t *msg)
-{
-    RedChannelClientClass *klass = RED_CHANNEL_CLIENT_GET_CLASS(rcc);
-
-    klass->release_recv_buf(rcc, type, size, msg);
 }
 
 static void red_channel_client_handle_outgoing(RedChannelClient *rcc)
@@ -1221,7 +1052,7 @@ static void red_channel_client_handle_incoming(RedChannelClient *rcc)
         msg_type = buffer->header.get_msg_type(&buffer->header);
         if (buffer->msg_pos < msg_size) {
             if (!buffer->msg) {
-                buffer->msg = red_channel_client_alloc_msg_buf(rcc, msg_type, msg_size);
+                buffer->msg = rcc->alloc_recv_buf(msg_type, msg_size);
                 if (buffer->msg == NULL && rcc->priv->block_read) {
                     // if we are blocked by flow control just return, message will be read
                     // when data will be available
@@ -1238,8 +1069,7 @@ static void red_channel_client_handle_incoming(RedChannelClient *rcc)
                                           buffer->msg + buffer->msg_pos,
                                           msg_size - buffer->msg_pos);
             if (bytes_read == -1) {
-                red_channel_client_release_msg_buf(rcc, msg_type, msg_size,
-                                                   buffer->msg);
+                rcc->release_recv_buf(msg_type, msg_size, buffer->msg);
                 buffer->msg = NULL;
                 rcc->disconnect();
                 return;
@@ -1257,9 +1087,7 @@ static void red_channel_client_handle_incoming(RedChannelClient *rcc)
                                           &parsed_size, &parsed_free);
         if (parsed == NULL) {
             red_channel_warning(channel, "failed to parse message type %d", msg_type);
-            red_channel_client_release_msg_buf(rcc,
-                                               msg_type, msg_size,
-                                               buffer->msg);
+            rcc->release_recv_buf(msg_type, msg_size, buffer->msg);
             buffer->msg = NULL;
             rcc->disconnect();
             return;
@@ -1270,9 +1098,7 @@ static void red_channel_client_handle_incoming(RedChannelClient *rcc)
             parsed_free(parsed);
         }
         buffer->msg_pos = 0;
-        red_channel_client_release_msg_buf(rcc,
-                                           msg_type, msg_size,
-                                           buffer->msg);
+        rcc->release_recv_buf(msg_type, msg_size, buffer->msg);
         buffer->msg = NULL;
         buffer->header_pos = 0;
 
@@ -1711,15 +1537,6 @@ void RedChannelClient::push_set_ack()
     pipe_add_type(RED_PIPE_ITEM_TYPE_SET_ACK);
 }
 
-static void red_channel_client_on_disconnect(RedChannelClient *rcc)
-{
-    RedChannelClientClass *klass = RED_CHANNEL_CLIENT_GET_CLASS(rcc);
-
-    if (klass->on_disconnect != NULL) {
-        klass->on_disconnect(rcc);
-    }
-}
-
 void RedChannelClient::disconnect()
 {
     RedChannel *channel = priv->channel;
@@ -1738,7 +1555,7 @@ void RedChannelClient::disconnect()
     priv->connectivity_monitor.timer = NULL;
 
     channel->remove_client(this);
-    red_channel_client_on_disconnect(this);
+    on_disconnect();
     // remove client from RedClient
     // NOTE this may trigger the free of the object, if we are in a watch/timer
     // we should make sure we keep a reference

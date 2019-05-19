@@ -19,8 +19,6 @@
 #ifndef CURSOR_CHANNEL_CLIENT_H_
 #define CURSOR_CHANNEL_CLIENT_H_
 
-#include <glib-object.h>
-
 #include "cache-item.h"
 #include "red-common.h"
 #include "red-channel-client.h"
@@ -29,32 +27,20 @@
 
 G_BEGIN_DECLS
 
-#define TYPE_CURSOR_CHANNEL_CLIENT cursor_channel_client_get_type()
-
-#define CURSOR_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_CURSOR_CHANNEL_CLIENT, CursorChannelClient))
-#define CURSOR_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_CURSOR_CHANNEL_CLIENT, CursorChannelClientClass))
-#define IS_CURSOR_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_CURSOR_CHANNEL_CLIENT))
-#define IS_CURSOR_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_CURSOR_CHANNEL_CLIENT))
-#define CURSOR_CHANNEL_CLIENT_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_CURSOR_CHANNEL_CLIENT, CursorChannelClientClass))
-
 struct CursorChannelClientPrivate;
 
-struct CursorChannelClient final: public CommonGraphicsChannelClient
+class CursorChannelClient final: public CommonGraphicsChannelClient
 {
-    CursorChannelClientPrivate *priv;
+protected:
+    ~CursorChannelClient();
+public:
+    CursorChannelClient(RedChannel *channel,
+                        RedClient *client,
+                        RedStream *stream,
+                        RedChannelCapabilities *caps);
+    virtual void on_disconnect() override;
+    CursorChannelClientPrivate *priv = nullptr;
 };
-
-struct CursorChannelClientClass
-{
-    RedChannelClientClass parent_class;
-};
-
-GType cursor_channel_client_get_type(void) G_GNUC_CONST;
 
 CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor,
                                                RedClient *client,

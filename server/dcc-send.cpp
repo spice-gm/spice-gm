@@ -24,6 +24,9 @@
 #include "display-channel-private.h"
 #include "red-qxl.h"
 
+// XXX this should go away with virtual on the right class (client!)
+XXX_CAST(RedChannelClient, DisplayChannelClient, DISPLAY_CHANNEL_CLIENT)
+
 typedef enum {
     FILL_BITS_TYPE_INVALID,
     FILL_BITS_TYPE_CACHE,

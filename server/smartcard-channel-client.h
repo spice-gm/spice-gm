@@ -18,38 +18,28 @@
 #ifndef SMARTCARD_CHANNEL_CLIENT_H_
 #define SMARTCARD_CHANNEL_CLIENT_H_
 
-#include <glib-object.h>
-
 #include "smartcard.h"
 
 G_BEGIN_DECLS
 
-#define TYPE_SMARTCARD_CHANNEL_CLIENT smart_card_channel_client_get_type()
-
-#define SMARTCARD_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_SMARTCARD_CHANNEL_CLIENT, SmartCardChannelClient))
-#define SMARTCARD_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_SMARTCARD_CHANNEL_CLIENT, SmartCardChannelClientClass))
-#define IS_SMARTCARD_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_SMARTCARD_CHANNEL_CLIENT))
-#define IS_SMARTCARD_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_SMARTCARD_CHANNEL_CLIENT))
-#define SMARTCARD_CHANNEL_CLIENT_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_SMARTCARD_CHANNEL_CLIENT, SmartCardChannelClientClass))
-
 struct SmartCardChannelClientPrivate;
 
-struct SmartCardChannelClient final: public RedChannelClient
+class SmartCardChannelClient final: public RedChannelClient
 {
-    SmartCardChannelClientPrivate *priv;
-};
+protected:
+    ~SmartCardChannelClient();
+public:
+    SmartCardChannelClientPrivate *const priv = nullptr;
+    SmartCardChannelClient(RedChannel *channel,
+                           RedClient *client,
+                           RedStream *stream,
+                           RedChannelCapabilities *caps);
 
-struct SmartCardChannelClientClass
-{
-    RedChannelClientClass parent_class;
+private:
+    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
+    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    virtual void on_disconnect() override;
 };
-
-GType smart_card_channel_client_get_type(void) G_GNUC_CONST;
 
 SmartCardChannelClient* smartcard_channel_client_create(RedChannel *channel,
                                                         RedClient *client, RedStream *stream,

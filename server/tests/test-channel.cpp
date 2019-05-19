@@ -47,27 +47,15 @@ struct RedTestChannelClass
 
 G_DEFINE_TYPE(RedTestChannel, red_test_channel, RED_TYPE_CHANNEL)
 
-SPICE_DECLARE_TYPE(RedTestChannelClient, red_test_channel_client, TEST_CHANNEL_CLIENT);
-#define RED_TYPE_TEST_CHANNEL_CLIENT red_test_channel_client_get_type()
-
-struct RedTestChannelClient final: public RedChannelClient
+class RedTestChannelClient final: public RedChannelClient
 {
+    using RedChannelClient::RedChannelClient;
+    virtual uint8_t * alloc_recv_buf(uint16_t type, uint32_t size) override;
+    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
 };
-
-struct RedTestChannelClientClass
-{
-    RedChannelClientClass parent_class;
-};
-
-G_DEFINE_TYPE(RedTestChannelClient, red_test_channel_client, RED_TYPE_CHANNEL_CLIENT)
 
 static void
 red_test_channel_init(RedTestChannel *self)
-{
-}
-
-static void
-red_test_channel_client_init(RedTestChannelClient *self)
 {
 }
 
@@ -81,15 +69,9 @@ test_connect_client(RedChannel *channel, RedClient *client, RedStream *stream,
                     int migration, RedChannelCapabilities *caps)
 {
     RedChannelClient *rcc;
-    rcc = (RedChannelClient *)
-          g_initable_new(RED_TYPE_TEST_CHANNEL_CLIENT,
-                         NULL, NULL,
-                         "channel", channel,
-                         "client", client,
-                         "stream", stream,
-                         "caps", caps,
-                         NULL);
+    rcc = new RedTestChannelClient(channel, client, stream, caps);
     g_assert_nonnull(rcc);
+    g_assert_true(rcc->init());
 
     // requires an ACK after 10 messages
     rcc->ack_set_client_window(10);
@@ -115,25 +97,16 @@ red_test_channel_class_init(RedTestChannelClass *klass)
     channel_class->connect = test_connect_client;
 }
 
-static uint8_t *
-red_test_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc, uint16_t type, uint32_t size)
+uint8_t *
+RedTestChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 {
     return (uint8_t*) g_malloc(size);
 }
 
-static void
-red_test_channel_client_release_msg_rcv_buf(RedChannelClient *rcc,
-                                            uint16_t type, uint32_t size, uint8_t *msg)
+void
+RedTestChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg)
 {
     g_free(msg);
-}
-
-static void
-red_test_channel_client_class_init(RedTestChannelClientClass *klass)
-{
-    RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
-    client_class->alloc_recv_buf = red_test_channel_client_alloc_msg_rcv_buf;
-    client_class->release_recv_buf = red_test_channel_client_release_msg_rcv_buf;
 }
 
 

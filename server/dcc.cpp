@@ -25,157 +25,50 @@
 #include "main-channel-client.h"
 #include <spice-server-enums.h>
 
-G_DEFINE_TYPE(DisplayChannelClient, display_channel_client, TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT)
-
 #define DISPLAY_CLIENT_SHORT_TIMEOUT 15000000000ULL //nano
 #define DISPLAY_FREE_LIST_DEFAULT_SIZE 128
 
-enum
-{
-    PROP0,
-    PROP_IMAGE_COMPRESSION,
-    PROP_JPEG_STATE,
-    PROP_ZLIB_GLZ_STATE
-};
-
-static bool dcc_config_socket(RedChannelClient *rcc);
-static void dcc_on_disconnect(RedChannelClient *rcc);
-
-static void
-display_channel_client_get_property(GObject *object,
-                                    guint property_id,
-                                    GValue *value,
-                                    GParamSpec *pspec)
-{
-    DisplayChannelClient *self = DISPLAY_CHANNEL_CLIENT(object);
-
-    switch (property_id)
-    {
-        case PROP_IMAGE_COMPRESSION:
-             g_value_set_enum(value, self->priv->image_compression);
-            break;
-        case PROP_JPEG_STATE:
-             g_value_set_enum(value, self->priv->jpeg_state);
-            break;
-        case PROP_ZLIB_GLZ_STATE:
-             g_value_set_enum(value, self->priv->zlib_glz_state);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static void
-display_channel_client_set_property(GObject *object,
-                                    guint property_id,
-                                    const GValue *value,
-                                    GParamSpec *pspec)
-{
-    DisplayChannelClient *self = DISPLAY_CHANNEL_CLIENT(object);
-
-    switch (property_id)
-    {
-        case PROP_IMAGE_COMPRESSION:
-            self->priv->image_compression = (SpiceImageCompression) g_value_get_enum(value);
-            break;
-        case PROP_JPEG_STATE:
-            self->priv->jpeg_state = (spice_wan_compression_t) g_value_get_enum(value);
-            break;
-        case PROP_ZLIB_GLZ_STATE:
-            self->priv->zlib_glz_state = (spice_wan_compression_t) g_value_get_enum(value);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
 static void dcc_init_stream_agents(DisplayChannelClient *dcc);
 
-static void
-display_channel_client_constructed(GObject *object)
+DisplayChannelClient::DisplayChannelClient(DisplayChannel *display,
+                         RedClient *client, RedStream *stream,
+                         RedChannelCapabilities *caps,
+                         uint32_t id,
+                         SpiceImageCompression image_compression,
+                         spice_wan_compression_t jpeg_state,
+                         spice_wan_compression_t zlib_glz_state):
+    CommonGraphicsChannelClient(RED_CHANNEL(display), client, stream, caps, true)
 {
-    DisplayChannelClient *self = DISPLAY_CHANNEL_CLIENT(object);
+    priv = new DisplayChannelClientPrivate;
 
-    G_OBJECT_CLASS(display_channel_client_parent_class)->constructed(object);
-
-    dcc_init_stream_agents(self);
-
-    image_encoders_init(&self->priv->encoders, &DCC_TO_DC(self)->priv->encoder_shared_data);
-}
-
-static void
-display_channel_client_finalize(GObject *object)
-{
-    DisplayChannelClient *self = DISPLAY_CHANNEL_CLIENT(object);
-
-    g_clear_pointer(&self->priv->preferred_video_codecs, g_array_unref);
-    g_clear_pointer(&self->priv->client_preferred_video_codecs, g_array_unref);
-    g_free(self->priv);
-
-    G_OBJECT_CLASS(display_channel_client_parent_class)->finalize(object);
-}
-
-static void
-display_channel_client_class_init(DisplayChannelClientClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
-
-    object_class->get_property = display_channel_client_get_property;
-    object_class->set_property = display_channel_client_set_property;
-    object_class->constructed = display_channel_client_constructed;
-    object_class->finalize = display_channel_client_finalize;
-
-    client_class->config_socket = dcc_config_socket;
-    client_class->on_disconnect = dcc_on_disconnect;
-
-    g_object_class_install_property(object_class,
-                                    PROP_IMAGE_COMPRESSION,
-                                    g_param_spec_enum("image-compression",
-                                                      "image compression",
-                                                      "Image compression type",
-                                                      SPICE_TYPE_SPICE_IMAGE_COMPRESSION_T,
-                                                      SPICE_IMAGE_COMPRESSION_INVALID,
-                                                      G_PARAM_CONSTRUCT | G_PARAM_READWRITE |
-                                                      G_PARAM_STATIC_STRINGS));
-
-    g_object_class_install_property(object_class,
-                                    PROP_JPEG_STATE,
-                                    g_param_spec_enum("jpeg-state",
-                                                      "jpeg state",
-                                                      "JPEG compression state",
-                                                      SPICE_TYPE_SPICE_WAN_COMPRESSION_T,
-                                                      SPICE_WAN_COMPRESSION_INVALID,
-                                                      G_PARAM_CONSTRUCT | G_PARAM_READWRITE |
-                                                      G_PARAM_STATIC_STRINGS));
-
-    g_object_class_install_property(object_class,
-                                    PROP_ZLIB_GLZ_STATE,
-                                    g_param_spec_enum("zlib-glz-state",
-                                                      "zlib glz state",
-                                                      "zlib glz state",
-                                                      SPICE_TYPE_SPICE_WAN_COMPRESSION_T,
-                                                      SPICE_WAN_COMPRESSION_INVALID,
-                                                      G_PARAM_CONSTRUCT | G_PARAM_READWRITE |
-                                                      G_PARAM_STATIC_STRINGS));
-}
-
-static void display_channel_client_init(DisplayChannelClient *self)
-{
-    /* we need to allocate the private data manually here since
-     * g_type_class_add_private() doesn't support private structs larger than
-     * 64k */
-    self->priv = g_new0(DisplayChannelClientPrivate, 1);
-
-    ring_init(&self->priv->palette_cache_lru);
-    self->priv->palette_cache_available = CLIENT_PALETTE_CACHE_SIZE;
+    // XXX from display_channel_client_init, put somewhere else
+    ring_init(&priv->palette_cache_lru);
     // todo: tune quality according to bandwidth
-    self->priv->encoders.jpeg_quality = 85;
+    priv->encoders.jpeg_quality = 85;
 
-    self->priv->send_data.free_list.res = (SpiceResourceList*)
+    priv->send_data.free_list.res = (SpiceResourceList*)
         g_malloc(sizeof(SpiceResourceList) +
                  DISPLAY_FREE_LIST_DEFAULT_SIZE * sizeof(SpiceResourceID));
-    self->priv->send_data.free_list.res_size = DISPLAY_FREE_LIST_DEFAULT_SIZE;
+    priv->send_data.free_list.res_size = DISPLAY_FREE_LIST_DEFAULT_SIZE;
+
+
+    priv->image_compression = image_compression;
+    priv->jpeg_state = jpeg_state;
+    priv->zlib_glz_state = zlib_glz_state;
+
+
+    priv->id = id;
+
+    image_encoders_init(&priv->encoders, &DCC_TO_DC(this)->priv->encoder_shared_data);
+
+    dcc_init_stream_agents(this);
+}
+
+DisplayChannelClient::~DisplayChannelClient()
+{
+    g_clear_pointer(&priv->preferred_video_codecs, g_array_unref);
+    g_clear_pointer(&priv->client_preferred_video_codecs, g_array_unref);
+    g_free(priv);
 }
 
 static RedSurfaceCreateItem *red_surface_create_item_new(RedChannel* channel,
@@ -491,25 +384,15 @@ DisplayChannelClient *dcc_new(DisplayChannel *display,
                               spice_wan_compression_t zlib_glz_state)
 
 {
-    DisplayChannelClient *dcc;
-
-    dcc = (DisplayChannelClient*)
-          g_initable_new(TYPE_DISPLAY_CHANNEL_CLIENT,
-                         NULL, NULL,
-                         "channel", display,
-                         "client", client,
-                         "stream", stream,
-                         "monitor-latency", TRUE,
-                         "caps", caps,
-                         "image-compression", image_compression,
-                         "jpeg-state", jpeg_state,
-                         "zlib-glz-state", zlib_glz_state,
-                         NULL);
+    auto dcc =
+        new DisplayChannelClient(display, client, stream, caps, display->priv->qxl->id,
+                                 image_compression, jpeg_state, zlib_glz_state);
+    if (!dcc->init()) {
+        dcc->unref();
+        dcc = nullptr;
+    }
     spice_debug("New display (client %p) dcc %p stream %p", client, dcc, stream);
     common_graphics_channel_set_during_target_migrate(display, mig_target);
-    if (dcc) {
-        dcc->priv->id = display->priv->qxl->id;
-    }
 
     return dcc;
 }
@@ -694,6 +577,8 @@ RedPipeItem *dcc_gl_scanout_item_new(RedChannelClient *rcc, void *data, int num)
 
     return &item->base;
 }
+
+XXX_CAST(RedChannelClient, DisplayChannelClient, DISPLAY_CHANNEL_CLIENT);
 
 RedPipeItem *dcc_gl_draw_item_new(RedChannelClient *rcc, void *data, int num)
 {
@@ -1374,28 +1259,25 @@ void dcc_set_max_stream_bit_rate(DisplayChannelClient *dcc, uint64_t rate)
     dcc->priv->streams_max_bit_rate = rate;
 }
 
-static bool dcc_config_socket(RedChannelClient *rcc)
+bool DisplayChannelClient::config_socket()
 {
-    RedClient *client = rcc->get_client();
+    RedClient *client = get_client();
     MainChannelClient *mcc = red_client_get_main(client);
 
-    DISPLAY_CHANNEL_CLIENT(rcc)->is_low_bandwidth = main_channel_client_is_low_bandwidth(mcc);
+    is_low_bandwidth = main_channel_client_is_low_bandwidth(mcc);
 
-    return common_channel_client_config_socket(rcc);
+    return CommonGraphicsChannelClient::config_socket();
 }
 
-static void dcc_on_disconnect(RedChannelClient *rcc)
+void DisplayChannelClient::on_disconnect()
 {
     DisplayChannel *display;
-    DisplayChannelClient *dcc;
 
     spice_debug("trace");
-    spice_return_if_fail(rcc != NULL);
 
-    dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-    display = DCC_TO_DC(dcc);
+    display = DCC_TO_DC(this);
 
-    dcc_stop(dcc); // TODO: start/stop -> connect/disconnect?
+    dcc_stop(this); // TODO: start/stop -> connect/disconnect?
     display_channel_compress_stats_print(display);
 
     // this was the last channel client

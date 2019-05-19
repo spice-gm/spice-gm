@@ -25,8 +25,6 @@
 
 G_BEGIN_DECLS
 
-bool common_channel_client_config_socket(RedChannelClient *rcc);
-
 #define COMMON_CLIENT_TIMEOUT (NSEC_PER_SEC * 30)
 
 #define TYPE_COMMON_GRAPHICS_CHANNEL common_graphics_channel_get_type()
@@ -65,34 +63,19 @@ enum {
     RED_PIPE_ITEM_TYPE_COMMON_LAST
 };
 
-#define TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT common_graphics_channel_client_get_type()
-
-#define COMMON_GRAPHICS_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT, \
-    CommonGraphicsChannelClient))
-#define COMMON_GRAPHICS_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT, \
-    CommonGraphicsChannelClientClass))
-#define COMMON_IS_GRAPHICS_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT))
-#define COMMON_IS_GRAPHICS_CHANNEL_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT))
-#define COMMON_GRAPHICS_CHANNEL_CLIENT_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT, \
-    CommonGraphicsChannelClientClass))
-
-struct CommonGraphicsChannelClientPrivate;
-
-struct CommonGraphicsChannelClient: public RedChannelClient
+class CommonGraphicsChannelClient: public RedChannelClient
 {
-    CommonGraphicsChannelClientPrivate *priv;
-};
+    enum { CHANNEL_RECEIVE_BUF_SIZE = 1024 };
+    uint8_t recv_buf[CHANNEL_RECEIVE_BUF_SIZE];
 
-struct CommonGraphicsChannelClientClass {
-    RedChannelClientClass parent_class;
-};
+public:
+    using RedChannelClient::RedChannelClient;
 
-GType common_graphics_channel_client_get_type(void) G_GNUC_CONST;
+protected:
+    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
+    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    virtual bool config_socket() override;
+};
 
 G_END_DECLS
 

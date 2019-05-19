@@ -128,6 +128,20 @@ typedef struct GListIter {
     { return G_TYPE_INSTANCE_GET_CLASS(obj, \
              module_obj_name ## _get_type(), ModuleObjName ## Class); }
 
+/* This macro allows to use GLib for a class hieranrchy allocation.
+ * The aims are:
+ * - do not depend on C++ runtime, just C;
+ * - do not throw memory exception from a C library;
+ * - zero out the structure like GOject did, we are not still
+ *   initializing automatically all members;
+ * - do not allow to allocate array of this type, do not mix fine
+ *   with reference counting and inheritance.
+ */
+#define SPICE_CXX_GLIB_ALLOCATOR \
+    void *operator new(size_t size) { return g_malloc0(size); } \
+    void operator delete(void *p) { g_free(p); } \
+    void* operator new[](size_t count);
+
 #ifdef __cplusplus
 #include <glib-object.h>
 
@@ -136,6 +150,12 @@ inline GParamFlags operator|(GParamFlags a, GParamFlags b)
     return (GParamFlags) ((int)a|(int)b);
 }
 #endif
+
+// XXX todo remove, just for easy portability
+#define XXX_CAST(from, to, name) \
+static inline to* name(from *p) { \
+    return p ? static_cast<to*>(p) : nullptr; \
+}
 
 SPICE_END_DECLS
 

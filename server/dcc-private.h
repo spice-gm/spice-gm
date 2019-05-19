@@ -27,22 +27,24 @@
 
 struct DisplayChannelClientPrivate
 {
-    uint32_t id;
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    uint32_t id = 0;
     SpiceImageCompression image_compression;
     spice_wan_compression_t jpeg_state;
     spice_wan_compression_t zlib_glz_state;
 
     ImageEncoders encoders;
 
-    int expect_init;
+    int expect_init = 0;
 
-    PixmapCache *pixmap_cache;
-    uint32_t pixmap_cache_generation;
-    int pending_pixmaps_sync;
+    PixmapCache *pixmap_cache = nullptr;
+    uint32_t pixmap_cache_generation = 0;
+    int pending_pixmaps_sync = 0;
 
     RedCacheItem *palette_cache[PALETTE_CACHE_HASH_SIZE];
-    Ring palette_cache_lru;
-    long palette_cache_available;
+    Ring palette_cache_lru = { nullptr, nullptr };
+    long palette_cache_available = CLIENT_PALETTE_CACHE_SIZE;
 
     struct {
         FreeList free_list;

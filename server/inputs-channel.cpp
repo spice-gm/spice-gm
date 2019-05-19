@@ -40,6 +40,8 @@
 #include "migration-protocol.h"
 #include "utils.h"
 
+XXX_CAST(RedChannelClient, InputsChannelClient, INPUTS_CHANNEL_CLIENT);
+
 struct InputsChannel final: public RedChannel
 {
     VDAgentMouseState mouse_state;

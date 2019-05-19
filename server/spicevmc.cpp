@@ -51,9 +51,6 @@ SPICE_DECLARE_TYPE(RedVmcChannel, red_vmc_channel, VMC_CHANNEL);
 SPICE_DECLARE_TYPE(RedVmcChannelPort, red_vmc_channel_port, VMC_CHANNEL_PORT);
 #define RED_TYPE_VMC_CHANNEL_PORT red_vmc_channel_port_get_type()
 
-SPICE_DECLARE_TYPE(VmcChannelClient, vmc_channel_client, VMC_CHANNEL_CLIENT);
-#define TYPE_VMC_CHANNEL_CLIENT vmc_channel_client_get_type()
-
 SPICE_DECLARE_TYPE(RedVmcChannelUsbredir, red_vmc_channel_usbredir, VMC_CHANNEL_USBREDIR);
 #define RED_TYPE_VMC_CHANNEL_USBREDIR red_vmc_channel_usbredir_get_type()
 
@@ -156,15 +153,14 @@ static void red_vmc_channel_port_init(RedVmcChannelPort *self)
 G_DEFINE_TYPE(RedVmcChannelPort, red_vmc_channel_port, RED_TYPE_VMC_CHANNEL)
 
 
-struct VmcChannelClient final: public RedChannelClient
+class VmcChannelClient final: public RedChannelClient
 {
-};
+    using RedChannelClient::RedChannelClient;
 
-struct VmcChannelClientClass {
-    RedChannelClientClass parent_class;
+    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
+    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    virtual void on_disconnect() override;
 };
-
-G_DEFINE_TYPE(VmcChannelClient, vmc_channel_client, RED_TYPE_CHANNEL_CLIENT)
 
 static RedChannelClient *
 vmc_channel_client_create(RedChannel *channel, RedClient *client,
@@ -271,10 +267,6 @@ enum {
     RED_PIPE_ITEM_TYPE_PORT_EVENT,
 };
 
-static void spicevmc_red_channel_release_msg_rcv_buf(RedChannelClient *rcc,
-                                                     uint16_t type,
-                                                     uint32_t size,
-                                                     uint8_t *msg);
 /* n is the data size (uncompressed)
  * msg_item -- the current pipe item with the uncompressed data
  * This function returns:
@@ -411,13 +403,13 @@ static void spicevmc_char_dev_remove_client(RedCharDevice *self,
     channel->rcc->shutdown();
 }
 
-static void spicevmc_red_channel_client_on_disconnect(RedChannelClient *rcc)
+void VmcChannelClient::on_disconnect()
 {
     RedVmcChannel *channel;
     SpiceCharDeviceInterface *sif;
-    RedClient *client = rcc->get_client();
+    RedClient *client = get_client();
 
-    channel = RED_VMC_CHANNEL(rcc->get_channel());
+    channel = RED_VMC_CHANNEL(get_channel());
 
     /* partial message which wasn't pushed to device */
     red_char_device_write_buffer_release(channel->chardev, &channel->recv_from_client_buf);
@@ -514,7 +506,7 @@ static bool spicevmc_red_channel_client_handle_message(RedChannelClient *rcc,
                                                        uint32_t size,
                                                        void *msg)
 {
-    /* NOTE: *msg free by g_free() (when cb to spicevmc_red_channel_release_msg_rcv_buf
+    /* NOTE: *msg free by g_free() (when cb to VmcChannelClient::release_recv_buf
      * with the compressed msg type) */
     RedVmcChannel *channel;
     SpiceCharDeviceInterface *sif;
@@ -557,21 +549,19 @@ static void spicevmc_on_free_self_token(RedCharDevice *self)
     channel->rcc->unblock_read();
 }
 
-static uint8_t *spicevmc_red_channel_alloc_msg_rcv_buf(RedChannelClient *rcc,
-                                                       uint16_t type,
-                                                       uint32_t size)
+uint8_t *VmcChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 {
 
     switch (type) {
     case SPICE_MSGC_SPICEVMC_DATA: {
-        RedVmcChannel *channel = RED_VMC_CHANNEL(rcc->get_channel());
+        RedVmcChannel *channel = RED_VMC_CHANNEL(get_channel());
 
         assert(!channel->recv_from_client_buf);
 
         channel->recv_from_client_buf = red_char_device_write_buffer_get_server(channel->chardev,
                                                                                 size, true);
         if (!channel->recv_from_client_buf) {
-            rcc->block_read();
+            block_read();
             return NULL;
         }
         return channel->recv_from_client_buf->buf;
@@ -583,15 +573,12 @@ static uint8_t *spicevmc_red_channel_alloc_msg_rcv_buf(RedChannelClient *rcc,
 
 }
 
-static void spicevmc_red_channel_release_msg_rcv_buf(RedChannelClient *rcc,
-                                                     uint16_t type,
-                                                     uint32_t size,
-                                                     uint8_t *msg)
+void VmcChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg)
 {
 
     switch (type) {
     case SPICE_MSGC_SPICEVMC_DATA: {
-        RedVmcChannel *channel = RED_VMC_CHANNEL(rcc->get_channel());
+        RedVmcChannel *channel = RED_VMC_CHANNEL(get_channel());
         /* buffer wasn't pushed to device */
         red_char_device_write_buffer_release(channel->chardev, &channel->recv_from_client_buf);
         break;
@@ -929,36 +916,15 @@ red_char_device_spicevmc_new(SpiceCharDeviceInstance *sin,
                         NULL);
 }
 
-static void
-vmc_channel_client_init(VmcChannelClient *self)
-{
-}
-
-static void
-vmc_channel_client_class_init(VmcChannelClientClass *klass)
-{
-    RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
-
-    client_class->alloc_recv_buf = spicevmc_red_channel_alloc_msg_rcv_buf;
-    client_class->release_recv_buf = spicevmc_red_channel_release_msg_rcv_buf;
-    client_class->on_disconnect = spicevmc_red_channel_client_on_disconnect;
-}
-
 static RedChannelClient *
 vmc_channel_client_create(RedChannel *channel, RedClient *client,
                           RedStream *stream,
                           RedChannelCapabilities *caps)
 {
-    RedChannelClient *rcc;
-
-    rcc = (RedChannelClient *)
-          g_initable_new(TYPE_VMC_CHANNEL_CLIENT,
-                         NULL, NULL,
-                         "channel", channel,
-                         "client", client,
-                         "stream", stream,
-                         "caps", caps,
-                         NULL);
-
+    auto rcc = new VmcChannelClient(channel, client, stream, caps);
+    if (!rcc->init()) {
+        delete rcc;
+        rcc = nullptr;
+    }
     return rcc;
 }

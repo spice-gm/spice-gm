@@ -18,31 +18,34 @@
 #ifndef INPUTS_CHANNEL_CLIENT_H_
 #define INPUTS_CHANNEL_CLIENT_H_
 
-#include <glib-object.h>
-
 #include "red-channel-client.h"
 #include "inputs-channel.h"
 
 G_BEGIN_DECLS
 
-#define TYPE_INPUTS_CHANNEL_CLIENT inputs_channel_client_get_type()
+// TODO: RECEIVE_BUF_SIZE used to be the same for inputs_channel and main_channel
+// since it was defined once in reds.c which contained both.
+// Now that they are split we can give a more fitting value for inputs - what
+// should it be?
+#define REDS_AGENT_WINDOW_SIZE 10
+#define REDS_NUM_INTERNAL_AGENT_MESSAGES 1
 
-#define INPUTS_CHANNEL_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_INPUTS_CHANNEL_CLIENT, InputsChannelClient))
+// approximate max receive message size
+#define RECEIVE_BUF_SIZE \
+    (4096 + (REDS_AGENT_WINDOW_SIZE + REDS_NUM_INTERNAL_AGENT_MESSAGES) * SPICE_AGENT_MAX_DATA_SIZE)
 
-struct InputsChannelClientPrivate;
-
-struct InputsChannelClient final: public RedChannelClient
+class InputsChannelClient final: public RedChannelClient
 {
-    InputsChannelClientPrivate *priv;
-};
+    uint8_t recv_buf[RECEIVE_BUF_SIZE];
+public:
+    uint16_t motion_count; // XXX private
 
-struct InputsChannelClientClass
-{
-    RedChannelClientClass parent_class;
-};
+    using RedChannelClient::RedChannelClient;
 
-GType inputs_channel_client_get_type(void) G_GNUC_CONST;
+    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
+    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    virtual void on_disconnect() override;
+};
 
 RedChannelClient* inputs_channel_client_create(RedChannel *channel,
                                                RedClient *client,

@@ -20,19 +20,21 @@
 
 #include "smartcard-channel-client.h"
 
+XXX_CAST(RedChannelClient, SmartCardChannelClient, SMARTCARD_CHANNEL_CLIENT)
+
 struct SmartCardChannelClientPrivate
 {
-    RedCharDeviceSmartcard *smartcard;
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    RedCharDeviceSmartcard *smartcard = nullptr;
 
     /* read_from_client/write_to_device buffer.
      * The beginning of the buffer should always be VSCMsgHeader*/
-    RedCharDeviceWriteBuffer *write_buf;
-    int msg_in_write_buf; /* was the client msg received into a RedCharDeviceWriteBuffer
-                           * or was it explicitly malloced */
+    RedCharDeviceWriteBuffer *write_buf = nullptr;
+    /* was the client msg received into a RedCharDeviceWriteBuffer
+     * or was it explicitly malloced */
+    bool msg_in_write_buf = false;
 };
-
-G_DEFINE_TYPE_WITH_PRIVATE(SmartCardChannelClient, smart_card_channel_client,
-                           RED_TYPE_CHANNEL_CLIENT)
 
 typedef struct RedErrorItem {
     RedPipeItem base;
@@ -40,120 +42,89 @@ typedef struct RedErrorItem {
     VSCMsgError  error;
 } RedErrorItem;
 
-static uint8_t *
-smartcard_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc, uint16_t type, uint32_t size);
-static void
-smartcard_channel_client_release_msg_rcv_buf(RedChannelClient *rcc, uint16_t type,
-                                             uint32_t size, uint8_t *msg);
-static void smartcard_channel_client_on_disconnect(RedChannelClient *rcc);
-
-static void smart_card_channel_client_finalize(GObject *object)
+SmartCardChannelClient::SmartCardChannelClient(RedChannel *channel,
+                                               RedClient *client,
+                                               RedStream *stream,
+                                               RedChannelCapabilities *caps):
+    RedChannelClient(channel, client, stream, caps),
+    priv(new SmartCardChannelClientPrivate())
 {
-    SmartCardChannelClient *self = SMARTCARD_CHANNEL_CLIENT(object);
-
-    if (self->priv->smartcard)
-        g_object_remove_weak_pointer(G_OBJECT(self->priv->smartcard),
-                                     (gpointer*)&self->priv->smartcard);
-    G_OBJECT_CLASS(smart_card_channel_client_parent_class)->finalize(object);
 }
 
-static void smart_card_channel_client_class_init(SmartCardChannelClientClass *klass)
+SmartCardChannelClient::~SmartCardChannelClient()
 {
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-
-    RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
-    client_class->alloc_recv_buf = smartcard_channel_client_alloc_msg_rcv_buf;
-    client_class->release_recv_buf = smartcard_channel_client_release_msg_rcv_buf;
-    client_class->on_disconnect = smartcard_channel_client_on_disconnect;
-
-    object_class->finalize = smart_card_channel_client_finalize;
-}
-
-static void
-smart_card_channel_client_init(SmartCardChannelClient *self)
-{
-    self->priv = (SmartCardChannelClientPrivate*)
-        smart_card_channel_client_get_instance_private(self);
+    if (priv->smartcard) {
+        g_object_remove_weak_pointer(G_OBJECT(priv->smartcard),
+                                     (gpointer*)&priv->smartcard);
+    }
+    delete priv;
 }
 
 SmartCardChannelClient* smartcard_channel_client_create(RedChannel *channel,
                                                         RedClient *client, RedStream *stream,
                                                         RedChannelCapabilities *caps)
 {
-    SmartCardChannelClient *rcc;
-
-    rcc = (SmartCardChannelClient *)
-          g_initable_new(TYPE_SMARTCARD_CHANNEL_CLIENT,
-                         NULL, NULL,
-                         "channel", channel,
-                         "client", client,
-                         "stream", stream,
-                         "caps", caps,
-                         NULL);
-
+    auto rcc = new SmartCardChannelClient(channel, client, stream, caps);
+    if (!rcc->init()) {
+        rcc->unref();
+        rcc = nullptr;
+    }
     return rcc;
 }
 
-static uint8_t *
-smartcard_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
-                                           uint16_t type, uint32_t size)
+uint8_t *
+SmartCardChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 {
-    SmartCardChannelClient *scc = SMARTCARD_CHANNEL_CLIENT(rcc);
-
     /* TODO: only one reader is actually supported. When we fix the code to support
      * multiple readers, we will probably associate different devices to
      * different channels */
-    if (!scc->priv->smartcard) {
-        scc->priv->msg_in_write_buf = FALSE;
-        return (uint8_t*) g_malloc(size);
+    if (!priv->smartcard) {
+        priv->msg_in_write_buf = FALSE;
+        return (uint8_t *) g_malloc(size);
     } else {
         RedCharDeviceSmartcard *smartcard;
 
         spice_assert(smartcard_get_n_readers() == 1);
-        smartcard = scc->priv->smartcard;
-        spice_assert(smartcard_char_device_get_client(smartcard) || scc->priv->smartcard);
-        spice_assert(!scc->priv->write_buf);
-        scc->priv->write_buf =
-            red_char_device_write_buffer_get_client(RED_CHAR_DEVICE(smartcard), rcc, size);
+        smartcard = priv->smartcard;
+        spice_assert(smartcard_char_device_get_client(smartcard) || priv->smartcard);
+        spice_assert(!priv->write_buf);
+        priv->write_buf =
+            red_char_device_write_buffer_get_client(RED_CHAR_DEVICE(smartcard), this, size);
 
-        if (!scc->priv->write_buf) {
+        if (!priv->write_buf) {
             spice_error("failed to allocate write buffer");
             return NULL;
         }
-        scc->priv->msg_in_write_buf = TRUE;
-        return scc->priv->write_buf->buf;
+        priv->msg_in_write_buf = TRUE;
+        return priv->write_buf->buf;
     }
 }
 
-static void
-smartcard_channel_client_release_msg_rcv_buf(RedChannelClient *rcc,
-                                             uint16_t type, uint32_t size, uint8_t *msg)
+void
+SmartCardChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg)
 {
-    SmartCardChannelClient *scc = SMARTCARD_CHANNEL_CLIENT(rcc);
-
     /* todo: only one reader is actually supported. When we fix the code to support
      * multiple readers, we will porbably associate different devices to
      * differenc channels */
 
-    if (!scc->priv->msg_in_write_buf) {
-        spice_assert(!scc->priv->write_buf);
+    if (!priv->msg_in_write_buf) {
+        spice_assert(!priv->write_buf);
         g_free(msg);
     } else {
-        if (scc->priv->write_buf) { /* msg hasn't been pushed to the guest */
-            spice_assert(scc->priv->write_buf->buf == msg);
-            red_char_device_write_buffer_release(RED_CHAR_DEVICE(scc->priv->smartcard),
-                                                 &scc->priv->write_buf);
+        if (priv->write_buf) { /* msg hasn't been pushed to the guest */
+            spice_assert(priv->write_buf->buf == msg);
+            red_char_device_write_buffer_release(RED_CHAR_DEVICE(priv->smartcard),
+                                                 &priv->write_buf);
         }
     }
 }
 
-static void smartcard_channel_client_on_disconnect(RedChannelClient *rcc)
+void SmartCardChannelClient::on_disconnect()
 {
-    SmartCardChannelClient *scc = SMARTCARD_CHANNEL_CLIENT(rcc);
-    RedCharDeviceSmartcard *device = scc->priv->smartcard;
+    RedCharDeviceSmartcard *device = priv->smartcard;
 
     if (device) {
-        smartcard_char_device_detach_client(device, scc);
+        smartcard_char_device_detach_client(device, this);
         smartcard_char_device_notify_reader_remove(device);
     }
 }

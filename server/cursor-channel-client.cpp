@@ -35,31 +35,12 @@
 
 struct CursorChannelClientPrivate
 {
+    SPICE_CXX_GLIB_ALLOCATOR
+
     RedCacheItem *cursor_cache[CURSOR_CACHE_HASH_SIZE];
-    Ring cursor_cache_lru;
-    long cursor_cache_available;
+    Ring cursor_cache_lru = { nullptr, nullptr };
+    long cursor_cache_available = 0;
 };
-
-G_DEFINE_TYPE_WITH_PRIVATE(CursorChannelClient, cursor_channel_client,
-                           TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT)
-
-static void cursor_channel_client_on_disconnect(RedChannelClient *rcc);
-
-static void
-cursor_channel_client_class_init(CursorChannelClientClass *klass)
-{
-    RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
-
-    client_class->on_disconnect = cursor_channel_client_on_disconnect;
-}
-
-static void
-cursor_channel_client_init(CursorChannelClient *self)
-{
-    self->priv = (CursorChannelClientPrivate*) cursor_channel_client_get_instance_private(self);
-    ring_init(&self->priv->cursor_cache_lru);
-    self->priv->cursor_cache_available = CLIENT_CURSOR_CACHE_SIZE;
-}
 
 #define CLIENT_CURSOR_CACHE
 #include "cache-item.tmpl.cpp"
@@ -74,12 +55,9 @@ void cursor_channel_client_reset_cursor_cache(CursorChannelClient *ccc)
     red_cursor_cache_reset(ccc, CLIENT_CURSOR_CACHE_SIZE);
 }
 
-static void cursor_channel_client_on_disconnect(RedChannelClient *rcc)
+void CursorChannelClient::on_disconnect()
 {
-    if (!rcc) {
-        return;
-    }
-    cursor_channel_client_reset_cursor_cache(CURSOR_CHANNEL_CLIENT(rcc));
+    cursor_channel_client_reset_cursor_cache(this);
 }
 
 void cursor_channel_client_migrate(RedChannelClient *rcc)
@@ -90,20 +68,32 @@ void cursor_channel_client_migrate(RedChannelClient *rcc)
     RedChannelClient::default_migrate(rcc);
 }
 
+CursorChannelClient::CursorChannelClient(RedChannel *channel,
+                                         RedClient *client,
+                                         RedStream *stream,
+                                         RedChannelCapabilities *caps):
+    CommonGraphicsChannelClient(channel, client, stream, caps)
+{
+    priv = new CursorChannelClientPrivate();
+    ring_init(&priv->cursor_cache_lru);
+    priv->cursor_cache_available = CLIENT_CURSOR_CACHE_SIZE;
+}
+
+CursorChannelClient::~CursorChannelClient()
+{
+    delete priv;
+}
+
 CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor, RedClient *client, RedStream *stream,
                                                int mig_target,
                                                RedChannelCapabilities *caps)
 {
-    CursorChannelClient *rcc;
+    auto rcc = new CursorChannelClient(RED_CHANNEL(cursor), client, stream, caps);
 
-    rcc = (CursorChannelClient*)
-          g_initable_new(TYPE_CURSOR_CHANNEL_CLIENT,
-                         NULL, NULL,
-                         "channel", cursor,
-                         "client", client,
-                         "stream", stream,
-                         "caps", caps,
-                         NULL);
+    if (!rcc->init()) {
+        rcc->unref();
+        rcc = nullptr;
+    }
     common_graphics_channel_set_during_target_migrate(COMMON_GRAPHICS_CHANNEL(cursor), mig_target);
 
     return rcc;

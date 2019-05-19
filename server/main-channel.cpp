@@ -45,6 +45,8 @@ int main_channel_is_connected(MainChannel *main_chan)
     return main_chan && main_chan->is_connected();
 }
 
+XXX_CAST(RedChannelClient, MainChannelClient, MAIN_CHANNEL_CLIENT);
+
 RedClient *main_channel_get_client_by_link_id(MainChannel *main_chan, uint32_t connection_id)
 {
     RedChannelClient *rcc;

@@ -43,23 +43,23 @@ typedef enum {
     (4096 + (REDS_AGENT_WINDOW_SIZE + REDS_NUM_INTERNAL_AGENT_MESSAGES) * SPICE_AGENT_MAX_DATA_SIZE)
 
 struct MainChannelClientPrivate {
+    SPICE_CXX_GLIB_ALLOCATOR
+
     uint32_t connection_id;
-    uint32_t ping_id;
-    uint32_t net_test_id;
-    NetTestStage net_test_stage;
-    uint64_t latency;
-    uint64_t bitrate_per_sec;
-    int mig_wait_connect;
-    int mig_connect_ok;
-    int mig_wait_prev_complete;
-    int mig_wait_prev_try_seamless;
-    int init_sent;
-    int seamless_mig_dst;
-    bool initial_channels_list_sent;
+    uint32_t ping_id = 0;
+    uint32_t net_test_id = 0;
+    NetTestStage net_test_stage = NET_TEST_STAGE_INVALID;
+    uint64_t latency = 0;
+    uint64_t bitrate_per_sec = ~0;
+    int mig_wait_connect = 0;
+    int mig_connect_ok = 0;
+    int mig_wait_prev_complete = 0;
+    int mig_wait_prev_try_seamless = 0;
+    int init_sent = 0;
+    int seamless_mig_dst = 0;
+    bool initial_channels_list_sent = false;
     uint8_t recv_buf[MAIN_CHANNEL_RECEIVE_BUF_SIZE];
 };
-
-G_DEFINE_TYPE_WITH_PRIVATE(MainChannelClient, main_channel_client, RED_TYPE_CHANNEL_CLIENT)
 
 typedef struct RedPingPipeItem {
     RedPipeItem base;
@@ -125,68 +125,23 @@ typedef struct RedRegisteredChannelPipeItem {
 
 static const uint8_t zero_page[ZERO_BUF_SIZE] = {0};
 
-enum {
-    PROP0,
-    PROP_CONNECTION_ID
-};
-
-static void main_channel_client_get_property(GObject *object,
-                                             guint property_id,
-                                             GValue *value,
-                                             GParamSpec *pspec)
+uint8_t *MainChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 {
-    MainChannelClient *self = MAIN_CHANNEL_CLIENT(object);
-
-    switch (property_id)
-    {
-        case PROP_CONNECTION_ID:
-            g_value_set_uint(value, self->priv->connection_id);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static void main_channel_client_set_property(GObject *object,
-                                             guint property_id,
-                                             const GValue *value,
-                                             GParamSpec *pspec)
-{
-    MainChannelClient *self = MAIN_CHANNEL_CLIENT(object);
-
-    switch (property_id)
-    {
-        case PROP_CONNECTION_ID:
-            self->priv->connection_id = g_value_get_uint(value);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static uint8_t *
-main_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
-                                      uint16_t type, uint32_t size)
-{
-    MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
-
     if (type == SPICE_MSGC_MAIN_AGENT_DATA) {
-        RedChannel *channel = rcc->get_channel();
-        return reds_get_agent_data_buffer(channel->get_server(), mcc, size);
-    } else if (size > sizeof(mcc->priv->recv_buf)) {
+        RedChannel *channel = get_channel();
+        return reds_get_agent_data_buffer(channel->get_server(), this, size);
+    } else if (size > sizeof(priv->recv_buf)) {
         /* message too large, caller will log a message and close the connection */
         return NULL;
     } else {
-        return mcc->priv->recv_buf;
+        return priv->recv_buf;
     }
 }
 
-static void
-main_channel_client_release_msg_rcv_buf(RedChannelClient *rcc,
-                                        uint16_t type, uint32_t size, uint8_t *msg)
+void MainChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg)
 {
     if (type == SPICE_MSGC_MAIN_AGENT_DATA) {
-        RedChannel *channel = rcc->get_channel();
+        RedChannel *channel = get_channel();
         reds_release_agent_data_buffer(channel->get_server(), msg);
     }
 }
@@ -194,42 +149,11 @@ main_channel_client_release_msg_rcv_buf(RedChannelClient *rcc,
 /*
  * When the main channel is disconnected, disconnect the entire client.
  */
-static void main_channel_client_on_disconnect(RedChannelClient *rcc)
+void MainChannelClient::on_disconnect()
 {
-    RedsState *reds = rcc->get_channel()->get_server();
+    RedsState *reds = get_channel()->get_server();
     main_dispatcher_client_disconnect(reds_get_main_dispatcher(reds),
-                                      rcc->get_client());
-}
-
-static void main_channel_client_class_init(MainChannelClientClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
-
-    object_class->get_property = main_channel_client_get_property;
-    object_class->set_property = main_channel_client_set_property;
-
-    client_class->alloc_recv_buf = main_channel_client_alloc_msg_rcv_buf;
-    client_class->release_recv_buf = main_channel_client_release_msg_rcv_buf;
-    client_class->on_disconnect = main_channel_client_on_disconnect;
-
-    g_object_class_install_property(object_class,
-                                    PROP_CONNECTION_ID,
-                                    g_param_spec_uint("connection-id",
-                                                      "Connection ID",
-                                                      "Connection ID",
-                                                      0,
-                                                      G_MAXUINT,
-                                                      0,
-                                                      G_PARAM_CONSTRUCT_ONLY |
-                                                      G_PARAM_READWRITE |
-                                                      G_PARAM_STATIC_STRINGS));
-}
-
-static void main_channel_client_init(MainChannelClient *self)
-{
-    self->priv = (MainChannelClientPrivate *) main_channel_client_get_instance_private(self);
-    self->priv->bitrate_per_sec = ~0;
+                                      get_client());
 }
 
 static void main_channel_client_push_ping(MainChannelClient *mcc, int size);
@@ -602,22 +526,32 @@ gboolean main_channel_client_migrate_src_complete(MainChannelClient *mcc,
     return ret;
 }
 
+
+MainChannelClient::MainChannelClient(MainChannel *channel,
+                                     RedClient *client,
+                                     RedStream *stream,
+                                     RedChannelCapabilities *caps,
+                                     uint32_t connection_id):
+    RedChannelClient(RED_CHANNEL(channel), client, stream, caps),
+    priv(new MainChannelClientPrivate())
+{
+    priv->connection_id = connection_id;
+}
+
+MainChannelClient::~MainChannelClient()
+{
+    delete priv;
+}
+
 MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient *client,
                                               RedStream *stream, uint32_t connection_id,
                                               RedChannelCapabilities *caps)
 {
-    MainChannelClient *mcc;
-
-    mcc = (MainChannelClient *)
-          g_initable_new(TYPE_MAIN_CHANNEL_CLIENT,
-                         NULL, NULL,
-                         "channel", main_chan,
-                         "client", client,
-                         "stream", stream,
-                         "caps", caps,
-                         "connection-id", connection_id,
-                         NULL);
-
+    auto mcc = new MainChannelClient(main_chan, client, stream, caps, connection_id);
+    if (!mcc->init()) {
+        mcc->unref();
+        mcc = nullptr;
+    }
     return mcc;
 }
 
@@ -641,6 +575,8 @@ uint64_t main_channel_client_get_roundtrip_ms(MainChannelClient *mcc)
 {
     return mcc->priv->latency / 1000;
 }
+
+XXX_CAST(RedChannelClient, MainChannelClient, MAIN_CHANNEL_CLIENT);
 
 void main_channel_client_migrate(RedChannelClient *rcc)
 {

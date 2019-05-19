@@ -22,8 +22,6 @@
 #include "dcc.h"
 #include "red-client.h"
 
-#define CHANNEL_RECEIVE_BUF_SIZE 1024
-
 struct CommonGraphicsChannelPrivate
 {
     int during_target_migrate; /* TRUE when the client that is associated with the channel
@@ -36,43 +34,32 @@ struct CommonGraphicsChannelPrivate
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(CommonGraphicsChannel, common_graphics_channel,
                                     RED_TYPE_CHANNEL)
 
-struct CommonGraphicsChannelClientPrivate {
-    uint8_t recv_buf[CHANNEL_RECEIVE_BUF_SIZE];
-};
-
-G_DEFINE_TYPE_WITH_PRIVATE(CommonGraphicsChannelClient, common_graphics_channel_client,
-                           RED_TYPE_CHANNEL_CLIENT)
-
-static uint8_t *common_alloc_recv_buf(RedChannelClient *rcc, uint16_t type, uint32_t size)
+uint8_t *CommonGraphicsChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 {
-    CommonGraphicsChannelClient *common = COMMON_GRAPHICS_CHANNEL_CLIENT(rcc);
-
     /* SPICE_MSGC_MIGRATE_DATA is the only client message whose size is dynamic */
     if (type == SPICE_MSGC_MIGRATE_DATA) {
         return (uint8_t *) g_malloc(size);
     }
 
-    if (size > sizeof(common->priv->recv_buf)) {
-        spice_warning("unexpected message size %u (max is %zd)", size,
-                      sizeof(common->priv->recv_buf));
+    if (size > sizeof(recv_buf)) {
+        spice_warning("unexpected message size %u (max is %zd)", size, sizeof(recv_buf));
         return NULL;
     }
-    return common->priv->recv_buf;
+    return recv_buf;
 }
 
-static void common_release_recv_buf(RedChannelClient *rcc, uint16_t type, uint32_t size,
-                                    uint8_t* msg)
+void CommonGraphicsChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t* msg)
 {
     if (type == SPICE_MSGC_MIGRATE_DATA) {
         g_free(msg);
     }
 }
 
-bool common_channel_client_config_socket(RedChannelClient *rcc)
+bool CommonGraphicsChannelClient::config_socket()
 {
-    RedClient *client = rcc->get_client();
+    RedClient *client = get_client();
     MainChannelClient *mcc = red_client_get_main(client);
-    RedStream *stream = rcc->get_stream();
+    RedStream *stream = get_stream();
     gboolean is_low_bandwidth;
 
     // TODO - this should be dynamic, not one time at channel creation
@@ -87,8 +74,8 @@ bool common_channel_client_config_socket(RedChannelClient *rcc)
         red_stream_set_no_delay(stream, !is_low_bandwidth);
     }
     // TODO: move wide/narrow ack setting to red_channel.
-    rcc->ack_set_client_window(is_low_bandwidth ? WIDE_CLIENT_ACK_WINDOW : NARROW_CLIENT_ACK_WINDOW);
-    return TRUE;
+    ack_set_client_window(is_low_bandwidth ? WIDE_CLIENT_ACK_WINDOW : NARROW_CLIENT_ACK_WINDOW);
+    return true;
 }
 
 
@@ -111,21 +98,4 @@ void common_graphics_channel_set_during_target_migrate(CommonGraphicsChannel *se
 gboolean common_graphics_channel_get_during_target_migrate(CommonGraphicsChannel *self)
 {
     return self->priv->during_target_migrate;
-}
-
-static void
-common_graphics_channel_client_init(CommonGraphicsChannelClient *self)
-{
-    self->priv = (CommonGraphicsChannelClientPrivate*)
-        common_graphics_channel_client_get_instance_private(self);
-}
-
-static void
-common_graphics_channel_client_class_init(CommonGraphicsChannelClientClass *klass)
-{
-    RedChannelClientClass *client_class = RED_CHANNEL_CLIENT_CLASS(klass);
-
-    client_class->config_socket = common_channel_client_config_socket;
-    client_class->alloc_recv_buf = common_alloc_recv_buf;
-    client_class->release_recv_buf = common_release_recv_buf;
 }
