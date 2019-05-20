@@ -316,47 +316,45 @@ RedChannelClient::RedChannelClient(RedChannel *channel,
                                    RedChannelCapabilities *caps,
                                    bool monitor_latency)
 {
-    RedChannelClient *self =  this;
-
     // XXX initialize
     priv = new RedChannelClientPrivate();
 
     // blocks send message (maybe use send_data.blocked + block flags)
-    self->priv->ack_data.messages_window = ~0;
-    self->priv->ack_data.client_generation = ~0;
-    self->priv->ack_data.client_window = CLIENT_ACK_WINDOW;
-    self->priv->send_data.main.marshaller = spice_marshaller_new();
-    self->priv->send_data.urgent.marshaller = spice_marshaller_new();
+    priv->ack_data.messages_window = ~0;
+    priv->ack_data.client_generation = ~0;
+    priv->ack_data.client_window = CLIENT_ACK_WINDOW;
+    priv->send_data.main.marshaller = spice_marshaller_new();
+    priv->send_data.urgent.marshaller = spice_marshaller_new();
 
-    self->priv->send_data.marshaller = self->priv->send_data.main.marshaller;
+    priv->send_data.marshaller = priv->send_data.main.marshaller;
 
-    g_queue_init(&self->priv->pipe);
+    g_queue_init(&priv->pipe);
 
-    red_channel_capabilities_reset(&self->priv->remote_caps);
-    red_channel_capabilities_init(&self->priv->remote_caps, caps);
+    red_channel_capabilities_reset(&priv->remote_caps);
+    red_channel_capabilities_init(&priv->remote_caps, caps);
 
     priv->channel = (RedChannel*) g_object_ref(channel);
     priv->client = client;
     priv->stream = stream;
 
-    self->priv->outgoing.pos = 0;
-    self->priv->outgoing.size = 0;
+    priv->outgoing.pos = 0;
+    priv->outgoing.size = 0;
 
-    if (self->test_remote_common_cap(SPICE_COMMON_CAP_MINI_HEADER)) {
-        self->priv->incoming.header = mini_header_wrapper;
-        self->priv->send_data.header = mini_header_wrapper;
-        self->priv->is_mini_header = TRUE;
+    if (test_remote_common_cap(SPICE_COMMON_CAP_MINI_HEADER)) {
+        priv->incoming.header = mini_header_wrapper;
+        priv->send_data.header = mini_header_wrapper;
+        priv->is_mini_header = TRUE;
     } else {
-        self->priv->incoming.header = full_header_wrapper;
-        self->priv->send_data.header = full_header_wrapper;
-        self->priv->is_mini_header = FALSE;
+        priv->incoming.header = full_header_wrapper;
+        priv->send_data.header = full_header_wrapper;
+        priv->is_mini_header = FALSE;
     }
-    self->priv->incoming.header.data = self->priv->incoming.header_buf;
+    priv->incoming.header.data = priv->incoming.header_buf;
 
     RedsState* reds = channel->get_server();
     const RedStatNode *node = channel->get_stat_node();
-    stat_init_counter(&self->priv->out_messages, reds, node, "out_messages", TRUE);
-    stat_init_counter(&self->priv->out_bytes, reds, node, "out_bytes", TRUE);
+    stat_init_counter(&priv->out_messages, reds, node, "out_messages", TRUE);
+    stat_init_counter(&priv->out_bytes, reds, node, "out_bytes", TRUE);
 }
 
 RedChannel* RedChannelClient::get_channel()
@@ -791,9 +789,8 @@ bool RedChannelClient::init()
 {
     GError *local_error = NULL;
     SpiceCoreInterfaceInternal *core;
-    RedChannelClient *self = this;
 
-    if (!self->priv->stream) {
+    if (!priv->stream) {
         g_set_error_literal(&local_error,
                             SPICE_SERVER_ERROR,
                             SPICE_SERVER_ERROR_FAILED,
@@ -801,7 +798,7 @@ bool RedChannelClient::init()
         goto cleanup;
     }
 
-    if (!self->config_socket()) {
+    if (!config_socket()) {
         g_set_error_literal(&local_error,
                             SPICE_SERVER_ERROR,
                             SPICE_SERVER_ERROR_FAILED,
@@ -809,34 +806,34 @@ bool RedChannelClient::init()
         goto cleanup;
     }
 
-    core = self->priv->channel->get_core_interface();
-    red_stream_set_core_interface(self->priv->stream, core);
-    self->priv->stream->watch =
-        core->watch_add(core, self->priv->stream->socket,
+    core = priv->channel->get_core_interface();
+    red_stream_set_core_interface(priv->stream, core);
+    priv->stream->watch =
+        core->watch_add(core, priv->stream->socket,
                         SPICE_WATCH_EVENT_READ,
                         red_channel_client_event,
-                        self);
+                        this);
 
     if (red_stream_get_family(priv->stream) != AF_UNIX) {
         priv->latency_monitor.timer =
             core->timer_add(core, ping_timer, this);
 
-        if (!red_client_during_migrate_at_target(self->priv->client)) {
+        if (!red_client_during_migrate_at_target(priv->client)) {
             priv->start_ping_timer(PING_TEST_IDLE_NET_TIMEOUT_MS);
         }
-        self->priv->latency_monitor.roundtrip = -1;
-        self->priv->latency_monitor.timeout =
-            self->priv->monitor_latency ? PING_TEST_TIMEOUT_MS : PING_TEST_LONG_TIMEOUT_MS;
+        priv->latency_monitor.roundtrip = -1;
+        priv->latency_monitor.timeout =
+            priv->monitor_latency ? PING_TEST_TIMEOUT_MS : PING_TEST_LONG_TIMEOUT_MS;
     }
 
-    self->priv->channel->add_client(self);
-    if (!red_client_add_channel(self->priv->client, self, &local_error)) {
-        self->priv->channel->remove_client(self);
+    priv->channel->add_client(this);
+    if (!red_client_add_channel(priv->client, this, &local_error)) {
+        priv->channel->remove_client(this);
     }
 
 cleanup:
     if (local_error) {
-        red_channel_warning(self->get_channel(),
+        red_channel_warning(get_channel(),
                             "Failed to create channel client: %s",
                             local_error->message);
         g_error_free(local_error);
