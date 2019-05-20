@@ -90,6 +90,8 @@ static SpiceWatch *base_watch_add(int fd, int event_mask, SpiceWatchFunc func, v
 
 static SpiceCoreInterface core = {
     .base = {
+        .type = NULL,
+        .description = NULL,
         .major_version = SPICE_INTERFACE_CORE_MAJOR,
         .minor_version = SPICE_INTERFACE_CORE_MINOR,
     },

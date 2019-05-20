@@ -96,14 +96,15 @@ static SpiceCharDeviceInterface vmc_interface = {
 };
 
 static SpiceCharDeviceInstance vmc_instance = {
+    .base = { NULL },
     .subtype = "vdagent",
 };
 
 static void test_multiple_vmc_devices(void)
 {
     SpiceCharDeviceInstance vmc_instances[2] = {
-        { .subtype = "vdagent", },
-        { .subtype = "vdagent", }
+        { .base = { NULL }, .subtype = "vdagent", },
+        { .base = { NULL }, .subtype = "vdagent", }
     };
     int status;
 

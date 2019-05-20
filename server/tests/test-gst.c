@@ -726,6 +726,7 @@ mock_update_client_playback_delay(void *opaque, uint32_t delay_ms)
 }
 
 static VideoEncoderRateControlCbs rate_control_cbs = {
+    .opaque = NULL,
     .get_roundtrip_ms = mock_get_roundtrip_ms,
     .get_source_fps = mock_get_source_fps,
     .update_client_playback_delay = mock_update_client_playback_delay,

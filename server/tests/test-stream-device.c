@@ -42,6 +42,7 @@ static uint8_t *add_stream_hdr(uint8_t *p, StreamMsgType type, uint32_t size)
 {
     StreamDevHeader hdr = {
         .protocol_version = STREAM_DEVICE_PROTOCOL,
+        .padding = 0,
         .type = GUINT16_TO_LE(type),
         .size = GUINT32_TO_LE(size),
     };

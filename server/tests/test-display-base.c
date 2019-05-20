@@ -799,6 +799,7 @@ static QXLInterface display_sif = {
     },
     .attached_worker = attached_worker,
     .set_compression_level = set_compression_level,
+    .set_mm_time = NULL,
     .get_init_info = get_init_info,
 
     /* the callbacks below are called from spice server thread context */
@@ -809,6 +810,8 @@ static QXLInterface display_sif = {
     .req_cursor_notification = req_cursor_notification,
     .notify_update = notify_update,
     .flush_resources = flush_resources,
+    .async_complete = NULL,
+    .update_area_complete = NULL,
     .set_client_capabilities = set_client_capabilities,
     .client_monitors_config = client_monitors_config,
 };

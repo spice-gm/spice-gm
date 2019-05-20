@@ -252,6 +252,7 @@ static QXLInterface display_sif = {
     },
     .attached_worker = attached_worker,
     .set_compression_level = set_compression_level,
+    .set_mm_time = NULL,
     .get_init_info = get_init_info,
     .get_command = get_display_command,
     .req_cmd_notification = req_display_notification,
