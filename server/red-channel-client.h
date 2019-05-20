@@ -183,7 +183,7 @@ private:
     /* Private data */
 private:
     gint _ref = 1;
-    RedChannelClientPrivate *priv = nullptr;
+    RedChannelClientPrivate *const priv = nullptr;
 };
 
 #define SPICE_SERVER_ERROR spice_server_error_quark()

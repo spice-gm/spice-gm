@@ -117,9 +117,16 @@ struct RedChannelClientPrivate
 {
     SPICE_CXX_GLIB_ALLOCATOR
 
-    RedChannel *channel;
-    RedClient  *client;
-    RedStream *stream;
+    RedChannelClientPrivate(RedChannel *channel,
+                            RedClient *client,
+                            RedStream *stream,
+                            RedChannelCapabilities *caps,
+                            bool monitor_latency);
+    ~RedChannelClientPrivate();
+
+    RedChannel *const channel;
+    RedClient *const client;
+    RedStream *const stream;
     gboolean monitor_latency;
 
     struct {
@@ -284,29 +291,75 @@ void RedChannelClientPrivate::restart_ping_timer()
     start_ping_timer(timeout);
 }
 
+RedChannelClientPrivate::RedChannelClientPrivate(RedChannel *channel,
+                                                 RedClient *client,
+                                                 RedStream *stream,
+                                                 RedChannelCapabilities *caps,
+                                                 bool monitor_latency):
+    channel((RedChannel*) g_object_ref(channel)),
+    client(client), stream(stream)
+{
+    // blocks send message (maybe use send_data.blocked + block flags)
+    ack_data.messages_window = ~0;
+    ack_data.client_generation = ~0;
+    ack_data.client_window = CLIENT_ACK_WINDOW;
+    send_data.main.marshaller = spice_marshaller_new();
+    send_data.urgent.marshaller = spice_marshaller_new();
+
+    send_data.marshaller = send_data.main.marshaller;
+
+    g_queue_init(&pipe);
+
+    red_channel_capabilities_reset(&remote_caps);
+    red_channel_capabilities_init(&remote_caps, caps);
+
+    outgoing.pos = 0;
+    outgoing.size = 0;
+
+    if (test_capability(remote_caps.common_caps, remote_caps.num_common_caps,
+                        SPICE_COMMON_CAP_MINI_HEADER)) {
+        incoming.header = mini_header_wrapper;
+        send_data.header = mini_header_wrapper;
+        is_mini_header = TRUE;
+    } else {
+        incoming.header = full_header_wrapper;
+        send_data.header = full_header_wrapper;
+        is_mini_header = FALSE;
+    }
+    incoming.header.data = incoming.header_buf;
+
+    RedsState* reds = channel->get_server();
+    const RedStatNode *node = channel->get_stat_node();
+    stat_init_counter(&out_messages, reds, node, "out_messages", TRUE);
+    stat_init_counter(&out_bytes, reds, node, "out_bytes", TRUE);
+}
+
+RedChannelClientPrivate::~RedChannelClientPrivate()
+{
+    red_timer_remove(latency_monitor.timer);
+    latency_monitor.timer = NULL;
+
+    red_timer_remove(connectivity_monitor.timer);
+    connectivity_monitor.timer = NULL;
+
+    red_stream_free(stream);
+
+    if (send_data.main.marshaller) {
+        spice_marshaller_destroy(send_data.main.marshaller);
+    }
+
+    if (send_data.urgent.marshaller) {
+        spice_marshaller_destroy(send_data.urgent.marshaller);
+    }
+
+    red_channel_capabilities_reset(&remote_caps);
+    if (channel) {
+        g_object_unref(channel);
+    }
+}
+
 RedChannelClient::~RedChannelClient()
 {
-    red_timer_remove(priv->latency_monitor.timer);
-    priv->latency_monitor.timer = NULL;
-
-    red_timer_remove(priv->connectivity_monitor.timer);
-    priv->connectivity_monitor.timer = NULL;
-
-    red_stream_free(priv->stream);
-    priv->stream = NULL;
-
-    if (priv->send_data.main.marshaller) {
-        spice_marshaller_destroy(priv->send_data.main.marshaller);
-    }
-
-    if (priv->send_data.urgent.marshaller) {
-        spice_marshaller_destroy(priv->send_data.urgent.marshaller);
-    }
-
-    red_channel_capabilities_reset(&priv->remote_caps);
-    if (priv->channel) {
-        g_object_unref(priv->channel);
-    }
     delete priv;
 }
 
@@ -314,47 +367,9 @@ RedChannelClient::RedChannelClient(RedChannel *channel,
                                    RedClient *client,
                                    RedStream *stream,
                                    RedChannelCapabilities *caps,
-                                   bool monitor_latency)
+                                   bool monitor_latency):
+    priv(new RedChannelClientPrivate(channel, client, stream, caps, monitor_latency))
 {
-    // XXX initialize
-    priv = new RedChannelClientPrivate();
-
-    // blocks send message (maybe use send_data.blocked + block flags)
-    priv->ack_data.messages_window = ~0;
-    priv->ack_data.client_generation = ~0;
-    priv->ack_data.client_window = CLIENT_ACK_WINDOW;
-    priv->send_data.main.marshaller = spice_marshaller_new();
-    priv->send_data.urgent.marshaller = spice_marshaller_new();
-
-    priv->send_data.marshaller = priv->send_data.main.marshaller;
-
-    g_queue_init(&priv->pipe);
-
-    red_channel_capabilities_reset(&priv->remote_caps);
-    red_channel_capabilities_init(&priv->remote_caps, caps);
-
-    priv->channel = (RedChannel*) g_object_ref(channel);
-    priv->client = client;
-    priv->stream = stream;
-
-    priv->outgoing.pos = 0;
-    priv->outgoing.size = 0;
-
-    if (test_remote_common_cap(SPICE_COMMON_CAP_MINI_HEADER)) {
-        priv->incoming.header = mini_header_wrapper;
-        priv->send_data.header = mini_header_wrapper;
-        priv->is_mini_header = TRUE;
-    } else {
-        priv->incoming.header = full_header_wrapper;
-        priv->send_data.header = full_header_wrapper;
-        priv->is_mini_header = FALSE;
-    }
-    priv->incoming.header.data = priv->incoming.header_buf;
-
-    RedsState* reds = channel->get_server();
-    const RedStatNode *node = channel->get_stat_node();
-    stat_init_counter(&priv->out_messages, reds, node, "out_messages", TRUE);
-    stat_init_counter(&priv->out_bytes, reds, node, "out_bytes", TRUE);
 }
 
 RedChannel* RedChannelClient::get_channel()
