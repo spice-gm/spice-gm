@@ -46,8 +46,6 @@ public:
                      bool monitor_latency=false);
     virtual bool init();
 
-    RedChannelClientPrivate *priv = nullptr;
-
     bool is_connected() const;
     static void default_migrate(RedChannelClient *rcc);
     bool is_waiting_for_migrate_data() const;
@@ -161,9 +159,31 @@ public:
 
     virtual void on_disconnect() {};
 
+    /* Private functions */
+private:
+    void send_item(RedPipeItem *item);
+    void handle_outgoing();
+    void handle_incoming();
+    void handle_migrate_flush_mark();
+    void handle_migrate_data(uint32_t size, void *message);
+    inline bool prepare_pipe_add(RedPipeItem *item);
+    void pipe_add_before_pos(RedPipeItem *item, GList *pipe_item_pos);
+    void send_set_ack();
+    void send_migrate();
+    void send_empty_msg(RedPipeItem *base);
+    void msg_sent();
+    uint8_t *parse(uint8_t *message, size_t message_size,
+                   uint16_t message_type,
+                   size_t *size_out, message_destructor_t *free_message);
+    static void ping_timer(void *opaque);
+    static void connectivity_timer(void *opaque);
+    void send_ping();
+    void push_ping();
+
     /* Private data */
 private:
     gint _ref = 1;
+    RedChannelClientPrivate *priv = nullptr;
 };
 
 #define SPICE_SERVER_ERROR spice_server_error_quark()
