@@ -396,7 +396,7 @@ static uint64_t get_average_encoding_time(SpiceGstEncoder *encoder)
     return encoder->stat_duration_sum / count;
 }
 
-static uint64_t get_average_frame_size(SpiceGstEncoder *encoder)
+static uint32_t get_average_frame_size(SpiceGstEncoder *encoder)
 {
     uint32_t count = encoder->history_last +
         (encoder->history_last < encoder->stat_first ? SPICE_GST_HISTORY_SIZE : 0) -
@@ -520,8 +520,8 @@ static uint32_t get_min_playback_delay(SpiceGstEncoder *encoder)
      * an I frame) and an average frame. This also takes into account the
      * frames dropped by the encoder bit rate control.
      */
-    uint64_t size = get_maximum_frame_size(encoder) + get_average_frame_size(encoder);
-    uint32_t send_time = MSEC_PER_SEC * size * 8 / encoder->bit_rate;
+    uint32_t size = get_maximum_frame_size(encoder) + get_average_frame_size(encoder);
+    uint32_t send_time = ((uint64_t)MSEC_PER_SEC * 8) * size / encoder->bit_rate;
 
     /* Also factor in the network latency with a margin for jitter. */
     uint32_t net_latency = get_network_latency(encoder) * (1.0 + SPICE_GST_LATENCY_MARGIN);
