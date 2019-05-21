@@ -542,7 +542,8 @@ static void update_next_frame_mm_time(SpiceGstEncoder *encoder)
     uint64_t period_ns = NSEC_PER_SEC / get_source_fps(encoder);
     uint64_t min_delay_ns = get_average_encoding_time(encoder);
     if (min_delay_ns > period_ns) {
-        spice_warning("your system seems to be too slow to encode this %dx%d video in real time", encoder->width, encoder->height);
+        spice_warning("your system seems to be too slow to encode this %dx%d@%d video in real time",
+                      encoder->width, encoder->height, get_source_fps(encoder));
     }
 
     min_delay_ns = MIN(min_delay_ns, SPICE_GST_MAX_PERIOD);
