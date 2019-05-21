@@ -335,13 +335,13 @@ spice_jpeg_mem_dest(j_compress_ptr cinfo,
 }
 /* end of code from libjpeg */
 
-static inline uint32_t mjpeg_encoder_get_source_fps(MJpegEncoder *encoder)
+static inline uint32_t mjpeg_encoder_get_source_fps(const MJpegEncoder *encoder)
 {
     return encoder->cbs.get_source_fps ?
         encoder->cbs.get_source_fps(encoder->cbs.opaque) : MJPEG_MAX_FPS;
 }
 
-static inline uint32_t mjpeg_encoder_get_latency(MJpegEncoder *encoder)
+static inline uint32_t mjpeg_encoder_get_latency(const MJpegEncoder *encoder)
 {
     return encoder->cbs.get_roundtrip_ms ?
         encoder->cbs.get_roundtrip_ms(encoder->cbs.opaque) / 2 : 0;
