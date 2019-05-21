@@ -128,6 +128,15 @@ typedef struct GListIter {
     { return G_TYPE_INSTANCE_GET_CLASS(obj, \
              module_obj_name ## _get_type(), ModuleObjName ## Class); }
 
+#ifdef __cplusplus
+#include <glib-object.h>
+
+inline GParamFlags operator|(GParamFlags a, GParamFlags b)
+{
+    return (GParamFlags) ((int)a|(int)b);
+}
+#endif
+
 SPICE_END_DECLS
 
 #endif /* RED_COMMON_H_ */
