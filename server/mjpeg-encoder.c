@@ -181,9 +181,8 @@ typedef struct MJpegEncoder {
 } MJpegEncoder;
 
 static void mjpeg_encoder_process_server_drops(MJpegEncoder *encoder);
-static uint32_t get_min_required_playback_delay(uint64_t frame_enc_size,
-                                                uint64_t byte_rate,
-                                                uint32_t latency);
+static uint32_t get_min_required_playback_delay(const MJpegEncoder *encoder,
+                                                uint64_t frame_enc_size);
 
 static void mjpeg_video_buffer_free(VideoBuffer *video_buffer)
 {
@@ -534,10 +533,7 @@ complete_sample:
     spice_debug("MJpeg quality sample end %p: quality %d fps %d",
                 encoder, mjpeg_quality_samples[rate_control->quality_id], rate_control->fps);
     if (encoder->cbs.update_client_playback_delay) {
-        uint32_t latency = mjpeg_encoder_get_latency(encoder);
-        uint32_t min_delay = get_min_required_playback_delay(final_quality_enc_size,
-                                                             rate_control->byte_rate,
-                                                             latency);
+        uint32_t min_delay = get_min_required_playback_delay(encoder, final_quality_enc_size);
 
         encoder->cbs.update_client_playback_delay(encoder->cbs.opaque, min_delay);
     }
@@ -1166,10 +1162,11 @@ static void mjpeg_encoder_handle_positive_client_stream_report(MJpegEncoder *enc
  * the video playback jitter buffer should be at least (send_time*2 + net_latency) for
  * preventing underflow
  */
-static uint32_t get_min_required_playback_delay(uint64_t frame_enc_size,
-                                                uint64_t byte_rate,
-                                                uint32_t latency)
+static uint32_t get_min_required_playback_delay(const MJpegEncoder *encoder,
+                                                uint64_t frame_enc_size)
 {
+    uint64_t byte_rate = encoder->rate_control.byte_rate;
+    uint32_t latency = mjpeg_encoder_get_latency(encoder);
     uint32_t one_frame_time;
     uint32_t min_delay;
 
@@ -1219,8 +1216,7 @@ static void mjpeg_encoder_client_stream_report(VideoEncoder *video_encoder,
                        rate_control->num_recent_enc_frames;
     }
     spice_debug("recent size avg %.2f (KB)", avg_enc_size / 1024.0);
-    min_playback_delay = get_min_required_playback_delay(avg_enc_size, rate_control->byte_rate,
-                                                         mjpeg_encoder_get_latency(encoder));
+    min_playback_delay = get_min_required_playback_delay(encoder, avg_enc_size);
     spice_debug("min-delay %u client-delay %d", min_playback_delay, end_frame_delay);
 
     if (min_playback_delay > end_frame_delay) {
