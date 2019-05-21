@@ -333,13 +333,13 @@ static inline double get_mbps(uint64_t bit_rate)
 /* Returns the source frame rate which may change at any time so don't store
  * the result.
  */
-static uint32_t get_source_fps(SpiceGstEncoder *encoder)
+static uint32_t get_source_fps(const SpiceGstEncoder *encoder)
 {
     return encoder->cbs.get_source_fps ?
         encoder->cbs.get_source_fps(encoder->cbs.opaque) : SPICE_GST_DEFAULT_FPS;
 }
 
-static uint32_t get_network_latency(SpiceGstEncoder *encoder)
+static uint32_t get_network_latency(const SpiceGstEncoder *encoder)
 {
     /* Assume that the network latency is symmetric */
     return encoder->cbs.get_roundtrip_ms ?
@@ -370,7 +370,7 @@ static void free_pipeline(SpiceGstEncoder *encoder)
 
 /* ---------- Encoded frame statistics ---------- */
 
-static inline uint32_t get_last_frame_mm_time(SpiceGstEncoder *encoder)
+static inline uint32_t get_last_frame_mm_time(const SpiceGstEncoder *encoder)
 {
     return encoder->history[encoder->history_last].mm_time;
 }
@@ -378,7 +378,7 @@ static inline uint32_t get_last_frame_mm_time(SpiceGstEncoder *encoder)
 /* Returns the current bit rate based on the last
  * SPICE_GST_FRAME_STATISTICS_COUNT frames.
  */
-static uint64_t get_effective_bit_rate(SpiceGstEncoder *encoder)
+static uint64_t get_effective_bit_rate(const SpiceGstEncoder *encoder)
 {
     uint32_t next_mm_time = encoder->next_frame_mm_time ?
                             encoder->next_frame_mm_time :
@@ -388,7 +388,7 @@ static uint64_t get_effective_bit_rate(SpiceGstEncoder *encoder)
     return elapsed ? encoder->stat_size_sum * 8 * MSEC_PER_SEC / elapsed : 0;
 }
 
-static uint64_t get_average_encoding_time(SpiceGstEncoder *encoder)
+static uint64_t get_average_encoding_time(const SpiceGstEncoder *encoder)
 {
     uint32_t count = encoder->history_last +
         (encoder->history_last < encoder->stat_first ? SPICE_GST_HISTORY_SIZE : 0) -
@@ -396,7 +396,7 @@ static uint64_t get_average_encoding_time(SpiceGstEncoder *encoder)
     return encoder->stat_duration_sum / count;
 }
 
-static uint32_t get_average_frame_size(SpiceGstEncoder *encoder)
+static uint32_t get_average_frame_size(const SpiceGstEncoder *encoder)
 {
     uint32_t count = encoder->history_last +
         (encoder->history_last < encoder->stat_first ? SPICE_GST_HISTORY_SIZE : 0) -
@@ -423,8 +423,8 @@ static uint32_t get_maximum_frame_size(SpiceGstEncoder *encoder)
 /* Returns the bit rate of the specified period. from and to must be the
  * mm time of the first and last frame to consider.
  */
-static uint64_t get_period_bit_rate(SpiceGstEncoder *encoder, uint32_t from,
-                                    uint32_t to)
+static uint64_t get_period_bit_rate(const SpiceGstEncoder *encoder,
+                                    uint32_t from, uint32_t to)
 {
     uint32_t sum = 0;
     uint32_t last_mm_time = 0;
@@ -588,7 +588,7 @@ static void update_next_frame_mm_time(SpiceGstEncoder *encoder)
  * This is based on a 10x compression ratio which should be more than enough
  * for even MJPEG to provide good quality.
  */
-static uint64_t get_bit_rate_cap(SpiceGstEncoder *encoder)
+static uint64_t get_bit_rate_cap(const SpiceGstEncoder *encoder)
 {
     uint32_t raw_frame_bits = encoder->width * encoder->height * encoder->format->bpp;
     return raw_frame_bits * get_source_fps(encoder) / 10;
@@ -876,7 +876,7 @@ static GstFlowReturn new_sample(GstAppSink *gstappsink, gpointer video_encoder)
     return GST_FLOW_OK;
 }
 
-static const gchar* get_gst_codec_name(SpiceGstEncoder *encoder)
+static const gchar* get_gst_codec_name(const SpiceGstEncoder *encoder)
 {
     switch (encoder->base.codec_type)
     {
