@@ -517,7 +517,7 @@ void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping,
             // probably high load on client or server result with incorrect values
             red_channel_debug(red_channel_client_get_channel(rcc),
                               "net test: invalid values, latency %" G_GUINT64_FORMAT
-                              " roundtrip %"G_GUINT64_FORMAT". assuming high"
+                              " roundtrip %" G_GUINT64_FORMAT ". assuming high"
                               "bandwidth", mcc->priv->latency, roundtrip);
             mcc->priv->latency = 0;
             mcc->priv->net_test_stage = NET_TEST_STAGE_INVALID;
@@ -529,7 +529,7 @@ void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping,
             / (roundtrip - mcc->priv->latency);
         mcc->priv->net_test_stage = NET_TEST_STAGE_COMPLETE;
         red_channel_debug(red_channel_client_get_channel(rcc),
-                          "net test: latency %f ms, bitrate %"G_GUINT64_FORMAT" bps (%f Mbps)%s",
+                          "net test: latency %f ms, bitrate %" G_GUINT64_FORMAT " bps (%f Mbps)%s",
                           (double)mcc->priv->latency / 1000,
                           mcc->priv->bitrate_per_sec,
                           (double)mcc->priv->bitrate_per_sec / 1024 / 1024,

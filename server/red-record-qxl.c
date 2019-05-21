@@ -246,7 +246,7 @@ static void red_record_image(FILE *fd, RedMemSlotInfo *slots, int group_id,
     }
 
     qxl = (QXLImage *)memslot_get_virt(slots, addr, sizeof(*qxl), group_id);
-    fprintf(fd, "descriptor.id %"PRIu64"\n", qxl->descriptor.id);
+    fprintf(fd, "descriptor.id %" PRIu64 "\n", qxl->descriptor.id);
     fprintf(fd, "descriptor.type %d\n", qxl->descriptor.type);
     fprintf(fd, "descriptor.flags %d\n", qxl->descriptor.flags);
     fprintf(fd, "descriptor.width %d\n", qxl->descriptor.width);
@@ -271,7 +271,7 @@ static void red_record_image(FILE *fd, RedMemSlotInfo *slots, int group_id,
             memslot_validate_virt(slots, (intptr_t)qp->ents,
                           memslot_get_id(slots, qxl->bitmap.palette),
                           num_ents * sizeof(qp->ents[0]), group_id);
-            fprintf(fd, "unique %"PRIu64"\n", qp->unique);
+            fprintf(fd, "unique %" PRIu64 "\n", qp->unique);
             for (i = 0; i < num_ents; i++) {
                 fprintf(fd, "ents %d\n", qp->ents[i]);
             }
@@ -715,7 +715,7 @@ static void red_record_cursor(FILE *fd, RedMemSlotInfo *slots, int group_id,
 
     qxl = (QXLCursor *)memslot_get_virt(slots, addr, sizeof(*qxl), group_id);
 
-    fprintf(fd, "header.unique %"PRIu64"\n", qxl->header.unique);
+    fprintf(fd, "header.unique %" PRIu64 "\n", qxl->header.unique);
     fprintf(fd, "header.type %d\n", qxl->header.type);
     fprintf(fd, "header.width %d\n", qxl->header.width);
     fprintf(fd, "header.height %d\n", qxl->header.height);
@@ -777,7 +777,7 @@ static void red_record_event_unlocked(RedRecord *record, int what, uint32_t type
     // and make it trivial to get a histogram from a file.
     // But to implement that I would need some temporary buffer for each event.
     // (that can be up to VGA_FRAMEBUFFER large)
-    fprintf(record->fd, "event %u %d %u %"PRIu64"\n", record->counter++, what, type, ts);
+    fprintf(record->fd, "event %u %d %u %" PRIu64 "\n", record->counter++, what, type, ts);
 }
 
 void red_record_event(RedRecord *record, int what, uint32_t type)

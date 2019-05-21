@@ -39,11 +39,11 @@ static void video_stream_agent_stats_print(VideoStreamAgent *agent)
         agent->video_encoder->get_stats(agent->video_encoder, &encoder_stats);
     }
 
-    spice_debug("stream=%p dim=(%dx%d) #in-frames=%"PRIu64" #in-avg-fps=%.2f #out-frames=%"PRIu64" "
-                "out/in=%.2f #drops=%"PRIu64" (#pipe=%"PRIu64" #fps=%"PRIu64") out-avg-fps=%.2f "
-                "passed-mm-time(sec)=%.2f size-total(MB)=%.2f size-per-sec(Mbps)=%.2f "
-                "size-per-frame(KBpf)=%.2f avg-quality=%.2f "
-                "start-bit-rate(Mbps)=%.2f end-bit-rate(Mbps)=%.2f",
+    spice_debug("stream=%p dim=(%dx%d) #in-frames=%" PRIu64 " #in-avg-fps=%.2f "
+                "#out-frames=%" PRIu64 " out/in=%.2f #drops=%" PRIu64 " (#pipe=%" PRIu64 " "
+                "#fps=%" PRIu64 ") out-avg-fps=%.2f passed-mm-time(sec)=%.2f "
+                "size-total(MB)=%.2f size-per-sec(Mbps)=%.2f size-per-frame(KBpf)=%.2f "
+                "avg-quality=%.2f start-bit-rate(Mbps)=%.2f end-bit-rate(Mbps)=%.2f",
                 agent, agent->stream->width, agent->stream->height,
                 stats->num_input_frames,
                 stats->num_input_frames / passed_mm_time,

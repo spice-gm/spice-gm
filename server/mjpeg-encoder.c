@@ -619,8 +619,8 @@ static void mjpeg_encoder_adjust_params_to_bit_rate(MJpegEncoder *encoder)
 
     spice_debug("cur-fps=%u new-fps=%u (new/old=%.2f) |"
                 "bit-rate=%.2f (Mbps) latency=%u (ms) quality=%d |"
-                " new-size-avg %"G_GUINT64_FORMAT" ,"
-                " base-size %"G_GUINT64_FORMAT", (new/old=%.2f) ",
+                " new-size-avg %" G_GUINT64_FORMAT " ,"
+                " base-size %" G_GUINT64_FORMAT ", (new/old=%.2f) ",
                 rate_control->fps, new_fps, ((double)new_fps)/rate_control->fps,
                 ((double)rate_control->byte_rate*8)/1024/1024,
                 latency,
@@ -682,8 +682,8 @@ static void mjpeg_encoder_adjust_fps(MJpegEncoder *encoder, uint64_t now)
 
         avg_fps = ((double)rate_control->adjusted_fps_num_frames * MSEC_PER_SEC) /
                   adjusted_fps_time_passed;
-        spice_debug("#frames-adjust=%"G_GUINT64_FORMAT
-                    " #adjust-time=%"G_GUINT64_FORMAT" avg-fps=%.2f",
+        spice_debug("#frames-adjust=%" G_GUINT64_FORMAT
+                    " #adjust-time=%" G_GUINT64_FORMAT " avg-fps=%.2f",
                     rate_control->adjusted_fps_num_frames, adjusted_fps_time_passed, avg_fps);
         spice_debug("defined=%u old-adjusted=%.2f", rate_control->fps, rate_control->adjusted_fps);
         fps_ratio = avg_fps / rate_control->fps;

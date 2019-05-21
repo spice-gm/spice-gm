@@ -433,7 +433,7 @@ static QXLImage *red_replay_image(SpiceReplay *replay, uint32_t flags)
     }
 
     qxl = (QXLImage*)replay_malloc0(replay, sizeof(QXLImage));
-    replay_fscanf(replay, "descriptor.id %"SCNu64"\n", &qxl->descriptor.id);
+    replay_fscanf(replay, "descriptor.id %" SCNu64 "\n", &qxl->descriptor.id);
     replay_fscanf(replay, "descriptor.type %d\n", &temp); qxl->descriptor.type = temp;
     replay_fscanf(replay, "descriptor.flags %d\n", &temp); qxl->descriptor.flags = temp;
     replay_fscanf(replay, "descriptor.width %d\n", &qxl->descriptor.width);
@@ -462,7 +462,7 @@ static QXLImage *red_replay_image(SpiceReplay *replay, uint32_t flags)
             qp = replay_malloc(replay, sizeof(QXLPalette) + num_ents * sizeof(qp->ents[0]));
             qp->num_ents = num_ents;
             qxl->bitmap.palette = QXLPHYSICAL_FROM_PTR(qp);
-            replay_fscanf(replay, "unique %"SCNu64"\n", &qp->unique);
+            replay_fscanf(replay, "unique %" SCNu64 "\n", &qp->unique);
             for (i = 0; i < num_ents; i++) {
                 replay_fscanf(replay, "ents %d\n", &qp->ents[i]);
             }
@@ -1181,7 +1181,7 @@ static QXLCursor *red_replay_cursor(SpiceReplay *replay)
     QXLCursor cursor, *qxl = NULL;
     ssize_t data_size;
 
-    replay_fscanf(replay, "header.unique %"SCNu64"\n", &cursor.header.unique);
+    replay_fscanf(replay, "header.unique %" SCNu64 "\n", &cursor.header.unique);
     replay_fscanf(replay, "header.type %d\n", &temp);
     cursor.header.type = temp;
     replay_fscanf(replay, "header.width %d\n", &temp);
@@ -1320,7 +1320,7 @@ SPICE_GNUC_VISIBLE QXLCommandExt* spice_replay_next_cmd(SpiceReplay *replay,
     int counter;
 
     while (what != 0) {
-        replay_fscanf(replay, "event %d %d %d %"SCNu64"\n", &counter,
+        replay_fscanf(replay, "event %d %d %d %" SCNu64 "\n", &counter,
                             &what, &type, &timestamp);
         if (replay->error) {
             goto error;
@@ -1332,7 +1332,7 @@ SPICE_GNUC_VISIBLE QXLCommandExt* spice_replay_next_cmd(SpiceReplay *replay,
     cmd = replay_malloc0(replay, sizeof(QXLCommandExt));
     cmd->cmd.type = type;
     cmd->group_id = 0;
-    spice_debug("command %"G_GUINT64_FORMAT", %d", timestamp, cmd->cmd.type);
+    spice_debug("command %" G_GUINT64_FORMAT ", %d", timestamp, cmd->cmd.type);
     switch (cmd->cmd.type) {
     case QXL_CMD_DRAW:
         cmd->flags = 0;
