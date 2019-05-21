@@ -404,6 +404,13 @@ static uint32_t get_average_frame_size(const SpiceGstEncoder *encoder)
     return encoder->stat_size_sum / count;
 }
 
+/* Look for the largest frame and store it in stat_size_max to reduce how
+ * often we have to scan the history for the largest frame.
+ * Then all we need to keep things consistent is to:
+ * - Update stat_size_max when adding a larger frame to the history.
+ * - Reset stat_size_max to zero when the largest frame falls out of
+ *   the history.
+ */
 static uint32_t get_maximum_frame_size(SpiceGstEncoder *encoder)
 {
     if (encoder->stat_size_max == 0) {
