@@ -30,12 +30,14 @@ typedef struct {
 #ifdef RED_STATISTICS
     uint64_t *counter;
 #endif
+    uint8_t dummy_empty_field[0]; /* C/C++ compatibility */
 } RedStatCounter;
 
 typedef struct {
 #ifdef RED_STATISTICS
     uint32_t ref;
 #endif
+    uint8_t dummy_empty_field[0]; /* C/C++ compatibility */
 } RedStatNode;
 
 #ifdef RED_STATISTICS
@@ -95,6 +97,7 @@ typedef struct {
 #if defined(RED_WORKER_STAT) || defined(COMPRESS_STAT)
     stat_time_t time;
 #endif
+    uint8_t dummy_empty_field[0]; /* C/C++ compatibility */
 } stat_start_time_t;
 
 #if defined(RED_WORKER_STAT) || defined(COMPRESS_STAT)
@@ -117,6 +120,7 @@ typedef struct {
     uint64_t comp_size;
 #endif
 #endif
+    uint8_t dummy_empty_field[0]; /* C/C++ compatibility */
 } stat_info_t;
 
 static inline void stat_start_time_init(G_GNUC_UNUSED stat_start_time_t *tm,

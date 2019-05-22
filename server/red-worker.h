@@ -133,6 +133,7 @@ typedef struct RedWorkerMessageDelMemslot {
 } RedWorkerMessageDelMemslot;
 
 typedef struct RedWorkerMessageDestroySurfaces {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageDestroySurfaces;
 
 typedef struct RedWorkerMessageDestroySurfacesAsync {
@@ -161,18 +162,23 @@ typedef struct RedWorkerMessageCreatePrimarySurface {
 } RedWorkerMessageCreatePrimarySurface;
 
 typedef struct RedWorkerMessageResetImageCache {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageResetImageCache;
 
 typedef struct RedWorkerMessageResetCursor {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageResetCursor;
 
 typedef struct RedWorkerMessageWakeup {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageWakeup;
 
 typedef struct RedWorkerMessageOom {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageOom;
 
 typedef struct RedWorkerMessageStart {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageStart;
 
 typedef struct RedWorkerMessageFlushSurfacesAsync {
@@ -180,6 +186,7 @@ typedef struct RedWorkerMessageFlushSurfacesAsync {
 } RedWorkerMessageFlushSurfacesAsync;
 
 typedef struct RedWorkerMessageStop {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageStop;
 
 /* this command is sync, so it's ok to pass a pointer */
@@ -224,12 +231,15 @@ typedef struct RedWorkerMessageMonitorsConfigAsync {
 } RedWorkerMessageMonitorsConfigAsync;
 
 typedef struct RedWorkerMessageDriverUnload {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageDriverUnload;
 
 typedef struct RedWorkerMessageGlScanout {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageGlScanout;
 
 typedef struct RedWorkerMessageClose {
+    uint8_t dummy_empty_field[0]; // C/C++ compatibility
 } RedWorkerMessageClose;
 
 typedef struct RedWorkerMessageGlDraw {
