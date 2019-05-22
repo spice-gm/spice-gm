@@ -53,7 +53,7 @@ static inline int test_bit(int index, uint32_t val)
 typedef int64_t red_time_t;
 
 #define NSEC_PER_SEC      1000000000LL
-#define NSEC_PER_MILLISEC 1000000LL
+#define NSEC_PER_MILLISEC 1000000
 #define NSEC_PER_MICROSEC 1000
 
 /* g_get_monotonic_time() does not have enough precision */
