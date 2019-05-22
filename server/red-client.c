@@ -91,7 +91,7 @@ red_client_set_property (GObject      *object,
     switch (property_id)
     {
         case PROP_SPICE_SERVER:
-            self->reds = g_value_get_pointer(value);
+            self->reds = (RedsState*) g_value_get_pointer(value);
             break;
         case PROP_MIGRATED:
             self->during_target_migrate = g_value_get_boolean(value);
@@ -146,7 +146,7 @@ red_client_init(RedClient *self)
 
 RedClient *red_client_new(RedsState *reds, int migrated)
 {
-    return g_object_new(RED_TYPE_CLIENT,
+    return (RedClient*) g_object_new(RED_TYPE_CLIENT,
                         "spice-server", reds,
                         "migrated", migrated,
                         NULL);

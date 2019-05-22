@@ -583,7 +583,7 @@ uint32_t red_qxl_marshall_device_display_info(const QXLInstance *qxl, SpiceMarsh
         spice_marshaller_add_uint32(m, i);
         spice_marshaller_add_uint32(m, qxl_state->device_display_ids[i]);
         spice_marshaller_add_uint32(m, device_address_len);
-        spice_marshaller_add(m, (void*) device_address, device_address_len);
+        spice_marshaller_add(m, (const uint8_t*) (void*) device_address, device_address_len);
         ++device_count;
 
         g_debug("   (qxl)    channel_id: %u monitor_id: %zu, device_address: %s, "

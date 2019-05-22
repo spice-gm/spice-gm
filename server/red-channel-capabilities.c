@@ -28,11 +28,11 @@ void red_channel_capabilities_init(RedChannelCapabilities *dest,
 {
     *dest = *caps;
     if (caps->common_caps) {
-        dest->common_caps = g_memdup(caps->common_caps,
+        dest->common_caps = (uint32_t*) g_memdup(caps->common_caps,
                                      caps->num_common_caps * sizeof(uint32_t));
     }
     if (caps->num_caps) {
-        dest->caps = g_memdup(caps->caps, caps->num_caps * sizeof(uint32_t));
+        dest->caps = (uint32_t*) g_memdup(caps->caps, caps->num_caps * sizeof(uint32_t));
     }
 }
 

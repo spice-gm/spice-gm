@@ -281,12 +281,12 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
 
     switch (type) {
     case SPICE_MSGC_INPUTS_KEY_DOWN: {
-        SpiceMsgcKeyDown *key_down = message;
+        SpiceMsgcKeyDown *key_down = (SpiceMsgcKeyDown *) message;
         inputs_channel_sync_locks(inputs_channel, key_down->code);
     }
         /* fallthrough */
     case SPICE_MSGC_INPUTS_KEY_UP: {
-        SpiceMsgcKeyUp *key_up = message;
+        SpiceMsgcKeyUp *key_up = (SpiceMsgcKeyUp *) message;
         for (i = 0; i < 4; i++) {
             uint8_t code = (key_up->code >> (i * 8)) & 0xff;
             if (code == 0) {
@@ -298,7 +298,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         break;
     }
     case SPICE_MSGC_INPUTS_KEY_SCANCODE: {
-        uint8_t *code = message;
+        uint8_t *code = (uint8_t *) message;
         for (i = 0; i < size; i++) {
             kbd_push_scan(inputs_channel_get_keyboard(inputs_channel), code[i]);
             inputs_channel_sync_locks(inputs_channel, code[i]);
@@ -307,7 +307,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
     }
     case SPICE_MSGC_INPUTS_MOUSE_MOTION: {
         SpiceMouseInstance *mouse = inputs_channel_get_mouse(inputs_channel);
-        SpiceMsgcMouseMotion *mouse_motion = message;
+        SpiceMsgcMouseMotion *mouse_motion = (SpiceMsgcMouseMotion *) message;
 
         inputs_channel_client_on_mouse_motion(icc);
         if (mouse && reds_get_mouse_mode(reds) == SPICE_MOUSE_MODE_SERVER) {
@@ -320,7 +320,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         break;
     }
     case SPICE_MSGC_INPUTS_MOUSE_POSITION: {
-        SpiceMsgcMousePosition *pos = message;
+        SpiceMsgcMousePosition *pos = (SpiceMsgcMousePosition *) message;
         SpiceTabletInstance *tablet = inputs_channel_get_tablet(inputs_channel);
 
         inputs_channel_client_on_mouse_motion(icc);
@@ -343,7 +343,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         break;
     }
     case SPICE_MSGC_INPUTS_MOUSE_PRESS: {
-        SpiceMsgcMousePress *mouse_press = message;
+        SpiceMsgcMousePress *mouse_press = (SpiceMsgcMousePress *) message;
         int dz = 0;
         if (mouse_press->button == SPICE_MOUSE_BUTTON_UP) {
             dz = -1;
@@ -374,7 +374,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         break;
     }
     case SPICE_MSGC_INPUTS_MOUSE_RELEASE: {
-        SpiceMsgcMouseRelease *mouse_release = message;
+        SpiceMsgcMouseRelease *mouse_release = (SpiceMsgcMouseRelease *) message;
         if (reds_get_mouse_mode(reds) == SPICE_MOUSE_MODE_CLIENT) {
             if (reds_config_get_agent_mouse(reds) && reds_has_vdagent(reds)) {
                 inputs_channel->mouse_state.buttons =
@@ -397,7 +397,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         break;
     }
     case SPICE_MSGC_INPUTS_KEY_MODIFIERS: {
-        SpiceMsgcKeyModifiers *modifiers = message;
+        SpiceMsgcKeyModifiers *modifiers = (SpiceMsgcKeyModifiers *) message;
         uint8_t leds;
         SpiceKbdInstance *keyboard = inputs_channel_get_keyboard(inputs_channel);
 
@@ -521,7 +521,7 @@ SPICE_GNUC_VISIBLE int spice_server_kbd_leds(SpiceKbdInstance *sin, int leds)
 
 static void key_modifiers_sender(void *opaque)
 {
-    InputsChannel *inputs = opaque;
+    InputsChannel *inputs = (InputsChannel *) opaque;
     inputs_channel_push_keyboard_modifiers(inputs, inputs->modifiers);
 }
 
@@ -561,15 +561,15 @@ static bool inputs_channel_handle_migrate_data(RedChannelClient *rcc,
 
 InputsChannel* inputs_channel_new(RedsState *reds)
 {
-    return  g_object_new(TYPE_INPUTS_CHANNEL,
-                         "spice-server", reds,
-                         "core-interface", reds_get_core_interface(reds),
-                         "channel-type", (int)SPICE_CHANNEL_INPUTS,
-                         "id", 0,
-                         "migration-flags",
-                         (guint)(SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
-                         NULL);
-
+    return  (InputsChannel*)
+        g_object_new(TYPE_INPUTS_CHANNEL,
+                     "spice-server", reds,
+                     "core-interface", reds_get_core_interface(reds),
+                     "channel-type", (int)SPICE_CHANNEL_INPUTS,
+                     "id", 0,
+                     "migration-flags",
+                     (guint)(SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
+                     NULL);
 }
 
 static void

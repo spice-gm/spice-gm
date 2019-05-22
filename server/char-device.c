@@ -161,7 +161,7 @@ static void red_char_device_write_buffer_free(RedCharDeviceWriteBuffer *buf)
 static void write_buffers_queue_free(GQueue *write_queue)
 {
     RedCharDeviceWriteBuffer *buf;
-    while ((buf = g_queue_pop_tail(write_queue)))
+    while ((buf = (RedCharDeviceWriteBuffer *) g_queue_pop_tail(write_queue)))
         red_char_device_write_buffer_free(buf);
 }
 
@@ -179,7 +179,7 @@ static void red_char_device_client_free(RedCharDevice *dev,
     spice_debug("write_queue_is_empty %d", g_queue_is_empty(&dev->priv->write_queue) && !dev->priv->cur_write_buf);
     l = g_queue_peek_head_link(&dev->priv->write_queue);
     while (l) {
-        RedCharDeviceWriteBuffer *write_buf = l->data;
+        RedCharDeviceWriteBuffer *write_buf = (RedCharDeviceWriteBuffer *) l->data;
         next = l->next;
 
         if (write_buf->priv->origin == WRITE_BUFFER_ORIGIN_CLIENT &&
@@ -225,7 +225,7 @@ static RedCharDeviceClient *red_char_device_client_find(RedCharDevice *dev,
 
 static void device_client_wait_for_tokens_timeout(void *opaque)
 {
-    RedCharDeviceClient *dev_client = opaque;
+    RedCharDeviceClient *dev_client = (RedCharDeviceClient *) opaque;
 
     red_char_device_handle_client_overflow(dev_client);
 }
@@ -342,7 +342,7 @@ static void red_char_device_client_send_queue_push(RedCharDeviceClient *dev_clie
 {
     while (!g_queue_is_empty(dev_client->send_queue) &&
            red_char_device_can_send_to_client(dev_client)) {
-        RedPipeItem *msg = g_queue_pop_tail(dev_client->send_queue);
+        RedPipeItem *msg = (RedPipeItem *) g_queue_pop_tail(dev_client->send_queue);
         g_assert(msg != NULL);
         dev_client->num_send_tokens--;
         red_char_device_send_msg_to_client(dev_client->dev, msg,
@@ -451,7 +451,7 @@ static int red_char_device_write_to_device(RedCharDevice *dev)
         uint32_t write_len;
 
         if (!dev->priv->cur_write_buf) {
-            dev->priv->cur_write_buf = g_queue_pop_tail(&dev->priv->write_queue);
+            dev->priv->cur_write_buf = (RedCharDeviceWriteBuffer *) g_queue_pop_tail(&dev->priv->write_queue);
             if (!dev->priv->cur_write_buf)
                 break;
             dev->priv->cur_write_buf_pos = dev->priv->cur_write_buf->buf;
@@ -495,7 +495,7 @@ static int red_char_device_write_to_device(RedCharDevice *dev)
 
 static void red_char_device_write_retry(void *opaque)
 {
-    RedCharDevice *dev = opaque;
+    RedCharDevice *dev = (RedCharDevice *) opaque;
 
     if (dev->priv->write_to_dev_timer) {
         red_timer_cancel(dev->priv->write_to_dev_timer);
@@ -517,7 +517,8 @@ red_char_device_write_buffer_get(RedCharDevice *dev, RedCharDeviceClientOpaque *
         RedCharDeviceWriteBufferPrivate priv;
         RedCharDeviceWriteBuffer buffer;
     } *write_buf;
-    write_buf = g_malloc(sizeof(struct RedCharDeviceWriteBufferFull) + size);
+    write_buf = (struct RedCharDeviceWriteBufferFull* )
+        g_malloc(sizeof(struct RedCharDeviceWriteBufferFull) + size);
     memset(write_buf, 0, sizeof(*write_buf));
     write_buf->priv.refs = 1;
     ret = &write_buf->buffer;
@@ -780,7 +781,7 @@ void red_char_device_reset(RedCharDevice *dev)
 
     dev->priv->wait_for_migrate_data = FALSE;
     spice_debug("char device %p", dev);
-    while ((buf = g_queue_pop_tail(&dev->priv->write_queue))) {
+    while ((buf = (RedCharDeviceWriteBuffer *) g_queue_pop_tail(&dev->priv->write_queue))) {
         red_char_device_write_buffer_release(dev, &buf);
     }
     red_char_device_write_buffer_release(dev, &dev->priv->cur_write_buf);
@@ -840,7 +841,7 @@ void red_char_device_migrate_data_marshall(RedCharDevice *dev,
 
     /* multi-clients are not supported */
     spice_assert(g_list_length(dev->priv->clients) == 1);
-    dev_client = g_list_last(dev->priv->clients)->data;
+    dev_client = (RedCharDeviceClient *) g_list_last(dev->priv->clients)->data;
     /* FIXME: if there were more than one client before the marshalling,
      * it is possible that the send_queue length > 0, and the send data
      * should be migrated as well */
@@ -869,7 +870,7 @@ void red_char_device_migrate_data_marshall(RedCharDevice *dev,
     }
 
     for (item = g_queue_peek_tail_link(&dev->priv->write_queue); item != NULL; item = item->prev) {
-        RedCharDeviceWriteBuffer *write_buf = item->data;
+        RedCharDeviceWriteBuffer *write_buf = (RedCharDeviceWriteBuffer *) item->data;
 
         spice_marshaller_add_by_ref_full(m2, write_buf->buf, write_buf->buf_used,
                                          migrate_data_marshaller_write_buffer_free,
@@ -896,7 +897,7 @@ bool red_char_device_restore(RedCharDevice *dev,
     spice_assert(g_list_length(dev->priv->clients) == 1 &&
                  dev->priv->wait_for_migrate_data);
 
-    dev_client = g_list_last(dev->priv->clients)->data;
+    dev_client = (RedCharDeviceClient *) g_list_last(dev->priv->clients)->data;
     if (mig_data->version > SPICE_MIGRATE_DATA_CHAR_DEVICE_VERSION) {
         spice_error("dev %p error: migration data version %u is bigger than self %u",
                     dev, mig_data->version, SPICE_MIGRATE_DATA_CHAR_DEVICE_VERSION);
@@ -1013,10 +1014,10 @@ red_char_device_set_property(GObject      *object,
     switch (property_id)
     {
         case PROP_CHAR_DEV_INSTANCE:
-            red_char_device_reset_dev_instance(self, g_value_get_pointer(value));
+            red_char_device_reset_dev_instance(self, (SpiceCharDeviceInstance*) g_value_get_pointer(value));
             break;
         case PROP_SPICE_SERVER:
-            self->priv->reds = g_value_get_pointer(value);
+            self->priv->reds = (SpiceServer *) g_value_get_pointer(value);
             break;
         case PROP_CLIENT_TOKENS_INTERVAL:
             self->priv->client_tokens_interval = g_value_get_uint64(value);
@@ -1052,7 +1053,7 @@ red_char_device_finalize(GObject *object)
     self->priv->cur_write_buf = NULL;
 
     while (self->priv->clients != NULL) {
-        RedCharDeviceClient *dev_client = self->priv->clients->data;
+        RedCharDeviceClient *dev_client = (RedCharDeviceClient *) self->priv->clients->data;
         red_char_device_client_free(self, dev_client);
     }
     self->priv->running = FALSE;
@@ -1134,7 +1135,7 @@ SpiceCharDeviceInstance *red_char_device_get_device_instance(RedCharDevice *dev)
 static void
 red_char_device_init(RedCharDevice *self)
 {
-    self->priv = red_char_device_get_instance_private(self);
+    self->priv = (RedCharDevicePrivate*) red_char_device_get_instance_private(self);
 
     g_queue_init(&self->priv->write_queue);
 

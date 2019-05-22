@@ -261,7 +261,7 @@ output_frames(GstSample *sample, void *param)
 
     // get first frame queued
     pthread_mutex_lock(&frame_queue_mtx);
-    TestFrame *expected_frame = g_queue_pop_head(&frame_queue);
+    TestFrame *expected_frame = (TestFrame*) g_queue_pop_head(&frame_queue);
     pthread_cond_signal(&frame_queue_cond);
     pthread_mutex_unlock(&frame_queue_mtx);
     if (!expected_frame) {
@@ -432,7 +432,7 @@ int main(int argc, char *argv[])
 
     // check queue is now empty
     pthread_mutex_lock(&frame_queue_mtx);
-    TestFrame *frame = g_queue_pop_head(&frame_queue);
+    TestFrame *frame = (TestFrame*) g_queue_pop_head(&frame_queue);
     pthread_mutex_unlock(&frame_queue_mtx);
     if (frame) {
         g_printerr("Queue not empty at the end\n");
@@ -558,7 +558,7 @@ get_encoder_info(const char *encoder_name)
 static GstFlowReturn
 new_sample(GstAppSink *gstappsink, gpointer test_pipeline)
 {
-    TestPipeline *pipeline = test_pipeline;
+    TestPipeline *pipeline = (TestPipeline*) test_pipeline;
 
     GstSample *sample = gst_app_sink_pull_sample(pipeline->appsink);
     if (sample) {
@@ -798,7 +798,7 @@ gst_to_spice_bitmap(GstSample *sample)
     bitmap->flags = top_down ? SPICE_BITMAP_FLAGS_TOP_DOWN : 0;
     bitmap->x = width;
     bitmap->y = height;
-    bitmap->stride = compute_stride(width, bitmap->format);
+    bitmap->stride = compute_stride(width, (SpiceBitmapFmt) bitmap->format);
     bitmap->data = chunks_alloc(bitmap->stride, height, image_split_lines);
 
     GstBuffer *buffer = gst_sample_get_buffer(sample);
@@ -809,7 +809,7 @@ gst_to_spice_bitmap(GstSample *sample)
 
     // convert image
     gint y;
-    convert_line_t *convert_line = get_convert_line(bitmap->format);
+    convert_line_t *convert_line = get_convert_line((SpiceBitmapFmt) bitmap->format);
     for (y = 0; y < height; ++y) {
         convert_line(bitmap_get_line(bitmap, y),
                      mapinfo.data + y * width * 4,
@@ -846,7 +846,7 @@ chunks_alloc(uint32_t stride, uint32_t height, uint32_t split)
 {
     spice_assert(stride && height && split);
     const uint32_t num_chunks = (height + split - 1u) / split;
-    SpiceChunks *chunks = spice_malloc0(sizeof(SpiceChunks) + sizeof(SpiceChunk) * num_chunks);
+    SpiceChunks *chunks = (SpiceChunks*) spice_malloc0(sizeof(SpiceChunks) + sizeof(SpiceChunk) * num_chunks);
 
     chunks->data_size = stride * height;
     chunks->num_chunks = num_chunks;
@@ -858,7 +858,7 @@ chunks_alloc(uint32_t stride, uint32_t height, uint32_t split)
         uint32_t len = stride * split;
         spice_assert(chunks->data_size > allocated);
         len = MIN(len, chunks->data_size - allocated);
-        chunk->data = spice_malloc0(len);
+        chunk->data = (uint8_t*) spice_malloc0(len);
         chunk->len = len;
         allocated += len;
     }
@@ -1000,8 +1000,8 @@ compute_psnr(SpiceBitmap *bitmap1, int32_t x1, int32_t y1,
     int y;
     uint64_t diff_sum = 0;
     uint8_t pixels[2][w*3];
-    bitmap_extract_rgb_line_t *extract1 = get_bitmap_extract(bitmap1->format);
-    bitmap_extract_rgb_line_t *extract2 = get_bitmap_extract(bitmap2->format);
+    bitmap_extract_rgb_line_t *extract1 = get_bitmap_extract((SpiceBitmapFmt) bitmap1->format);
+    bitmap_extract_rgb_line_t *extract2 = get_bitmap_extract((SpiceBitmapFmt) bitmap2->format);
     for (y = 0; y < h; ++y) {
         uint8_t *line1 = extract1(bitmap1, pixels[0], x1, y1 + y, w);
         uint8_t *line2 = extract2(bitmap2, pixels[1], x2, y2 + y, w);

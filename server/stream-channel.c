@@ -184,7 +184,8 @@ stream_channel_client_new(StreamChannel *channel, RedClient *client, RedStream *
 {
     StreamChannelClient *rcc;
 
-    rcc = g_initable_new(TYPE_STREAM_CHANNEL_CLIENT,
+    rcc = (StreamChannelClient *)
+          g_initable_new(TYPE_STREAM_CHANNEL_CLIENT,
                          NULL, NULL,
                          "channel", channel,
                          "client", client,
@@ -353,7 +354,7 @@ handle_message(RedChannelClient *rcc, uint16_t type, uint32_t size, void *msg)
 StreamChannel*
 stream_channel_new(RedsState *server, uint32_t id)
 {
-    return g_object_new(TYPE_STREAM_CHANNEL,
+    return (StreamChannel*) g_object_new(TYPE_STREAM_CHANNEL,
                         "spice-server", server,
                         "core-interface", reds_get_core_interface(server),
                         "channel-type", SPICE_CHANNEL_DISPLAY,
@@ -588,7 +589,7 @@ stream_channel_send_data(StreamChannel *channel, const void *data, size_t size, 
 
     RedChannel *red_channel = RED_CHANNEL(channel);
 
-    StreamDataItem *item = g_malloc(sizeof(*item) + size);
+    StreamDataItem *item = (StreamDataItem*) g_malloc(sizeof(*item) + size);
     red_pipe_item_init_full(&item->base, RED_PIPE_ITEM_TYPE_STREAM_DATA,
                             data_item_free);
     item->data.base.id = channel->stream_id;

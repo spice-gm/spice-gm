@@ -81,7 +81,7 @@ inputs_channel_client_class_init(InputsChannelClientClass *klass)
 static void
 inputs_channel_client_init(InputsChannelClient *self)
 {
-    self->priv = inputs_channel_client_get_instance_private(self);
+    self->priv = (InputsChannelClientPrivate *) inputs_channel_client_get_instance_private(self);
 }
 
 RedChannelClient* inputs_channel_client_create(RedChannel *channel,
@@ -91,7 +91,8 @@ RedChannelClient* inputs_channel_client_create(RedChannel *channel,
 {
     RedChannelClient *rcc;
 
-    rcc = g_initable_new(TYPE_INPUTS_CHANNEL_CLIENT,
+    rcc = (RedChannelClient *)
+          g_initable_new(TYPE_INPUTS_CHANNEL_CLIENT,
                          NULL, NULL,
                          "channel", channel,
                          "client", client,

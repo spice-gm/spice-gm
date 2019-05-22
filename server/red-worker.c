@@ -332,8 +332,8 @@ static void flush_all_qxl_commands(RedWorker *worker)
 
 static void handle_dev_update_async(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
-    RedWorkerMessageUpdateAsync *msg = payload;
+    RedWorker *worker = (RedWorker*) opaque;
+    RedWorkerMessageUpdateAsync *msg = (RedWorkerMessageUpdateAsync*) payload;
     QXLRect *qxl_dirty_rects = NULL;
     uint32_t num_dirty_rects = 0;
 
@@ -353,8 +353,8 @@ static void handle_dev_update_async(void *opaque, void *payload)
 
 static void handle_dev_update(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
-    RedWorkerMessageUpdate *msg = payload;
+    RedWorker *worker = (RedWorker*) opaque;
+    RedWorkerMessageUpdate *msg = (RedWorkerMessageUpdate*) payload;
     QXLRect *qxl_dirty_rects = msg->qxl_dirty_rects;
 
     spice_return_if_fail(red_qxl_is_running(worker->qxl));
@@ -370,8 +370,8 @@ static void handle_dev_update(void *opaque, void *payload)
 
 static void handle_dev_del_memslot(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
-    RedWorkerMessageDelMemslot *msg = payload;
+    RedWorker *worker = (RedWorker*) opaque;
+    RedWorkerMessageDelMemslot *msg = (RedWorkerMessageDelMemslot*) payload;
     uint32_t slot_id = msg->slot_id;
     uint32_t slot_group_id = msg->slot_group_id;
 
@@ -380,8 +380,8 @@ static void handle_dev_del_memslot(void *opaque, void *payload)
 
 static void handle_dev_destroy_surface_wait(void *opaque, void *payload)
 {
-    RedWorkerMessageDestroySurfaceWait *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageDestroySurfaceWait *msg = (RedWorkerMessageDestroySurfaceWait*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
 
     spice_return_if_fail(msg->surface_id == 0);
 
@@ -391,7 +391,7 @@ static void handle_dev_destroy_surface_wait(void *opaque, void *payload)
 
 static void handle_dev_destroy_surfaces(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     flush_all_qxl_commands(worker);
     display_channel_destroy_surfaces(worker->display_channel);
@@ -454,8 +454,8 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
 
 static void handle_dev_create_primary_surface(void *opaque, void *payload)
 {
-    RedWorkerMessageCreatePrimarySurface *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageCreatePrimarySurface *msg = (RedWorkerMessageCreatePrimarySurface*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
 
     dev_create_primary_surface(worker, msg->surface_id, msg->surface);
 }
@@ -484,8 +484,8 @@ static void destroy_primary_surface(RedWorker *worker, uint32_t surface_id)
 
 static void handle_dev_destroy_primary_surface(void *opaque, void *payload)
 {
-    RedWorkerMessageDestroyPrimarySurface *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageDestroyPrimarySurface *msg = (RedWorkerMessageDestroyPrimarySurface*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
     uint32_t surface_id = msg->surface_id;
 
     destroy_primary_surface(worker, surface_id);
@@ -493,8 +493,8 @@ static void handle_dev_destroy_primary_surface(void *opaque, void *payload)
 
 static void handle_dev_destroy_primary_surface_async(void *opaque, void *payload)
 {
-    RedWorkerMessageDestroyPrimarySurfaceAsync *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageDestroyPrimarySurfaceAsync *msg = (RedWorkerMessageDestroyPrimarySurfaceAsync*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
     uint32_t surface_id = msg->surface_id;
 
     destroy_primary_surface(worker, surface_id);
@@ -504,8 +504,8 @@ static void handle_dev_destroy_primary_surface_async(void *opaque, void *payload
 
 static void handle_dev_flush_surfaces_async(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
-    RedWorkerMessageFlushSurfacesAsync *msg = payload;
+    RedWorker *worker = (RedWorker*) opaque;
+    RedWorkerMessageFlushSurfacesAsync *msg = (RedWorkerMessageFlushSurfacesAsync*) payload;
 
     flush_all_qxl_commands(worker);
     display_channel_flush_all_surfaces(worker->display_channel);
@@ -514,7 +514,7 @@ static void handle_dev_flush_surfaces_async(void *opaque, void *payload)
 
 static void handle_dev_stop(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     spice_debug("stop");
     spice_assert(red_qxl_is_running(worker->qxl));
@@ -536,7 +536,7 @@ static void handle_dev_stop(void *opaque, void *payload)
 
 static void handle_dev_start(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     spice_assert(!red_qxl_is_running(worker->qxl));
     if (worker->cursor_channel) {
@@ -555,7 +555,7 @@ static void handle_dev_start(void *opaque, void *payload)
 
 static void handle_dev_wakeup(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     stat_inc_counter(worker->wakeup_counter, 1);
     red_qxl_clear_pending(worker->qxl->st, RED_DISPATCHER_PENDING_WAKEUP);
@@ -563,7 +563,7 @@ static void handle_dev_wakeup(void *opaque, void *payload)
 
 static void handle_dev_oom(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
     DisplayChannel *display = worker->display_channel;
 
     RedChannel *display_red_channel = RED_CHANNEL(display);
@@ -585,22 +585,22 @@ static void handle_dev_oom(void *opaque, void *payload)
 
 static void handle_dev_reset_cursor(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     cursor_channel_reset(worker->cursor_channel);
 }
 
 static void handle_dev_reset_image_cache(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     display_channel_reset_image_cache(worker->display_channel);
 }
 
 static void handle_dev_destroy_surface_wait_async(void *opaque, void *payload)
 {
-    RedWorkerMessageDestroySurfaceWaitAsync *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageDestroySurfaceWaitAsync *msg = (RedWorkerMessageDestroySurfaceWaitAsync*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
 
     display_channel_destroy_surface_wait(worker->display_channel, msg->surface_id);
     red_qxl_async_complete(worker->qxl, msg->base.cookie);
@@ -608,8 +608,8 @@ static void handle_dev_destroy_surface_wait_async(void *opaque, void *payload)
 
 static void handle_dev_destroy_surfaces_async(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
-    RedWorkerMessageDestroySurfacesAsync *msg = payload;
+    RedWorker *worker = (RedWorker*) opaque;
+    RedWorkerMessageDestroySurfacesAsync *msg = (RedWorkerMessageDestroySurfacesAsync*) payload;
 
     flush_all_qxl_commands(worker);
     display_channel_destroy_surfaces(worker->display_channel);
@@ -619,8 +619,8 @@ static void handle_dev_destroy_surfaces_async(void *opaque, void *payload)
 
 static void handle_dev_create_primary_surface_async(void *opaque, void *payload)
 {
-    RedWorkerMessageCreatePrimarySurfaceAsync *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageCreatePrimarySurfaceAsync *msg = (RedWorkerMessageCreatePrimarySurfaceAsync*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
 
     dev_create_primary_surface(worker, msg->surface_id, msg->surface);
     red_qxl_create_primary_surface_complete(worker->qxl->st, &msg->surface);
@@ -634,8 +634,8 @@ static inline uint32_t qxl_monitors_config_size(uint32_t heads)
 
 static void handle_dev_monitors_config_async(void *opaque, void *payload)
 {
-    RedWorkerMessageMonitorsConfigAsync *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageMonitorsConfigAsync *msg = (RedWorkerMessageMonitorsConfigAsync*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
     uint16_t count, max_allowed;
     const QXLMonitorsConfig *dev_monitors_config =
         (QXLMonitorsConfig*)memslot_get_virt(&worker->mem_slots, msg->monitors_config,
@@ -678,8 +678,8 @@ async_complete:
 
 static void handle_dev_set_compression(void *opaque, void *payload)
 {
-    RedWorkerMessageSetCompression *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageSetCompression *msg = (RedWorkerMessageSetCompression*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
     SpiceImageCompression image_compression = msg->image_compression;
 
     display_channel_set_image_compression(worker->display_channel, image_compression);
@@ -690,16 +690,16 @@ static void handle_dev_set_compression(void *opaque, void *payload)
 
 static void handle_dev_set_streaming_video(void *opaque, void *payload)
 {
-    RedWorkerMessageSetStreamingVideo *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageSetStreamingVideo *msg = (RedWorkerMessageSetStreamingVideo*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
 
     display_channel_set_stream_video(worker->display_channel, msg->streaming_video);
 }
 
 static void handle_dev_set_video_codecs(void *opaque, void *payload)
 {
-    RedWorkerMessageSetVideoCodecs *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageSetVideoCodecs *msg = (RedWorkerMessageSetVideoCodecs*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
 
     display_channel_set_video_codecs(worker->display_channel, msg->video_codecs);
     g_array_unref(msg->video_codecs);
@@ -707,8 +707,8 @@ static void handle_dev_set_video_codecs(void *opaque, void *payload)
 
 static void handle_dev_set_mouse_mode(void *opaque, void *payload)
 {
-    RedWorkerMessageSetMouseMode *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageSetMouseMode *msg = (RedWorkerMessageSetMouseMode*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
 
     spice_debug("mouse mode %u", msg->mode);
     cursor_channel_set_mouse_mode(worker->cursor_channel, msg->mode);
@@ -723,8 +723,8 @@ static void dev_add_memslot(RedWorker *worker, QXLDevMemSlot mem_slot)
 
 static void handle_dev_add_memslot(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
-    RedWorkerMessageAddMemslot *msg = payload;
+    RedWorker *worker = (RedWorker*) opaque;
+    RedWorkerMessageAddMemslot *msg = (RedWorkerMessageAddMemslot*) payload;
     QXLDevMemSlot mem_slot = msg->mem_slot;
 
     memslot_info_add_slot(&worker->mem_slots, mem_slot.slot_group_id, mem_slot.slot_id,
@@ -734,8 +734,8 @@ static void handle_dev_add_memslot(void *opaque, void *payload)
 
 static void handle_dev_add_memslot_async(void *opaque, void *payload)
 {
-    RedWorkerMessageAddMemslotAsync *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageAddMemslotAsync *msg = (RedWorkerMessageAddMemslotAsync*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
 
     dev_add_memslot(worker, msg->mem_slot);
     red_qxl_async_complete(worker->qxl, msg->base.cookie);
@@ -743,14 +743,14 @@ static void handle_dev_add_memslot_async(void *opaque, void *payload)
 
 static void handle_dev_reset_memslots(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     memslot_info_reset(&worker->mem_slots);
 }
 
 static void handle_dev_driver_unload(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     worker->driver_cap_monitors_config = false;
 }
@@ -758,7 +758,7 @@ static void handle_dev_driver_unload(void *opaque, void *payload)
 static
 void handle_dev_gl_scanout(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     display_channel_gl_scanout(worker->display_channel);
 }
@@ -766,15 +766,15 @@ void handle_dev_gl_scanout(void *opaque, void *payload)
 static
 void handle_dev_gl_draw_async(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
-    RedWorkerMessageGlDraw *draw = payload;
+    RedWorker *worker = (RedWorker*) opaque;
+    RedWorkerMessageGlDraw *draw = (RedWorkerMessageGlDraw*) payload;
 
     display_channel_gl_draw(worker->display_channel, &draw->draw);
 }
 
 static void handle_dev_close(void *opaque, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
     g_main_loop_quit(worker->loop);
 }
 
@@ -796,8 +796,8 @@ static bool loadvm_command(RedWorker *worker, QXLCommandExt *ext)
 
 static void handle_dev_loadvm_commands(void *opaque, void *payload)
 {
-    RedWorkerMessageLoadvmCommands *msg = payload;
-    RedWorker *worker = opaque;
+    RedWorkerMessageLoadvmCommands *msg = (RedWorkerMessageLoadvmCommands*) payload;
+    RedWorker *worker = (RedWorker*) opaque;
     uint32_t i;
     uint32_t count = msg->count;
     QXLCommandExt *ext = msg->ext;
@@ -813,7 +813,7 @@ static void handle_dev_loadvm_commands(void *opaque, void *payload)
 
 static void worker_dispatcher_record(void *opaque, uint32_t message_type, void *payload)
 {
-    RedWorker *worker = opaque;
+    RedWorker *worker = (RedWorker*) opaque;
 
     red_record_event(worker->record, 1, message_type);
 }
@@ -1117,7 +1117,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
 
 static void *red_worker_main(void *arg)
 {
-    RedWorker *worker = arg;
+    RedWorker *worker = (RedWorker *) arg;
 
     spice_debug("begin");
     SPICE_VERIFY(MAX_PIPE_SIZE > WIDE_CLIENT_ACK_WINDOW &&

@@ -77,13 +77,13 @@ display_channel_client_set_property(GObject *object,
     switch (property_id)
     {
         case PROP_IMAGE_COMPRESSION:
-            self->priv->image_compression = g_value_get_enum(value);
+            self->priv->image_compression = (SpiceImageCompression) g_value_get_enum(value);
             break;
         case PROP_JPEG_STATE:
-            self->priv->jpeg_state = g_value_get_enum(value);
+            self->priv->jpeg_state = (spice_wan_compression_t) g_value_get_enum(value);
             break;
         case PROP_ZLIB_GLZ_STATE:
-            self->priv->zlib_glz_state = g_value_get_enum(value);
+            self->priv->zlib_glz_state = (spice_wan_compression_t) g_value_get_enum(value);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -112,7 +112,7 @@ display_channel_client_finalize(GObject *object)
 {
     DisplayChannelClient *self = DISPLAY_CHANNEL_CLIENT(object);
 
-    g_signal_handlers_disconnect_by_func(DCC_TO_DC(self), on_display_video_codecs_update, self);
+    g_signal_handlers_disconnect_by_func(DCC_TO_DC(self), (void*) on_display_video_codecs_update, self);
     g_clear_pointer(&self->priv->preferred_video_codecs, g_array_unref);
     g_clear_pointer(&self->priv->client_preferred_video_codecs, g_array_unref);
     g_free(self->priv);
@@ -177,7 +177,7 @@ static void display_channel_client_init(DisplayChannelClient *self)
     // todo: tune quality according to bandwidth
     self->priv->encoders.jpeg_quality = 85;
 
-    self->priv->send_data.free_list.res =
+    self->priv->send_data.free_list.res = (SpiceResourceList*)
         g_malloc(sizeof(SpiceResourceList) +
                  DISPLAY_FREE_LIST_DEFAULT_SIZE * sizeof(SpiceResourceID));
     self->priv->send_data.free_list.res_size = DISPLAY_FREE_LIST_DEFAULT_SIZE;
@@ -210,7 +210,7 @@ bool dcc_drawable_is_in_pipe(DisplayChannelClient *dcc, Drawable *drawable)
     GList *l;
 
     for (l = drawable->pipes; l != NULL; l = l->next) {
-        dpi = l->data;
+        dpi = (RedDrawablePipeItem *) l->data;
         if (dpi->dcc == dcc) {
             return TRUE;
         }
@@ -239,7 +239,7 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
         Drawable *drawable;
         RedDrawablePipeItem *dpi = NULL;
         int depend_found = FALSE;
-        RedPipeItem *item = l->data;
+        RedPipeItem *item = (RedPipeItem *) l->data;
         GList *item_pos = l;
 
         l = l->next;
@@ -501,7 +501,8 @@ DisplayChannelClient *dcc_new(DisplayChannel *display,
 {
     DisplayChannelClient *dcc;
 
-    dcc = g_initable_new(TYPE_DISPLAY_CHANNEL_CLIENT,
+    dcc = (DisplayChannelClient*)
+          g_initable_new(TYPE_DISPLAY_CHANNEL_CLIENT,
                          NULL, NULL,
                          "channel", display,
                          "client", client,
@@ -707,7 +708,7 @@ RedPipeItem *dcc_gl_scanout_item_new(RedChannelClient *rcc, void *data, int num)
 RedPipeItem *dcc_gl_draw_item_new(RedChannelClient *rcc, void *data, int num)
 {
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-    const SpiceMsgDisplayGlDraw *draw = data;
+    const SpiceMsgDisplayGlDraw *draw = (const SpiceMsgDisplayGlDraw *) data;
     RedGlDrawItem *item;
 
     if (!red_stream_is_plain_unix(red_channel_client_get_stream(rcc)) ||
@@ -931,7 +932,7 @@ static void dcc_push_release(DisplayChannelClient *dcc, uint8_t type, uint64_t i
     }
 
     if (free_list->res->count == free_list->res_size) {
-        free_list->res = g_realloc(free_list->res,
+        free_list->res = (SpiceResourceList*) g_realloc(free_list->res,
                                    sizeof(*free_list->res) +
                                    free_list->res_size * sizeof(SpiceResourceID) * 2);
         free_list->res_size *= 2;
@@ -1087,7 +1088,7 @@ static bool dcc_handle_preferred_compression(DisplayChannelClient *dcc,
     case SPICE_IMAGE_COMPRESSION_LZ:
     case SPICE_IMAGE_COMPRESSION_GLZ:
     case SPICE_IMAGE_COMPRESSION_OFF:
-        dcc->priv->image_compression = pc->image_compression;
+        dcc->priv->image_compression = (SpiceImageCompression) pc->image_compression;
         break;
     default:
         spice_warning("preferred-compression: unsupported image compression setting");
@@ -1111,9 +1112,9 @@ static gint sort_video_codecs_by_client_preference(gconstpointer a_pointer,
                                                    gconstpointer b_pointer,
                                                    gpointer user_data)
 {
-    const RedVideoCodec *a = a_pointer;
-    const RedVideoCodec *b = b_pointer;
-    GArray *client_pref = user_data;
+    const RedVideoCodec *a = (const RedVideoCodec *) a_pointer;
+    const RedVideoCodec *b = (const RedVideoCodec *) b_pointer;
+    GArray *client_pref = (GArray *) user_data;
 
     return (g_array_index(client_pref, gint, a->type) -
             g_array_index(client_pref, gint, b->type));

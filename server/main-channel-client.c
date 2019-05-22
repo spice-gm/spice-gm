@@ -228,7 +228,7 @@ static void main_channel_client_class_init(MainChannelClientClass *klass)
 
 static void main_channel_client_init(MainChannelClient *self)
 {
-    self->priv = main_channel_client_get_instance_private(self);
+    self->priv = (MainChannelClientPrivate *) main_channel_client_get_instance_private(self);
     self->priv->bitrate_per_sec = ~0;
 }
 
@@ -370,7 +370,7 @@ void main_channel_client_push_init(MainChannelClient *mcc,
 
 static RedPipeItem *main_name_item_new(const char *name)
 {
-    RedNamePipeItem *item = g_malloc(sizeof(RedNamePipeItem) + strlen(name) + 1);
+    RedNamePipeItem *item = (RedNamePipeItem*) g_malloc(sizeof(RedNamePipeItem) + strlen(name) + 1);
 
     red_pipe_item_init(&item->base, RED_PIPE_ITEM_TYPE_MAIN_NAME);
     item->msg.name_len = strlen(name) + 1;
@@ -625,7 +625,8 @@ MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient 
 {
     MainChannelClient *mcc;
 
-    mcc = g_initable_new(TYPE_MAIN_CHANNEL_CLIENT,
+    mcc = (MainChannelClient *)
+          g_initable_new(TYPE_MAIN_CHANNEL_CLIENT,
                          NULL, NULL,
                          "channel", RED_CHANNEL(main_chan),
                          "client", client,

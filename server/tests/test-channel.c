@@ -83,7 +83,8 @@ test_connect_client(RedChannel *channel, RedClient *client, RedStream *stream,
                     int migration, RedChannelCapabilities *caps)
 {
     RedChannelClient *rcc;
-    rcc = g_initable_new(RED_TYPE_TEST_CHANNEL_CLIENT,
+    rcc = (RedChannelClient *)
+          g_initable_new(RED_TYPE_TEST_CHANNEL_CLIENT,
                          NULL, NULL,
                          "channel", channel,
                          "client", client,
@@ -119,7 +120,7 @@ red_test_channel_class_init(RedTestChannelClass *klass)
 static uint8_t *
 red_test_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc, uint16_t type, uint32_t size)
 {
-    return g_malloc(size);
+    return (uint8_t*) g_malloc(size);
 }
 
 static void
@@ -191,7 +192,7 @@ static SpiceTimer *waked_up_timer;
 // timer waiting we get data again
 static void timer_wakeup(void *opaque)
 {
-    SpiceCoreInterface *core = opaque;
+    SpiceCoreInterface *core = (SpiceCoreInterface*) opaque;
 
     // check we are receiving data again
     size_t got_data = 0;
@@ -213,7 +214,7 @@ static void timer_wakeup(void *opaque)
 // if we arrive here it means we didn't receive too many watch events
 static void timeout_watch_count(void *opaque)
 {
-    SpiceCoreInterface *core = opaque;
+    SpiceCoreInterface *core = (SpiceCoreInterface*) opaque;
 
     // get all pending data
     alarm(1);
@@ -264,7 +265,7 @@ static void channel_loop(void)
 
     // create a channel and connect to it
     RedChannel *channel =
-        g_object_new(RED_TYPE_TEST_CHANNEL,
+        (RedChannel*) g_object_new(RED_TYPE_TEST_CHANNEL,
                      "spice-server", server,
                      "core-interface", reds_get_core_interface(server),
                      "channel-type", SPICE_CHANNEL_PORT, // any other than main is fine
@@ -277,7 +278,7 @@ static void channel_loop(void)
     memset(&caps, 0, sizeof(caps));
     uint32_t common_caps = 1 << SPICE_COMMON_CAP_MINI_HEADER;
     caps.num_common_caps = 1;
-    caps.common_caps = spice_memdup(&common_caps, sizeof(common_caps));
+    caps.common_caps = (uint32_t*) spice_memdup(&common_caps, sizeof(common_caps));
 
     RedClient *client = red_client_new(server, FALSE);
     g_assert_nonnull(client);

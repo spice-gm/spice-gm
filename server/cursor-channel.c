@@ -210,11 +210,11 @@ static void cursor_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_it
         red_marshall_inval(rcc, m, SPICE_CONTAINEROF(pipe_item, RedCacheItem, u.pipe_data));
         break;
     case RED_PIPE_ITEM_TYPE_CURSOR_INIT:
-        cursor_channel_client_reset_cursor_cache(rcc);
+        cursor_channel_client_reset_cursor_cache(ccc);
         red_marshall_cursor_init(ccc, m);
         break;
     case RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE:
-        cursor_channel_client_reset_cursor_cache(rcc);
+        cursor_channel_client_reset_cursor_cache(ccc);
         red_channel_client_init_send_data(rcc, SPICE_MSG_CURSOR_INVAL_ALL);
         break;
     default:
@@ -229,14 +229,15 @@ CursorChannel* cursor_channel_new(RedsState *server, int id,
                                   Dispatcher *dispatcher)
 {
     spice_debug("create cursor channel");
-    return g_object_new(TYPE_CURSOR_CHANNEL,
-                        "spice-server", server,
-                        "core-interface", core,
-                        "channel-type", SPICE_CHANNEL_CURSOR,
-                        "id", id,
-                        "handle-acks", TRUE,
-                        "dispatcher", dispatcher,
-                        NULL);
+    return (CursorChannel*)
+        g_object_new(TYPE_CURSOR_CHANNEL,
+                     "spice-server", server,
+                     "core-interface", core,
+                     "channel-type", SPICE_CHANNEL_CURSOR,
+                     "id", id,
+                     "handle-acks", TRUE,
+                     "dispatcher", dispatcher,
+                     NULL);
 }
 
 void cursor_channel_process_cmd(CursorChannel *cursor, RedCursorCmd *cursor_cmd)

@@ -324,7 +324,7 @@ static void fill_base(SpiceMarshaller *base_marshaller, Drawable *drawable)
 
 static void marshaller_compress_buf_free(uint8_t *data, void *opaque)
 {
-    compress_buf_free(opaque);
+    compress_buf_free((RedCompressBuf*) opaque);
 }
 
 static void marshaller_add_compressed(SpiceMarshaller *m,
@@ -344,7 +344,7 @@ static void marshaller_add_compressed(SpiceMarshaller *m,
 
 static void marshaller_unref_drawable(uint8_t *data, void *opaque)
 {
-    Drawable *drawable = opaque;
+    Drawable *drawable = (Drawable *) opaque;
     drawable_unref(drawable);
 }
 
@@ -632,7 +632,7 @@ static bool pipe_rendered_drawables_intersect_with_areas(DisplayChannelClient *d
 
     for (l = red_channel_client_get_pipe(RED_CHANNEL_CLIENT(dcc))->head; l != NULL; l = l->next) {
         Drawable *drawable;
-        RedPipeItem *pipe_item = l->data;
+        RedPipeItem *pipe_item = (RedPipeItem *) l->data;
 
         if (pipe_item->type != RED_PIPE_ITEM_TYPE_DRAW)
             continue;
@@ -722,7 +722,7 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
 
     // going from the oldest to the newest
     for (l = pipe->tail; l != NULL; l = prev) {
-        RedPipeItem *pipe_item = l->data;
+        RedPipeItem *pipe_item = (RedPipeItem *) l->data;
         Drawable *drawable;
         RedDrawablePipeItem *dpi;
 
@@ -2283,7 +2283,7 @@ static void marshall_monitors_config(RedChannelClient *rcc, SpiceMarshaller *bas
 {
     int heads_size = sizeof(SpiceHead) * monitors_config->count;
     int i;
-    SpiceMsgDisplayMonitorsConfig *msg = g_malloc0(sizeof(*msg) + heads_size);
+    SpiceMsgDisplayMonitorsConfig *msg = (SpiceMsgDisplayMonitorsConfig *) g_malloc0(sizeof(*msg) + heads_size);
     int count = 0; // ignore monitors_config->count, it may contain zero width monitors, remove them now
 
     red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_MONITORS_CONFIG);

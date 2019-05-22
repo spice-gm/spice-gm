@@ -322,22 +322,22 @@ red_channel_client_set_property(GObject *object,
     switch (property_id)
     {
         case PROP_STREAM:
-            self->priv->stream = g_value_get_pointer(value);
+            self->priv->stream = (RedStream*) g_value_get_pointer(value);
             break;
         case PROP_CHANNEL:
             if (self->priv->channel)
                 g_object_unref(self->priv->channel);
-            self->priv->channel = g_value_dup_object(value);
+            self->priv->channel = (RedChannel *) g_value_dup_object(value);
             break;
         case PROP_CLIENT:
-            self->priv->client = g_value_get_object(value);
+            self->priv->client = (RedClient *) g_value_get_object(value);
             break;
         case PROP_MONITOR_LATENCY:
             self->priv->monitor_latency = g_value_get_boolean(value);
             break;
         case PROP_CAPS:
             {
-                RedChannelCapabilities *caps = g_value_get_boxed(value);
+                RedChannelCapabilities *caps = (RedChannelCapabilities *) g_value_get_boxed(value);
                 if (caps) {
                     red_channel_capabilities_reset(&self->priv->remote_caps);
                     red_channel_capabilities_init(&self->priv->remote_caps, caps);
@@ -467,7 +467,7 @@ static void red_channel_client_class_init(RedChannelClientClass *klass)
 static void
 red_channel_client_init(RedChannelClient *self)
 {
-    self->priv = red_channel_client_get_instance_private(self);
+    self->priv = (RedChannelClientPrivate *) red_channel_client_get_instance_private(self);
     // blocks send message (maybe use send_data.blocked + block flags)
     self->priv->ack_data.messages_window = ~0;
     self->priv->ack_data.client_generation = ~0;
@@ -702,7 +702,7 @@ static void red_channel_client_push_ping(RedChannelClient *rcc)
 
 static void red_channel_client_ping_timer(void *opaque)
 {
-    RedChannelClient *rcc = opaque;
+    RedChannelClient *rcc = (RedChannelClient *) opaque;
 
     g_object_ref(rcc);
 
@@ -754,7 +754,7 @@ static inline int red_channel_client_waiting_for_ack(RedChannelClient *rcc)
  */
 static void red_channel_client_connectivity_timer(void *opaque)
 {
-    RedChannelClient *rcc = opaque;
+    RedChannelClient *rcc = (RedChannelClient *) opaque;
     RedChannelClientConnectivityMonitor *monitor = &rcc->priv->connectivity_monitor;
     int is_alive = TRUE;
 
@@ -840,7 +840,7 @@ void red_channel_client_start_connectivity_monitoring(RedChannelClient *rcc, uin
 
 static void red_channel_client_event(int fd, int event, void *data)
 {
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(data);
+    RedChannelClient *rcc = (RedChannelClient *) data;
 
     g_object_ref(rcc);
     if (event & SPICE_WATCH_EVENT_READ) {
@@ -1303,7 +1303,7 @@ static inline RedPipeItem *red_channel_client_pipe_item_get(RedChannelClient *rc
              || red_channel_client_waiting_for_ack(rcc)) {
         return NULL;
     }
-    return g_queue_pop_tail(&rcc->priv->pipe);
+    return (RedPipeItem*) g_queue_pop_tail(&rcc->priv->pipe);
 }
 
 void red_channel_client_push(RedChannelClient *rcc)
@@ -1483,7 +1483,7 @@ bool red_channel_client_handle_message(RedChannelClient *rcc, uint16_t type,
         red_channel_client_handle_migrate_data(rcc, size, message);
         break;
     case SPICE_MSGC_PONG:
-        red_channel_client_handle_pong(rcc, message);
+        red_channel_client_handle_pong(rcc, (SpiceMsgPing*) message);
         break;
     default:
         red_channel_warning(red_channel_client_get_channel(rcc), "invalid message type %u", type);
@@ -1694,7 +1694,7 @@ static void red_channel_client_pipe_clear(RedChannelClient *rcc)
     RedPipeItem *item;
 
     red_channel_client_clear_sent_item(rcc);
-    while ((item = g_queue_pop_head(&rcc->priv->pipe)) != NULL) {
+    while ((item = (RedPipeItem*) g_queue_pop_head(&rcc->priv->pipe)) != NULL) {
         red_pipe_item_unref(item);
     }
 }
@@ -1872,7 +1872,7 @@ void red_channel_client_pipe_remove_and_release(RedChannelClient *rcc,
 void red_channel_client_pipe_remove_and_release_pos(RedChannelClient *rcc,
                                                     GList *item_pos)
 {
-    RedPipeItem *item = item_pos->data;
+    RedPipeItem *item = (RedPipeItem*) item_pos->data;
 
     g_queue_delete_link(&rcc->priv->pipe, item_pos);
     red_pipe_item_unref(item);

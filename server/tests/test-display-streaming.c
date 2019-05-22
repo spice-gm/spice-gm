@@ -52,7 +52,7 @@ static void create_overlay(Command *command , int width, int height)
     cmd->bbox.bottom = height;
 
     cmd->num_clip_rects = 0;
-    cmd->bitmap = g_malloc(width * height * 4 );
+    cmd->bitmap = (uint8_t*) g_malloc(width * height * 4 );
     dst = SPICE_ALIGNED_CAST(uint32_t *, cmd->bitmap);
     for (int i = 0; i < width * height; i++, dst++) {
         *dst = 0x8B008B;
@@ -123,7 +123,7 @@ static void create_clipped_frame(Test *test, Command *command, int clipping_fact
         end_line += 50;
     }
 
-    cmd->bitmap = g_malloc(width*height*4);
+    cmd->bitmap = (uint8_t*) g_malloc(width*height*4);
     memset(cmd->bitmap, 0xff, width*height*4);
     dst = SPICE_ALIGNED_CAST(uint32_t *, cmd->bitmap + cur_line*width*4);
     for (; cur_line < end_line; cur_line++) {
@@ -215,7 +215,7 @@ static void get_stream_commands(Command *commands, int num_commands,
 static void get_commands(Command **commands, int *num_commands)
 {
     *num_commands = NUM_COMMANDS * 2;
-    *commands = calloc(sizeof(Command), *num_commands);
+    *commands = (Command*) calloc(sizeof(Command), *num_commands);
 
     get_stream_commands(*commands, NUM_COMMANDS, create_frame1);
     get_stream_commands((*commands) + NUM_COMMANDS, NUM_COMMANDS, create_frame2);

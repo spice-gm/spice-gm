@@ -74,10 +74,10 @@ display_channel_set_property(GObject *object,
             self->priv->n_surfaces = MIN(g_value_get_uint(value), NUM_SURFACES);
             break;
         case PROP_VIDEO_CODECS:
-            display_channel_set_video_codecs(self, g_value_get_boxed(value));
+            display_channel_set_video_codecs(self, (GArray*) g_value_get_boxed(value));
             break;
         case PROP_QXL:
-            self->priv->qxl = g_value_get_pointer(value);
+            self->priv->qxl = (QXLInstance*) g_value_get_pointer(value);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -193,7 +193,7 @@ static MonitorsConfig* monitors_config_new(const QXLHead *heads, ssize_t nheads,
 {
     MonitorsConfig *mc;
 
-    mc = g_malloc(sizeof(MonitorsConfig) + nheads * sizeof(QXLHead));
+    mc = (MonitorsConfig*) g_malloc(sizeof(MonitorsConfig) + nheads * sizeof(QXLHead));
     mc->refs = 1;
     mc->count = nheads;
     mc->max_allowed = max;
@@ -389,7 +389,7 @@ static void pipes_add_drawable_after(DisplayChannel *display,
     GList *l;
 
     for (l = pos_after->pipes; l != NULL; l = l->next) {
-        dpi_pos_after = l->data;
+        dpi_pos_after = (RedDrawablePipeItem*) l->data;
 
         num_other_linked++;
         dcc_add_drawable_after(dpi_pos_after->dcc, drawable, &dpi_pos_after->base);
@@ -405,7 +405,7 @@ static void pipes_add_drawable_after(DisplayChannel *display,
             int sent = 0;
             GList *l;
             for (l = pos_after->pipes; l != NULL; l = l->next) {
-                dpi_pos_after = l->data;
+                dpi_pos_after = (RedDrawablePipeItem*) l->data;
                 if (dpi_pos_after->dcc == dcc) {
                     sent = 1;
                     break;
@@ -1474,7 +1474,7 @@ bool display_channel_wait_for_migrate_data(DisplayChannel *display)
     spice_debug("trace");
     spice_warn_if_fail(g_list_length(clients) == 1);
 
-    rcc = g_list_nth_data(clients, 0);
+    rcc = (RedChannelClient*) g_list_nth_data(clients, 0);
 
     g_object_ref(rcc);
     for (;;) {
@@ -1874,7 +1874,7 @@ static void surface_update_dest(RedSurface *surface, const SpiceRect *area)
 {
     SpiceCanvas *canvas = surface->context.canvas;
     int stride = surface->context.stride;
-    uint8_t *line_0 = surface->context.line_0;
+    uint8_t *line_0 = (uint8_t*) surface->context.line_0;
 
     if (surface->context.canvas_draws_on_surface)
         return;
@@ -2138,7 +2138,7 @@ create_canvas_for_surface(DisplayChannel *display, RedSurface *surface, uint32_t
     switch (renderer) {
     case RED_RENDERER_SW:
         canvas = canvas_create_for_data(surface->context.width, surface->context.height, surface->context.format,
-                                        surface->context.line_0, surface->context.stride,
+                                        (uint8_t*) surface->context.line_0, surface->context.stride,
                                         &display->priv->image_cache.base,
                                         &display->priv->image_surfaces, NULL, NULL, NULL);
         surface->context.top_down = TRUE;
@@ -2166,7 +2166,7 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
     surface->context.stride = stride;
     surface->context.line_0 = line_0;
     if (!data_is_valid) {
-        char *data = line_0;
+        char *data = (char*) line_0;
         if (stride < 0) {
             data -= abs(stride) * (height - 1);
         }
@@ -2245,7 +2245,7 @@ DisplayChannel* display_channel_new(RedsState *reds,
 
     /* FIXME: migrate is not used...? */
     spice_debug("create display channel");
-    display = g_object_new(TYPE_DISPLAY_CHANNEL,
+    display = (DisplayChannel*) g_object_new(TYPE_DISPLAY_CHANNEL,
                            "spice-server", reds,
                            "core-interface", core,
                            "channel-type", SPICE_CHANNEL_DISPLAY,

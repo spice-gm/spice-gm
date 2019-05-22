@@ -56,7 +56,7 @@ cursor_channel_client_class_init(CursorChannelClientClass *klass)
 static void
 cursor_channel_client_init(CursorChannelClient *self)
 {
-    self->priv = cursor_channel_client_get_instance_private(self);
+    self->priv = (CursorChannelClientPrivate*) cursor_channel_client_get_instance_private(self);
     ring_init(&self->priv->cursor_cache_lru);
     self->priv->cursor_cache_available = CLIENT_CURSOR_CACHE_SIZE;
 }
@@ -69,9 +69,9 @@ cursor_channel_client_init(CursorChannelClient *self)
 static int _cursor_count = 0;
 #endif
 
-void cursor_channel_client_reset_cursor_cache(RedChannelClient *rcc)
+void cursor_channel_client_reset_cursor_cache(CursorChannelClient *ccc)
 {
-    red_cursor_cache_reset(CURSOR_CHANNEL_CLIENT(rcc), CLIENT_CURSOR_CACHE_SIZE);
+    red_cursor_cache_reset(ccc, CLIENT_CURSOR_CACHE_SIZE);
 }
 
 static void cursor_channel_client_on_disconnect(RedChannelClient *rcc)
@@ -79,7 +79,7 @@ static void cursor_channel_client_on_disconnect(RedChannelClient *rcc)
     if (!rcc) {
         return;
     }
-    cursor_channel_client_reset_cursor_cache(rcc);
+    cursor_channel_client_reset_cursor_cache(CURSOR_CHANNEL_CLIENT(rcc));
 }
 
 void cursor_channel_client_migrate(RedChannelClient *rcc)
@@ -96,7 +96,8 @@ CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor, RedClient 
 {
     CursorChannelClient *rcc;
 
-    rcc = g_initable_new(TYPE_CURSOR_CHANNEL_CLIENT,
+    rcc = (CursorChannelClient*)
+          g_initable_new(TYPE_CURSOR_CHANNEL_CLIENT,
                          NULL, NULL,
                          "channel", cursor,
                          "client", client,

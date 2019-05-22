@@ -72,7 +72,8 @@ static void smart_card_channel_client_class_init(SmartCardChannelClientClass *kl
 static void
 smart_card_channel_client_init(SmartCardChannelClient *self)
 {
-    self->priv = smart_card_channel_client_get_instance_private(self);
+    self->priv = (SmartCardChannelClientPrivate*)
+        smart_card_channel_client_get_instance_private(self);
 }
 
 SmartCardChannelClient* smartcard_channel_client_create(RedChannel *channel,
@@ -81,7 +82,8 @@ SmartCardChannelClient* smartcard_channel_client_create(RedChannel *channel,
 {
     SmartCardChannelClient *rcc;
 
-    rcc = g_initable_new(TYPE_SMARTCARD_CHANNEL_CLIENT,
+    rcc = (SmartCardChannelClient *)
+          g_initable_new(TYPE_SMARTCARD_CHANNEL_CLIENT,
                          NULL, NULL,
                          "channel", channel,
                          "client", client,
@@ -103,7 +105,7 @@ smartcard_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
      * different channels */
     if (!scc->priv->smartcard) {
         scc->priv->msg_in_write_buf = FALSE;
-        return g_malloc(size);
+        return (uint8_t*) g_malloc(size);
     } else {
         RedCharDeviceSmartcard *smartcard;
 
@@ -248,7 +250,7 @@ bool smartcard_channel_client_handle_message(RedChannelClient *rcc,
                                              uint32_t size,
                                              void *message)
 {
-    VSCMsgHeader* vheader = message;
+    VSCMsgHeader* vheader = (VSCMsgHeader*) message;
     SmartCardChannelClient *scc = SMARTCARD_CHANNEL_CLIENT(rcc);
 
     if (type != SPICE_MSGC_SMARTCARD_DATA) {

@@ -68,7 +68,7 @@ red_smartcard_channel_init(RedSmartcardChannel *self)
 static RedSmartcardChannel *
 red_smartcard_channel_new(RedsState *reds)
 {
-    return g_object_new(RED_TYPE_SMARTCARD_CHANNEL,
+    return (RedSmartcardChannel*) g_object_new(RED_TYPE_SMARTCARD_CHANNEL,
                         "spice-server", reds,
                         "core-interface", reds_get_core_interface(reds),
                         "channel-type", SPICE_CHANNEL_SMARTCARD,
@@ -119,7 +119,7 @@ static void smartcard_read_buf_prepare(RedCharDeviceSmartcard *dev, VSCMsgHeader
     msg_len = ntohl(vheader->length);
     if (msg_len > dev->priv->buf_size) {
         dev->priv->buf_size = MAX(dev->priv->buf_size * 2, msg_len + sizeof(VSCMsgHeader));
-        dev->priv->buf = g_realloc(dev->priv->buf, dev->priv->buf_size);
+        dev->priv->buf = (uint8_t*) g_realloc(dev->priv->buf, dev->priv->buf_size);
     }
 }
 
@@ -257,12 +257,13 @@ static RedCharDeviceSmartcard *smartcard_device_new(RedsState *reds, SpiceCharDe
 {
     RedCharDeviceSmartcard *dev;
 
-    dev = g_object_new(RED_TYPE_CHAR_DEVICE_SMARTCARD,
-                       "sin", sin,
-                       "spice-server", reds,
-                       "client-tokens-interval", 0ULL,
-                       "self-tokens", ~0ULL,
-                       NULL);
+    dev = (RedCharDeviceSmartcard*)
+        g_object_new(RED_TYPE_CHAR_DEVICE_SMARTCARD,
+                     "sin", sin,
+                     "spice-server", reds,
+                     "client-tokens-interval", 0ULL,
+                     "self-tokens", ~0ULL,
+                     NULL);
 
     return dev;
 }
@@ -458,7 +459,7 @@ static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCM
 
     red_pipe_item_init_full(&msg_item->base, RED_PIPE_ITEM_TYPE_SMARTCARD_DATA,
                             smartcard_free_vsc_msg_item);
-    msg_item->vheader = g_memdup(vheader, sizeof(*vheader) + vheader->length);
+    msg_item->vheader = (VSCMsgHeader*) g_memdup(vheader, sizeof(*vheader) + vheader->length);
     /* We patch the reader_id, since the device only knows about itself, and
      * we know about the sum of readers. */
     msg_item->vheader->reader_id = reader_id;
@@ -603,11 +604,11 @@ red_char_device_smartcard_class_init(RedCharDeviceSmartcardClass *klass)
 static void
 red_char_device_smartcard_init(RedCharDeviceSmartcard *self)
 {
-    self->priv = red_char_device_smartcard_get_instance_private(self);
+    self->priv = (RedCharDeviceSmartcardPrivate*) red_char_device_smartcard_get_instance_private(self);
 
     self->priv->reader_id = VSCARD_UNDEFINED_READER_ID;
     self->priv->buf_size = APDUBufSize + sizeof(VSCMsgHeader);
-    self->priv->buf = g_malloc(self->priv->buf_size);
+    self->priv->buf = (uint8_t*) g_malloc(self->priv->buf_size);
     self->priv->buf_pos = self->priv->buf;
 }
 

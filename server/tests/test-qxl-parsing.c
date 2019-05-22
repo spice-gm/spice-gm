@@ -46,7 +46,7 @@ from_physical(QXLPHYSICAL physical)
 static void*
 create_chunk(size_t prefix, uint32_t size, QXLDataChunk* prev, int fill)
 {
-    uint8_t *ptr = g_malloc0(prefix + sizeof(QXLDataChunk) + size);
+    uint8_t *ptr = (uint8_t*) g_malloc0(prefix + sizeof(QXLDataChunk) + size);
     QXLDataChunk *qxl = (QXLDataChunk *) (ptr + prefix);
     memset(&qxl->data[0], fill, size);
     qxl->data_size = size;
@@ -101,10 +101,10 @@ static void test_memslot_invalid_slot_id(void)
 
 static void test_memslot_invalid_addresses(void)
 {
-    g_test_trap_subprocess("/server/memslot-invalid-addresses/subprocess/group_id", 0, 0);
+    g_test_trap_subprocess("/server/memslot-invalid-addresses/subprocess/group_id", 0, (GTestSubprocessFlags) 0);
     g_test_trap_assert_stderr("*group_id too big*");
 
-    g_test_trap_subprocess("/server/memslot-invalid-addresses/subprocess/slot_id", 0, 0);
+    g_test_trap_subprocess("/server/memslot-invalid-addresses/subprocess/slot_id", 0, (GTestSubprocessFlags) 0);
     g_test_trap_assert_stderr("*slot_id 1 too big*");
 }
 
@@ -186,7 +186,7 @@ static void test_cursor_command(void)
     memset(&cursor_cmd, 0, sizeof(cursor_cmd));
     cursor_cmd.type = QXL_CURSOR_SET;
 
-    cursor = create_chunk(SPICE_OFFSETOF(QXLCursor, chunk), 128 * 128 * 4, NULL, 0xaa);
+    cursor = (QXLCursor*) create_chunk(SPICE_OFFSETOF(QXLCursor, chunk), 128 * 128 * 4, NULL, 0xaa);
     cursor->header.unique = 1;
     cursor->header.width = 128;
     cursor->header.height = 128;
@@ -217,13 +217,13 @@ static void test_circular_empty_chunks(void)
     memset(&cursor_cmd, 0, sizeof(cursor_cmd));
     cursor_cmd.type = QXL_CURSOR_SET;
 
-    cursor = create_chunk(SPICE_OFFSETOF(QXLCursor, chunk), 0, NULL, 0xaa);
+    cursor = (QXLCursor*) create_chunk(SPICE_OFFSETOF(QXLCursor, chunk), 0, NULL, 0xaa);
     cursor->header.unique = 1;
     cursor->header.width = 128;
     cursor->header.height = 128;
     cursor->data_size = 128 * 128 * 4;
 
-    chunks[0] = create_chunk(0, 0, &cursor->chunk, 0xaa);
+    chunks[0] = (QXLDataChunk*) create_chunk(0, 0, &cursor->chunk, 0xaa);
     chunks[0]->next_chunk = to_physical(&cursor->chunk);
 
     cursor_cmd.u.set.shape = to_physical(cursor);
@@ -260,13 +260,13 @@ static void test_circular_small_chunks(void)
     memset(&cursor_cmd, 0, sizeof(cursor_cmd));
     cursor_cmd.type = QXL_CURSOR_SET;
 
-    cursor = create_chunk(SPICE_OFFSETOF(QXLCursor, chunk), 1, NULL, 0xaa);
+    cursor = (QXLCursor*) create_chunk(SPICE_OFFSETOF(QXLCursor, chunk), 1, NULL, 0xaa);
     cursor->header.unique = 1;
     cursor->header.width = 128;
     cursor->header.height = 128;
     cursor->data_size = 128 * 128 * 4;
 
-    chunks[0] = create_chunk(0, 1, &cursor->chunk, 0xaa);
+    chunks[0] = (QXLDataChunk*) create_chunk(0, 1, &cursor->chunk, 0xaa);
     chunks[0]->next_chunk = to_physical(&cursor->chunk);
 
     cursor_cmd.u.set.shape = to_physical(cursor);

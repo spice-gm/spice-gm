@@ -30,7 +30,7 @@ static int ping_ms = 100;
 
 static void pinger(void *opaque)
 {
-    Test *test = opaque;
+    Test *test = (Test*) opaque;
 
     test->core->timer_start(ping_timer, ping_ms);
 }
@@ -64,7 +64,7 @@ set_surface_params(SPICE_GNUC_UNUSED Test *test, Command *command)
     create->format = SPICE_SURFACE_FMT_8_A;
     create->width = 128;
     create->height = 128;
-    g_surface_data = g_realloc(g_surface_data, create->width * create->height * 1);
+    g_surface_data = (uint8_t*) g_realloc(g_surface_data, create->width * create->height * 1);
     create->surface_id = g_surface_id;
     create->data = g_surface_data;
 }

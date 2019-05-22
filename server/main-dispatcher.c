@@ -87,7 +87,7 @@ main_dispatcher_set_property(GObject      *object,
 
     switch (property_id) {
         case PROP_SPICE_SERVER:
-            self->priv->reds = g_value_get_pointer(value);
+            self->priv->reds = (RedsState*) g_value_get_pointer(value);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -119,7 +119,7 @@ main_dispatcher_class_init(MainDispatcherClass *klass)
 static void
 main_dispatcher_init(MainDispatcher *self)
 {
-    self->priv = main_dispatcher_get_instance_private(self);
+    self->priv = (MainDispatcherPrivate*) main_dispatcher_get_instance_private(self);
     self->priv->thread_id = pthread_self();
 }
 
@@ -154,8 +154,8 @@ typedef struct MainDispatcherClientDisconnectMessage {
 static void main_dispatcher_handle_channel_event(void *opaque,
                                                  void *payload)
 {
-    RedsState *reds = opaque;
-    MainDispatcherChannelEventMessage *channel_event = payload;
+    RedsState *reds = (RedsState*) opaque;
+    MainDispatcherChannelEventMessage *channel_event = (MainDispatcherChannelEventMessage*) payload;
 
     reds_handle_channel_event(reds, channel_event->event, channel_event->info);
 }
@@ -178,8 +178,8 @@ void main_dispatcher_channel_event(MainDispatcher *self, int event, SpiceChannel
 static void main_dispatcher_handle_migrate_complete(void *opaque,
                                                     void *payload)
 {
-    RedsState *reds = opaque;
-    MainDispatcherMigrateSeamlessDstCompleteMessage *mig_complete = payload;
+    RedsState *reds = (RedsState*) opaque;
+    MainDispatcherMigrateSeamlessDstCompleteMessage *mig_complete = (MainDispatcherMigrateSeamlessDstCompleteMessage*) payload;
 
     reds_on_client_seamless_migrate_complete(reds, mig_complete->client);
     g_object_unref(mig_complete->client);
@@ -188,8 +188,8 @@ static void main_dispatcher_handle_migrate_complete(void *opaque,
 static void main_dispatcher_handle_mm_time_latency(void *opaque,
                                                    void *payload)
 {
-    RedsState *reds = opaque;
-    MainDispatcherMmTimeLatencyMessage *msg = payload;
+    RedsState *reds = (RedsState*) opaque;
+    MainDispatcherMmTimeLatencyMessage *msg = (MainDispatcherMmTimeLatencyMessage*) payload;
     reds_set_client_mm_time_latency(reds, msg->client, msg->latency);
     g_object_unref(msg->client);
 }
@@ -197,8 +197,8 @@ static void main_dispatcher_handle_mm_time_latency(void *opaque,
 static void main_dispatcher_handle_client_disconnect(void *opaque,
                                                      void *payload)
 {
-    RedsState *reds = opaque;
-    MainDispatcherClientDisconnectMessage *msg = payload;
+    RedsState *reds = (RedsState*) opaque;
+    MainDispatcherClientDisconnectMessage *msg = (MainDispatcherClientDisconnectMessage*) payload;
 
     spice_debug("client=%p", msg->client);
     reds_client_disconnect(reds, msg->client);
@@ -215,7 +215,7 @@ void main_dispatcher_seamless_migrate_dst_complete(MainDispatcher *self,
         return;
     }
 
-    msg.client = g_object_ref(client);
+    msg.client = (RedClient*) g_object_ref(client);
     dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_MIGRATE_SEAMLESS_DST_COMPLETE,
                             &msg);
 }
@@ -229,7 +229,7 @@ void main_dispatcher_set_mm_time_latency(MainDispatcher *self, RedClient *client
         return;
     }
 
-    msg.client = g_object_ref(client);
+    msg.client = (RedClient*) g_object_ref(client);
     msg.latency = latency;
     dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_SET_MM_TIME_LATENCY,
                             &msg);
@@ -241,7 +241,7 @@ void main_dispatcher_client_disconnect(MainDispatcher *self, RedClient *client)
 
     if (!red_client_is_disconnecting(client)) {
         spice_debug("client %p", client);
-        msg.client = g_object_ref(client);
+        msg.client = (RedClient*) g_object_ref(client);
         dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_CLIENT_DISCONNECT,
                                 &msg);
     } else {
@@ -256,7 +256,7 @@ void main_dispatcher_client_disconnect(MainDispatcher *self, RedClient *client)
  */
 MainDispatcher* main_dispatcher_new(RedsState *reds)
 {
-    MainDispatcher *self = g_object_new(TYPE_MAIN_DISPATCHER,
+    MainDispatcher *self = (MainDispatcher*) g_object_new(TYPE_MAIN_DISPATCHER,
                                         "spice-server", reds,
                                         "max-message-type", MAIN_DISPATCHER_NUM_MESSAGES,
                                         NULL);

@@ -99,7 +99,7 @@ static uint8_t *red_linearize_chunk(RedDataChunk *head, size_t size, bool *free_
         return head->data;
     }
 
-    ptr = data = g_malloc(size);
+    ptr = data = (uint8_t*) g_malloc(size);
     *free_chunk = true;
     for (chunk = head; chunk != NULL && size > 0; chunk = chunk->next_chunk) {
         copy = MIN(chunk->data_size, size);
@@ -277,7 +277,7 @@ static SpicePath *red_get_path(RedMemSlotInfo *slots, int group_id,
         start = (QXLPathSeg*)(&start->points[count]);
     }
 
-    red = g_malloc(mem_size);
+    red = (SpicePath*) g_malloc(mem_size);
     red->num_segments = n_segments;
 
     start = (QXLPathSeg*)data;
@@ -346,7 +346,7 @@ static SpiceClipRects *red_get_clip_rects(RedMemSlotInfo *slots, int group_id,
      */
     spice_assert((uint64_t) num_rects * sizeof(QXLRect) == size);
     SPICE_VERIFY(sizeof(SpiceRect) == sizeof(QXLRect));
-    red = g_malloc(sizeof(*red) + num_rects * sizeof(SpiceRect));
+    red = (SpiceClipRects*) g_malloc(sizeof(*red) + num_rects * sizeof(SpiceRect));
     red->num_rects = num_rects;
 
     start = (QXLRect*)data;
@@ -373,7 +373,7 @@ static SpiceChunks *red_get_image_data_flat(RedMemSlotInfo *slots, int group_id,
 
     data = spice_chunks_new(1);
     data->data_size      = size;
-    data->chunk[0].data  = bitmap_virt;
+    data->chunk[0].data  = (uint8_t*) bitmap_virt;
     data->chunk[0].len   = size;
     return data;
 }
@@ -513,7 +513,7 @@ static SpiceImage *red_get_image(RedMemSlotInfo *slots, int group_id,
                                        num_ents * sizeof(qp->ents[0]), group_id)) {
                 goto error;
             }
-            rp = g_malloc(num_ents * sizeof(rp->ents[0]) + sizeof(*rp));
+            rp = (SpicePalette*) g_malloc(num_ents * sizeof(rp->ents[0]) + sizeof(*rp));
             rp->unique   = qp->unique;
             rp->num_ents = num_ents;
             if (flags & QXL_COMMAND_FLAG_COMPAT_16BPP) {
@@ -838,7 +838,7 @@ static bool red_get_stroke_ptr(RedMemSlotInfo *slots, int group_id,
         uint8_t *buf;
 
         style_nseg = qxl->attr.style_nseg;
-        red->attr.style = g_malloc_n(style_nseg, sizeof(SPICE_FIXED28_4));
+        red->attr.style = (SPICE_FIXED28_4*) g_malloc_n(style_nseg, sizeof(SPICE_FIXED28_4));
         red->attr.style_nseg  = style_nseg;
         spice_assert(qxl->attr.style);
         buf = (uint8_t *)memslot_get_virt(slots, qxl->attr.style,
@@ -928,7 +928,7 @@ static SpiceString *red_get_string(RedMemSlotInfo *slots, int group_id,
     spice_assert(start <= end);
     spice_assert(glyphs == qxl_length);
 
-    red = g_malloc(red_size);
+    red = (SpiceString*) g_malloc(red_size);
     red->length = qxl_length;
     red->flags = qxl_flags;
 
@@ -1564,7 +1564,7 @@ static bool red_get_cursor(RedMemSlotInfo *slots, int group_id,
     if (free_data) {
         red->data = data;
     } else {
-        red->data = g_memdup(data, size);
+        red->data = (uint8_t*) g_memdup(data, size);
     }
     return true;
 }

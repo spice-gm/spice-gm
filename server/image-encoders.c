@@ -709,7 +709,7 @@ static GlzSharedDictionary *find_glz_dictionary(RedClient *client, uint8_t dict_
     GlzSharedDictionary *ret = NULL;
 
     for (l = glz_dictionary_list; l != NULL; l = l->next) {
-        GlzSharedDictionary *dict = l->data;
+        GlzSharedDictionary *dict = (GlzSharedDictionary *) l->data;
         if ((dict->client == client) && (dict->id == dict_id)) {
             ret = dict;
             break;

@@ -156,9 +156,6 @@ AC_DEFUN([SPICE_COMPILE_WARNINGS],[
 
     save_CFLAGS="$WARN_CFLAGS"
 
-    # -fpermissive to allow compile C with C++
-    gl_WARN_ADD([-fpermissive])
-
     # -Wno-suggest-final-methods and -Wno-suggest-final-types to avoid warnings for optimization
     gl_WARN_ADD([-Wno-suggest-final-methods])
     gl_WARN_ADD([-Wno-suggest-final-types])

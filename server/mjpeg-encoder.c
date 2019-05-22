@@ -206,7 +206,7 @@ static MJpegVideoBuffer* create_mjpeg_video_buffer(void)
     MJpegVideoBuffer *buffer = g_new0(MJpegVideoBuffer, 1);
     buffer->base.free = mjpeg_video_buffer_free;
     buffer->maxsize = MJPEG_INITIAL_BUFFER_SIZE;
-    buffer->base.data = g_try_malloc(buffer->maxsize);
+    buffer->base.data = (uint8_t*) g_try_malloc(buffer->maxsize);
     if (!buffer->base.data) {
         g_free(buffer);
         buffer = NULL;
@@ -286,7 +286,7 @@ static boolean empty_mem_output_buffer(j_compress_ptr cinfo)
 
   /* Try to allocate new buffer with double size */
   nextsize = dest->bufsize * 2;
-  nextbuffer = g_try_realloc(dest->buffer, nextsize);
+  nextbuffer = (uint8_t*) g_try_realloc(dest->buffer, nextsize);
 
   if (nextbuffer == NULL)
     ERREXIT1(cinfo, JERR_OUT_OF_MEMORY, 10);
@@ -798,7 +798,7 @@ mjpeg_encoder_start_frame(MJpegEncoder *encoder,
             return VIDEO_ENCODER_FRAME_UNSUPPORTED;
         }
         if (encoder->row_size < stride) {
-            encoder->row = g_realloc(encoder->row, stride);
+            encoder->row = (uint8_t*) g_realloc(encoder->row, stride);
             encoder->row_size = stride;
         }
     }
@@ -951,8 +951,8 @@ mjpeg_encoder_encode_frame(VideoEncoder *video_encoder,
         return VIDEO_ENCODER_FRAME_UNSUPPORTED;
     }
 
-    VideoEncodeResults ret = mjpeg_encoder_start_frame(encoder, bitmap->format, src,
-                                                       buffer, frame_mm_time);
+    VideoEncodeResults ret = mjpeg_encoder_start_frame(encoder, (SpiceBitmapFmt) bitmap->format,
+                                                       src, buffer, frame_mm_time);
     if (ret == VIDEO_ENCODER_FRAME_ENCODE_DONE) {
         if (encode_frame(encoder, src, bitmap, top_down)) {
             buffer->base.size = mjpeg_encoder_end_frame(encoder);

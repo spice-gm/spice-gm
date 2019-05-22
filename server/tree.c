@@ -114,7 +114,7 @@ typedef struct DumpItem {
 
 static void dump_item(TreeItem *item, void *data)
 {
-    DumpItem *di = data;
+    DumpItem *di = (DumpItem*) data;
     const char *item_prefix = "|--";
     int i;
 

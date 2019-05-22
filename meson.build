@@ -195,7 +195,6 @@ spice_server_global_cxxflags += [
   '-fno-exceptions',
   '-fno-rtti',
   '--no_rtti',
-  '-fpermissive',
   '-Wno-suggest-final-methods',
   '-Wno-suggest-final-types',
   '-Wno-array-bounds',

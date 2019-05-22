@@ -153,15 +153,16 @@ dispatcher_class_init(DispatcherClass *klass)
 static void
 dispatcher_init(Dispatcher *self)
 {
-    self->priv = dispatcher_get_instance_private(self);
+    self->priv = (DispatcherPrivate*) dispatcher_get_instance_private(self);
 }
 
 Dispatcher *
 dispatcher_new(size_t max_message_type)
 {
-    return g_object_new(TYPE_DISPATCHER,
-                        "max-message-type", (guint) max_message_type,
-                        NULL);
+    return (Dispatcher*)
+        g_object_new(TYPE_DISPATCHER,
+                     "max-message-type", (guint) max_message_type,
+                     NULL);
 }
 
 
@@ -263,7 +264,7 @@ static int dispatcher_handle_single_read(Dispatcher *dispatcher)
 {
     int ret;
     DispatcherMessage msg[1];
-    uint8_t *payload;
+    void *payload;
     uint32_t ack = ACK;
 
     if ((ret = read_safe(dispatcher->priv->recv_fd, (uint8_t*)msg, sizeof(msg), 0)) == -1) {
@@ -279,7 +280,7 @@ static int dispatcher_handle_single_read(Dispatcher *dispatcher)
         dispatcher->priv->payload_size = msg->size;
     }
     payload = dispatcher->priv->payload;
-    if (read_safe(dispatcher->priv->recv_fd, payload, msg->size, 1) == -1) {
+    if (read_safe(dispatcher->priv->recv_fd, (uint8_t*) payload, msg->size, 1) == -1) {
         g_warning("error reading from dispatcher: %d", errno);
         /* TODO: close socketpair? */
         return 0;
@@ -327,7 +328,7 @@ dispatcher_send_message_internal(Dispatcher *dispatcher, const DispatcherMessage
                   msg->type);
         goto unlock;
     }
-    if (write_safe(send_fd, payload, msg->size) == -1) {
+    if (write_safe(send_fd, (uint8_t*) payload, msg->size) == -1) {
         g_warning("error: failed to send message body for message %d",
                   msg->type);
         goto unlock;

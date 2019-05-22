@@ -247,7 +247,7 @@ MainChannelClient *main_channel_link(MainChannel *channel, RedClient *client,
 MainChannel* main_channel_new(RedsState *reds)
 {
     // TODO: set the migration flag of the channel
-    return g_object_new(TYPE_MAIN_CHANNEL,
+    return (MainChannel*) g_object_new(TYPE_MAIN_CHANNEL,
                         "spice-server", reds,
                         "core-interface", reds_get_core_interface(reds),
                         "channel-type", (gint)SPICE_CHANNEL_MAIN,
@@ -336,7 +336,7 @@ int main_channel_migrate_connect(MainChannel *main_channel, RedsMigSpice *mig_ta
         GList *clients = red_channel_get_clients(RED_CHANNEL(main_channel));
 
         /* just test the first one */
-        rcc = g_list_nth_data(clients, 0);
+        rcc = (RedChannelClient*) g_list_nth_data(clients, 0);
 
         if (!red_channel_client_test_remote_cap(rcc,
                                                 SPICE_MAIN_CAP_SEAMLESS_MIGRATE)) {

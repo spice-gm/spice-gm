@@ -177,7 +177,7 @@ sasl_server_new(const char *service,
     g_assert_nonnull(pconn);
     g_assert_null(callbacks);
 
-    *pconn = GUINT_TO_POINTER(0xdeadbeef);
+    *pconn = (sasl_conn_t *) GUINT_TO_POINTER(0xdeadbeef);
     return SASL_OK;
 }
 
@@ -290,7 +290,7 @@ static void
 start_test(void)
 {
     g_assert_null(big_data);
-    big_data = g_malloc(1024 * 1024 + 10);
+    big_data = (char*) g_malloc(1024 * 1024 + 10);
     for (unsigned n = 0; n < 1024 * 1024 + 10; ++n) {
         big_data[n] = ' ' + (n % 94);
     }

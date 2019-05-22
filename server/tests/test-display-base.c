@@ -115,7 +115,7 @@ static void regression_test(void)
     }
 
     argv = g_strsplit("./regression-test.py", " ", -1);
-    retval = g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH|G_SPAWN_DO_NOT_REAP_CHILD,
+    retval = g_spawn_async(NULL, argv, NULL, (GSpawnFlags) (G_SPAWN_SEARCH_PATH|G_SPAWN_DO_NOT_REAP_CHILD),
                            NULL, NULL, &pid, &error);
     g_strfreev(argv);
     g_assert(retval);
@@ -202,7 +202,7 @@ test_spice_create_update_from_bitmap(uint32_t surface_id,
     } else {
         QXLClipRects *cmd_clip;
 
-        cmd_clip = g_malloc0(sizeof(QXLClipRects) + num_clip_rects*sizeof(QXLRect));
+        cmd_clip = (QXLClipRects*) g_malloc0(sizeof(QXLClipRects) + num_clip_rects*sizeof(QXLRect));
         cmd_clip->num_rects = num_clip_rects;
         cmd_clip->chunk.data_size = num_clip_rects*sizeof(QXLRect);
         cmd_clip->chunk.prev_chunk = cmd_clip->chunk.next_chunk = 0;
@@ -251,7 +251,7 @@ static SimpleSpiceUpdate *test_spice_create_update_solid(uint32_t surface_id, QX
     bw = bbox.right - bbox.left;
     bh = bbox.bottom - bbox.top;
 
-    bitmap = g_malloc(bw * bh * 4);
+    bitmap = (uint8_t*) g_malloc(bw * bh * 4);
     dst = SPICE_ALIGNED_CAST(uint32_t *, bitmap);
 
     for (i = 0 ; i < bh * bw ; ++i, ++dst) {
@@ -286,7 +286,7 @@ static SimpleSpiceUpdate *test_spice_create_update_draw(Test *test, uint32_t sur
     bw       = test->primary_width/SINGLE_PART;
     bh       = 48;
 
-    bitmap = dst = g_malloc(bw * bh * 4);
+    bitmap = dst = (uint8_t*) g_malloc(bw * bh * 4);
     //printf("allocated %p\n", dst);
 
     for (i = 0 ; i < bh * bw ; ++i, dst+=4) {
@@ -636,7 +636,7 @@ static int req_cmd_notification(QXLInstance *qin)
 
 static void do_wakeup(void *opaque)
 {
-    Test *test = opaque;
+    Test *test = (Test*) opaque;
     int notify;
 
     test->cursor_notify = NOTIFY_CURSOR_BATCH;
@@ -878,7 +878,7 @@ void test_set_simple_command_list(Test *test, const int *simple_commands, int nu
     test->commands = g_new0(Command, num_commands);
     test->num_commands = num_commands;
     for (i = 0 ; i < num_commands; ++i) {
-        test->commands[i].command = simple_commands[i];
+        test->commands[i].command = (CommandType) simple_commands[i];
     }
 }
 

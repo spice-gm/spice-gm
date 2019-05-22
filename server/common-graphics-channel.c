@@ -49,7 +49,7 @@ static uint8_t *common_alloc_recv_buf(RedChannelClient *rcc, uint16_t type, uint
 
     /* SPICE_MSGC_MIGRATE_DATA is the only client message whose size is dynamic */
     if (type == SPICE_MSGC_MIGRATE_DATA) {
-        return g_malloc(size);
+        return (uint8_t *) g_malloc(size);
     }
 
     if (size > sizeof(common->priv->recv_buf)) {
@@ -102,7 +102,7 @@ common_graphics_channel_class_init(CommonGraphicsChannelClass *klass)
 static void
 common_graphics_channel_init(CommonGraphicsChannel *self)
 {
-    self->priv = common_graphics_channel_get_instance_private(self);
+    self->priv = (CommonGraphicsChannelPrivate*) common_graphics_channel_get_instance_private(self);
 }
 
 void common_graphics_channel_set_during_target_migrate(CommonGraphicsChannel *self, gboolean value)
@@ -118,7 +118,8 @@ gboolean common_graphics_channel_get_during_target_migrate(CommonGraphicsChannel
 static void
 common_graphics_channel_client_init(CommonGraphicsChannelClient *self)
 {
-    self->priv = common_graphics_channel_client_get_instance_private(self);
+    self->priv = (CommonGraphicsChannelClientPrivate*)
+        common_graphics_channel_client_get_instance_private(self);
 }
 
 static void

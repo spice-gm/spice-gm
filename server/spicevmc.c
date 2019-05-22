@@ -248,7 +248,7 @@ static RedVmcChannel *red_vmc_channel_new(RedsState *reds, uint8_t channel_type)
         return NULL;
     }
 
-    return g_object_new(gtype,
+    return (RedVmcChannel*) g_object_new(gtype,
                         "spice-server", reds,
                         "core-interface", reds_get_core_interface(reds),
                         "channel-type", channel_type,
@@ -583,7 +583,7 @@ static uint8_t *spicevmc_red_channel_alloc_msg_rcv_buf(RedChannelClient *rcc,
     }
 
     default:
-        return g_malloc(size);
+        return (uint8_t*) g_malloc(size);
     }
 
 }
@@ -880,7 +880,7 @@ red_char_device_spicevmc_set_property(GObject *object,
     {
         case PROP_CHANNEL:
             spice_assert(self->channel == NULL);
-            self->channel = g_value_dup_object(value);
+            self->channel = (RedVmcChannel*) g_value_dup_object(value);
             spice_assert(self->channel != NULL);
             self->channel->chardev = RED_CHAR_DEVICE(self);
 
@@ -925,7 +925,7 @@ red_char_device_spicevmc_new(SpiceCharDeviceInstance *sin,
                              RedsState *reds,
                              RedVmcChannel *channel)
 {
-    return g_object_new(RED_TYPE_CHAR_DEVICE_SPICEVMC,
+    return (RedCharDevice*) g_object_new(RED_TYPE_CHAR_DEVICE_SPICEVMC,
                         "sin", sin,
                         "spice-server", reds,
                         "client-tokens-interval", 0ULL,
@@ -956,7 +956,8 @@ vmc_channel_client_create(RedChannel *channel, RedClient *client,
 {
     RedChannelClient *rcc;
 
-    rcc = g_initable_new(TYPE_VMC_CHANNEL_CLIENT,
+    rcc = (RedChannelClient *)
+          g_initable_new(TYPE_VMC_CHANNEL_CLIENT,
                          NULL, NULL,
                          "channel", channel,
                          "client", client,

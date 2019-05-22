@@ -156,10 +156,10 @@ red_channel_set_property(GObject *object,
     switch (property_id)
     {
         case PROP_SPICE_SERVER:
-            self->priv->reds = g_value_get_pointer(value);
+            self->priv->reds = (RedsState*) g_value_get_pointer(value);
             break;
         case PROP_CORE_INTERFACE:
-            self->priv->core = g_value_get_pointer(value);
+            self->priv->core = (SpiceCoreInterfaceInternal*) g_value_get_pointer(value);
             break;
         case PROP_TYPE:
             self->priv->type = g_value_get_int(value);
@@ -175,7 +175,7 @@ red_channel_set_property(GObject *object,
             break;
         case PROP_DISPATCHER:
             g_clear_object(&self->priv->dispatcher);
-            self->priv->dispatcher = g_value_dup_object(value);
+            self->priv->dispatcher = (Dispatcher*) g_value_dup_object(value);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -308,7 +308,7 @@ red_channel_class_init(RedChannelClass *klass)
 static void
 red_channel_init(RedChannel *self)
 {
-    self->priv = red_channel_get_instance_private(self);
+    self->priv = (RedChannelPrivate*) red_channel_get_instance_private(self);
 
     red_channel_set_common_cap(self, SPICE_COMMON_CAP_MINI_HEADER);
     red_channel_set_common_cap(self, SPICE_COMMON_CAP_PROTOCOL_AUTH_SELECTION);
@@ -361,7 +361,7 @@ bool red_channel_is_waiting_for_migrate_data(RedChannel *channel)
         return FALSE;
     }
     spice_assert(n_clients == 1);
-    rcc = g_list_nth_data(channel->priv->clients, 0);
+    rcc = (RedChannelClient*) g_list_nth_data(channel->priv->clients, 0);
     return red_channel_client_is_waiting_for_migrate_data(rcc);
 }
 
@@ -500,7 +500,7 @@ typedef struct RedMessageConnect {
 
 static void handle_dispatcher_connect(void *opaque, void *payload)
 {
-    RedMessageConnect *msg = payload;
+    RedMessageConnect *msg = (RedMessageConnect*) payload;
     RedChannel *channel = msg->channel;
     RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
@@ -526,7 +526,7 @@ void red_channel_connect(RedChannel *channel, RedClient *client,
     // the main thread causing RedClient to be destroyed before using it
     RedMessageConnect payload = {
         .channel = channel,
-        .client = g_object_ref(client),
+        .client = (RedClient*) g_object_ref(client),
         .stream = stream,
         .migration = migration
     };
@@ -730,7 +730,7 @@ typedef struct RedMessageMigrate {
 
 static void handle_dispatcher_migrate(void *opaque, void *payload)
 {
-    RedMessageMigrate *msg = payload;
+    RedMessageMigrate *msg = (RedMessageMigrate*) payload;
     RedChannel *channel = red_channel_client_get_channel(msg->rcc);
     RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
@@ -747,7 +747,7 @@ void red_channel_migrate_client(RedChannel *channel, RedChannelClient *rcc)
         return;
     }
 
-    RedMessageMigrate payload = { .rcc = g_object_ref(rcc) };
+    RedMessageMigrate payload = { .rcc = (RedChannelClient *) g_object_ref(rcc) };
     dispatcher_send_message_custom(channel->priv->dispatcher, handle_dispatcher_migrate,
                                    &payload, sizeof(payload), false);
 }
@@ -758,7 +758,7 @@ typedef struct RedMessageDisconnect {
 
 static void handle_dispatcher_disconnect(void *opaque, void *payload)
 {
-    RedMessageDisconnect *msg = payload;
+    RedMessageDisconnect *msg = (RedMessageDisconnect*) payload;
     RedChannel *channel = red_channel_client_get_channel(msg->rcc);
     RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 

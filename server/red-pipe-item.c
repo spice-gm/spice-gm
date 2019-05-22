@@ -49,6 +49,6 @@ void red_pipe_item_init_full(RedPipeItem *item,
 
 void marshaller_unref_pipe_item(uint8_t *data G_GNUC_UNUSED, void *opaque)
 {
-    RedPipeItem *item = opaque;
+    RedPipeItem *item = (RedPipeItem*) opaque;
     red_pipe_item_unref(item);
 }

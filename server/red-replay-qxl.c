@@ -232,7 +232,7 @@ static replay_t read_binary(SpiceReplay *replay, const char *prefix, size_t *siz
     }
 
     if (*buf == NULL) {
-        *buf = replay_malloc(replay, *size + base_size);
+        *buf = (uint8_t*) replay_malloc(replay, *size + base_size);
     }
 #if 0
     {
@@ -248,7 +248,7 @@ static replay_t read_binary(SpiceReplay *replay, const char *prefix, size_t *siz
         if (replay->error) {
             return REPLAY_ERROR;
         }
-        zlib_buffer = replay_malloc(replay, zlib_size);
+        zlib_buffer = (uint8_t*) replay_malloc(replay, zlib_size);
         if (replay_fread(replay, zlib_buffer, zlib_size) != zlib_size) {
             return REPLAY_ERROR;
         }
@@ -318,7 +318,7 @@ static ssize_t red_replay_data_chunks(SpiceReplay *replay, const char *prefix,
         }
         cur->next_chunk = QXLPHYSICAL_FROM_PTR(data);
         data_size += next_data_size;
-        next = QXLPHYSICAL_TO_PTR(cur->next_chunk);
+        next = (QXLDataChunk*) QXLPHYSICAL_TO_PTR(cur->next_chunk);
         next->prev_chunk = QXLPHYSICAL_FROM_PTR(cur);
         next->data_size = next_data_size;
         next->next_chunk = 0;
@@ -333,9 +333,9 @@ static void red_replay_data_chunks_free(SpiceReplay *replay, void *data, size_t 
     QXLDataChunk *cur = (QXLDataChunk *)((uint8_t*)data +
         (base_size ? base_size - sizeof(QXLDataChunk) : 0));
 
-    cur = QXLPHYSICAL_TO_PTR(cur->next_chunk);
+    cur = (QXLDataChunk*) QXLPHYSICAL_TO_PTR(cur->next_chunk);
     while (cur) {
-        QXLDataChunk *next = QXLPHYSICAL_TO_PTR(cur->next_chunk);
+        QXLDataChunk *next = (QXLDataChunk*) QXLPHYSICAL_TO_PTR(cur->next_chunk);
         g_free(cur);
         cur = next;
     }
@@ -380,7 +380,7 @@ static QXLPath *red_replay_path(SpiceReplay *replay)
 
 static void red_replay_path_free(SpiceReplay *replay, QXLPHYSICAL p)
 {
-    QXLPath *qxl = QXLPHYSICAL_TO_PTR(p);
+    QXLPath *qxl = (QXLPath*) QXLPHYSICAL_TO_PTR(p);
 
     red_replay_data_chunks_free(replay, qxl, sizeof(*qxl));
 }
@@ -459,7 +459,7 @@ static QXLImage *red_replay_image(SpiceReplay *replay, uint32_t flags)
             if (replay->error) {
                 return NULL;
             }
-            qp = replay_malloc(replay, sizeof(QXLPalette) + num_ents * sizeof(qp->ents[0]));
+            qp = (QXLPalette*) replay_malloc(replay, sizeof(QXLPalette) + num_ents * sizeof(qp->ents[0]));
             qp->num_ents = num_ents;
             qxl->bitmap.palette = QXLPHYSICAL_FROM_PTR(qp);
             replay_fscanf(replay, "unique %" SCNu64 "\n", &qp->unique);
@@ -515,7 +515,7 @@ static QXLImage *red_replay_image(SpiceReplay *replay, uint32_t flags)
 
 static void red_replay_image_free(SpiceReplay *replay, QXLPHYSICAL p, uint32_t flags)
 {
-    QXLImage *qxl = QXLPHYSICAL_TO_PTR(p);
+    QXLImage *qxl = (QXLImage*) QXLPHYSICAL_TO_PTR(p);
     if (!qxl)
         return;
 
@@ -781,7 +781,7 @@ static void red_replay_text_ptr(SpiceReplay *replay, QXLText *qxl, uint32_t flag
 
 static void red_replay_text_free(SpiceReplay *replay, QXLText *qxl, uint32_t flags)
 {
-    red_replay_string_free(replay, QXLPHYSICAL_TO_PTR(qxl->str));
+    red_replay_string_free(replay, (QXLString*) QXLPHYSICAL_TO_PTR(qxl->str));
     red_replay_brush_free(replay, &qxl->fore_brush, flags);
     red_replay_brush_free(replay, &qxl->back_brush, flags);
 }
@@ -833,7 +833,7 @@ static void red_replay_clip_free(SpiceReplay *replay, QXLClip *qxl)
 {
     switch (qxl->type) {
     case SPICE_CLIP_TYPE_RECTS:
-        red_replay_clip_rects_free(replay, QXLPHYSICAL_TO_PTR(qxl->data));
+        red_replay_clip_rects_free(replay, (QXLClipRects*) QXLPHYSICAL_TO_PTR(qxl->data));
         break;
     }
 }
@@ -880,7 +880,7 @@ static void red_replay_composite_free(SpiceReplay *replay, QXLComposite *qxl, ui
 
 static QXLDrawable *red_replay_native_drawable(SpiceReplay *replay, uint32_t flags)
 {
-    QXLDrawable *qxl = replay_malloc0(replay, sizeof(QXLDrawable)); // TODO - this is too large usually
+    QXLDrawable *qxl = (QXLDrawable*) replay_malloc0(replay, sizeof(QXLDrawable)); // TODO - this is too large usually
     int i;
     int temp;
 
@@ -1020,7 +1020,7 @@ static void red_replay_native_drawable_free(SpiceReplay *replay, QXLDrawable *qx
 static QXLCompatDrawable *red_replay_compat_drawable(SpiceReplay *replay, uint32_t flags)
 {
     int temp;
-    QXLCompatDrawable *qxl = replay_malloc0(replay, sizeof(QXLCompatDrawable)); // TODO - too large usually
+    QXLCompatDrawable *qxl = (QXLCompatDrawable*) replay_malloc0(replay, sizeof(QXLCompatDrawable)); // TODO - too large usually
 
     red_replay_rect_ptr(replay, "bbox", &qxl->bbox);
     red_replay_clip_ptr(replay, &qxl->clip);
@@ -1098,7 +1098,7 @@ static QXLPHYSICAL red_replay_drawable(SpiceReplay *replay, uint32_t flags)
 
 static QXLUpdateCmd *red_replay_update_cmd(SpiceReplay *replay)
 {
-    QXLUpdateCmd *qxl = replay_malloc0(replay, sizeof(QXLUpdateCmd));
+    QXLUpdateCmd *qxl = (QXLUpdateCmd*) replay_malloc0(replay, sizeof(QXLUpdateCmd));
 
     replay_fscanf(replay, "update\n");
     red_replay_rect_ptr(replay, "area", &qxl->area);
@@ -1126,7 +1126,7 @@ static QXLSurfaceCmd *red_replay_surface_cmd(SpiceReplay *replay)
     size_t size;
     size_t read_size;
     int temp;
-    QXLSurfaceCmd *qxl = replay_malloc0(replay, sizeof(QXLSurfaceCmd));
+    QXLSurfaceCmd *qxl = (QXLSurfaceCmd*) replay_malloc0(replay, sizeof(QXLSurfaceCmd));
 
     replay_fscanf(replay, "surface_cmd\n");
     replay_fscanf(replay, "surface_id %d\n", &qxl->surface_id);
@@ -1209,7 +1209,7 @@ static QXLCursor *red_replay_cursor(SpiceReplay *replay)
 static QXLCursorCmd *red_replay_cursor_cmd(SpiceReplay *replay)
 {
     int temp;
-    QXLCursorCmd *qxl = replay_malloc0(replay, sizeof(QXLCursorCmd));
+    QXLCursorCmd *qxl = (QXLCursorCmd*) replay_malloc0(replay, sizeof(QXLCursorCmd));
 
     replay_fscanf(replay, "cursor_cmd\n");
     replay_fscanf(replay, "type %d\n", &temp);
@@ -1240,7 +1240,7 @@ static QXLCursorCmd *red_replay_cursor_cmd(SpiceReplay *replay)
 static void red_replay_cursor_cmd_free(SpiceReplay *replay, QXLCursorCmd *qxl)
 {
     if (qxl->type == QXL_CURSOR_SET) {
-        QXLCursor *cursor = QXLPHYSICAL_TO_PTR(qxl->u.set.shape);
+        QXLCursor *cursor = (QXLCursor*) QXLPHYSICAL_TO_PTR(qxl->u.set.shape);
         red_replay_data_chunks_free(replay, cursor, sizeof(*cursor));
     }
 
@@ -1329,7 +1329,7 @@ SPICE_GNUC_VISIBLE QXLCommandExt* spice_replay_next_cmd(SpiceReplay *replay,
             replay_handle_dev_input(instance, replay, type);
         }
     }
-    cmd = replay_malloc0(replay, sizeof(QXLCommandExt));
+    cmd = (QXLCommandExt*) replay_malloc0(replay, sizeof(QXLCommandExt));
     cmd->cmd.type = type;
     cmd->group_id = 0;
     spice_debug("command %" G_GUINT64_FORMAT ", %d", timestamp, cmd->cmd.type);
@@ -1362,7 +1362,7 @@ SPICE_GNUC_VISIBLE QXLCommandExt* spice_replay_next_cmd(SpiceReplay *replay,
     case QXL_CMD_UPDATE:
     case QXL_CMD_SURFACE:
     case QXL_CMD_CURSOR:
-        info = QXLPHYSICAL_TO_PTR(cmd->cmd.data);
+        info = (QXLReleaseInfo*) QXLPHYSICAL_TO_PTR(cmd->cmd.data);
         info->id = (uintptr_t)cmd;
     }
 
@@ -1396,22 +1396,22 @@ SPICE_GNUC_VISIBLE void spice_replay_free_cmd(SpiceReplay *replay, QXLCommandExt
     case QXL_CMD_DRAW: {
         // FIXME: compat flag must be saved somewhere...
         spice_return_if_fail(cmd->flags == 0);
-        QXLDrawable *qxl = QXLPHYSICAL_TO_PTR(cmd->cmd.data);
+        QXLDrawable *qxl = (QXLDrawable*) QXLPHYSICAL_TO_PTR(cmd->cmd.data);
         red_replay_native_drawable_free(replay, qxl, cmd->flags);
         break;
     }
     case QXL_CMD_UPDATE: {
-        QXLUpdateCmd *qxl = QXLPHYSICAL_TO_PTR(cmd->cmd.data);
+        QXLUpdateCmd *qxl = (QXLUpdateCmd*) QXLPHYSICAL_TO_PTR(cmd->cmd.data);
         g_free(qxl);
         break;
     }
     case QXL_CMD_SURFACE: {
-        QXLSurfaceCmd *qxl = QXLPHYSICAL_TO_PTR(cmd->cmd.data);
+        QXLSurfaceCmd *qxl = (QXLSurfaceCmd*) QXLPHYSICAL_TO_PTR(cmd->cmd.data);
         red_replay_surface_cmd_free(replay, qxl);
         break;
     }
     case QXL_CMD_CURSOR: {
-        QXLCursorCmd *qxl = QXLPHYSICAL_TO_PTR(cmd->cmd.data);
+        QXLCursorCmd *qxl = (QXLCursorCmd*) QXLPHYSICAL_TO_PTR(cmd->cmd.data);
         red_replay_cursor_cmd_free(replay, qxl);
         break;
     }

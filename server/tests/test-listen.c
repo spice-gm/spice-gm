@@ -120,7 +120,7 @@ static GIOStream *fake_client_connect_tls(GSocketConnectable *connectable, GErro
                                                  error);
     g_assert_no_error(*error);
     /* Disable all certificate checks as our test setup is known to be invalid */
-    g_tls_client_connection_set_validation_flags(G_TLS_CLIENT_CONNECTION(tls_connection), 0);
+    g_tls_client_connection_set_validation_flags(G_TLS_CLIENT_CONNECTION(tls_connection), (GTlsCertificateFlags) 0);
 
     g_object_unref(connection);
     g_object_unref(client);
@@ -163,7 +163,7 @@ typedef struct
 static gpointer check_magic_thread(gpointer data)
 {
     GError *error = NULL;
-    ThreadData *thread_data = data;
+    ThreadData *thread_data = (ThreadData*) data;
     GSocketConnectable *connectable = G_SOCKET_CONNECTABLE(thread_data->connectable);
     GIOStream *stream;
 
@@ -188,7 +188,7 @@ static gpointer check_magic_thread(gpointer data)
 static gpointer check_no_connect_thread(gpointer data)
 {
     GError *error = NULL;
-    ThreadData *thread_data = data;
+    ThreadData *thread_data = (ThreadData*) data;
     GSocketConnectable *connectable = G_SOCKET_CONNECTABLE(thread_data->connectable);
     GIOStream *stream;
 

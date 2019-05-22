@@ -171,7 +171,7 @@ static int get_command_from(QXLInstance *qin, QXLCommandExt *ext, GAsyncQueue *q
         return FALSE;
     }
 
-    cmd = g_async_queue_try_pop(queue);
+    cmd = (QXLCommandExt*) g_async_queue_try_pop(queue);
     if (GPOINTER_TO_INT(cmd) == -1) {
         g_main_loop_quit(loop);
         return FALSE;
@@ -290,7 +290,7 @@ static gboolean start_client(gchar *cmd, GError **error)
 
 static gboolean progress_timer(gpointer user_data)
 {
-    FILE *fd = user_data;
+    FILE *fd = (FILE*) user_data;
     /* it seems somehow thread safe, move to worker thread? */
     double pos = (double)ftell(fd);
 
@@ -301,7 +301,7 @@ static gboolean progress_timer(gpointer user_data)
 static void free_queue(GAsyncQueue *queue)
 {
     for (;;) {
-        QXLCommandExt *cmd = g_async_queue_try_pop(queue);
+        QXLCommandExt *cmd = (QXLCommandExt*) g_async_queue_try_pop(queue);
         if (cmd == GINT_TO_POINTER(-1)) {
             continue;
         }
@@ -425,7 +425,7 @@ int main(int argc, char **argv)
     core->channel_event = replay_channel_event;
 
     server = spice_server_new();
-    spice_server_set_image_compression(server, compression);
+    spice_server_set_image_compression(server, (SpiceImageCompression) compression);
     spice_server_set_streaming_video(server, streaming);
 
     if (codecs != NULL) {

@@ -189,7 +189,7 @@ VideoStreamClipItem *video_stream_clip_item_new(VideoStreamAgent *agent)
     item->clip_type = SPICE_CLIP_TYPE_RECTS;
 
     int n_rects = pixman_region32_n_rects(&agent->clip);
-    item->rects = g_malloc(sizeof(SpiceClipRects) + n_rects * sizeof(SpiceRect));
+    item->rects = (SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) + n_rects * sizeof(SpiceRect));
     item->rects->num_rects = n_rects;
     region_ret_rects(&agent->clip, item->rects->rects, n_rects);
 
@@ -360,7 +360,7 @@ static void before_reattach_stream(DisplayChannel *display,
 
     index = display_channel_get_video_stream_id(display, stream);
     for (dpi_link = stream->current->pipes; dpi_link; dpi_link = dpi_next) {
-        RedDrawablePipeItem *dpi = dpi_link->data;
+        RedDrawablePipeItem *dpi = (RedDrawablePipeItem*) dpi_link->data;
         dpi_next = dpi_link->next;
         dcc = dpi->dcc;
         agent = dcc_get_video_stream_agent(dcc, index);
@@ -669,7 +669,7 @@ static uint64_t get_initial_bit_rate(DisplayChannelClient *dcc, VideoStream *str
 
 static uint32_t get_roundtrip_ms(void *opaque)
 {
-    VideoStreamAgent *agent = opaque;
+    VideoStreamAgent *agent = (VideoStreamAgent*) opaque;
     int roundtrip;
     RedChannelClient *rcc = RED_CHANNEL_CLIENT(agent->dcc);
 
@@ -690,14 +690,14 @@ static uint32_t get_roundtrip_ms(void *opaque)
 
 static uint32_t get_source_fps(void *opaque)
 {
-    VideoStreamAgent *agent = opaque;
+    VideoStreamAgent *agent = (VideoStreamAgent*) opaque;
 
     return agent->stream->input_fps;
 }
 
 static void update_client_playback_delay(void *opaque, uint32_t delay_ms)
 {
-    VideoStreamAgent *agent = opaque;
+    VideoStreamAgent *agent = (VideoStreamAgent*) opaque;
     DisplayChannelClient *dcc = agent->dcc;
     RedClient *client = red_channel_client_get_client(RED_CHANNEL_CLIENT(dcc));
     RedsState *reds = red_client_get_server(client);
@@ -875,7 +875,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         upgrade_item->drawable = stream->current;
         upgrade_item->drawable->refs++;
         n_rects = pixman_region32_n_rects(&upgrade_item->drawable->tree_item.base.rgn);
-        upgrade_item->rects = g_malloc(sizeof(SpiceClipRects) + n_rects * sizeof(SpiceRect));
+        upgrade_item->rects = (SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) + n_rects * sizeof(SpiceRect));
         upgrade_item->rects->num_rects = n_rects;
         region_ret_rects(&upgrade_item->drawable->tree_item.base.rgn,
                          upgrade_item->rects->rects, n_rects);

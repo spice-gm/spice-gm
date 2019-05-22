@@ -153,7 +153,7 @@ void stream_channel_register_queue_stat_cb(StreamChannel *channel,
 
 StreamChannel* stream_channel_new(RedsState *server, uint32_t id)
 {
-    return g_object_new(TYPE_STREAM_CHANNEL,
+    return (StreamChannel*) g_object_new(TYPE_STREAM_CHANNEL,
                         "spice-server", server,
                         "core-interface", reds_get_core_interface(server),
                         "channel-type", SPICE_CHANNEL_DISPLAY,

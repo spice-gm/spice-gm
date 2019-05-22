@@ -828,7 +828,7 @@ static void set_appsrc_caps(SpiceGstEncoder *encoder)
 
 static GstBusSyncReply handle_pipeline_message(GstBus *bus, GstMessage *msg, gpointer video_encoder)
 {
-    SpiceGstEncoder *encoder = video_encoder;
+    SpiceGstEncoder *encoder = (SpiceGstEncoder*) video_encoder;
 
     if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_ERROR) {
         GError *err = NULL;
@@ -1173,7 +1173,7 @@ static BitmapWrapper *bitmap_wrapper_new(SpiceGstEncoder *encoder, gpointer bitm
 
 static void bitmap_wrapper_unref(gpointer data)
 {
-    BitmapWrapper *wrapper = data;
+    BitmapWrapper *wrapper = (BitmapWrapper*) data;
     if (g_atomic_int_dec_and_test(&wrapper->refs)) {
         g_async_queue_push(wrapper->encoder->unused_bitmap_opaques, wrapper->opaque);
         g_free(wrapper);
@@ -1488,13 +1488,13 @@ spice_gst_encoder_encode_frame(VideoEncoder *video_encoder,
         spice_debug("video format change: width %d -> %d, height %d -> %d, format %d -> %d",
                     encoder->width, width, encoder->height, height,
                     encoder->spice_format, bitmap->format);
-        encoder->format = map_format(bitmap->format);
+        encoder->format = map_format((SpiceBitmapFmt) bitmap->format);
         if (encoder->format == GSTREAMER_FORMAT_INVALID) {
             spice_warning("unable to map format type %d", bitmap->format);
             encoder->errors = 4;
             return VIDEO_ENCODER_FRAME_UNSUPPORTED;
         }
-        encoder->spice_format = bitmap->format;
+        encoder->spice_format = (SpiceBitmapFmt) bitmap->format;
         encoder->width = width;
         encoder->height = height;
         if (encoder->bit_rate == 0) {

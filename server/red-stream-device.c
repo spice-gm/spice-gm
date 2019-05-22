@@ -32,7 +32,7 @@ struct StreamDevice {
 
     StreamDevHeader hdr;
     uint8_t hdr_pos;
-    union {
+    union AllMessages {
         StreamMsgFormat format;
         StreamMsgCapabilities capabilities;
         StreamMsgCursorSet cursor_set;
@@ -77,7 +77,7 @@ RECORDER(stream_device_data, 32, "Stream device data packet");
 static void
 close_timer_func(void *opaque)
 {
-    StreamDevice *dev = opaque;
+    StreamDevice *dev = (StreamDevice *) opaque;
 
     if (dev->opened && dev->has_error) {
         char_device_set_state(RED_CHAR_DEVICE(dev), 0);
@@ -482,7 +482,7 @@ stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_si
         return NULL;
     }
     cursor->data_size = size_required;
-    cursor->data = g_memdup(msg->data, size_required);
+    cursor->data = (uint8_t*) g_memdup(msg->data, size_required);
     return cmd;
 }
 
@@ -794,7 +794,7 @@ int32_t stream_device_get_stream_channel_id(StreamDevice *dev)
 static StreamDevice *
 stream_device_new(SpiceCharDeviceInstance *sin, RedsState *reds)
 {
-    return g_object_new(TYPE_STREAM_DEVICE,
+    return (StreamDevice*) g_object_new(TYPE_STREAM_DEVICE,
                         "sin", sin,
                         "spice-server", reds,
                         "client-tokens-interval", 0ULL,

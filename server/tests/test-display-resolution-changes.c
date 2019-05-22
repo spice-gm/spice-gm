@@ -30,7 +30,7 @@ static int ping_ms = 100;
 
 static void pinger(void *opaque)
 {
-    Test *test = opaque;
+    Test *test = (Test*) opaque;
 
     test->core->timer_start(ping_timer, ping_ms);
 }

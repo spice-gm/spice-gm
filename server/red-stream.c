@@ -226,7 +226,7 @@ ssize_t red_stream_read(RedStream *s, void *buf, size_t nbyte)
 
 #if HAVE_SASL
     if (s->priv->sasl.conn && s->priv->sasl.runSSF) {
-        ret = red_stream_sasl_read(s, buf, nbyte);
+        ret = red_stream_sasl_read(s, (uint8_t*) buf, nbyte);
     } else
 #endif
         ret = s->priv->read(s, buf, nbyte);
@@ -483,7 +483,7 @@ RedStream *red_stream_new(RedsState *reds, int socket)
 {
     RedStream *stream;
 
-    stream = g_malloc0(sizeof(RedStream) + sizeof(RedStreamPrivate));
+    stream = (RedStream*) g_malloc0(sizeof(RedStream) + sizeof(RedStreamPrivate));
     stream->priv = (RedStreamPrivate *)(stream+1);
     stream->priv->info = g_new0(SpiceChannelEventInfo, 1);
     stream->priv->reds = reds;
@@ -585,7 +585,7 @@ static void async_read_handler(G_GNUC_UNUSED int fd,
                                G_GNUC_UNUSED int event,
                                void *data)
 {
-    RedStream *stream = data;
+    RedStream *stream = (RedStream *) data;
     AsyncRead *async = &stream->priv->async_read;
     SpiceCoreInterfaceInternal *core = stream->priv->core;
 
@@ -839,7 +839,7 @@ static void red_sasl_async_result(RedSASLAuth *auth, RedSaslError err)
 
 static void red_sasl_error(void *opaque, int err)
 {
-    RedSASLAuth *auth = opaque;
+    RedSASLAuth *auth = (RedSASLAuth*) opaque;
     red_stream_set_async_error_handler(auth->stream, auth->saved_error_cb);
     if (auth->saved_error_cb) {
         auth->saved_error_cb(auth->result_opaque, err);
@@ -883,7 +883,7 @@ static void red_sasl_handle_auth_steplen(void *opaque);
 
 static void red_sasl_handle_auth_step(void *opaque)
 {
-    RedSASLAuth *auth = opaque;
+    RedSASLAuth *auth = (RedSASLAuth*) opaque;
     RedStream *stream = auth->stream;
     const char *serverout;
     unsigned int serveroutlen;
@@ -980,17 +980,17 @@ authreject:
 
 static void red_sasl_handle_auth_steplen(void *opaque)
 {
-    RedSASLAuth *auth = opaque;
+    RedSASLAuth *auth = (RedSASLAuth*) opaque;
 
     auth->len = GUINT32_FROM_LE(auth->len);
     uint32_t len = auth->len;
     spice_debug("Got steplen %d", len);
     if (len > SASL_DATA_MAX_LEN) {
         spice_warning("Too much SASL data %d", len);
-        return red_sasl_async_result(opaque, auth->mechname ? RED_SASL_ERROR_INVALID_DATA : RED_SASL_ERROR_GENERIC);
+        return red_sasl_async_result((RedSASLAuth*) opaque, auth->mechname ? RED_SASL_ERROR_INVALID_DATA : RED_SASL_ERROR_GENERIC);
     }
 
-    auth->data = g_realloc(auth->data, len);
+    auth->data = (char*) g_realloc(auth->data, len);
     red_stream_async_read(auth->stream, (uint8_t *)auth->data, len,
                           red_sasl_handle_auth_step, auth);
 }
@@ -999,7 +999,7 @@ static void red_sasl_handle_auth_steplen(void *opaque)
 
 static void red_sasl_handle_auth_mechname(void *opaque)
 {
-    RedSASLAuth *auth = opaque;
+    RedSASLAuth *auth = (RedSASLAuth*) opaque;
 
     auth->mechname[auth->len] = '\0';
     spice_debug("Got client mechname '%s' check against '%s'",
@@ -1020,7 +1020,7 @@ static void red_sasl_handle_auth_mechname(void *opaque)
 
 static void red_sasl_handle_auth_mechlen(void *opaque)
 {
-    RedSASLAuth *auth = opaque;
+    RedSASLAuth *auth = (RedSASLAuth*) opaque;
 
     auth->len = GUINT32_FROM_LE(auth->len);
     uint32_t len = auth->len;
@@ -1029,7 +1029,7 @@ static void red_sasl_handle_auth_mechlen(void *opaque)
         return red_sasl_async_result(auth, RED_SASL_ERROR_GENERIC);
     }
 
-    auth->mechname = g_malloc(len + 1);
+    auth->mechname = (char*) g_malloc(len + 1);
 
     spice_debug("Wait for client mechname");
     red_stream_async_read(auth->stream, (uint8_t *)auth->mechname, len,
@@ -1165,7 +1165,7 @@ static ssize_t stream_websocket_read(RedStream *s, void *buf, size_t size)
     int len;
 
     do {
-        len = websocket_read(s->priv->ws, buf, size, &flags);
+        len = websocket_read(s->priv->ws, (uint8_t *) buf, size, &flags);
     } while (len == 0 && flags != 0);
     return len;
 }
