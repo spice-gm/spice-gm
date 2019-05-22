@@ -690,25 +690,21 @@ static void red_channel_client_ping_timer(void *opaque)
     red_channel_client_cancel_ping_timer(rcc);
 
 #ifdef HAVE_LINUX_SOCKIOS_H /* SIOCOUTQ is a Linux only ioctl on sockets. */
-    {
-        int so_unsent_size = 0;
+    int so_unsent_size = 0;
 
-        /* retrieving the occupied size of the socket's tcp snd buffer (unacked + unsent) */
-        if (ioctl(rcc->priv->stream->socket, SIOCOUTQ, &so_unsent_size) == -1) {
-            red_channel_warning(red_channel_client_get_channel(rcc),
-                                "ioctl(SIOCOUTQ) failed, %s", strerror(errno));
-        }
-        if (so_unsent_size > 0) {
-            /* tcp snd buffer is still occupied. rescheduling ping */
-            red_channel_client_start_ping_timer(rcc, PING_TEST_IDLE_NET_TIMEOUT_MS);
-        } else {
-            red_channel_client_push_ping(rcc);
-        }
+    /* retrieving the occupied size of the socket's tcp snd buffer (unacked + unsent) */
+    if (ioctl(rcc->priv->stream->socket, SIOCOUTQ, &so_unsent_size) == -1) {
+        red_channel_warning(red_channel_client_get_channel(rcc),
+                            "ioctl(SIOCOUTQ) failed, %s", strerror(errno));
     }
-#else /* ifdef HAVE_LINUX_SOCKIOS_H */
+    if (so_unsent_size > 0) {
+        /* tcp snd buffer is still occupied. rescheduling ping */
+        red_channel_client_start_ping_timer(rcc, PING_TEST_IDLE_NET_TIMEOUT_MS);
+        return;
+    }
+#endif /* ifdef HAVE_LINUX_SOCKIOS_H */
     /* More portable alternative code path (less accurate but avoids bogus ioctls)*/
     red_channel_client_push_ping(rcc);
-#endif /* ifdef HAVE_LINUX_SOCKIOS_H */
 }
 
 static inline int red_channel_client_waiting_for_ack(RedChannelClient *rcc)
@@ -1140,16 +1136,13 @@ static int red_peer_receive(RedStream *stream, uint8_t *buf, uint32_t size)
                 break;
             } else if (errno == EINTR) {
                 continue;
-            } else if (errno == EPIPE) {
-                return -1;
-            } else {
+            } else if (errno != EPIPE) {
                 g_warning("%s", strerror(errno));
-                return -1;
             }
-        } else {
-            size -= now;
-            pos += now;
+            return -1;
         }
+        size -= now;
+        pos += now;
     }
     return pos - buf;
 }
