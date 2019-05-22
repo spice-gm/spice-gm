@@ -1319,6 +1319,9 @@ void red_channel_client_push(RedChannelClient *rcc)
     /* prepare_pipe_add() will reenable WRITE events when the rcc->priv->pipe is empty
      * red_channel_client_ack_zero_messages_window() will reenable WRITE events
      * if we were waiting for acks to be received
+     * If we don't remove WRITE if we are waiting for ack we will be keep
+     * notified that we can write and we then exit (see pipe_item_get) as we
+     * are waiting for the ack consuming CPU in a tight loop
      */
     if ((red_channel_client_no_item_being_sent(rcc) && g_queue_is_empty(&rcc->priv->pipe)) ||
         red_channel_client_waiting_for_ack(rcc)) {
@@ -1326,6 +1329,9 @@ void red_channel_client_push(RedChannelClient *rcc)
         /* channel has no pending data to send so now we can flush data in
          * order to avoid data stall into buffers in case of manual
          * flushing
+         * We need to flush also in case of ack as it is possible
+         * that for a long train of small messages the message that would
+         * cause the client to send the ack is still in the queue
          */
         red_stream_flush(rcc->priv->stream);
     }
