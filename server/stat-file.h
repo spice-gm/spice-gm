@@ -21,6 +21,8 @@
 
 #include <stdint.h>
 
+SPICE_BEGIN_DECLS
+
 typedef uint32_t StatNodeRef;
 #define INVALID_STAT_REF (~(StatNodeRef)0)
 
@@ -36,5 +38,7 @@ uint64_t *stat_file_add_counter(RedStatFile *stat_file, StatNodeRef parent,
                                 const char *name, int visible);
 void stat_file_remove_node(RedStatFile *stat_file, StatNodeRef ref);
 void stat_file_remove_counter(RedStatFile *stat_file, uint64_t *counter);
+
+SPICE_END_DECLS
 
 #endif /* STAT_FILE_H_ */

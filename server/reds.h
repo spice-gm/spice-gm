@@ -31,6 +31,8 @@
 #include "main-dispatcher.h"
 #include "migration-protocol.h"
 
+SPICE_BEGIN_DECLS
+
 static inline QXLInterface * qxl_get_interface(QXLInstance *qxl)
 {
     return SPICE_UPCAST(QXLInterface, qxl->base.sif);
@@ -118,5 +120,7 @@ SpiceWatch *reds_core_watch_add(RedsState *reds,
 SpiceTimer *reds_core_timer_add(RedsState *reds,
                                 SpiceTimerFunc func,
                                 void *opaque);
+
+SPICE_END_DECLS
 
 #endif /* REDS_H_ */

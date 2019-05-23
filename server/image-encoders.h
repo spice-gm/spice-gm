@@ -34,6 +34,8 @@
 #endif
 #include "zlib-encoder.h"
 
+SPICE_BEGIN_DECLS
+
 struct RedClient;
 
 typedef struct RedCompressBuf RedCompressBuf;
@@ -217,5 +219,7 @@ bool image_encoders_compress_glz(ImageEncoders *enc, SpiceImage *dest,
                                  gboolean enable_zlib_glz_wrap);
 
 #define RED_RELEASE_BUNCH_SIZE 64
+
+SPICE_END_DECLS
 
 #endif /* IMAGE_ENCODERS_H_ */

@@ -25,6 +25,8 @@
 #include "memslot.h"
 #include "utils.h"
 
+SPICE_BEGIN_DECLS
+
 typedef struct RedRecord RedRecord;
 
 /**
@@ -44,5 +46,7 @@ void red_record_event(RedRecord *record, int what, uint32_t type);
 
 void red_record_qxl_command(RedRecord *record, RedMemSlotInfo *slots,
                             QXLCommandExt ext_cmd);
+
+SPICE_END_DECLS
 
 #endif /* RED_RECORD_QXL_H_ */

@@ -23,6 +23,8 @@
 
 #include "red-channel.h"
 
+SPICE_BEGIN_DECLS
+
 #define MAX_CACHE_CLIENTS 4
 
 #define BITS_CACHE_HASH_SHIFT 10
@@ -72,5 +74,7 @@ void         pixmap_cache_unref(PixmapCache *cache);
 void         pixmap_cache_clear(PixmapCache *cache);
 int          pixmap_cache_unlocked_set_lossy(PixmapCache *cache, uint64_t id, int lossy);
 bool         pixmap_cache_freeze(PixmapCache *cache);
+
+SPICE_END_DECLS
 
 #endif /* PIXMAP_CACHE_H_ */

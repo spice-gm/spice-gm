@@ -18,9 +18,15 @@
 #ifndef TEST_WIN_ALARM_H
 #define TEST_WIN_ALARM_H
 
+#include <spice/macros.h>
+
+SPICE_BEGIN_DECLS
+
 #ifdef _WIN32
 void test_alarm(unsigned int timeout);
 #define alarm test_alarm
 #endif
+
+SPICE_END_DECLS
 
 #endif // TEST_WIN_ALARM_H

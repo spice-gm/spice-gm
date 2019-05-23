@@ -24,6 +24,8 @@
 #include <common/canvas_base.h>
 #include <common/ring.h>
 
+SPICE_BEGIN_DECLS
+
 /* FIXME: move back to display-channel.h (once structs are private) */
 typedef struct Drawable Drawable;
 
@@ -59,5 +61,7 @@ void         image_cache_localize_brush    (ImageCache *cache, SpiceBrush *brush
                                             SpiceImage *image_store);
 void         image_cache_localize_mask     (ImageCache *cache, SpiceQMask *mask,
                                             SpiceImage *image_store);
+
+SPICE_END_DECLS
 
 #endif /* IMAGE_CACHE_H_ */

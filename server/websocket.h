@@ -19,8 +19,11 @@
 #define WEBSOCKET_H_
 
 #include <stdint.h>
+#include <spice/macros.h>
 
 #include "sys-socket.h"
+
+SPICE_BEGIN_DECLS
 
 typedef ssize_t (*websocket_read_cb_t)(void *opaque, void *buf, size_t nbyte);
 typedef ssize_t (*websocket_write_cb_t)(void *opaque, const void *buf, size_t nbyte);
@@ -48,5 +51,7 @@ void websocket_free(RedsWebSocket *ws);
 int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t len, unsigned *flags);
 int websocket_write(RedsWebSocket *ws, const void *buf, size_t len, unsigned flags);
 int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt, unsigned flags);
+
+SPICE_END_DECLS
 
 #endif

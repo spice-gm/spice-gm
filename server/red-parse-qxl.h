@@ -24,6 +24,8 @@
 #include "red-common.h"
 #include "memslot.h"
 
+SPICE_BEGIN_DECLS
+
 typedef struct RedDrawable {
     int refs;
     QXLInstance *qxl;
@@ -145,5 +147,7 @@ RedCursorCmd *red_cursor_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
                                  int group_id, QXLPHYSICAL addr);
 RedCursorCmd *red_cursor_cmd_ref(RedCursorCmd *cmd);
 void red_cursor_cmd_unref(RedCursorCmd *cmd);
+
+SPICE_END_DECLS
 
 #endif /* RED_PARSE_QXL_H_ */

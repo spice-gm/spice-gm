@@ -22,6 +22,8 @@
 #include <stddef.h>
 #include <inttypes.h>
 
+SPICE_BEGIN_DECLS
+
 typedef struct RedPipeItem RedPipeItem;
 
 typedef void red_pipe_item_free_t(RedPipeItem *item);
@@ -46,5 +48,7 @@ static inline void red_pipe_item_init(RedPipeItem *item, int type)
 
 /* a convenience function for unreffing a pipe item after it has been sent */
 void marshaller_unref_pipe_item(uint8_t *data, void *opaque);
+
+SPICE_END_DECLS
 
 #endif /* RED_PIPE_ITEM_H_ */

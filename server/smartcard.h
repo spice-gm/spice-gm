@@ -24,6 +24,8 @@
 #include "char-device.h"
 #include "red-channel-client.h"
 
+SPICE_BEGIN_DECLS
+
 SPICE_DECLARE_TYPE(RedCharDeviceSmartcard, red_char_device_smartcard, CHAR_DEVICE_SMARTCARD);
 #define RED_TYPE_CHAR_DEVICE_SMARTCARD red_char_device_smartcard_get_type()
 
@@ -65,5 +67,7 @@ enum {
     RED_PIPE_ITEM_TYPE_SMARTCARD_DATA,
     RED_PIPE_ITEM_TYPE_SMARTCARD_MIGRATE_DATA,
 };
+
+SPICE_END_DECLS
 
 #endif /* SMART_CARD_H_ */

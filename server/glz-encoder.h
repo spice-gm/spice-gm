@@ -25,6 +25,8 @@
 #include "red-common.h"
 #include "glz-encoder-dict.h"
 
+SPICE_BEGIN_DECLS
+
 struct GlzEncoderUsrContext {
     SPICE_GNUC_PRINTF(2, 3) void (*error)(GlzEncoderUsrContext *usr, const char *fmt, ...);
     SPICE_GNUC_PRINTF(2, 3) void (*warn)(GlzEncoderUsrContext *usr, const char *fmt, ...);
@@ -70,5 +72,6 @@ int glz_encode(GlzEncoderContext *opaque_encoder, LzImageType type, int width, i
                uint8_t *io_ptr, unsigned int num_io_bytes, GlzUsrImageContext *usr_context,
                GlzEncDictImageContext **o_enc_dict_context);
 
+SPICE_END_DECLS
 
 #endif /* GLZ_ENCODER_H_ */

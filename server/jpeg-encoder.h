@@ -33,6 +33,8 @@
 
 #include <spice/types.h>
 
+SPICE_BEGIN_DECLS
+
 typedef enum {
     JPEG_IMAGE_TYPE_INVALID,
     JPEG_IMAGE_TYPE_RGB16,
@@ -58,5 +60,7 @@ void jpeg_encoder_destroy(JpegEncoderContext *encoder);
 int jpeg_encode(JpegEncoderContext *jpeg, int quality, JpegEncoderImageType type,
                 int width, int height, uint8_t *lines, unsigned int num_lines, int stride,
                 uint8_t *io_ptr, unsigned int num_io_bytes);
+
+SPICE_END_DECLS
 
 #endif /* JPEG_ENCODER_H_ */

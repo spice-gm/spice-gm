@@ -26,6 +26,8 @@
 #include <common/draw.h>
 
 
+SPICE_BEGIN_DECLS
+
 /* A structure containing the data for a compressed frame. See encode_frame(). */
 typedef struct VideoBuffer VideoBuffer;
 struct VideoBuffer {
@@ -214,5 +216,7 @@ typedef struct RedVideoCodec {
 } RedVideoCodec;
 
 char *video_codecs_to_string(GArray *video_codecs, const char *sep);
+
+SPICE_END_DECLS
 
 #endif /* VIDEO_ENCODER_H_ */

@@ -32,6 +32,10 @@
 #else
 #  include <winsock2.h>
 #  include <windows.h>
+#  include <spice/macros.h>
+
+SPICE_BEGIN_DECLS
+
 typedef int socklen_t;
 
 // this definition is ABI compatible with WSABUF
@@ -137,6 +141,9 @@ socket_accept(int sock, struct sockaddr *addr, int *addrlen)
 
 int socket_newpair(int type, int protocol, int sv[2]);
 #define socketpair(family, type, protocol, sv) socket_newpair(type, protocol, sv)
+
+SPICE_END_DECLS
+
 #endif
 
 #endif // RED_SYS_SOCKET_H_

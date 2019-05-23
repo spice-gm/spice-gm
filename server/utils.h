@@ -21,6 +21,9 @@
 
 #include <stdint.h>
 #include <glib.h>
+#include <spice/macros.h>
+
+SPICE_BEGIN_DECLS
 
 #define SPICE_GNUC_VISIBLE __attribute__ ((visibility ("default")))
 
@@ -79,5 +82,7 @@ static inline int64_t i64abs(int64_t value)
 {
     return (value >= 0) ? value : -value;
 }
+
+SPICE_END_DECLS
 
 #endif /* UTILS_H_ */

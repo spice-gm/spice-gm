@@ -21,6 +21,8 @@
 #include "red-channel.h"
 #include "spice-qxl.h"
 
+SPICE_BEGIN_DECLS
+
 void red_qxl_init(SpiceServer *reds, QXLInstance *qxl);
 void red_qxl_destroy(QXLInstance *qxl);
 
@@ -58,5 +60,7 @@ void red_qxl_update_area_complete(QXLInstance *qxl, uint32_t surface_id,
 void red_qxl_set_client_capabilities(QXLInstance *qxl,
                                      uint8_t client_present,
                                      uint8_t caps[SPICE_CAPABILITIES_SIZE]);
+
+SPICE_END_DECLS
 
 #endif /* RED_QXL_H_ */

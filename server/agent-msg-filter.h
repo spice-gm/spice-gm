@@ -23,6 +23,9 @@
 
 #include <inttypes.h>
 #include <glib.h>
+#include <spice/macros.h>
+
+SPICE_BEGIN_DECLS
 
 /* Possible return values for agent_msg_filter_process_data */
 typedef enum {
@@ -57,5 +60,7 @@ void agent_msg_filter_config(AgentMsgFilter *filter,
                              gboolean use_client_monitors_config);
 AgentMsgFilterResult agent_msg_filter_process_data(AgentMsgFilter *filter,
                                                    const uint8_t *data, uint32_t len);
+
+SPICE_END_DECLS
 
 #endif /* AGENT_MSG_FILTER_H_ */

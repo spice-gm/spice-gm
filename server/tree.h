@@ -25,6 +25,8 @@
 
 #include "spice-bitmap-utils.h"
 
+SPICE_BEGIN_DECLS
+
 enum {
     TREE_ITEM_TYPE_NONE,
     TREE_ITEM_TYPE_DRAWABLE,
@@ -96,5 +98,7 @@ Shadow*    shadow_new                               (DrawItem *item, const Spice
 Container* container_new                            (DrawItem *item);
 void       container_free                           (Container *container);
 void       container_cleanup                        (Container *container);
+
+SPICE_END_DECLS
 
 #endif /* TREE_H_ */

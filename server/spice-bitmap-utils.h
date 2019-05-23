@@ -21,6 +21,8 @@
 
 #include "red-common.h"
 
+SPICE_BEGIN_DECLS
+
 typedef enum {
     BITMAP_GRADUAL_INVALID,
     BITMAP_GRADUAL_NOT_AVAIL,
@@ -89,5 +91,7 @@ int               bitmap_has_extra_stride         (SpiceBitmap *bitmap);
 void dump_bitmap(SpiceBitmap *bitmap);
 
 int spice_bitmap_from_surface_type(uint32_t surface_format);
+
+SPICE_END_DECLS
 
 #endif /* SPICE_BITMAP_UTILS_H_ */

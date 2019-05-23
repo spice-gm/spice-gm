@@ -23,6 +23,8 @@
 #include "dispatcher.h"
 #include "red-channel.h"
 
+SPICE_BEGIN_DECLS
+
 #define TYPE_MAIN_DISPATCHER main_dispatcher_get_type()
 
 #define MAIN_DISPATCHER(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_MAIN_DISPATCHER, MainDispatcher))
@@ -60,5 +62,7 @@ void main_dispatcher_set_mm_time_latency(MainDispatcher *self, RedClient *client
 void main_dispatcher_client_disconnect(MainDispatcher *self, RedClient *client);
 
 MainDispatcher* main_dispatcher_new(RedsState *reds);
+
+SPICE_END_DECLS
 
 #endif /* MAIN_DISPATCHER_H_ */

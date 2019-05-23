@@ -25,6 +25,8 @@
 #include "red-channel.h"
 #include "migration-protocol.h"
 
+SPICE_BEGIN_DECLS
+
 #define RED_TYPE_CHAR_DEVICE red_char_device_get_type()
 
 #define RED_CHAR_DEVICE(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), RED_TYPE_CHAR_DEVICE, RedCharDevice))
@@ -247,5 +249,7 @@ void spicevmc_device_disconnect(SpiceCharDeviceInstance *char_device);
 SpiceCharDeviceInstance *red_char_device_get_device_instance(RedCharDevice *dev);
 
 SpiceCharDeviceInterface *spice_char_device_get_interface(SpiceCharDeviceInstance *instance);
+
+SPICE_END_DECLS
 
 #endif /* CHAR_DEVICE_H_ */

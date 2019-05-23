@@ -24,6 +24,8 @@
 
 #include "red-common.h"
 
+SPICE_BEGIN_DECLS
+
 #define TYPE_DISPATCHER dispatcher_get_type()
 
 #define DISPATCHER(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_DISPATCHER, Dispatcher))
@@ -166,5 +168,7 @@ SpiceWatch *dispatcher_create_watch(Dispatcher *dispatcher, SpiceCoreInterfaceIn
  * @opaque: opaque to use for callbacks
  */
 void dispatcher_set_opaque(Dispatcher *dispatcher, void *opaque);
+
+SPICE_END_DECLS
 
 #endif /* DISPATCHER_H_ */

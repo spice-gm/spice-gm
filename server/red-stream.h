@@ -23,6 +23,8 @@
 #include "spice.h"
 #include "red-common.h"
 
+SPICE_BEGIN_DECLS
+
 typedef void (*AsyncReadDone)(void *opaque);
 typedef void (*AsyncReadError)(void *opaque, int err);
 
@@ -102,5 +104,7 @@ typedef enum {
 
 typedef void (*RedSaslResult)(void *opaque, RedSaslError err);
 bool red_sasl_start_auth(RedStream *stream, RedSaslResult result_cb, void *opaque);
+
+SPICE_END_DECLS
 
 #endif /* RED_STREAM_H_ */

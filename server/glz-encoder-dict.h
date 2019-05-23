@@ -26,6 +26,8 @@
     glz-encoder-priv.h
 */
 
+SPICE_BEGIN_DECLS
+
 typedef void GlzEncDictContext;
 typedef void GlzEncDictImageContext;
 
@@ -64,5 +66,7 @@ GlzEncDictContext *glz_enc_dictionary_restore(GlzEncDictRestoreData *restore_dat
    NOTE - you should use this routine only when no encoder uses the dictionary.*/
 void glz_enc_dictionary_remove_image(GlzEncDictContext *opaque_dict,
                                      GlzEncDictImageContext *image, GlzEncoderUsrContext *usr);
+
+SPICE_END_DECLS
 
 #endif /* GLZ_ENCODER_DICT_H_ */

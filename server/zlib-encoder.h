@@ -33,6 +33,8 @@
 
 #include <inttypes.h>
 
+SPICE_BEGIN_DECLS
+
 typedef struct ZlibEncoder ZlibEncoder;
 typedef struct ZlibEncoderUsrContext ZlibEncoderUsrContext;
 
@@ -47,5 +49,7 @@ void zlib_encoder_destroy(ZlibEncoder *encoder);
 /* returns the total size of the encoded data */
 int zlib_encode(ZlibEncoder *zlib, int level, int input_size,
                 uint8_t *io_ptr, unsigned int num_io_bytes);
+
+SPICE_END_DECLS
 
 #endif /* ZLIB_ENCODER_H_ */

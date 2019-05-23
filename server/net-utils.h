@@ -19,10 +19,15 @@
 #define RED_NET_UTILS_H_
 
 #include <stdbool.h>
+#include <spice/macros.h>
+
+SPICE_BEGIN_DECLS
 
 bool red_socket_set_keepalive(int fd, bool enable, int timeout);
 bool red_socket_set_no_delay(int fd, bool no_delay);
 int red_socket_get_no_delay(int fd);
 bool red_socket_set_non_blocking(int fd, bool non_blocking);
+
+SPICE_END_DECLS
 
 #endif /* RED_NET_UTILS_H_ */

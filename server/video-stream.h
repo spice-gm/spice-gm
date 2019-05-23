@@ -27,6 +27,8 @@
 #include "red-channel.h"
 #include "dcc.h"
 
+SPICE_BEGIN_DECLS
+
 #define RED_STREAM_DETECTION_MAX_DELTA (NSEC_PER_SEC / 5)
 #define RED_STREAM_CONTINUOUS_MAX_DELTA NSEC_PER_SEC
 #define RED_STREAM_TIMEOUT NSEC_PER_SEC
@@ -151,5 +153,7 @@ GArray *video_stream_parse_preferred_codecs(SpiceMsgcDisplayPreferredVideoCodecT
 void video_stream_agent_stop(VideoStreamAgent *agent);
 
 void video_stream_detach_drawable(VideoStream *stream);
+
+SPICE_END_DECLS
 
 #endif /* VIDEO_STREAM_H_ */

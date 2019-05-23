@@ -21,6 +21,8 @@
 #include <spice.h>
 #include "basic-event-loop.h"
 
+SPICE_BEGIN_DECLS
+
 /*
  * simple queue for commands.
  * each command can have up to two parameters (grow as needed)
@@ -140,5 +142,7 @@ uint32_t test_get_width(void);
 uint32_t test_get_height(void);
 
 void spice_test_config_parse_args(int argc, char **argv);
+
+SPICE_END_DECLS
 
 #endif /* __TEST_DISPLAY_BASE_H__ */

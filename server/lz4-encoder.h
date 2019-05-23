@@ -33,6 +33,8 @@
 
 #include <spice/types.h>
 
+SPICE_BEGIN_DECLS
+
 typedef void* Lz4EncoderContext;
 typedef struct Lz4EncoderUsrContext Lz4EncoderUsrContext;
 
@@ -47,5 +49,7 @@ void lz4_encoder_destroy(Lz4EncoderContext *encoder);
 /* returns the total size of the encoded data. */
 int lz4_encode(Lz4EncoderContext *lz4, int height, int stride, uint8_t *io_ptr,
                unsigned int num_io_bytes, int top_down, uint8_t format);
+
+SPICE_END_DECLS
 
 #endif /* LZ4_ENCODER_H_ */

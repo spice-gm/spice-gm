@@ -23,6 +23,8 @@
 
 #include "red-common.h"
 
+SPICE_BEGIN_DECLS
+
 typedef struct MemSlot {
     int generation;
     uintptr_t virt_start_addr;
@@ -72,5 +74,7 @@ void memslot_info_add_slot(RedMemSlotInfo *info, uint32_t slot_group_id, uint32_
                            uint32_t generation);
 void memslot_info_del_slot(RedMemSlotInfo *info, uint32_t slot_group_id, uint32_t slot_id);
 void memslot_info_reset(RedMemSlotInfo *info);
+
+SPICE_END_DECLS
 
 #endif /* MEMSLOT_H_ */

@@ -26,6 +26,8 @@
 
 #include "red-channel.h"
 
+SPICE_BEGIN_DECLS
+
 typedef struct RedWorker RedWorker;
 
 RedWorker* red_worker_new(QXLInstance *qxl);
@@ -240,5 +242,7 @@ enum {
 };
 
 void red_qxl_clear_pending(QXLState *qxl_state, int pending);
+
+SPICE_END_DECLS
 
 #endif /* RED_WORKER_H_ */
