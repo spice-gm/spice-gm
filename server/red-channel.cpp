@@ -335,9 +335,8 @@ typedef struct RedMessageConnect {
     RedChannelCapabilities caps;
 } RedMessageConnect;
 
-static void handle_dispatcher_connect(void *opaque, void *payload)
+static void handle_dispatcher_connect(void *opaque, RedMessageConnect *msg)
 {
-    RedMessageConnect *msg = (RedMessageConnect*) payload;
     RedChannel *channel = msg->channel;
 
     channel->on_connect(msg->client, msg->stream, msg->migration, &msg->caps);
@@ -367,7 +366,7 @@ void RedChannel::connect(RedClient *client, RedStream *stream, int migration,
     red_channel_capabilities_init(&payload.caps, caps);
 
     dispatcher_send_message_custom(dispatcher, handle_dispatcher_connect,
-                                   &payload, sizeof(payload), false);
+                                   &payload, false);
 }
 
 GList *RedChannel::get_clients()

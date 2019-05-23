@@ -171,4 +171,15 @@ void dispatcher_set_opaque(Dispatcher *dispatcher, void *opaque);
 
 SPICE_END_DECLS
 
+#ifdef __cplusplus
+template <typename T>
+inline void
+dispatcher_send_message_custom(Dispatcher *dispatcher, void (*handler)(void *, T*),
+                               T *payload, bool ack)
+{
+    dispatcher_send_message_custom(dispatcher, (dispatcher_handle_message) handler,
+                                   payload, sizeof(*payload), ack);
+}
+#endif
+
 #endif /* DISPATCHER_H_ */
