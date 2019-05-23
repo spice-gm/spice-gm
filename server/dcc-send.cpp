@@ -24,9 +24,6 @@
 #include "display-channel-private.h"
 #include "red-qxl.h"
 
-// XXX this should go away with virtual on the right class (client!)
-XXX_CAST(RedChannelClient, DisplayChannelClient, DISPLAY_CHANNEL_CLIENT)
-
 typedef enum {
     FILL_BITS_TYPE_INVALID,
     FILL_BITS_TYPE_CACHE,
@@ -129,11 +126,9 @@ static bool is_surface_area_lossy(DisplayChannelClient *dcc, uint32_t surface_id
    to the client, returns false. "area" is for surfaces. If area = NULL,
    all the surface is considered. out_lossy_data will hold info about the bitmap, and its lossy
    area in case it is lossy and part of a surface. */
-static bool is_bitmap_lossy(RedChannelClient *rcc, SpiceImage *image, SpiceRect *area,
+static bool is_bitmap_lossy(DisplayChannelClient *dcc, SpiceImage *image, SpiceRect *area,
                             BitmapData *out_data)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-
     if (image == NULL) {
         // self bitmap
         out_data->type = BITMAP_DATA_TYPE_BITMAP;
@@ -165,11 +160,11 @@ static bool is_bitmap_lossy(RedChannelClient *rcc, SpiceImage *image, SpiceRect 
                                  area, &out_data->lossy_rect);
 }
 
-static bool is_brush_lossy(RedChannelClient *rcc, SpiceBrush *brush,
+static bool is_brush_lossy(DisplayChannelClient *dcc, SpiceBrush *brush,
                            BitmapData *out_data)
 {
     if (brush->type == SPICE_BRUSH_TYPE_PATTERN) {
-        return is_bitmap_lossy(rcc, brush->u.pattern.pat, NULL,
+        return is_bitmap_lossy(dcc, brush->u.pattern.pat, NULL,
                                out_data);
     } else {
         out_data->type = BITMAP_DATA_TYPE_INVALID;
@@ -182,13 +177,12 @@ static GList *dcc_get_tail(DisplayChannelClient *dcc)
     return dcc->get_pipe()->tail;
 }
 
-static void red_display_add_image_to_pixmap_cache(RedChannelClient *rcc,
+static void red_display_add_image_to_pixmap_cache(DisplayChannelClient *dcc,
                                                   SpiceImage *image, SpiceImage *io_image,
                                                   int is_lossy)
 {
     DisplayChannel *display_channel G_GNUC_UNUSED =
-        DISPLAY_CHANNEL(rcc->get_channel());
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
+        DISPLAY_CHANNEL(dcc->get_channel());
 
     if ((image->descriptor.flags & SPICE_IMAGE_FLAGS_CACHE_ME)) {
         spice_assert(image->descriptor.width * image->descriptor.height > 0);
@@ -230,9 +224,8 @@ static void marshal_sub_msg_inval_list_wait(SpiceMarshaller *m,
 }
 
 /* use legacy SpiceDataHeader (with sub_list) */
-static void send_free_list_legacy(RedChannelClient *rcc)
+static void send_free_list_legacy(DisplayChannelClient *dcc)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     FreeList *free_list = &dcc->priv->send_data.free_list;
     SpiceMarshaller *marshaller;
     int sub_list_len = 1;
@@ -240,7 +233,7 @@ static void send_free_list_legacy(RedChannelClient *rcc)
     SpiceMarshaller *inval_m;
     SpiceMarshaller *sub_list_m;
 
-    marshaller = rcc->get_marshaller();
+    marshaller = dcc->get_marshaller();
     inval_m = spice_marshaller_get_submarshaller(marshaller);
 
     marshal_sub_msg_inval_list(inval_m, free_list);
@@ -257,13 +250,12 @@ static void send_free_list_legacy(RedChannelClient *rcc)
         spice_marshaller_add_uint32(sub_list_m, spice_marshaller_get_offset(wait_m));
     }
     spice_marshaller_add_uint32(sub_list_m, spice_marshaller_get_offset(inval_m));
-    rcc->set_header_sub_list(spice_marshaller_get_offset(sub_list_m));
+    dcc->set_header_sub_list(spice_marshaller_get_offset(sub_list_m));
 }
 
 /* use mini header and SPICE_MSG_LIST */
-static void send_free_list(RedChannelClient *rcc)
+static void send_free_list(DisplayChannelClient *dcc)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     FreeList *free_list = &dcc->priv->send_data.free_list;
     const int sub_list_len = 2;
     SpiceMarshaller *urgent_marshaller;
@@ -274,7 +266,7 @@ static void send_free_list(RedChannelClient *rcc)
     uint32_t inval_offset = 0;
     int i;
 
-    urgent_marshaller = rcc->switch_to_urgent_sender();
+    urgent_marshaller = dcc->switch_to_urgent_sender();
     for (i = 0; i < dcc->priv->send_data.num_pixmap_cache_items; i++) {
         int dummy;
         /* When using the urgent marshaller, the serial number of the message that is
@@ -287,12 +279,12 @@ static void send_free_list(RedChannelClient *rcc)
 
     if (!free_list->wait.header.wait_count) {
         /* only one message, no need for a list */
-        rcc->init_send_data(SPICE_MSG_DISPLAY_INVAL_LIST);
+        dcc->init_send_data(SPICE_MSG_DISPLAY_INVAL_LIST);
         spice_marshall_msg_display_inval_list(urgent_marshaller, free_list->res);
         return;
     }
 
-    rcc->init_send_data(SPICE_MSG_LIST);
+    dcc->init_send_data(SPICE_MSG_LIST);
 
     /* append invalidate list */
     inval_m = spice_marshaller_get_submarshaller(urgent_marshaller);
@@ -515,11 +507,9 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
     return FILL_BITS_TYPE_INVALID;
 }
 
-static void fill_mask(RedChannelClient *rcc, SpiceMarshaller *m,
+static void fill_mask(DisplayChannelClient *dcc, SpiceMarshaller *m,
                       SpiceImage *mask_bitmap, Drawable *drawable)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-
     if (mask_bitmap && m) {
         if (dcc->priv->image_compression != SPICE_IMAGE_COMPRESSION_OFF) {
             /* todo: pass compression argument */
@@ -544,18 +534,17 @@ static void fill_attr(SpiceMarshaller *m, SpiceLineAttr *attr)
     }
 }
 
-static void marshall_qxl_draw_fill(RedChannelClient *rcc,
+static void marshall_qxl_draw_fill(DisplayChannelClient *dcc,
                                    SpiceMarshaller *base_marshaller,
                                    RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
     RedDrawable *drawable = item->red_drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *mask_bitmap_out;
     SpiceFill fill;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_FILL);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_FILL);
     fill_base(base_marshaller, item);
     fill = drawable->u.fill;
     spice_marshall_Fill(base_marshaller,
@@ -567,7 +556,7 @@ static void marshall_qxl_draw_fill(RedChannelClient *rcc,
         fill_bits(dcc, brush_pat_out, fill.brush.u.pattern.pat, item, FALSE);
     }
 
-    fill_mask(rcc, mask_bitmap_out, fill.mask.bitmap, item);
+    fill_mask(dcc, mask_bitmap_out, fill.mask.bitmap, item);
 }
 
 static void surface_lossy_region_update(DisplayChannelClient *dcc,
@@ -757,13 +746,12 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
     }
 }
 
-static void red_add_lossless_drawable_dependencies(RedChannelClient *rcc,
+static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
                                                    Drawable *item,
                                                    int deps_surfaces_ids[],
                                                    SpiceRect *deps_areas[],
                                                    int num_deps)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     DisplayChannel *display = DCC_TO_DC(dcc);
     RedDrawable *drawable = item->red_drawable;
     int sync_rendered = FALSE;
@@ -826,11 +814,10 @@ static void red_add_lossless_drawable_dependencies(RedChannelClient *rcc,
     }
 }
 
-static void red_lossy_marshall_qxl_draw_fill(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_fill(DisplayChannelClient *dcc,
                                              SpiceMarshaller *m,
                                              RedDrawablePipeItem *dpi)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     Drawable *item = dpi->drawable;
     RedDrawable *drawable = item->red_drawable;
 
@@ -847,7 +834,7 @@ static void red_lossy_marshall_qxl_draw_fill(RedChannelClient *rcc,
                            (rop & SPICE_ROPD_OP_AND) ||
                            (rop & SPICE_ROPD_OP_XOR));
 
-    brush_is_lossy = is_brush_lossy(rcc, &drawable->u.fill.brush,
+    brush_is_lossy = is_brush_lossy(dcc, &drawable->u.fill.brush,
                                     &brush_bitmap_data);
     if (!dest_allowed_lossy) {
         dest_is_lossy = is_surface_area_lossy(dcc, item->surface_id, &drawable->bbox,
@@ -858,7 +845,7 @@ static void red_lossy_marshall_qxl_draw_fill(RedChannelClient *rcc,
         !(brush_is_lossy && (brush_bitmap_data.type == BITMAP_DATA_TYPE_SURFACE))) {
         int has_mask = !!drawable->u.fill.mask.bitmap;
 
-        marshall_qxl_draw_fill(rcc, m, dpi);
+        marshall_qxl_draw_fill(dcc, m, dpi);
         // either the brush operation is opaque, or the dest is not lossy
         surface_lossy_region_update(dcc, item, has_mask, FALSE);
     } else {
@@ -878,17 +865,16 @@ static void red_lossy_marshall_qxl_draw_fill(RedChannelClient *rcc,
             num_resend++;
         }
 
-        red_add_lossless_drawable_dependencies(rcc, item,
+        red_add_lossless_drawable_dependencies(dcc, item,
                                                resend_surface_ids, resend_areas, num_resend);
     }
 }
 
-static FillBitsType red_marshall_qxl_draw_opaque(RedChannelClient *rcc,
+static FillBitsType red_marshall_qxl_draw_opaque(DisplayChannelClient *dcc,
                                                  SpiceMarshaller *base_marshaller,
                                                  RedDrawablePipeItem *dpi,
                                                  int src_allowed_lossy)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     Drawable *item = dpi->drawable;
     RedDrawable *drawable = item->red_drawable;
     SpiceMarshaller *brush_pat_out;
@@ -897,7 +883,7 @@ static FillBitsType red_marshall_qxl_draw_opaque(RedChannelClient *rcc,
     SpiceOpaque opaque;
     FillBitsType src_send_type;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_OPAQUE);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_OPAQUE);
     fill_base(base_marshaller, item);
     opaque = drawable->u.opaque;
     spice_marshall_Opaque(base_marshaller,
@@ -912,16 +898,15 @@ static FillBitsType red_marshall_qxl_draw_opaque(RedChannelClient *rcc,
     if (brush_pat_out) {
         fill_bits(dcc, brush_pat_out, opaque.brush.u.pattern.pat, item, FALSE);
     }
-    fill_mask(rcc, mask_bitmap_out, opaque.mask.bitmap, item);
+    fill_mask(dcc, mask_bitmap_out, opaque.mask.bitmap, item);
 
     return src_send_type;
 }
 
-static void red_lossy_marshall_qxl_draw_opaque(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_opaque(DisplayChannelClient *dcc,
                                                SpiceMarshaller *m,
                                                RedDrawablePipeItem *dpi)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     Drawable *item = dpi->drawable;
     RedDrawable *drawable = item->red_drawable;
 
@@ -937,11 +922,11 @@ static void red_lossy_marshall_qxl_draw_opaque(RedChannelClient *rcc,
                           (rop & SPICE_ROPD_OP_AND) ||
                           (rop & SPICE_ROPD_OP_XOR));
 
-    brush_is_lossy = is_brush_lossy(rcc, &drawable->u.opaque.brush,
+    brush_is_lossy = is_brush_lossy(dcc, &drawable->u.opaque.brush,
                                     &brush_bitmap_data);
 
     if (!src_allowed_lossy) {
-        src_is_lossy = is_bitmap_lossy(rcc, drawable->u.opaque.src_bitmap,
+        src_is_lossy = is_bitmap_lossy(dcc, drawable->u.opaque.src_bitmap,
                                        &drawable->u.opaque.src_area,
                                        &src_bitmap_data);
     }
@@ -951,7 +936,7 @@ static void red_lossy_marshall_qxl_draw_opaque(RedChannelClient *rcc,
         FillBitsType src_send_type;
         int has_mask = !!drawable->u.opaque.mask.bitmap;
 
-        src_send_type = red_marshall_qxl_draw_opaque(rcc, m, dpi, src_allowed_lossy);
+        src_send_type = red_marshall_qxl_draw_opaque(dcc, m, dpi, src_allowed_lossy);
         if (src_send_type == FILL_BITS_TYPE_COMPRESS_LOSSY) {
             src_is_lossy = TRUE;
         } else if (src_send_type == FILL_BITS_TYPE_COMPRESS_LOSSLESS) {
@@ -976,17 +961,16 @@ static void red_lossy_marshall_qxl_draw_opaque(RedChannelClient *rcc,
             num_resend++;
         }
 
-        red_add_lossless_drawable_dependencies(rcc, item,
+        red_add_lossless_drawable_dependencies(dcc, item,
                                                resend_surface_ids, resend_areas, num_resend);
     }
 }
 
-static FillBitsType red_marshall_qxl_draw_copy(RedChannelClient *rcc,
+static FillBitsType red_marshall_qxl_draw_copy(DisplayChannelClient *dcc,
                                                SpiceMarshaller *base_marshaller,
                                                RedDrawablePipeItem *dpi,
                                                int src_allowed_lossy)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     Drawable *item = dpi->drawable;
     RedDrawable *drawable = item->red_drawable;
     SpiceMarshaller *src_bitmap_out;
@@ -994,7 +978,7 @@ static FillBitsType red_marshall_qxl_draw_copy(RedChannelClient *rcc,
     SpiceCopy copy;
     FillBitsType src_send_type;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
     fill_base(base_marshaller, item);
     copy = drawable->u.copy;
     spice_marshall_Copy(base_marshaller,
@@ -1003,16 +987,15 @@ static FillBitsType red_marshall_qxl_draw_copy(RedChannelClient *rcc,
                         &mask_bitmap_out);
 
     src_send_type = fill_bits(dcc, src_bitmap_out, copy.src_bitmap, item, src_allowed_lossy);
-    fill_mask(rcc, mask_bitmap_out, copy.mask.bitmap, item);
+    fill_mask(dcc, mask_bitmap_out, copy.mask.bitmap, item);
 
     return src_send_type;
 }
 
-static void red_lossy_marshall_qxl_draw_copy(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_copy(DisplayChannelClient *dcc,
                                              SpiceMarshaller *base_marshaller,
                                              RedDrawablePipeItem *dpi)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     Drawable *item = dpi->drawable;
     RedDrawable *drawable = item->red_drawable;
     int has_mask = !!drawable->u.copy.mask.bitmap;
@@ -1020,10 +1003,10 @@ static void red_lossy_marshall_qxl_draw_copy(RedChannelClient *rcc,
     BitmapData src_bitmap_data;
     FillBitsType src_send_type;
 
-    src_is_lossy = is_bitmap_lossy(rcc, drawable->u.copy.src_bitmap,
+    src_is_lossy = is_bitmap_lossy(dcc, drawable->u.copy.src_bitmap,
                                    &drawable->u.copy.src_area, &src_bitmap_data);
 
-    src_send_type = red_marshall_qxl_draw_copy(rcc, base_marshaller, dpi, TRUE);
+    src_send_type = red_marshall_qxl_draw_copy(dcc, base_marshaller, dpi, TRUE);
     if (src_send_type == FILL_BITS_TYPE_COMPRESS_LOSSY) {
         src_is_lossy = TRUE;
     } else if (src_send_type == FILL_BITS_TYPE_COMPRESS_LOSSLESS) {
@@ -1033,17 +1016,16 @@ static void red_lossy_marshall_qxl_draw_copy(RedChannelClient *rcc,
                                 src_is_lossy);
 }
 
-static void red_marshall_qxl_draw_transparent(RedChannelClient *rcc,
+static void red_marshall_qxl_draw_transparent(DisplayChannelClient *dcc,
                                               SpiceMarshaller *base_marshaller,
                                               RedDrawablePipeItem *dpi)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     Drawable *item = dpi->drawable;
     RedDrawable *drawable = item->red_drawable;
     SpiceMarshaller *src_bitmap_out;
     SpiceTransparent transparent;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_TRANSPARENT);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_TRANSPARENT);
     fill_base(base_marshaller, item);
     transparent = drawable->u.transparent;
     spice_marshall_Transparent(base_marshaller,
@@ -1052,7 +1034,7 @@ static void red_marshall_qxl_draw_transparent(RedChannelClient *rcc,
     fill_bits(dcc, src_bitmap_out, transparent.src_bitmap, item, FALSE);
 }
 
-static void red_lossy_marshall_qxl_draw_transparent(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_transparent(DisplayChannelClient *dcc,
                                                     SpiceMarshaller *base_marshaller,
                                                     RedDrawablePipeItem *dpi)
 {
@@ -1061,11 +1043,11 @@ static void red_lossy_marshall_qxl_draw_transparent(RedChannelClient *rcc,
     int src_is_lossy;
     BitmapData src_bitmap_data;
 
-    src_is_lossy = is_bitmap_lossy(rcc, drawable->u.transparent.src_bitmap,
+    src_is_lossy = is_bitmap_lossy(dcc, drawable->u.transparent.src_bitmap,
                                    &drawable->u.transparent.src_area, &src_bitmap_data);
 
     if (!src_is_lossy || (src_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE)) {
-        red_marshall_qxl_draw_transparent(rcc, base_marshaller, dpi);
+        red_marshall_qxl_draw_transparent(dcc, base_marshaller, dpi);
         // don't update surface lossy region since transperent areas might be lossy
     } else {
         int resend_surface_ids[1];
@@ -1074,24 +1056,23 @@ static void red_lossy_marshall_qxl_draw_transparent(RedChannelClient *rcc,
         resend_surface_ids[0] = src_bitmap_data.id;
         resend_areas[0] = &src_bitmap_data.lossy_rect;
 
-        red_add_lossless_drawable_dependencies(rcc, item,
+        red_add_lossless_drawable_dependencies(dcc, item,
                                                resend_surface_ids, resend_areas, 1);
     }
 }
 
-static FillBitsType red_marshall_qxl_draw_alpha_blend(RedChannelClient *rcc,
+static FillBitsType red_marshall_qxl_draw_alpha_blend(DisplayChannelClient *dcc,
                                                       SpiceMarshaller *base_marshaller,
                                                       RedDrawablePipeItem *dpi,
                                                       int src_allowed_lossy)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     SpiceMarshaller *src_bitmap_out;
     SpiceAlphaBlend alpha_blend;
     FillBitsType src_send_type;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_ALPHA_BLEND);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_ALPHA_BLEND);
     fill_base(base_marshaller, item);
     alpha_blend = drawable->u.alpha_blend;
     spice_marshall_AlphaBlend(base_marshaller,
@@ -1103,21 +1084,20 @@ static FillBitsType red_marshall_qxl_draw_alpha_blend(RedChannelClient *rcc,
     return src_send_type;
 }
 
-static void red_lossy_marshall_qxl_draw_alpha_blend(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_alpha_blend(DisplayChannelClient *dcc,
                                                     SpiceMarshaller *base_marshaller,
                                                     RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     int src_is_lossy;
     BitmapData src_bitmap_data;
     FillBitsType src_send_type;
 
-    src_is_lossy = is_bitmap_lossy(rcc, drawable->u.alpha_blend.src_bitmap,
+    src_is_lossy = is_bitmap_lossy(dcc, drawable->u.alpha_blend.src_bitmap,
                                    &drawable->u.alpha_blend.src_area, &src_bitmap_data);
 
-    src_send_type = red_marshall_qxl_draw_alpha_blend(rcc, base_marshaller, dpi, TRUE);
+    src_send_type = red_marshall_qxl_draw_alpha_blend(dcc, base_marshaller, dpi, TRUE);
 
     if (src_send_type == FILL_BITS_TYPE_COMPRESS_LOSSY) {
         src_is_lossy = TRUE;
@@ -1145,12 +1125,11 @@ static void red_marshall_qxl_copy_bits(RedChannelClient *rcc,
                          &copy_bits);
 }
 
-static void red_lossy_marshall_qxl_copy_bits(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_copy_bits(DisplayChannelClient *dcc,
                                              SpiceMarshaller *base_marshaller,
                                              RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     SpiceRect src_rect;
     int horz_offset;
@@ -1158,7 +1137,7 @@ static void red_lossy_marshall_qxl_copy_bits(RedChannelClient *rcc,
     int src_is_lossy;
     SpiceRect src_lossy_area;
 
-    red_marshall_qxl_copy_bits(rcc, base_marshaller, dpi);
+    red_marshall_qxl_copy_bits(dcc, base_marshaller, dpi);
 
     horz_offset = drawable->u.copy_bits.src_pos.x - drawable->bbox.left;
     vert_offset = drawable->u.copy_bits.src_pos.y - drawable->bbox.top;
@@ -1174,18 +1153,17 @@ static void red_lossy_marshall_qxl_copy_bits(RedChannelClient *rcc,
     surface_lossy_region_update(dcc, item, FALSE, src_is_lossy);
 }
 
-static void red_marshall_qxl_draw_blend(RedChannelClient *rcc,
+static void red_marshall_qxl_draw_blend(DisplayChannelClient *dcc,
                                         SpiceMarshaller *base_marshaller,
                                         RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     SpiceMarshaller *src_bitmap_out;
     SpiceMarshaller *mask_bitmap_out;
     SpiceBlend blend;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_BLEND);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_BLEND);
     fill_base(base_marshaller, item);
     blend = drawable->u.blend;
     spice_marshall_Blend(base_marshaller,
@@ -1195,29 +1173,28 @@ static void red_marshall_qxl_draw_blend(RedChannelClient *rcc,
 
     fill_bits(dcc, src_bitmap_out, blend.src_bitmap, item, FALSE);
 
-    fill_mask(rcc, mask_bitmap_out, blend.mask.bitmap, item);
+    fill_mask(dcc, mask_bitmap_out, blend.mask.bitmap, item);
 }
 
-static void red_lossy_marshall_qxl_draw_blend(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_blend(DisplayChannelClient *dcc,
                                               SpiceMarshaller *base_marshaller,
                                               RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     int src_is_lossy;
     BitmapData src_bitmap_data;
     int dest_is_lossy;
     SpiceRect dest_lossy_area;
 
-    src_is_lossy = is_bitmap_lossy(rcc, drawable->u.blend.src_bitmap,
+    src_is_lossy = is_bitmap_lossy(dcc, drawable->u.blend.src_bitmap,
                                    &drawable->u.blend.src_area, &src_bitmap_data);
     dest_is_lossy = is_surface_area_lossy(dcc, drawable->surface_id,
                                           &drawable->bbox, &dest_lossy_area);
 
     if (!dest_is_lossy &&
         (!src_is_lossy || (src_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE))) {
-        red_marshall_qxl_draw_blend(rcc, base_marshaller, dpi);
+        red_marshall_qxl_draw_blend(dcc, base_marshaller, dpi);
     } else {
         int resend_surface_ids[2];
         SpiceRect *resend_areas[2];
@@ -1235,12 +1212,12 @@ static void red_lossy_marshall_qxl_draw_blend(RedChannelClient *rcc,
             num_resend++;
         }
 
-        red_add_lossless_drawable_dependencies(rcc, item,
+        red_add_lossless_drawable_dependencies(dcc, item,
                                                resend_surface_ids, resend_areas, num_resend);
     }
 }
 
-static void red_marshall_qxl_draw_blackness(RedChannelClient *rcc,
+static void red_marshall_qxl_draw_blackness(DisplayChannelClient *dcc,
                                             SpiceMarshaller *base_marshaller,
                                             RedDrawablePipeItem *dpi)
 {
@@ -1249,7 +1226,7 @@ static void red_marshall_qxl_draw_blackness(RedChannelClient *rcc,
     SpiceMarshaller *mask_bitmap_out;
     SpiceBlackness blackness;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_BLACKNESS);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_BLACKNESS);
     fill_base(base_marshaller, item);
     blackness = drawable->u.blackness;
 
@@ -1257,24 +1234,23 @@ static void red_marshall_qxl_draw_blackness(RedChannelClient *rcc,
                              &blackness,
                              &mask_bitmap_out);
 
-    fill_mask(rcc, mask_bitmap_out, blackness.mask.bitmap, item);
+    fill_mask(dcc, mask_bitmap_out, blackness.mask.bitmap, item);
 }
 
-static void red_lossy_marshall_qxl_draw_blackness(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_blackness(DisplayChannelClient *dcc,
                                                   SpiceMarshaller *base_marshaller,
                                                   RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     int has_mask = !!drawable->u.blackness.mask.bitmap;
 
-    red_marshall_qxl_draw_blackness(rcc, base_marshaller, dpi);
+    red_marshall_qxl_draw_blackness(dcc, base_marshaller, dpi);
 
     surface_lossy_region_update(dcc, item, has_mask, FALSE);
 }
 
-static void red_marshall_qxl_draw_whiteness(RedChannelClient *rcc,
+static void red_marshall_qxl_draw_whiteness(DisplayChannelClient *dcc,
                                             SpiceMarshaller *base_marshaller,
                                             RedDrawablePipeItem *dpi)
 {
@@ -1283,7 +1259,7 @@ static void red_marshall_qxl_draw_whiteness(RedChannelClient *rcc,
     SpiceMarshaller *mask_bitmap_out;
     SpiceWhiteness whiteness;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_WHITENESS);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_WHITENESS);
     fill_base(base_marshaller, item);
     whiteness = drawable->u.whiteness;
 
@@ -1291,24 +1267,23 @@ static void red_marshall_qxl_draw_whiteness(RedChannelClient *rcc,
                              &whiteness,
                              &mask_bitmap_out);
 
-    fill_mask(rcc, mask_bitmap_out, whiteness.mask.bitmap, item);
+    fill_mask(dcc, mask_bitmap_out, whiteness.mask.bitmap, item);
 }
 
-static void red_lossy_marshall_qxl_draw_whiteness(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_whiteness(DisplayChannelClient *dcc,
                                                   SpiceMarshaller *base_marshaller,
                                                   RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     int has_mask = !!drawable->u.whiteness.mask.bitmap;
 
-    red_marshall_qxl_draw_whiteness(rcc, base_marshaller, dpi);
+    red_marshall_qxl_draw_whiteness(dcc, base_marshaller, dpi);
 
     surface_lossy_region_update(dcc, item, has_mask, FALSE);
 }
 
-static void red_marshall_qxl_draw_inverse(RedChannelClient *rcc,
+static void red_marshall_qxl_draw_inverse(DisplayChannelClient *dcc,
                                           SpiceMarshaller *base_marshaller,
                                           Drawable *item)
 {
@@ -1316,7 +1291,7 @@ static void red_marshall_qxl_draw_inverse(RedChannelClient *rcc,
     SpiceMarshaller *mask_bitmap_out;
     SpiceInvers inverse;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_INVERS);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_INVERS);
     fill_base(base_marshaller, item);
     inverse = drawable->u.invers;
 
@@ -1324,29 +1299,28 @@ static void red_marshall_qxl_draw_inverse(RedChannelClient *rcc,
                           &inverse,
                           &mask_bitmap_out);
 
-    fill_mask(rcc, mask_bitmap_out, inverse.mask.bitmap, item);
+    fill_mask(dcc, mask_bitmap_out, inverse.mask.bitmap, item);
 }
 
-static void red_lossy_marshall_qxl_draw_inverse(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_inverse(DisplayChannelClient *dcc,
                                                 SpiceMarshaller *base_marshaller,
                                                 Drawable *item)
 {
-    red_marshall_qxl_draw_inverse(rcc, base_marshaller, item);
+    red_marshall_qxl_draw_inverse(dcc, base_marshaller, item);
 }
 
-static void red_marshall_qxl_draw_rop3(RedChannelClient *rcc,
+static void red_marshall_qxl_draw_rop3(DisplayChannelClient *dcc,
                                        SpiceMarshaller *base_marshaller,
                                        RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     SpiceRop3 rop3;
     SpiceMarshaller *src_bitmap_out;
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *mask_bitmap_out;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_ROP3);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_ROP3);
     fill_base(base_marshaller, item);
     rop3 = drawable->u.rop3;
     spice_marshall_Rop3(base_marshaller,
@@ -1360,15 +1334,14 @@ static void red_marshall_qxl_draw_rop3(RedChannelClient *rcc,
     if (brush_pat_out) {
         fill_bits(dcc, brush_pat_out, rop3.brush.u.pattern.pat, item, FALSE);
     }
-    fill_mask(rcc, mask_bitmap_out, rop3.mask.bitmap, item);
+    fill_mask(dcc, mask_bitmap_out, rop3.mask.bitmap, item);
 }
 
-static void red_lossy_marshall_qxl_draw_rop3(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_rop3(DisplayChannelClient *dcc,
                                              SpiceMarshaller *base_marshaller,
                                              RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     int src_is_lossy;
     BitmapData src_bitmap_data;
@@ -1377,9 +1350,9 @@ static void red_lossy_marshall_qxl_draw_rop3(RedChannelClient *rcc,
     int dest_is_lossy;
     SpiceRect dest_lossy_area;
 
-    src_is_lossy = is_bitmap_lossy(rcc, drawable->u.rop3.src_bitmap,
+    src_is_lossy = is_bitmap_lossy(dcc, drawable->u.rop3.src_bitmap,
                                    &drawable->u.rop3.src_area, &src_bitmap_data);
-    brush_is_lossy = is_brush_lossy(rcc, &drawable->u.rop3.brush,
+    brush_is_lossy = is_brush_lossy(dcc, &drawable->u.rop3.brush,
                                     &brush_bitmap_data);
     dest_is_lossy = is_surface_area_lossy(dcc, drawable->surface_id,
                                           &drawable->bbox, &dest_lossy_area);
@@ -1388,7 +1361,7 @@ static void red_lossy_marshall_qxl_draw_rop3(RedChannelClient *rcc,
         (!brush_is_lossy || (brush_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE)) &&
         !dest_is_lossy) {
         int has_mask = !!drawable->u.rop3.mask.bitmap;
-        red_marshall_qxl_draw_rop3(rcc, base_marshaller, dpi);
+        red_marshall_qxl_draw_rop3(dcc, base_marshaller, dpi);
         surface_lossy_region_update(dcc, item, has_mask, FALSE);
     } else {
         int resend_surface_ids[3];
@@ -1413,23 +1386,22 @@ static void red_lossy_marshall_qxl_draw_rop3(RedChannelClient *rcc,
             num_resend++;
         }
 
-        red_add_lossless_drawable_dependencies(rcc, item,
+        red_add_lossless_drawable_dependencies(dcc, item,
                                                resend_surface_ids, resend_areas, num_resend);
     }
 }
 
-static void red_marshall_qxl_draw_composite(RedChannelClient *rcc,
+static void red_marshall_qxl_draw_composite(DisplayChannelClient *dcc,
                                             SpiceMarshaller *base_marshaller,
                                             RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     SpiceMarshaller *src_bitmap_out;
     SpiceMarshaller *mask_bitmap_out;
     SpiceComposite composite;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COMPOSITE);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COMPOSITE);
     fill_base(base_marshaller, item);
     composite = drawable->u.composite;
     spice_marshall_Composite(base_marshaller,
@@ -1443,12 +1415,11 @@ static void red_marshall_qxl_draw_composite(RedChannelClient *rcc,
     }
 }
 
-static void red_lossy_marshall_qxl_draw_composite(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_composite(DisplayChannelClient *dcc,
                                                   SpiceMarshaller *base_marshaller,
                                                   RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     int src_is_lossy;
     BitmapData src_bitmap_data;
@@ -1457,10 +1428,10 @@ static void red_lossy_marshall_qxl_draw_composite(RedChannelClient *rcc,
     int dest_is_lossy;
     SpiceRect dest_lossy_area;
 
-    src_is_lossy = is_bitmap_lossy(rcc, drawable->u.composite.src_bitmap,
+    src_is_lossy = is_bitmap_lossy(dcc, drawable->u.composite.src_bitmap,
                                    NULL, &src_bitmap_data);
     mask_is_lossy = drawable->u.composite.mask_bitmap &&
-        is_bitmap_lossy(rcc, drawable->u.composite.mask_bitmap, NULL, &mask_bitmap_data);
+        is_bitmap_lossy(dcc, drawable->u.composite.mask_bitmap, NULL, &mask_bitmap_data);
 
     dest_is_lossy = is_surface_area_lossy(dcc, drawable->surface_id,
                                           &drawable->bbox, &dest_lossy_area);
@@ -1468,7 +1439,7 @@ static void red_lossy_marshall_qxl_draw_composite(RedChannelClient *rcc,
     if ((!src_is_lossy || (src_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE))   &&
         (!mask_is_lossy || (mask_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE)) &&
         !dest_is_lossy) {
-        red_marshall_qxl_draw_composite(rcc, base_marshaller, dpi);
+        red_marshall_qxl_draw_composite(dcc, base_marshaller, dpi);
         surface_lossy_region_update(dcc, item, FALSE, FALSE);
     }
     else {
@@ -1494,23 +1465,22 @@ static void red_lossy_marshall_qxl_draw_composite(RedChannelClient *rcc,
             num_resend++;
         }
 
-        red_add_lossless_drawable_dependencies(rcc, item,
+        red_add_lossless_drawable_dependencies(dcc, item,
                                                resend_surface_ids, resend_areas, num_resend);
     }
 }
 
-static void red_marshall_qxl_draw_stroke(RedChannelClient *rcc,
+static void red_marshall_qxl_draw_stroke(DisplayChannelClient *dcc,
                                          SpiceMarshaller *base_marshaller,
                                          RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     SpiceStroke stroke;
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *style_out;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_STROKE);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_STROKE);
     fill_base(base_marshaller, item);
     stroke = drawable->u.stroke;
     spice_marshall_Stroke(base_marshaller,
@@ -1524,12 +1494,11 @@ static void red_marshall_qxl_draw_stroke(RedChannelClient *rcc,
     }
 }
 
-static void red_lossy_marshall_qxl_draw_stroke(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_stroke(DisplayChannelClient *dcc,
                                                SpiceMarshaller *base_marshaller,
                                                RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     int brush_is_lossy;
     BitmapData brush_bitmap_data;
@@ -1537,7 +1506,7 @@ static void red_lossy_marshall_qxl_draw_stroke(RedChannelClient *rcc,
     SpiceRect dest_lossy_area;
     int rop;
 
-    brush_is_lossy = is_brush_lossy(rcc, &drawable->u.stroke.brush,
+    brush_is_lossy = is_brush_lossy(dcc, &drawable->u.stroke.brush,
                                     &brush_bitmap_data);
 
     // back_mode is not used at the client. Ignoring.
@@ -1555,7 +1524,7 @@ static void red_lossy_marshall_qxl_draw_stroke(RedChannelClient *rcc,
     if (!dest_is_lossy &&
         (!brush_is_lossy || (brush_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE)))
     {
-        red_marshall_qxl_draw_stroke(rcc, base_marshaller, dpi);
+        red_marshall_qxl_draw_stroke(dcc, base_marshaller, dpi);
     } else {
         int resend_surface_ids[2];
         SpiceRect *resend_areas[2];
@@ -1574,23 +1543,22 @@ static void red_lossy_marshall_qxl_draw_stroke(RedChannelClient *rcc,
             num_resend++;
         }
 
-        red_add_lossless_drawable_dependencies(rcc, item,
+        red_add_lossless_drawable_dependencies(dcc, item,
                                                resend_surface_ids, resend_areas, num_resend);
     }
 }
 
-static void red_marshall_qxl_draw_text(RedChannelClient *rcc,
+static void red_marshall_qxl_draw_text(DisplayChannelClient *dcc,
                                        SpiceMarshaller *base_marshaller,
                                        RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     SpiceText text;
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *back_brush_pat_out;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_TEXT);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_TEXT);
     fill_base(base_marshaller, item);
     text = drawable->u.text;
     spice_marshall_Text(base_marshaller,
@@ -1606,12 +1574,11 @@ static void red_marshall_qxl_draw_text(RedChannelClient *rcc,
     }
 }
 
-static void red_lossy_marshall_qxl_draw_text(RedChannelClient *rcc,
+static void red_lossy_marshall_qxl_draw_text(DisplayChannelClient *dcc,
                                              SpiceMarshaller *base_marshaller,
                                              RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     RedDrawable *drawable = item->red_drawable;
     int fg_is_lossy;
     BitmapData fg_bitmap_data;
@@ -1621,9 +1588,9 @@ static void red_lossy_marshall_qxl_draw_text(RedChannelClient *rcc,
     SpiceRect dest_lossy_area;
     int rop = 0;
 
-    fg_is_lossy = is_brush_lossy(rcc, &drawable->u.text.fore_brush,
+    fg_is_lossy = is_brush_lossy(dcc, &drawable->u.text.fore_brush,
                                  &fg_bitmap_data);
-    bg_is_lossy = is_brush_lossy(rcc, &drawable->u.text.back_brush,
+    bg_is_lossy = is_brush_lossy(dcc, &drawable->u.text.back_brush,
                                  &bg_bitmap_data);
 
     // assuming that if the brush type is solid, the destination can
@@ -1645,7 +1612,7 @@ static void red_lossy_marshall_qxl_draw_text(RedChannelClient *rcc,
     if (!dest_is_lossy &&
         (!fg_is_lossy || (fg_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE)) &&
         (!bg_is_lossy || (bg_bitmap_data.type != BITMAP_DATA_TYPE_SURFACE))) {
-        red_marshall_qxl_draw_text(rcc, base_marshaller, dpi);
+        red_marshall_qxl_draw_text(dcc, base_marshaller, dpi);
     } else {
         int resend_surface_ids[3];
         SpiceRect *resend_areas[3];
@@ -1668,7 +1635,7 @@ static void red_lossy_marshall_qxl_draw_text(RedChannelClient *rcc,
             resend_areas[num_resend] = &dest_lossy_area;
             num_resend++;
         }
-        red_add_lossless_drawable_dependencies(rcc, item,
+        red_add_lossless_drawable_dependencies(dcc, item,
                                                resend_surface_ids, resend_areas, num_resend);
     }
 }
@@ -1679,11 +1646,10 @@ static void red_release_video_encoder_buffer(uint8_t *data, void *opaque)
     buffer->free(buffer);
 }
 
-static bool red_marshall_stream_data(RedChannelClient *rcc,
+static bool red_marshall_stream_data(DisplayChannelClient *dcc,
                                      SpiceMarshaller *base_marshaller,
                                      Drawable *drawable)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     DisplayChannel *display = DCC_TO_DC(dcc);
     VideoStream *stream = drawable->stream;
     SpiceCopy *copy;
@@ -1703,7 +1669,7 @@ static bool red_marshall_stream_data(RedChannelClient *rcc,
                !rect_is_equal(&drawable->red_drawable->bbox, &stream->dest_area);
 
     if (is_sized &&
-        !rcc->test_remote_cap(SPICE_DISPLAY_CAP_SIZED_STREAM)) {
+        !dcc->test_remote_cap(SPICE_DISPLAY_CAP_SIZED_STREAM)) {
         return FALSE;
     }
 
@@ -1739,7 +1705,7 @@ static bool red_marshall_stream_data(RedChannelClient *rcc,
     if (!is_sized) {
         SpiceMsgDisplayStreamData stream_data;
 
-        rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA);
+        dcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA);
 
         stream_data.base.id = stream_id;
         stream_data.base.multi_media_time = frame_mm_time;
@@ -1749,7 +1715,7 @@ static bool red_marshall_stream_data(RedChannelClient *rcc,
     } else {
         SpiceMsgDisplayStreamDataSized stream_data;
 
-        rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA_SIZED);
+        dcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA_SIZED);
 
         stream_data.base.id = stream_id;
         stream_data.base.multi_media_time = frame_mm_time;
@@ -1818,18 +1784,17 @@ static void display_channel_marshall_migrate_data_surfaces(DisplayChannelClient 
     spice_marshaller_set_uint32(m2, num_surfaces_created_ptr, num_surfaces_created);
 }
 
-static void display_channel_marshall_migrate_data(RedChannelClient *rcc,
+static void display_channel_marshall_migrate_data(DisplayChannelClient *dcc,
                                                   SpiceMarshaller *base_marshaller)
 {
     DisplayChannel *display_channel;
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     ImageEncoders *encoders = dcc_get_encoders(dcc);
     SpiceMigrateDataDisplay display_data = {0,};
     GlzEncDictRestoreData glz_dict_data;
 
-    display_channel = DISPLAY_CHANNEL(rcc->get_channel());
+    display_channel = DISPLAY_CHANNEL(dcc->get_channel());
 
-    rcc->init_send_data(SPICE_MSG_MIGRATE_DATA);
+    dcc->init_send_data(SPICE_MSG_MIGRATE_DATA);
     spice_marshaller_add_uint32(base_marshaller, SPICE_MIGRATE_DATA_DISPLAY_MAGIC);
     spice_marshaller_add_uint32(base_marshaller, SPICE_MIGRATE_DATA_DISPLAY_VERSION);
 
@@ -1837,7 +1802,7 @@ static void display_channel_marshall_migrate_data(RedChannelClient *rcc,
     SPICE_VERIFY(MIGRATE_DATA_DISPLAY_MAX_CACHE_CLIENTS == 4 &&
                  MIGRATE_DATA_DISPLAY_MAX_CACHE_CLIENTS == MAX_CACHE_CLIENTS);
 
-    display_data.message_serial = rcc->get_message_serial();
+    display_data.message_serial = dcc->get_message_serial();
     display_data.low_bandwidth_setting = dcc_is_low_bandwidth(dcc);
 
     display_data.pixmap_cache_freezer = pixmap_cache_freeze(dcc->priv->pixmap_cache);
@@ -1857,14 +1822,13 @@ static void display_channel_marshall_migrate_data(RedChannelClient *rcc,
                                                    display_channel->priv->enable_jpeg);
 }
 
-static void display_channel_marshall_pixmap_sync(RedChannelClient *rcc,
+static void display_channel_marshall_pixmap_sync(DisplayChannelClient *dcc,
                                                  SpiceMarshaller *base_marshaller)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     SpiceMsgWaitForChannels wait;
     PixmapCache *pixmap_cache;
 
-    rcc->init_send_data(SPICE_MSG_WAIT_FOR_CHANNELS);
+    dcc->init_send_data(SPICE_MSG_WAIT_FOR_CHANNELS);
     pixmap_cache = dcc->priv->pixmap_cache;
 
     pthread_mutex_lock(&pixmap_cache->lock);
@@ -1909,24 +1873,22 @@ static void dcc_pixmap_cache_reset(DisplayChannelClient *dcc, SpiceMsgWaitForCha
     pthread_mutex_unlock(&cache->lock);
 }
 
-static void display_channel_marshall_reset_cache(RedChannelClient *rcc,
+static void display_channel_marshall_reset_cache(DisplayChannelClient *dcc,
                                                  SpiceMarshaller *base_marshaller)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     SpiceMsgWaitForChannels wait;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_INVAL_ALL_PIXMAPS);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_INVAL_ALL_PIXMAPS);
     dcc_pixmap_cache_reset(dcc, &wait);
 
     spice_marshall_msg_display_inval_all_pixmaps(base_marshaller,
                                                  &wait);
 }
 
-static void red_marshall_image(RedChannelClient *rcc,
+static void red_marshall_image(DisplayChannelClient *dcc,
                                SpiceMarshaller *m,
                                RedImageItem *item)
 {
-    DisplayChannelClient *dcc;
     DisplayChannel *display;
     SpiceImage red_image;
     SpiceBitmap bitmap;
@@ -1936,9 +1898,7 @@ static void red_marshall_image(RedChannelClient *rcc,
     SpiceMarshaller *src_bitmap_out, *mask_bitmap_out;
     SpiceMarshaller *bitmap_palette_out, *lzplt_palette_out;
 
-    spice_assert(rcc && item);
-
-    dcc = DISPLAY_CHANNEL_CLIENT(rcc);
+    spice_assert(dcc && item);
 
     display = DCC_TO_DC(dcc);
     spice_assert(display);
@@ -1963,7 +1923,7 @@ static void red_marshall_image(RedChannelClient *rcc,
     chunks = spice_chunks_new_linear(item->data, bitmap.stride * bitmap.y);
     bitmap.data = chunks;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
 
     copy.base.surface_id = item->surface_id;
     copy.base.box.left = item->pos.x;
@@ -2022,60 +1982,60 @@ static void red_marshall_image(RedChannelClient *rcc,
     spice_chunks_destroy(chunks);
 }
 
-static void marshall_lossy_qxl_drawable(RedChannelClient *rcc,
+static void marshall_lossy_qxl_drawable(DisplayChannelClient *dcc,
                                         SpiceMarshaller *base_marshaller,
                                         RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
     switch (item->red_drawable->type) {
     case QXL_DRAW_FILL:
-        red_lossy_marshall_qxl_draw_fill(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_fill(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_OPAQUE:
-        red_lossy_marshall_qxl_draw_opaque(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_opaque(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_COPY:
-        red_lossy_marshall_qxl_draw_copy(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_copy(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_TRANSPARENT:
-        red_lossy_marshall_qxl_draw_transparent(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_transparent(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_ALPHA_BLEND:
-        red_lossy_marshall_qxl_draw_alpha_blend(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_alpha_blend(dcc, base_marshaller, dpi);
         break;
     case QXL_COPY_BITS:
-        red_lossy_marshall_qxl_copy_bits(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_copy_bits(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_BLEND:
-        red_lossy_marshall_qxl_draw_blend(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_blend(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_BLACKNESS:
-        red_lossy_marshall_qxl_draw_blackness(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_blackness(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_WHITENESS:
-        red_lossy_marshall_qxl_draw_whiteness(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_whiteness(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_INVERS:
-        red_lossy_marshall_qxl_draw_inverse(rcc, base_marshaller, item);
+        red_lossy_marshall_qxl_draw_inverse(dcc, base_marshaller, item);
         break;
     case QXL_DRAW_ROP3:
-        red_lossy_marshall_qxl_draw_rop3(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_rop3(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_COMPOSITE:
-        red_lossy_marshall_qxl_draw_composite(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_composite(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_STROKE:
-        red_lossy_marshall_qxl_draw_stroke(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_stroke(dcc, base_marshaller, dpi);
         break;
     case QXL_DRAW_TEXT:
-        red_lossy_marshall_qxl_draw_text(rcc, base_marshaller, dpi);
+        red_lossy_marshall_qxl_draw_text(dcc, base_marshaller, dpi);
         break;
     default:
         spice_warn_if_reached();
     }
 }
 
-static void marshall_lossless_qxl_drawable(RedChannelClient *rcc,
+static void marshall_lossless_qxl_drawable(DisplayChannelClient *dcc,
                                            SpiceMarshaller *m,
                                            RedDrawablePipeItem *dpi)
 {
@@ -2084,79 +2044,78 @@ static void marshall_lossless_qxl_drawable(RedChannelClient *rcc,
 
     switch (drawable->type) {
     case QXL_DRAW_FILL:
-        marshall_qxl_draw_fill(rcc, m, dpi);
+        marshall_qxl_draw_fill(dcc, m, dpi);
         break;
     case QXL_DRAW_OPAQUE:
-        red_marshall_qxl_draw_opaque(rcc, m, dpi, FALSE);
+        red_marshall_qxl_draw_opaque(dcc, m, dpi, FALSE);
         break;
     case QXL_DRAW_COPY:
-        red_marshall_qxl_draw_copy(rcc, m, dpi, FALSE);
+        red_marshall_qxl_draw_copy(dcc, m, dpi, FALSE);
         break;
     case QXL_DRAW_TRANSPARENT:
-        red_marshall_qxl_draw_transparent(rcc, m, dpi);
+        red_marshall_qxl_draw_transparent(dcc, m, dpi);
         break;
     case QXL_DRAW_ALPHA_BLEND:
-        red_marshall_qxl_draw_alpha_blend(rcc, m, dpi, FALSE);
+        red_marshall_qxl_draw_alpha_blend(dcc, m, dpi, FALSE);
         break;
     case QXL_COPY_BITS:
-        red_marshall_qxl_copy_bits(rcc, m, dpi);
+        red_marshall_qxl_copy_bits(dcc, m, dpi);
         break;
     case QXL_DRAW_BLEND:
-        red_marshall_qxl_draw_blend(rcc, m, dpi);
+        red_marshall_qxl_draw_blend(dcc, m, dpi);
         break;
     case QXL_DRAW_BLACKNESS:
-        red_marshall_qxl_draw_blackness(rcc, m, dpi);
+        red_marshall_qxl_draw_blackness(dcc, m, dpi);
         break;
     case QXL_DRAW_WHITENESS:
-        red_marshall_qxl_draw_whiteness(rcc, m, dpi);
+        red_marshall_qxl_draw_whiteness(dcc, m, dpi);
         break;
     case QXL_DRAW_INVERS:
-        red_marshall_qxl_draw_inverse(rcc, m, item);
+        red_marshall_qxl_draw_inverse(dcc, m, item);
         break;
     case QXL_DRAW_ROP3:
-        red_marshall_qxl_draw_rop3(rcc, m, dpi);
+        red_marshall_qxl_draw_rop3(dcc, m, dpi);
         break;
     case QXL_DRAW_STROKE:
-        red_marshall_qxl_draw_stroke(rcc, m, dpi);
+        red_marshall_qxl_draw_stroke(dcc, m, dpi);
         break;
     case QXL_DRAW_COMPOSITE:
-        red_marshall_qxl_draw_composite(rcc, m, dpi);
+        red_marshall_qxl_draw_composite(dcc, m, dpi);
         break;
     case QXL_DRAW_TEXT:
-        red_marshall_qxl_draw_text(rcc, m, dpi);
+        red_marshall_qxl_draw_text(dcc, m, dpi);
         break;
     default:
         spice_warn_if_reached();
     }
 }
 
-static void marshall_qxl_drawable(RedChannelClient *rcc,
+static void marshall_qxl_drawable(DisplayChannelClient *dcc,
                                   SpiceMarshaller *m,
                                   RedDrawablePipeItem *dpi)
 {
-    spice_return_if_fail(rcc);
+    spice_return_if_fail(dcc);
 
     Drawable *item = dpi->drawable;
     DisplayChannel *display =
-        DISPLAY_CHANNEL(rcc->get_channel());
+        DISPLAY_CHANNEL(dcc->get_channel());
 
     spice_return_if_fail(display);
     /* allow sized frames to be streamed, even if they where replaced by another frame, since
      * newer frames might not cover sized frames completely if they are bigger */
-    if (item->stream && red_marshall_stream_data(rcc, m, item)) {
+    if (item->stream && red_marshall_stream_data(dcc, m, item)) {
         return;
     }
     if (display->priv->enable_jpeg)
-        marshall_lossy_qxl_drawable(rcc, m, dpi);
+        marshall_lossy_qxl_drawable(dcc, m, dpi);
     else
-        marshall_lossless_qxl_drawable(rcc, m, dpi);
+        marshall_lossless_qxl_drawable(dcc, m, dpi);
 }
 
-static void marshall_stream_start(RedChannelClient *rcc,
+static void marshall_stream_start(DisplayChannelClient *dcc,
                                   SpiceMarshaller *base_marshaller,
                                   VideoStreamAgent *agent)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     VideoStream *stream = agent->stream;
 
     spice_assert(stream);
@@ -2164,7 +2123,7 @@ static void marshall_stream_start(RedChannelClient *rcc,
         /* Without a video encoder nothing will be streamed */
         return;
     }
-    rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_CREATE);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_CREATE);
     SpiceMsgDisplayStreamCreate stream_create;
     SpiceClipRects clip_rects;
 
@@ -2193,16 +2152,15 @@ static void marshall_stream_start(RedChannelClient *rcc,
     spice_marshall_msg_display_stream_create(base_marshaller, &stream_create);
 }
 
-static void marshall_stream_clip(RedChannelClient *rcc,
+static void marshall_stream_clip(DisplayChannelClient *dcc,
                                  SpiceMarshaller *base_marshaller,
                                  VideoStreamClipItem *item)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     VideoStreamAgent *agent = item->stream_agent;
 
     spice_return_if_fail(agent->stream);
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_CLIP);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_CLIP);
     SpiceMsgDisplayStreamClip stream_clip;
 
     stream_clip.id = display_channel_get_video_stream_id(DCC_TO_DC(dcc), agent->stream);
@@ -2212,30 +2170,28 @@ static void marshall_stream_clip(RedChannelClient *rcc,
     spice_marshall_msg_display_stream_clip(base_marshaller, &stream_clip);
 }
 
-static void marshall_stream_end(RedChannelClient *rcc,
+static void marshall_stream_end(DisplayChannelClient *dcc,
                                 SpiceMarshaller *base_marshaller,
                                 VideoStreamAgent* agent)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     SpiceMsgDisplayStreamDestroy destroy;
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DESTROY);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DESTROY);
     destroy.id = display_channel_get_video_stream_id(DCC_TO_DC(dcc), agent->stream);
     video_stream_agent_stop(agent);
     spice_marshall_msg_display_stream_destroy(base_marshaller, &destroy);
 }
 
-static void marshall_upgrade(RedChannelClient *rcc, SpiceMarshaller *m,
+static void marshall_upgrade(DisplayChannelClient *dcc, SpiceMarshaller *m,
                              RedUpgradeItem *item)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-    RedChannel *channel = rcc->get_channel();
+    RedChannel *channel = dcc->get_channel();
     RedDrawable *red_drawable;
     SpiceMsgDisplayDrawCopy copy;
     SpiceMarshaller *src_bitmap_out, *mask_bitmap_out;
 
     spice_assert(channel && item && item->drawable);
-    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
 
     red_drawable = item->drawable->red_drawable;
     spice_assert(red_drawable->type == QXL_DRAW_COPY);
@@ -2254,26 +2210,23 @@ static void marshall_upgrade(RedChannelClient *rcc, SpiceMarshaller *m,
     fill_bits(dcc, src_bitmap_out, copy.data.src_bitmap, item->drawable, FALSE);
 }
 
-static void marshall_surface_create(RedChannelClient *rcc,
+static void marshall_surface_create(DisplayChannelClient *dcc,
                                     SpiceMarshaller *base_marshaller,
                                     SpiceMsgSurfaceCreate *surface_create)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-
     region_init(&dcc->priv->surface_client_lossy_region[surface_create->surface_id]);
-    rcc->init_send_data(SPICE_MSG_DISPLAY_SURFACE_CREATE);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_SURFACE_CREATE);
 
     spice_marshall_msg_display_surface_create(base_marshaller, surface_create);
 }
 
-static void marshall_surface_destroy(RedChannelClient *rcc,
+static void marshall_surface_destroy(DisplayChannelClient *dcc,
                                      SpiceMarshaller *base_marshaller, uint32_t surface_id)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     SpiceMsgSurfaceDestroy surface_destroy;
 
     region_destroy(&dcc->priv->surface_client_lossy_region[surface_id]);
-    rcc->init_send_data(SPICE_MSG_DISPLAY_SURFACE_DESTROY);
+    dcc->init_send_data(SPICE_MSG_DISPLAY_SURFACE_DESTROY);
 
     surface_destroy.surface_id = surface_id;
 
@@ -2321,17 +2274,16 @@ static void marshall_stream_activate_report(RedChannelClient *rcc,
     spice_marshall_msg_display_stream_activate_report(base_marshaller, &msg);
 }
 
-static void marshall_gl_scanout(RedChannelClient *rcc,
+static void marshall_gl_scanout(DisplayChannelClient *dcc,
                                 SpiceMarshaller *m,
                                 RedPipeItem *item)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     DisplayChannel *display_channel = DCC_TO_DC(dcc);
     QXLInstance* qxl = display_channel->priv->qxl;
 
     SpiceMsgDisplayGlScanoutUnix *scanout = red_qxl_get_gl_scanout(qxl);
     if (scanout != NULL) {
-        rcc->init_send_data(SPICE_MSG_DISPLAY_GL_SCANOUT_UNIX);
+        dcc->init_send_data(SPICE_MSG_DISPLAY_GL_SCANOUT_UNIX);
         spice_marshall_msg_display_gl_scanout_unix(m, scanout);
     }
     red_qxl_put_gl_scanout(qxl, scanout);
@@ -2348,9 +2300,8 @@ static void marshall_gl_draw(RedChannelClient *rcc,
 }
 
 
-static void begin_send_message(RedChannelClient *rcc)
+static void begin_send_message(DisplayChannelClient *dcc)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     FreeList *free_list = &dcc->priv->send_data.free_list;
 
     if (free_list->res->count) {
@@ -2366,13 +2317,13 @@ static void begin_send_message(RedChannelClient *rcc)
         }
         free_list->wait.header.wait_count = sync_count;
 
-        if (rcc->is_mini_header()) {
-            send_free_list(rcc);
+        if (dcc->is_mini_header()) {
+            send_free_list(dcc);
         } else {
-            send_free_list_legacy(rcc);
+            send_free_list_legacy(dcc);
         }
     }
-    rcc->begin_send_message();
+    dcc->begin_send_message();
 }
 
 static void reset_send_data(DisplayChannelClient *dcc)
