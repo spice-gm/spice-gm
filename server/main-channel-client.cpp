@@ -403,62 +403,63 @@ void main_channel_client_handle_migrate_dst_do_seamless(MainChannelClient *mcc,
         mcc->pipe_add_empty_msg(SPICE_MSG_MAIN_MIGRATE_DST_SEAMLESS_NACK);
     }
 }
-void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping, uint32_t size)
+
+void MainChannelClient::handle_pong(SpiceMsgPing *ping, uint32_t size)
 {
     uint64_t roundtrip;
 
     roundtrip = spice_get_monotonic_time_ns() / NSEC_PER_MICROSEC - ping->timestamp;
 
-    if (ping->id != mcc->priv->net_test_id) {
+    if (ping->id != priv->net_test_id) {
         /*
          * channel client monitors the connectivity using ping-pong messages
          */
-        mcc->RedChannelClient::handle_message(SPICE_MSGC_PONG, size, ping);
+        RedChannelClient::handle_message(SPICE_MSGC_PONG, size, ping);
         return;
     }
 
-    switch (mcc->priv->net_test_stage) {
+    switch (priv->net_test_stage) {
     case NET_TEST_STAGE_WARMUP:
-        mcc->priv->net_test_id++;
-        mcc->priv->net_test_stage = NET_TEST_STAGE_LATENCY;
-        mcc->priv->latency = roundtrip;
+        priv->net_test_id++;
+        priv->net_test_stage = NET_TEST_STAGE_LATENCY;
+        priv->latency = roundtrip;
         break;
     case NET_TEST_STAGE_LATENCY:
-        mcc->priv->net_test_id++;
-        mcc->priv->net_test_stage = NET_TEST_STAGE_RATE;
-        mcc->priv->latency = MIN(mcc->priv->latency, roundtrip);
+        priv->net_test_id++;
+        priv->net_test_stage = NET_TEST_STAGE_RATE;
+        priv->latency = MIN(priv->latency, roundtrip);
         break;
     case NET_TEST_STAGE_RATE:
-        mcc->priv->net_test_id = 0;
-        if (roundtrip <= mcc->priv->latency) {
+        priv->net_test_id = 0;
+        if (roundtrip <= priv->latency) {
             // probably high load on client or server result with incorrect values
-            red_channel_debug(mcc->get_channel(),
+            red_channel_debug(get_channel(),
                               "net test: invalid values, latency %" G_GUINT64_FORMAT
                               " roundtrip %" G_GUINT64_FORMAT ". assuming high"
-                              "bandwidth", mcc->priv->latency, roundtrip);
-            mcc->priv->latency = 0;
-            mcc->priv->net_test_stage = NET_TEST_STAGE_INVALID;
-            mcc->start_connectivity_monitoring(CLIENT_CONNECTIVITY_TIMEOUT);
+                              "bandwidth", priv->latency, roundtrip);
+            priv->latency = 0;
+            priv->net_test_stage = NET_TEST_STAGE_INVALID;
+            start_connectivity_monitoring(CLIENT_CONNECTIVITY_TIMEOUT);
             break;
         }
-        mcc->priv->bitrate_per_sec = (uint64_t)(NET_TEST_BYTES * 8) * 1000000
-            / (roundtrip - mcc->priv->latency);
-        mcc->priv->net_test_stage = NET_TEST_STAGE_COMPLETE;
-        red_channel_debug(mcc->get_channel(),
+        priv->bitrate_per_sec = (uint64_t)(NET_TEST_BYTES * 8) * 1000000
+            / (roundtrip - priv->latency);
+        priv->net_test_stage = NET_TEST_STAGE_COMPLETE;
+        red_channel_debug(get_channel(),
                           "net test: latency %f ms, bitrate %" G_GUINT64_FORMAT " bps (%f Mbps)%s",
-                          (double)mcc->priv->latency / 1000,
-                          mcc->priv->bitrate_per_sec,
-                          (double)mcc->priv->bitrate_per_sec / 1024 / 1024,
-                          main_channel_client_is_low_bandwidth(mcc) ? " LOW BANDWIDTH" : "");
-        mcc->start_connectivity_monitoring(CLIENT_CONNECTIVITY_TIMEOUT);
+                          (double)priv->latency / 1000,
+                          priv->bitrate_per_sec,
+                          (double)priv->bitrate_per_sec / 1024 / 1024,
+                          main_channel_client_is_low_bandwidth(this) ? " LOW BANDWIDTH" : "");
+        start_connectivity_monitoring(CLIENT_CONNECTIVITY_TIMEOUT);
         break;
     default:
-        red_channel_warning(mcc->get_channel(),
+        red_channel_warning(get_channel(),
                             "invalid net test stage, ping id %d test id %d stage %d",
                             ping->id,
-                            mcc->priv->net_test_id,
-                            mcc->priv->net_test_stage);
-        mcc->priv->net_test_stage = NET_TEST_STAGE_INVALID;
+                            priv->net_test_id,
+                            priv->net_test_stage);
+        priv->net_test_stage = NET_TEST_STAGE_INVALID;
     }
 }
 

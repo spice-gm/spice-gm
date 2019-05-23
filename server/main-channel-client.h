@@ -37,6 +37,8 @@ public:
                       RedChannelCapabilities *caps,
                       uint32_t connection_id);
 
+    void handle_pong(SpiceMsgPing *ping, uint32_t size);
+
 protected:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
@@ -80,8 +82,6 @@ void main_channel_client_migrate_cancel_wait(MainChannelClient *mcc);
 void main_channel_client_migrate_dst_complete(MainChannelClient *mcc);
 gboolean main_channel_client_migrate_src_complete(MainChannelClient *mcc,
                                                   gboolean success);
-
-void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping, uint32_t size);
 
 /*
  * return TRUE if network test had been completed successfully.

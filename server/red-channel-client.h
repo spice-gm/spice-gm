@@ -54,8 +54,6 @@ public:
      * thread. It will not touch the rings, just shutdown the socket.
      * It should be followed by some way to guarantee a disconnection. */
     void shutdown();
-    /* handles general channel msgs from the client */
-    virtual bool handle_message(uint16_t type, uint32_t size, void *message);
     /* when preparing send_data: should call init and then use marshaller */
     void init_send_data(uint16_t msg_type);
 
@@ -155,6 +153,9 @@ public:
 protected:
     bool test_remote_common_cap(uint32_t cap) const;
     void init_outgoing_messages_window();
+
+    /* handles general channel msgs from the client */
+    virtual bool handle_message(uint16_t type, uint32_t size, void *message);
 
     /* configure socket connected to the client */
     virtual bool config_socket() { return true; }

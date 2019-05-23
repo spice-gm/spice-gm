@@ -191,7 +191,7 @@ bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *messa
         reds_on_main_mouse_mode_request(reds, message, size);
         break;
     case SPICE_MSGC_PONG:
-        main_channel_client_handle_pong(this, (SpiceMsgPing *)message, size);
+        handle_pong((SpiceMsgPing *)message, size);
         break;
     default:
         return RedChannelClient::handle_message(type, size, message);
