@@ -44,10 +44,13 @@ public:
                          spice_wan_compression_t jpeg_state,
                          spice_wan_compression_t zlib_glz_state);
 
+protected:
     virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
     virtual bool config_socket() override;
     virtual void on_disconnect() override;
+    virtual void send_item(RedPipeItem *item) override;
 
+public:
     red::unique_link<DisplayChannelClientPrivate> priv;
 
     int is_low_bandwidth;
@@ -162,8 +165,6 @@ void                       dcc_append_drawable                       (DisplayCha
 void                       dcc_add_drawable_after                    (DisplayChannelClient *dcc,
                                                                       Drawable *drawable,
                                                                       RedPipeItem *pos);
-void                       dcc_send_item                             (RedChannelClient *dcc,
-                                                                      RedPipeItem *item);
 bool                       dcc_clear_surface_drawables_from_pipe     (DisplayChannelClient *dcc,
                                                                       int surface_id,
                                                                       int wait_if_used);

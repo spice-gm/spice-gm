@@ -43,9 +43,11 @@ public:
 
     using RedChannelClient::RedChannelClient;
 
+protected:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
     virtual void on_disconnect() override;
+    virtual void send_item(RedPipeItem *base) override;
 };
 
 RedChannelClient* inputs_channel_client_create(RedChannel *channel,

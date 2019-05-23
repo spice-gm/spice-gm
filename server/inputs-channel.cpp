@@ -232,16 +232,16 @@ static RedPipeItem *red_inputs_key_modifiers_item_new(uint8_t modifiers)
     return &item->base;
 }
 
-static void inputs_channel_send_item(RedChannelClient *rcc, RedPipeItem *base)
+void InputsChannelClient::send_item(RedPipeItem *base)
 {
-    SpiceMarshaller *m = rcc->get_marshaller();
+    SpiceMarshaller *m = get_marshaller();
 
     switch (base->type) {
         case RED_PIPE_ITEM_KEY_MODIFIERS:
         {
             SpiceMsgInputsKeyModifiers key_modifiers;
 
-            rcc->init_send_data(SPICE_MSG_INPUTS_KEY_MODIFIERS);
+            init_send_data(SPICE_MSG_INPUTS_KEY_MODIFIERS);
             key_modifiers.modifiers =
                 SPICE_UPCAST(RedKeyModifiersPipeItem, base)->modifiers;
             spice_marshall_msg_inputs_key_modifiers(m, &key_modifiers);
@@ -251,24 +251,24 @@ static void inputs_channel_send_item(RedChannelClient *rcc, RedPipeItem *base)
         {
             SpiceMsgInputsInit inputs_init;
 
-            rcc->init_send_data(SPICE_MSG_INPUTS_INIT);
+            init_send_data(SPICE_MSG_INPUTS_INIT);
             inputs_init.keyboard_modifiers =
                 SPICE_UPCAST(RedInputsInitPipeItem, base)->modifiers;
             spice_marshall_msg_inputs_init(m, &inputs_init);
             break;
         }
         case RED_PIPE_ITEM_MOUSE_MOTION_ACK:
-            rcc->init_send_data(SPICE_MSG_INPUTS_MOUSE_MOTION_ACK);
+            init_send_data(SPICE_MSG_INPUTS_MOUSE_MOTION_ACK);
             break;
         case RED_PIPE_ITEM_MIGRATE_DATA:
-            INPUTS_CHANNEL(rcc->get_channel())->src_during_migrate = FALSE;
-            inputs_channel_client_send_migrate_data(rcc, m, base);
+            INPUTS_CHANNEL(get_channel())->src_during_migrate = FALSE;
+            inputs_channel_client_send_migrate_data(this, m, base);
             break;
         default:
             spice_warning("invalid pipe iten %d", base->type);
             break;
     }
-    rcc->begin_send_message();
+    begin_send_message();
 }
 
 bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *message)
@@ -616,7 +616,6 @@ inputs_channel_class_init(InputsChannelClass *klass)
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_INPUTS, NULL);
 
     /* channel callbacks */
-    channel_class->send_item = inputs_channel_send_item;
     channel_class->handle_migrate_data = inputs_channel_handle_migrate_data;
     channel_class->handle_migrate_flush_mark = inputs_channel_handle_migrate_flush_mark;
 

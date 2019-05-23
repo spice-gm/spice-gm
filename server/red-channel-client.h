@@ -159,6 +159,13 @@ public:
 
     virtual void on_disconnect() {};
 
+    // TODO: add ASSERTS for thread_id  in client and channel calls
+    /*
+     * callbacks that are triggered from channel client stream events.
+     * They are called from the thread that listen to the stream events.
+     */
+    virtual void send_item(RedPipeItem *item) {};
+
     /* Private functions */
 private:
     void send_any_item(RedPipeItem *item);

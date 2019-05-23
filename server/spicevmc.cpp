@@ -161,6 +161,7 @@ protected:
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
     virtual void on_disconnect() override;
     virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
+    virtual void send_item(RedPipeItem *item) override;
 };
 
 static RedChannelClient *
@@ -665,29 +666,28 @@ static void spicevmc_red_channel_send_port_event(RedChannelClient *rcc,
     spice_marshall_msg_port_event(m, &event);
 }
 
-static void spicevmc_red_channel_send_item(RedChannelClient *rcc,
-                                           RedPipeItem *item)
+void VmcChannelClient::send_item(RedPipeItem *item)
 {
-    SpiceMarshaller *m = rcc->get_marshaller();
+    SpiceMarshaller *m = get_marshaller();
 
     switch (item->type) {
     case RED_PIPE_ITEM_TYPE_SPICEVMC_DATA:
-        spicevmc_red_channel_send_data(rcc, m, item);
+        spicevmc_red_channel_send_data(this, m, item);
         break;
     case RED_PIPE_ITEM_TYPE_SPICEVMC_MIGRATE_DATA:
-        spicevmc_red_channel_send_migrate_data(rcc, m, item);
+        spicevmc_red_channel_send_migrate_data(this, m, item);
         break;
     case RED_PIPE_ITEM_TYPE_PORT_INIT:
-        spicevmc_red_channel_send_port_init(rcc, m, item);
+        spicevmc_red_channel_send_port_init(this, m, item);
         break;
     case RED_PIPE_ITEM_TYPE_PORT_EVENT:
-        spicevmc_red_channel_send_port_event(rcc, m, item);
+        spicevmc_red_channel_send_port_event(this, m, item);
         break;
     default:
         spice_error("bad pipe item %d", item->type);
         return;
     }
-    rcc->begin_send_message();
+    begin_send_message();
 }
 
 
@@ -700,7 +700,6 @@ red_vmc_channel_class_init(RedVmcChannelClass *klass)
     object_class->constructed = red_vmc_channel_constructed;
     object_class->finalize = red_vmc_channel_finalize;
 
-    channel_class->send_item = spicevmc_red_channel_send_item;
     channel_class->handle_migrate_flush_mark = spicevmc_channel_client_handle_migrate_flush_mark;
     channel_class->handle_migrate_data = spicevmc_channel_client_handle_migrate_data;
 

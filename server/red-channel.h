@@ -44,8 +44,6 @@ struct RedChannelClient;
 struct RedClient;
 struct MainChannelClient;
 
-typedef void (*channel_send_pipe_item_proc)(RedChannelClient *rcc, RedPipeItem *item);
-
 typedef bool (*channel_handle_migrate_flush_mark_proc)(RedChannelClient *base);
 typedef bool (*channel_handle_migrate_data_proc)(RedChannelClient *base,
                                                  uint32_t size, void *message);
@@ -77,12 +75,6 @@ struct RedChannelClass
      */
     spice_parse_channel_func_t parser;
 
-    // TODO: add ASSERTS for thread_id  in client and channel calls
-    /*
-     * callbacks that are triggered from channel client stream events.
-     * They are called from the thread that listen to the stream events.
-     */
-    channel_send_pipe_item_proc send_item;
     channel_handle_migrate_flush_mark_proc handle_migrate_flush_mark;
     channel_handle_migrate_data_proc handle_migrate_data;
     channel_handle_migrate_data_get_serial_proc handle_migrate_data_get_serial;
@@ -180,7 +172,6 @@ struct RedChannel: public GObject
     SpiceCoreInterfaceInternal* get_core_interface();
 
     /* channel callback function */
-    void send_item(RedChannelClient *rcc, RedPipeItem *item);
     void reset_thread_id();
     const RedStatNode *get_stat_node();
 

@@ -517,7 +517,7 @@ void RedChannelClient::send_any_item(RedPipeItem *item)
             SPICE_UPCAST(MarkerPipeItem, item)->item_sent = true;
             break;
         default:
-            priv->channel->send_item(this, item);
+            send_item(item);
             break;
     }
     red_pipe_item_unref(item);

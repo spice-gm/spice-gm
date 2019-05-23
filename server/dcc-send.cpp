@@ -2383,86 +2383,86 @@ static void reset_send_data(DisplayChannelClient *dcc)
            sizeof(dcc->priv->send_data.free_list.sync));
 }
 
-void dcc_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
+void DisplayChannelClient::send_item(RedPipeItem *pipe_item)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-    SpiceMarshaller *m = rcc->get_marshaller();
+    DisplayChannelClient *dcc = this;
+    SpiceMarshaller *m = get_marshaller();
 
-    reset_send_data(dcc);
+    ::reset_send_data(dcc);
     switch (pipe_item->type) {
     case RED_PIPE_ITEM_TYPE_DRAW: {
         RedDrawablePipeItem *dpi = SPICE_UPCAST(RedDrawablePipeItem, pipe_item);
-        marshall_qxl_drawable(rcc, m, dpi);
+        marshall_qxl_drawable(this, m, dpi);
         break;
     }
     case RED_PIPE_ITEM_TYPE_INVAL_ONE:
-        marshall_inval_palette(rcc, m, SPICE_CONTAINEROF(pipe_item, RedCacheItem, u.pipe_data));
+        marshall_inval_palette(this, m, SPICE_CONTAINEROF(pipe_item, RedCacheItem, u.pipe_data));
         break;
     case RED_PIPE_ITEM_TYPE_STREAM_CREATE: {
         StreamCreateDestroyItem *item = SPICE_UPCAST(StreamCreateDestroyItem, pipe_item);
-        marshall_stream_start(rcc, m, item->agent);
+        marshall_stream_start(this, m, item->agent);
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_CLIP:
-        marshall_stream_clip(rcc, m, SPICE_UPCAST(VideoStreamClipItem, pipe_item));
+        marshall_stream_clip(this, m, SPICE_UPCAST(VideoStreamClipItem, pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_STREAM_DESTROY: {
         StreamCreateDestroyItem *item = SPICE_UPCAST(StreamCreateDestroyItem, pipe_item);
-        marshall_stream_end(rcc, m, item->agent);
+        marshall_stream_end(this, m, item->agent);
         break;
     }
     case RED_PIPE_ITEM_TYPE_UPGRADE:
-        marshall_upgrade(rcc, m, SPICE_UPCAST(RedUpgradeItem, pipe_item));
+        marshall_upgrade(this, m, SPICE_UPCAST(RedUpgradeItem, pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_MIGRATE_DATA:
-        display_channel_marshall_migrate_data(rcc, m);
+        display_channel_marshall_migrate_data(this, m);
         break;
     case RED_PIPE_ITEM_TYPE_IMAGE:
-        red_marshall_image(rcc, m, SPICE_UPCAST(RedImageItem, pipe_item));
+        red_marshall_image(this, m, SPICE_UPCAST(RedImageItem, pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_PIXMAP_SYNC:
-        display_channel_marshall_pixmap_sync(rcc, m);
+        display_channel_marshall_pixmap_sync(this, m);
         break;
     case RED_PIPE_ITEM_TYPE_PIXMAP_RESET:
-        display_channel_marshall_reset_cache(rcc, m);
+        display_channel_marshall_reset_cache(this, m);
         break;
     case RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE:
         dcc_palette_cache_reset(dcc);
-        rcc->init_send_data(SPICE_MSG_DISPLAY_INVAL_ALL_PALETTES);
+        init_send_data(SPICE_MSG_DISPLAY_INVAL_ALL_PALETTES);
         break;
     case RED_PIPE_ITEM_TYPE_CREATE_SURFACE: {
         RedSurfaceCreateItem *surface_create = SPICE_UPCAST(RedSurfaceCreateItem, pipe_item);
-        marshall_surface_create(rcc, m, &surface_create->surface_create);
+        marshall_surface_create(this, m, &surface_create->surface_create);
         break;
     }
     case RED_PIPE_ITEM_TYPE_DESTROY_SURFACE: {
         RedSurfaceDestroyItem *surface_destroy = SPICE_UPCAST(RedSurfaceDestroyItem, pipe_item);
-        marshall_surface_destroy(rcc, m, surface_destroy->surface_destroy.surface_id);
+        marshall_surface_destroy(this, m, surface_destroy->surface_destroy.surface_id);
         break;
     }
     case RED_PIPE_ITEM_TYPE_MONITORS_CONFIG: {
         RedMonitorsConfigItem *monconf_item = SPICE_UPCAST(RedMonitorsConfigItem, pipe_item);
-        marshall_monitors_config(rcc, m, monconf_item->monitors_config);
+        marshall_monitors_config(this, m, monconf_item->monitors_config);
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT: {
         RedStreamActivateReportItem *report_item =
             SPICE_UPCAST(RedStreamActivateReportItem, pipe_item);
-        marshall_stream_activate_report(rcc, m, report_item);
+        marshall_stream_activate_report(this, m, report_item);
         break;
     }
     case RED_PIPE_ITEM_TYPE_GL_SCANOUT:
-        marshall_gl_scanout(rcc, m, pipe_item);
+        marshall_gl_scanout(this, m, pipe_item);
         break;
     case RED_PIPE_ITEM_TYPE_GL_DRAW:
-        marshall_gl_draw(rcc, m, pipe_item);
+        marshall_gl_draw(this, m, pipe_item);
         break;
     default:
         spice_warn_if_reached();
     }
 
     // a message is pending
-    if (rcc->send_message_pending()) {
-        begin_send_message(rcc);
+    if (send_message_pending()) {
+        ::begin_send_message(this);
     }
 }

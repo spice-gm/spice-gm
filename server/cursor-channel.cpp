@@ -193,19 +193,17 @@ static inline void red_marshall_inval(RedChannelClient *rcc,
     spice_marshall_msg_cursor_inval_one(base_marshaller, &inval_one);
 }
 
-XXX_CAST(RedChannelClient, CursorChannelClient, CURSOR_CHANNEL_CLIENT);
-
-static void cursor_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
+void CursorChannelClient::send_item(RedPipeItem *pipe_item)
 {
-    SpiceMarshaller *m = rcc->get_marshaller();
-    CursorChannelClient *ccc = CURSOR_CHANNEL_CLIENT(rcc);
+    SpiceMarshaller *m = get_marshaller();
+    CursorChannelClient *ccc = this;
 
     switch (pipe_item->type) {
     case RED_PIPE_ITEM_TYPE_CURSOR:
         red_marshall_cursor(ccc, m, SPICE_UPCAST(RedCursorPipeItem, pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_INVAL_ONE:
-        red_marshall_inval(rcc, m, SPICE_CONTAINEROF(pipe_item, RedCacheItem, u.pipe_data));
+        red_marshall_inval(this, m, SPICE_CONTAINEROF(pipe_item, RedCacheItem, u.pipe_data));
         break;
     case RED_PIPE_ITEM_TYPE_CURSOR_INIT:
         cursor_channel_client_reset_cursor_cache(ccc);
@@ -219,7 +217,7 @@ static void cursor_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_it
         spice_error("invalid pipe item type");
     }
 
-    rcc->begin_send_message();
+    begin_send_message();
 }
 
 CursorChannel* cursor_channel_new(RedsState *server, int id,
@@ -385,8 +383,6 @@ cursor_channel_class_init(CursorChannelClass *klass)
     object_class->finalize = cursor_channel_finalize;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_CURSOR, NULL);
-
-    channel_class->send_item = cursor_channel_send_item;
 
     // client callbacks
     channel_class->connect = (channel_client_connect_proc) cursor_channel_connect;

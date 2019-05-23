@@ -278,7 +278,6 @@ main_channel_class_init(MainChannelClass *klass)
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_MAIN, NULL);
 
     /* channel callbacks */
-    channel_class->send_item = main_channel_client_send_item;
     channel_class->handle_migrate_flush_mark = main_channel_handle_migrate_flush_mark;
     channel_class->handle_migrate_data = main_channel_handle_migrate_data;
 

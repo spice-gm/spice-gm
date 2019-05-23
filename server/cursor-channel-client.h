@@ -37,7 +37,11 @@ public:
                         RedClient *client,
                         RedStream *stream,
                         RedChannelCapabilities *caps);
+protected:
     virtual void on_disconnect() override;
+    void send_item(RedPipeItem *pipe_item) override;
+
+public:
     red::unique_link<CursorChannelClientPrivate> priv;
 };
 

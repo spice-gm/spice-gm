@@ -42,6 +42,7 @@ protected:
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
     virtual void on_disconnect() override;
     virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
+    virtual void send_item(RedPipeItem *item)  override;
 
 public:
     red::unique_link<MainChannelClientPrivate> priv;
@@ -93,7 +94,6 @@ void main_channel_client_push_name(MainChannelClient *mcc, const char *name);
 void main_channel_client_push_uuid(MainChannelClient *mcc, const uint8_t uuid[16]);
 
 uint32_t main_channel_client_get_connection_id(MainChannelClient *mcc);
-void main_channel_client_send_item(RedChannelClient *rcc, RedPipeItem *base);
 
 enum {
     RED_PIPE_ITEM_TYPE_MAIN_CHANNELS_LIST = RED_PIPE_ITEM_TYPE_CHANNEL_BASE,

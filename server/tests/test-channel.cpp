@@ -60,11 +60,6 @@ red_test_channel_init(RedTestChannel *self)
 }
 
 static void
-test_channel_send_item(RedChannelClient *rcc, RedPipeItem *item)
-{
-}
-
-static void
 test_connect_client(RedChannel *channel, RedClient *client, RedStream *stream,
                     int migration, RedChannelCapabilities *caps)
 {
@@ -92,7 +87,6 @@ red_test_channel_class_init(RedTestChannelClass *klass)
 {
     RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PORT, NULL);
-    channel_class->send_item = test_channel_send_item;
     channel_class->connect = test_connect_client;
 }
 

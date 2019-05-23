@@ -47,6 +47,7 @@ private:
     bool handle_preferred_video_codec_type(SpiceMsgcDisplayPreferredVideoCodecType *msg);
     virtual void on_disconnect() override;
     virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
+    virtual void send_item(RedPipeItem *pipe_item) override;
 };
 
 struct StreamChannel final: public RedChannel
@@ -180,18 +181,14 @@ marshall_monitors_config(RedChannelClient *rcc, StreamChannel *channel, SpiceMar
     spice_marshall_msg_display_monitors_config(m, &msg.config);
 }
 
-XXX_CAST(RedChannelClient, StreamChannelClient, STREAM_CHANNEL_CLIENT)
-
-static void
-stream_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
+void StreamChannelClient::send_item(RedPipeItem *pipe_item)
 {
-    SpiceMarshaller *m = rcc->get_marshaller();
-    StreamChannelClient *client = STREAM_CHANNEL_CLIENT(rcc);
-    StreamChannel *channel = STREAM_CHANNEL(rcc->get_channel());
+    SpiceMarshaller *m = get_marshaller();
+    StreamChannel *channel = STREAM_CHANNEL(get_channel());
 
     switch (pipe_item->type) {
     case RED_PIPE_ITEM_TYPE_SURFACE_CREATE: {
-        rcc->init_send_data(SPICE_MSG_DISPLAY_SURFACE_CREATE);
+        init_send_data(SPICE_MSG_DISPLAY_SURFACE_CREATE);
         SpiceMsgSurfaceCreate surface_create = {
             PRIMARY_SURFACE_ID,
             channel->width, channel->height,
@@ -200,7 +197,7 @@ stream_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
 
         // give an hint to client that we are sending just streaming
         // see spice.proto for capability check here
-        if (rcc->test_remote_cap(SPICE_DISPLAY_CAP_MULTI_CODEC)) {
+        if (test_remote_cap(SPICE_DISPLAY_CAP_MULTI_CODEC)) {
             surface_create.flags |= SPICE_SURFACE_FLAGS_STREAMING_MODE;
         }
 
@@ -208,19 +205,19 @@ stream_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
         break;
     }
     case RED_PIPE_ITEM_TYPE_MONITORS_CONFIG:
-        if (!rcc->test_remote_cap(SPICE_DISPLAY_CAP_MONITORS_CONFIG)) {
+        if (!test_remote_cap(SPICE_DISPLAY_CAP_MONITORS_CONFIG)) {
             return;
         }
-        marshall_monitors_config(rcc, channel, m);
+        marshall_monitors_config(this, channel, m);
         break;
     case RED_PIPE_ITEM_TYPE_SURFACE_DESTROY: {
-        rcc->init_send_data(SPICE_MSG_DISPLAY_SURFACE_DESTROY);
+        init_send_data(SPICE_MSG_DISPLAY_SURFACE_DESTROY);
         SpiceMsgSurfaceDestroy surface_destroy = { PRIMARY_SURFACE_ID };
         spice_marshall_msg_display_surface_destroy(m, &surface_destroy);
         break;
     }
     case RED_PIPE_ITEM_TYPE_FILL_SURFACE: {
-        rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_FILL);
+        init_send_data(SPICE_MSG_DISPLAY_DRAW_FILL);
 
         fill_base(m, channel);
 
@@ -234,28 +231,28 @@ stream_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
     }
     case RED_PIPE_ITEM_TYPE_STREAM_CREATE: {
         StreamCreateItem *item = SPICE_UPCAST(StreamCreateItem, pipe_item);
-        client->stream_id = item->stream_create.id;
-        rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_CREATE);
+        stream_id = item->stream_create.id;
+        init_send_data(SPICE_MSG_DISPLAY_STREAM_CREATE);
         spice_marshall_msg_display_stream_create(m, &item->stream_create);
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT: {
-        if (client->stream_id < 0
-            || !rcc->test_remote_cap(SPICE_DISPLAY_CAP_STREAM_REPORT)) {
+        if (stream_id < 0
+            || !test_remote_cap(SPICE_DISPLAY_CAP_STREAM_REPORT)) {
             return;
         }
         SpiceMsgDisplayStreamActivateReport msg;
-        msg.stream_id = client->stream_id;
+        msg.stream_id = stream_id;
         msg.unique_id = 1; // TODO useful ?
         msg.max_window_size = RED_STREAM_CLIENT_REPORT_WINDOW;
         msg.timeout_ms = RED_STREAM_CLIENT_REPORT_TIMEOUT;
-        rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_ACTIVATE_REPORT);
+        init_send_data(SPICE_MSG_DISPLAY_STREAM_ACTIVATE_REPORT);
         spice_marshall_msg_display_stream_activate_report(m, &msg);
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_DATA: {
         StreamDataItem *item = SPICE_UPCAST(StreamDataItem, pipe_item);
-        rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA);
+        init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA);
         spice_marshall_msg_display_stream_data(m, &item->data);
         red_pipe_item_ref(pipe_item);
         spice_marshaller_add_by_ref_full(m, item->data.data, item->data.data_size,
@@ -265,20 +262,20 @@ stream_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_DESTROY: {
-        if (client->stream_id < 0) {
+        if (stream_id < 0) {
             return;
         }
-        SpiceMsgDisplayStreamDestroy stream_destroy = { client->stream_id };
-        rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DESTROY);
+        SpiceMsgDisplayStreamDestroy stream_destroy = { stream_id };
+        init_send_data(SPICE_MSG_DISPLAY_STREAM_DESTROY);
         spice_marshall_msg_display_stream_destroy(m, &stream_destroy);
-        client->stream_id = -1;
+        stream_id = -1;
         break;
     }
     default:
         spice_error("invalid pipe item type");
     }
 
-    rcc->begin_send_message();
+    begin_send_message();
 }
 
 bool StreamChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
@@ -449,7 +446,6 @@ stream_channel_class_init(StreamChannelClass *klass)
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
 
-    channel_class->send_item = stream_channel_send_item;
     channel_class->connect = stream_channel_connect;
 }
 

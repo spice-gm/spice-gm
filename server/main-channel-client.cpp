@@ -634,15 +634,14 @@ static void main_channel_marshall_channels(RedChannelClient *rcc,
     g_free(channels_info);
 }
 
-static void main_channel_marshall_ping(RedChannelClient *rcc,
+static void main_channel_marshall_ping(MainChannelClient *mcc,
                                        SpiceMarshaller *m,
                                        RedPingPipeItem *item)
 {
-    MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
     SpiceMsgPing ping;
     int size_left = item->size;
 
-    rcc->init_send_data(SPICE_MSG_PING);
+    mcc->init_send_data(SPICE_MSG_PING);
     ping.id = main_channel_client_next_ping_id(mcc);
     ping.timestamp = spice_get_monotonic_time_ns() / NSEC_PER_MICROSEC;
     spice_marshall_msg_ping(m, &ping);
@@ -854,97 +853,96 @@ static void main_channel_marshall_registered_channel(RedChannelClient *rcc,
     spice_marshall_msg_main_channels_list(m, channels_info);
 }
 
-void main_channel_client_send_item(RedChannelClient *rcc, RedPipeItem *base)
+void MainChannelClient::send_item(RedPipeItem *base)
 {
-    MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
-    SpiceMarshaller *m = rcc->get_marshaller();
+    SpiceMarshaller *m = get_marshaller();
 
     /* In semi-seamless migration (dest side), the connection is started from scratch, and
      * we ignore any pipe item that arrives before the INIT msg is sent.
      * For seamless we don't send INIT, and the connection continues from the same place
      * it stopped on the src side. */
-    if (!mcc->priv->init_sent &&
-        !mcc->priv->seamless_mig_dst &&
+    if (!priv->init_sent &&
+        !priv->seamless_mig_dst &&
         base->type != RED_PIPE_ITEM_TYPE_MAIN_INIT) {
-        red_channel_warning(rcc->get_channel(),
+        red_channel_warning(get_channel(),
                             "Init msg for client %p was not sent yet "
                             "(client is probably during semi-seamless migration). Ignoring msg type %d",
-                            rcc->get_client(), base->type);
+                            get_client(), base->type);
         return;
     }
     switch (base->type) {
         case RED_PIPE_ITEM_TYPE_MAIN_CHANNELS_LIST:
-            main_channel_marshall_channels(rcc, m, base);
-            mcc->priv->initial_channels_list_sent = true;
+            main_channel_marshall_channels(this, m, base);
+            priv->initial_channels_list_sent = true;
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_PING:
-            main_channel_marshall_ping(rcc, m,
+            main_channel_marshall_ping(this, m,
                 SPICE_UPCAST(RedPingPipeItem, base));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MOUSE_MODE:
-            main_channel_marshall_mouse_mode(rcc, m,
+            main_channel_marshall_mouse_mode(this, m,
                 SPICE_UPCAST(RedMouseModePipeItem, base));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_AGENT_DISCONNECTED:
-            main_channel_marshall_agent_disconnected(rcc, m, base);
+            main_channel_marshall_agent_disconnected(this, m, base);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_AGENT_TOKEN:
-            main_channel_marshall_tokens(rcc, m,
+            main_channel_marshall_tokens(this, m,
                 SPICE_UPCAST(RedTokensPipeItem, base));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_AGENT_DATA:
-            main_channel_marshall_agent_data(rcc, m,
+            main_channel_marshall_agent_data(this, m,
                 SPICE_UPCAST(RedAgentDataPipeItem, base));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_DATA:
-            main_channel_marshall_migrate_data_item(rcc, m, base);
+            main_channel_marshall_migrate_data_item(this, m, base);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_INIT:
-            mcc->priv->init_sent = TRUE;
-            main_channel_marshall_init(rcc, m,
+            priv->init_sent = TRUE;
+            main_channel_marshall_init(this, m,
                 SPICE_UPCAST(RedInitPipeItem, base));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_NOTIFY:
-            main_channel_marshall_notify(rcc, m,
+            main_channel_marshall_notify(this, m,
                 SPICE_UPCAST(RedNotifyPipeItem, base));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN:
-            main_channel_marshall_migrate_begin(m, rcc, base);
+            main_channel_marshall_migrate_begin(m, this, base);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN_SEAMLESS:
-            main_channel_marshall_migrate_begin_seamless(m, rcc, base);
+            main_channel_marshall_migrate_begin_seamless(m, this, base);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MULTI_MEDIA_TIME:
-            main_channel_marshall_multi_media_time(rcc, m,
+            main_channel_marshall_multi_media_time(this, m,
                 SPICE_UPCAST(RedMultiMediaTimePipeItem, base));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_SWITCH_HOST:
-            main_channel_marshall_migrate_switch(m, rcc, base);
+            main_channel_marshall_migrate_switch(m, this, base);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_NAME:
-            rcc->init_send_data(SPICE_MSG_MAIN_NAME);
+            init_send_data(SPICE_MSG_MAIN_NAME);
             spice_marshall_msg_main_name(m, &SPICE_UPCAST(RedNamePipeItem, base)->msg);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_UUID:
-            rcc->init_send_data(SPICE_MSG_MAIN_UUID);
+            init_send_data(SPICE_MSG_MAIN_UUID);
             spice_marshall_msg_main_uuid(m, &SPICE_UPCAST(RedUuidPipeItem, base)->msg);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_AGENT_CONNECTED_TOKENS:
-            main_channel_marshall_agent_connected(m, rcc, base);
+            main_channel_marshall_agent_connected(m, this, base);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_REGISTERED_CHANNEL:
             /* The spice protocol requires that the server receive a ATTACH_CHANNELS
              * message from the client before sending any CHANNEL_LIST message. If
              * we've already sent our initial CHANNELS_LIST message, then it should be
              * safe to send new ones for newly-registered channels. */
-            if (!mcc->priv->initial_channels_list_sent) {
+            if (!priv->initial_channels_list_sent) {
                 return;
             }
-            main_channel_marshall_registered_channel(rcc, m,
+            main_channel_marshall_registered_channel(this, m,
                 SPICE_UPCAST(RedRegisteredChannelPipeItem, base));
             break;
         default:
             break;
     };
-    rcc->begin_send_message();
+    begin_send_message();
 }

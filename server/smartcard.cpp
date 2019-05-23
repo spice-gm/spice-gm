@@ -30,8 +30,6 @@
 #include "smartcard-channel-client.h"
 #include "migration-protocol.h"
 
-XXX_CAST(RedChannelClient, SmartCardChannelClient, SMARTCARD_CHANNEL_CLIENT)
-
 /*
  * TODO: the code doesn't really support multiple readers.
  * For example: smartcard_char_device_add_to_readers calls smartcard_init,
@@ -395,16 +393,14 @@ static void smartcard_channel_send_msg(RedChannelClient *rcc,
     smartcard_channel_client_send_data(rcc, m, item, msg_item->vheader);
 }
 
-static void smartcard_channel_send_migrate_data(RedChannelClient *rcc,
+static void smartcard_channel_send_migrate_data(SmartCardChannelClient *scc,
                                                 SpiceMarshaller *m, RedPipeItem *item)
 {
-    SmartCardChannelClient *scc;
     RedCharDeviceSmartcard *dev;
     SpiceMarshaller *m2;
 
-    scc = SMARTCARD_CHANNEL_CLIENT(rcc);
     dev = smartcard_channel_client_get_char_device(scc);
-    rcc->init_send_data(SPICE_MSG_MIGRATE_DATA);
+    scc->init_send_data(SPICE_MSG_MIGRATE_DATA);
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_SMARTCARD_MAGIC);
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_SMARTCARD_VERSION);
 
@@ -424,25 +420,25 @@ static void smartcard_channel_send_migrate_data(RedChannelClient *rcc,
     }
 }
 
-static void smartcard_channel_send_item(RedChannelClient *rcc, RedPipeItem *item)
+void SmartCardChannelClient::send_item(RedPipeItem *item)
 {
-    SpiceMarshaller *m = rcc->get_marshaller();
+    SpiceMarshaller *m = get_marshaller();
 
     switch (item->type) {
     case RED_PIPE_ITEM_TYPE_ERROR:
-        smartcard_channel_client_send_error(rcc, m, item);
+        smartcard_channel_client_send_error(this, m, item);
         break;
     case RED_PIPE_ITEM_TYPE_SMARTCARD_DATA:
-        smartcard_channel_send_msg(rcc, m, item);
+        smartcard_channel_send_msg(this, m, item);
         break;
     case RED_PIPE_ITEM_TYPE_SMARTCARD_MIGRATE_DATA:
-        smartcard_channel_send_migrate_data(rcc, m, item);
+        smartcard_channel_send_migrate_data(this, m, item);
         break;
     default:
         spice_error("bad pipe item %d", item->type);
         return;
     }
-    rcc->begin_send_message();
+    begin_send_message();
 }
 
 static void smartcard_free_vsc_msg_item(RedPipeItem *base)
@@ -560,7 +556,6 @@ red_smartcard_channel_class_init(RedSmartcardChannelClass *klass)
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_SMARTCARD, NULL);
 
-    channel_class->send_item = smartcard_channel_send_item;
     channel_class->handle_migrate_flush_mark = smartcard_channel_client_handle_migrate_flush_mark;
     channel_class->handle_migrate_data = smartcard_channel_client_handle_migrate_data;
 

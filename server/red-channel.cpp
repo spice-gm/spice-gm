@@ -693,14 +693,6 @@ SpiceCoreInterfaceInternal* RedChannel::get_core_interface()
     return priv->core;
 }
 
-void RedChannel::send_item(RedChannelClient *rcc, RedPipeItem *item)
-{
-    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(this);
-    g_return_if_fail(klass->send_item);
-
-    klass->send_item(rcc, item);
-}
-
 void RedChannel::reset_thread_id()
 {
     priv->thread_id = pthread_self();
