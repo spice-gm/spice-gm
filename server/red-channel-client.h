@@ -161,7 +161,7 @@ public:
 
     /* Private functions */
 private:
-    void send_item(RedPipeItem *item);
+    void send_any_item(RedPipeItem *item);
     void handle_outgoing();
     void handle_incoming();
     void handle_migrate_flush_mark();

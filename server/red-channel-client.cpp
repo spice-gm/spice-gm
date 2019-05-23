@@ -496,7 +496,7 @@ void RedChannelClient::send_empty_msg(RedPipeItem *base)
     begin_send_message();
 }
 
-void RedChannelClient::send_item(RedPipeItem *item)
+void RedChannelClient::send_any_item(RedPipeItem *item)
 {
     spice_assert(no_item_being_sent());
     priv->reset_send_data();
@@ -1173,7 +1173,7 @@ void RedChannelClient::push()
     }
 
     while ((pipe_item = priv->pipe_item_get())) {
-        send_item(pipe_item);
+        send_any_item(pipe_item);
     }
     /* prepare_pipe_add() will reenable WRITE events when the priv->pipe is empty
      * ack_zero_messages_window() will reenable WRITE events
