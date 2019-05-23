@@ -61,9 +61,6 @@ RedChannelClient* inputs_channel_client_create(RedChannel *channel,
                                                RedStream *stream,
                                                RedChannelCapabilities *caps);
 
-uint16_t inputs_channel_client_get_motion_count(InputsChannelClient* self);
-/* only for migration */
-void inputs_channel_client_set_motion_count(InputsChannelClient* self, uint16_t count);
 void inputs_channel_client_on_mouse_motion(InputsChannelClient* self);
 void inputs_channel_client_send_migrate_data(RedChannelClient *rcc,
                                              SpiceMarshaller *m, RedPipeItem *item);
