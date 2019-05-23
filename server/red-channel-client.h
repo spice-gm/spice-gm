@@ -23,6 +23,7 @@
 #include "red-pipe-item.h"
 #include "red-stream.h"
 #include "red-channel.h"
+#include "utils.hpp"
 
 G_BEGIN_DECLS
 
@@ -183,7 +184,7 @@ private:
     /* Private data */
 private:
     gint _ref = 1;
-    RedChannelClientPrivate *const priv = nullptr;
+    red::unique_link<RedChannelClientPrivate> priv;
 };
 
 #define SPICE_SERVER_ERROR spice_server_error_quark()

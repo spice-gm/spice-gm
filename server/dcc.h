@@ -24,6 +24,7 @@
 #include "pixmap-cache.h"
 #include "display-limits.h"
 #include "common-graphics-channel.h"
+#include "utils.hpp"
 
 G_BEGIN_DECLS
 
@@ -46,7 +47,7 @@ public:
     virtual bool config_socket() override;
     virtual void on_disconnect() override;
 
-    DisplayChannelClientPrivate *priv = nullptr;
+    red::unique_link<DisplayChannelClientPrivate> priv;
 
     int is_low_bandwidth;
 };

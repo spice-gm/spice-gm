@@ -37,9 +37,9 @@ DisplayChannelClient::DisplayChannelClient(DisplayChannel *display,
                          SpiceImageCompression image_compression,
                          spice_wan_compression_t jpeg_state,
                          spice_wan_compression_t zlib_glz_state):
-    CommonGraphicsChannelClient(RED_CHANNEL(display), client, stream, caps, true)
+    CommonGraphicsChannelClient(RED_CHANNEL(display), client, stream, caps, true),
+    priv(new DisplayChannelClientPrivate)
 {
-    priv = new DisplayChannelClientPrivate;
 
     // XXX from display_channel_client_init, put somewhere else
     ring_init(&priv->palette_cache_lru);
@@ -68,7 +68,6 @@ DisplayChannelClient::~DisplayChannelClient()
 {
     g_clear_pointer(&priv->preferred_video_codecs, g_array_unref);
     g_clear_pointer(&priv->client_preferred_video_codecs, g_array_unref);
-    g_free(priv);
 }
 
 static RedSurfaceCreateItem *red_surface_create_item_new(RedChannel* channel,

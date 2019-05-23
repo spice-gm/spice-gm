@@ -532,15 +532,9 @@ MainChannelClient::MainChannelClient(MainChannel *channel,
                                      RedStream *stream,
                                      RedChannelCapabilities *caps,
                                      uint32_t connection_id):
-    RedChannelClient(RED_CHANNEL(channel), client, stream, caps),
-    priv(new MainChannelClientPrivate())
+    RedChannelClient(RED_CHANNEL(channel), client, stream, caps)
 {
     priv->connection_id = connection_id;
-}
-
-MainChannelClient::~MainChannelClient()
-{
-    delete priv;
 }
 
 MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient *client,

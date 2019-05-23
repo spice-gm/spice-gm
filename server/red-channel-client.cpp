@@ -358,9 +358,11 @@ RedChannelClientPrivate::~RedChannelClientPrivate()
     }
 }
 
+/* This even empty is better to by declared here to make sure
+ * we call the right delete for priv field
+ */
 RedChannelClient::~RedChannelClient()
 {
-    delete priv;
 }
 
 RedChannelClient::RedChannelClient(RedChannel *channel,

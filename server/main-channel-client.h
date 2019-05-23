@@ -22,6 +22,7 @@
 
 #include "red-channel-client.h"
 #include "main-channel.h"
+#include "utils.hpp"
 
 G_BEGIN_DECLS
 
@@ -29,8 +30,6 @@ struct MainChannelClientPrivate;
 
 class MainChannelClient final: public RedChannelClient
 {
-protected:
-    ~MainChannelClient();
 public:
     MainChannelClient(MainChannel *channel,
                       RedClient *client,
@@ -41,7 +40,7 @@ public:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
     virtual void on_disconnect() override;
-    MainChannelClientPrivate *const priv = nullptr;
+    red::unique_link<MainChannelClientPrivate> priv;
 };
 
 MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient *client,

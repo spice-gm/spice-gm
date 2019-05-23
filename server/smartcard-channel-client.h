@@ -19,6 +19,7 @@
 #define SMARTCARD_CHANNEL_CLIENT_H_
 
 #include "smartcard.h"
+#include "utils.hpp"
 
 G_BEGIN_DECLS
 
@@ -29,7 +30,7 @@ class SmartCardChannelClient final: public RedChannelClient
 protected:
     ~SmartCardChannelClient();
 public:
-    SmartCardChannelClientPrivate *const priv = nullptr;
+    red::unique_link<SmartCardChannelClientPrivate> priv;
     SmartCardChannelClient(RedChannel *channel,
                            RedClient *client,
                            RedStream *stream,

@@ -74,14 +74,8 @@ CursorChannelClient::CursorChannelClient(RedChannel *channel,
                                          RedChannelCapabilities *caps):
     CommonGraphicsChannelClient(channel, client, stream, caps)
 {
-    priv = new CursorChannelClientPrivate();
     ring_init(&priv->cursor_cache_lru);
     priv->cursor_cache_available = CLIENT_CURSOR_CACHE_SIZE;
-}
-
-CursorChannelClient::~CursorChannelClient()
-{
-    delete priv;
 }
 
 CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor, RedClient *client, RedStream *stream,

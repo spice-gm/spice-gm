@@ -24,6 +24,7 @@
 #include "red-channel-client.h"
 #include "red-stream.h"
 #include "cursor-channel.h"
+#include "utils.hpp"
 
 G_BEGIN_DECLS
 
@@ -31,15 +32,13 @@ struct CursorChannelClientPrivate;
 
 class CursorChannelClient final: public CommonGraphicsChannelClient
 {
-protected:
-    ~CursorChannelClient();
 public:
     CursorChannelClient(RedChannel *channel,
                         RedClient *client,
                         RedStream *stream,
                         RedChannelCapabilities *caps);
     virtual void on_disconnect() override;
-    CursorChannelClientPrivate *priv = nullptr;
+    red::unique_link<CursorChannelClientPrivate> priv;
 };
 
 CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor,

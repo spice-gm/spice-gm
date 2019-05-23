@@ -46,8 +46,7 @@ SmartCardChannelClient::SmartCardChannelClient(RedChannel *channel,
                                                RedClient *client,
                                                RedStream *stream,
                                                RedChannelCapabilities *caps):
-    RedChannelClient(channel, client, stream, caps),
-    priv(new SmartCardChannelClientPrivate())
+    RedChannelClient(channel, client, stream, caps)
 {
 }
 
@@ -57,7 +56,6 @@ SmartCardChannelClient::~SmartCardChannelClient()
         g_object_remove_weak_pointer(G_OBJECT(priv->smartcard),
                                      (gpointer*)&priv->smartcard);
     }
-    delete priv;
 }
 
 SmartCardChannelClient* smartcard_channel_client_create(RedChannel *channel,
