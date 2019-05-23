@@ -23,25 +23,32 @@
 
 G_BEGIN_DECLS
 
-// TODO: RECEIVE_BUF_SIZE used to be the same for inputs_channel and main_channel
-// since it was defined once in reds.c which contained both.
-// Now that they are split we can give a more fitting value for inputs - what
-// should it be?
-#define REDS_AGENT_WINDOW_SIZE 10
-#define REDS_NUM_INTERNAL_AGENT_MESSAGES 1
-
-// approximate max receive message size
-#define RECEIVE_BUF_SIZE \
-    (4096 + (REDS_AGENT_WINDOW_SIZE + REDS_NUM_INTERNAL_AGENT_MESSAGES) * SPICE_AGENT_MAX_DATA_SIZE)
-
 class InputsChannelClient final: public RedChannelClient
 {
-    uint8_t recv_buf[RECEIVE_BUF_SIZE];
-    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
-public:
-    uint16_t motion_count; // XXX private
+    // TODO: RECEIVE_BUF_SIZE used to be the same for inputs_channel and main_channel
+    // since it was defined once in reds.c which contained both.
+    // Now that they are split we can give a more fitting value for inputs - what
+    // should it be?
+    enum {
+        AGENT_WINDOW_SIZE = 10,
+        NUM_INTERNAL_AGENT_MESSAGES = 1,
+
+        // approximate max receive message size
+        RECEIVE_BUF_SIZE =
+            (4096 + (AGENT_WINDOW_SIZE + NUM_INTERNAL_AGENT_MESSAGES) *
+                     SPICE_AGENT_MAX_DATA_SIZE)
+    };
 
     using RedChannelClient::RedChannelClient;
+
+    uint8_t recv_buf[RECEIVE_BUF_SIZE];
+    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
+    uint16_t motion_count;
+public:
+
+    void send_migrate_data(SpiceMarshaller *m, RedPipeItem *item);
+    void on_mouse_motion();
+    void handle_migrate_data(uint16_t motion_count);
 
 protected:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
@@ -54,11 +61,6 @@ RedChannelClient* inputs_channel_client_create(RedChannel *channel,
                                                RedClient *client,
                                                RedStream *stream,
                                                RedChannelCapabilities *caps);
-
-void inputs_channel_client_on_mouse_motion(InputsChannelClient* self);
-void inputs_channel_client_send_migrate_data(RedChannelClient *rcc,
-                                             SpiceMarshaller *m, RedPipeItem *item);
-void inputs_channel_client_handle_migrate_data(InputsChannelClient *icc, uint16_t motion_count);
 
 G_END_DECLS
 

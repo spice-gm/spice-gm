@@ -262,7 +262,7 @@ void InputsChannelClient::send_item(RedPipeItem *base)
             break;
         case RED_PIPE_ITEM_MIGRATE_DATA:
             INPUTS_CHANNEL(get_channel())->src_during_migrate = FALSE;
-            inputs_channel_client_send_migrate_data(this, m, base);
+            send_migrate_data(m, base);
             break;
         default:
             spice_warning("invalid pipe iten %d", base->type);
@@ -307,7 +307,7 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         SpiceMouseInstance *mouse = inputs_channel_get_mouse(inputs_channel);
         SpiceMsgcMouseMotion *mouse_motion = (SpiceMsgcMouseMotion *) message;
 
-        inputs_channel_client_on_mouse_motion(this);
+        on_mouse_motion();
         if (mouse && reds_get_mouse_mode(reds) == SPICE_MOUSE_MODE_SERVER) {
             SpiceMouseInterface *sif;
             sif = SPICE_UPCAST(SpiceMouseInterface, mouse->base.sif);
@@ -321,7 +321,7 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         SpiceMsgcMousePosition *pos = (SpiceMsgcMousePosition *) message;
         SpiceTabletInstance *tablet = inputs_channel_get_tablet(inputs_channel);
 
-        inputs_channel_client_on_mouse_motion(this);
+        on_mouse_motion();
         if (reds_get_mouse_mode(reds) != SPICE_MOUSE_MODE_CLIENT) {
             break;
         }
@@ -552,7 +552,7 @@ static bool inputs_channel_handle_migrate_data(RedChannelClient *rcc,
         return FALSE;
     }
     key_modifiers_sender(inputs);
-    inputs_channel_client_handle_migrate_data(icc, mig_data->motion_count);
+    icc->handle_migrate_data(mig_data->motion_count);
     return TRUE;
 }
 
