@@ -97,8 +97,8 @@ public:
     void pipe_add_type(int pipe_item_type);
     static RedPipeItemPtr new_empty_msg(int msg_type);
     void pipe_add_empty_msg(int msg_type);
-    gboolean pipe_is_empty();
-    uint32_t get_pipe_size();
+    bool pipe_is_empty() const;
+    uint32_t get_pipe_size() const;
     Pipe& get_pipe();
     bool is_mini_header() const;
 

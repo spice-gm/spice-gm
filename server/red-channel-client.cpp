@@ -1452,12 +1452,12 @@ void RedChannelClient::pipe_add_empty_msg(int msg_type)
     pipe_add(new_empty_msg(msg_type));
 }
 
-gboolean RedChannelClient::pipe_is_empty()
+bool RedChannelClient::pipe_is_empty() const
 {
     return priv->pipe.empty();
 }
 
-uint32_t RedChannelClient::get_pipe_size()
+uint32_t RedChannelClient::get_pipe_size() const
 {
     return priv->pipe.size();
 }
