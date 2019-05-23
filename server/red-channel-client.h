@@ -49,7 +49,6 @@ public:
 
     bool is_connected() const;
     bool is_waiting_for_migrate_data() const;
-    bool test_remote_common_cap(uint32_t cap) const;
     bool test_remote_cap(uint32_t cap) const;
     /* shutdown is the only safe thing to do out of the client/channel
      * thread. It will not touch the rings, just shutdown the socket.
@@ -140,7 +139,6 @@ public:
     RedChannel* get_channel();
 
     void semi_seamless_migration_complete();
-    void init_outgoing_messages_window();
 
     bool set_migration_seamless();
 
@@ -153,6 +151,10 @@ public:
 
     // callback from client
     virtual void migrate();
+
+protected:
+    bool test_remote_common_cap(uint32_t cap) const;
+    void init_outgoing_messages_window();
 
     /* configure socket connected to the client */
     virtual bool config_socket() { return true; }
