@@ -47,7 +47,6 @@ typedef struct MainChannelClient MainChannelClient;
 
 typedef bool (*channel_handle_message_proc)(RedChannelClient *rcc, uint16_t type,
                                             uint32_t size, void *msg);
-typedef bool (*channel_configure_socket_proc)(RedChannelClient *rcc);
 typedef void (*channel_send_pipe_item_proc)(RedChannelClient *rcc, RedPipeItem *item);
 
 typedef bool (*channel_handle_migrate_flush_mark_proc)(RedChannelClient *base);
