@@ -17,11 +17,10 @@
 #include <config.h>
 
 #include <string.h>
+#include <glib.h>
 #include <common/macros.h>
 
 #include "red-channel-capabilities.h"
-
-GType red_channel_capabilities_type;
 
 void red_channel_capabilities_init(RedChannelCapabilities *dest,
                                    const RedChannelCapabilities *caps)
@@ -41,25 +40,4 @@ void red_channel_capabilities_reset(RedChannelCapabilities *caps)
     g_free(caps->common_caps);
     g_free(caps->caps);
     memset(caps, 0, sizeof(*caps));
-}
-
-static RedChannelCapabilities *red_channel_capabilities_dup(const RedChannelCapabilities *caps)
-{
-    RedChannelCapabilities *res = g_new(RedChannelCapabilities, 1);
-    red_channel_capabilities_init(res, caps);
-    return res;
-}
-
-static void red_channel_capabilities_free(RedChannelCapabilities *caps)
-{
-    red_channel_capabilities_reset(caps);
-    g_free(caps);
-}
-
-SPICE_CONSTRUCTOR_FUNC(red_channel_capabilities_construct)
-{
-    red_channel_capabilities_type =
-        g_boxed_type_register_static("RedChannelCapabilities",
-                                     (GBoxedCopyFunc) red_channel_capabilities_dup,
-                                     (GBoxedFreeFunc) red_channel_capabilities_free);
 }

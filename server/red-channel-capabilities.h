@@ -20,9 +20,9 @@
 #define RED_CHANNEL_CAPABILITIES_H_
 
 #include <stdint.h>
-#include <glib-object.h>
+#include <spice/macros.h>
 
-G_BEGIN_DECLS
+SPICE_BEGIN_DECLS
 
 /* Holds channel capabilities.
  * Channel capabilities are composed by a common part
@@ -42,10 +42,6 @@ void red_channel_capabilities_init(RedChannelCapabilities *dest,
  * All resources are freed by this function. */
 void red_channel_capabilities_reset(RedChannelCapabilities *caps);
 
-/* GObject type that can be used to box RedChannelCapabilities */
-extern GType red_channel_capabilities_type;
-#define RED_TYPE_CHANNEL_CAPABILITIES red_channel_capabilities_type
-
-G_END_DECLS
+SPICE_END_DECLS
 
 #endif /* RED_CHANNEL_CAPABILITIES_H_ */
