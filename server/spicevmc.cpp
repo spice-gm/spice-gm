@@ -156,10 +156,11 @@ G_DEFINE_TYPE(RedVmcChannelPort, red_vmc_channel_port, RED_TYPE_VMC_CHANNEL)
 class VmcChannelClient final: public RedChannelClient
 {
     using RedChannelClient::RedChannelClient;
-
+protected:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
     virtual void on_disconnect() override;
+    virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
 };
 
 static RedChannelClient *
@@ -501,17 +502,14 @@ static bool handle_compressed_msg(RedVmcChannel *channel, RedChannelClient *rcc,
     return TRUE;
 }
 
-static bool spicevmc_red_channel_client_handle_message(RedChannelClient *rcc,
-                                                       uint16_t type,
-                                                       uint32_t size,
-                                                       void *msg)
+bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
 {
     /* NOTE: *msg free by g_free() (when cb to VmcChannelClient::release_recv_buf
      * with the compressed msg type) */
     RedVmcChannel *channel;
     SpiceCharDeviceInterface *sif;
 
-    channel = RED_VMC_CHANNEL(rcc->get_channel());
+    channel = RED_VMC_CHANNEL(get_channel());
     sif = spice_char_device_get_interface(channel->chardev_sin);
 
     switch (type) {
@@ -523,7 +521,7 @@ static bool spicevmc_red_channel_client_handle_message(RedChannelClient *rcc,
         channel->recv_from_client_buf = NULL;
         break;
     case SPICE_MSGC_SPICEVMC_COMPRESSED_DATA:
-        return handle_compressed_msg(channel, rcc, (SpiceMsgCompressedData*)msg);
+        return handle_compressed_msg(channel, this, (SpiceMsgCompressedData*)msg);
         break;
     case SPICE_MSGC_PORT_EVENT:
         if (size != sizeof(uint8_t)) {
@@ -534,7 +532,7 @@ static bool spicevmc_red_channel_client_handle_message(RedChannelClient *rcc,
             sif->event(channel->chardev_sin, *(uint8_t*)msg);
         break;
     default:
-        return RedChannelClient::handle_message(rcc, type, size, msg);
+        return RedChannelClient::handle_message(type, size, msg);
     }
 
     return TRUE;
@@ -701,8 +699,6 @@ red_vmc_channel_class_init(RedVmcChannelClass *klass)
 
     object_class->constructed = red_vmc_channel_constructed;
     object_class->finalize = red_vmc_channel_finalize;
-
-    channel_class->handle_message = spicevmc_red_channel_client_handle_message;
 
     channel_class->send_item = spicevmc_red_channel_send_item;
     channel_class->handle_migrate_flush_mark = spicevmc_channel_client_handle_migrate_flush_mark;

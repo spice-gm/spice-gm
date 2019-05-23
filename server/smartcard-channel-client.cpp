@@ -214,26 +214,22 @@ static void smartcard_channel_client_write_to_reader(SmartCardChannelClient *scc
 }
 
 
-bool smartcard_channel_client_handle_message(RedChannelClient *rcc,
-                                             uint16_t type,
-                                             uint32_t size,
-                                             void *message)
+bool SmartCardChannelClient::handle_message(uint16_t type, uint32_t size, void *message)
 {
     VSCMsgHeader* vheader = (VSCMsgHeader*) message;
-    SmartCardChannelClient *scc = SMARTCARD_CHANNEL_CLIENT(rcc);
 
     if (type != SPICE_MSGC_SMARTCARD_DATA) {
         /* Handles seamless migration protocol. Also handles ack's */
-        return RedChannelClient::handle_message(rcc, type, size, message);
+        return RedChannelClient::handle_message(type, size, message);
     }
 
     switch (vheader->type) {
         case VSC_ReaderAdd:
-            smartcard_channel_client_add_reader(scc);
+            smartcard_channel_client_add_reader(this);
             return TRUE;
             break;
         case VSC_ReaderRemove:
-            smartcard_channel_client_remove_reader(scc, vheader->reader_id);
+            smartcard_channel_client_remove_reader(this, vheader->reader_id);
             return TRUE;
             break;
         case VSC_Init:
@@ -246,21 +242,21 @@ bool smartcard_channel_client_handle_message(RedChannelClient *rcc,
         case VSC_APDU:
             break; // passed on to device
         default:
-            red_channel_warning(rcc->get_channel(),
+            red_channel_warning(get_channel(),
                                 "ERROR: unexpected message on smartcard channel");
             return TRUE;
     }
 
     /* todo: fix */
     if (vheader->reader_id >= smartcard_get_n_readers()) {
-        red_channel_warning(rcc->get_channel(),
+        red_channel_warning(get_channel(),
                             "ERROR: received message for non existing reader: %d, %d, %d",
                             vheader->reader_id, vheader->type, vheader->length);
         return FALSE;
     }
-    spice_assert(scc->priv->write_buf->buf_size >= size);
-    memcpy(scc->priv->write_buf->buf, message, size);
-    smartcard_channel_client_write_to_reader(scc);
+    spice_assert(priv->write_buf->buf_size >= size);
+    memcpy(priv->write_buf->buf, message, size);
+    smartcard_channel_client_write_to_reader(this);
 
     return TRUE;
 }

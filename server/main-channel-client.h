@@ -37,9 +37,13 @@ public:
                       RedChannelCapabilities *caps,
                       uint32_t connection_id);
 
+protected:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
     virtual void on_disconnect() override;
+    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
+
+public:
     red::unique_link<MainChannelClientPrivate> priv;
 };
 

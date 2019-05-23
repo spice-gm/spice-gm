@@ -44,6 +44,7 @@ public:
                          spice_wan_compression_t jpeg_state,
                          spice_wan_compression_t zlib_glz_state);
 
+    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
     virtual bool config_socket() override;
     virtual void on_disconnect() override;
 
@@ -130,9 +131,6 @@ DisplayChannelClient*      dcc_new                                   (DisplayCha
                                                                       spice_wan_compression_t jpeg_state,
                                                                       spice_wan_compression_t zlib_glz_state);
 void                       dcc_start                                 (DisplayChannelClient *dcc);
-bool                       dcc_handle_message                        (RedChannelClient *rcc,
-                                                                      uint16_t type,
-                                                                      uint32_t size, void *msg);
 bool                       dcc_handle_migrate_data                   (DisplayChannelClient *dcc,
                                                                       uint32_t size, void *message);
 void                       dcc_push_monitors_config                  (DisplayChannelClient *dcc);

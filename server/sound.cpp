@@ -223,6 +223,8 @@ public:
     uint32_t start_time = 0;
     SndCodec codec = nullptr;
     uint8_t  decode_buf[SND_CODEC_MAX_FRAME_BYTES];
+public:
+    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
 };
 
 
@@ -333,51 +335,48 @@ const char* spice_audio_data_mode_to_string(gint mode)
 
 XXX_CAST(RedChannelClient, RecordChannelClient, RECORD_CHANNEL_CLIENT)
 
-static bool
-record_channel_handle_message(RedChannelClient *rcc, uint16_t type, uint32_t size, void *message)
+bool RecordChannelClient::handle_message(uint16_t type, uint32_t size, void *message)
 {
-    RecordChannelClient *record_client = RECORD_CHANNEL_CLIENT(rcc);
-
     switch (type) {
     case SPICE_MSGC_RECORD_DATA:
-        return snd_record_handle_write(record_client, size, message);
+        return snd_record_handle_write(this, size, message);
     case SPICE_MSGC_RECORD_MODE: {
-        SpiceMsgcRecordMode *mode = (SpiceMsgcRecordMode *)message;
-        SndChannel *channel = SND_CHANNEL(rcc->get_channel());
-        record_client->mode_time = mode->time;
-        if (mode->mode != SPICE_AUDIO_DATA_MODE_RAW) {
-            if (snd_codec_is_capable((SpiceAudioDataMode) mode->mode, channel->frequency)) {
-                if (snd_codec_create(&record_client->codec, mode->mode, channel->frequency,
+        SpiceMsgcRecordMode *msg_mode = (SpiceMsgcRecordMode *)message;
+        SndChannel *channel = SND_CHANNEL(get_channel());
+        mode_time = msg_mode->time;
+        if (msg_mode->mode != SPICE_AUDIO_DATA_MODE_RAW) {
+            if (snd_codec_is_capable((SpiceAudioDataMode) msg_mode->mode, channel->frequency)) {
+                if (snd_codec_create(&codec, msg_mode->mode, channel->frequency,
                                      SND_CODEC_DECODE) == SND_CODEC_OK) {
-                    record_client->mode = mode->mode;
+                    mode = msg_mode->mode;
                 } else {
-                    red_channel_warning(rcc->get_channel(),
+                    red_channel_warning(get_channel(),
                                         "create decoder failed");
                     return false;
                 }
             }
             else {
-                red_channel_warning(rcc->get_channel(),
+                red_channel_warning(get_channel(),
                                     "unsupported mode %d",
-                                    record_client->mode);
+                                    mode);
                 return false;
             }
         }
         else
-            record_client->mode = mode->mode;
+            mode = msg_mode->mode;
 
-        spice_debug("record client %p using mode %s", record_client,
-                    spice_audio_data_mode_to_string(record_client->mode));
+        spice_debug("record client %p using mode %s", this,
+                    spice_audio_data_mode_to_string(mode));
         break;
     }
 
     case SPICE_MSGC_RECORD_START_MARK: {
         SpiceMsgcRecordStartMark *mark = (SpiceMsgcRecordStartMark *)message;
-        record_client->start_time = mark->time;
+        start_time = mark->time;
         break;
     }
     default:
-        return RedChannelClient::handle_message(rcc, type, size, message);
+        return RedChannelClient::handle_message(type, size, message);
     }
     return true;
 }
@@ -1321,7 +1320,6 @@ playback_channel_class_init(PlaybackChannelClass *klass)
     object_class->constructed = playback_channel_constructed;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PLAYBACK, NULL);
-    channel_class->handle_message = RedChannelClient::handle_message;
     channel_class->send_item = playback_channel_send_item;
 
     // client callbacks
@@ -1367,7 +1365,6 @@ record_channel_class_init(RecordChannelClass *klass)
     object_class->constructed = record_channel_constructed;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_RECORD, NULL);
-    channel_class->handle_message = record_channel_handle_message;
     channel_class->send_item = record_channel_send_item;
 
     // client callbacks

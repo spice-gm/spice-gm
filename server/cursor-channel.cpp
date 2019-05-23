@@ -385,7 +385,6 @@ cursor_channel_class_init(CursorChannelClass *klass)
     object_class->finalize = cursor_channel_finalize;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_CURSOR, NULL);
-    channel_class->handle_message = RedChannelClient::handle_message;
 
     channel_class->send_item = cursor_channel_send_item;
 

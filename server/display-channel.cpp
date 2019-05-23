@@ -2508,7 +2508,6 @@ display_channel_class_init(DisplayChannelClass *klass)
     object_class->finalize = display_channel_finalize;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
-    channel_class->handle_message = dcc_handle_message;
 
     channel_class->send_item = dcc_send_item;
     channel_class->handle_migrate_flush_mark = handle_migrate_flush_mark;

@@ -37,15 +37,16 @@ protected:
 public:
     using CommonGraphicsChannelClient::CommonGraphicsChannelClient;
 
-    bool handle_preferred_video_codec_type(SpiceMsgcDisplayPreferredVideoCodecType *msg);
-
     /* current video stream id, <0 if not initialized or
      * we are not sending a stream */
     int stream_id = -1;
+private:
     /* Array with SPICE_VIDEO_CODEC_TYPE_ENUM_END elements, with the client
      * preference order (index) as value */
     GArray *client_preferred_video_codecs;
+    bool handle_preferred_video_codec_type(SpiceMsgcDisplayPreferredVideoCodecType *msg);
     virtual void on_disconnect() override;
+    virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
 };
 
 struct StreamChannel final: public RedChannel
@@ -280,11 +281,8 @@ stream_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
     rcc->begin_send_message();
 }
 
-static bool
-handle_message(RedChannelClient *rcc, uint16_t type, uint32_t size, void *msg)
+bool StreamChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
 {
-    StreamChannelClient *client = STREAM_CHANNEL_CLIENT(rcc);
-
     switch (type) {
     case SPICE_MSGC_DISPLAY_INIT:
     case SPICE_MSGC_DISPLAY_PREFERRED_COMPRESSION:
@@ -296,10 +294,10 @@ handle_message(RedChannelClient *rcc, uint16_t type, uint32_t size, void *msg)
         /* client should not send this message */
         return false;
     case SPICE_MSGC_DISPLAY_PREFERRED_VIDEO_CODEC_TYPE:
-        return client->handle_preferred_video_codec_type(
+        return handle_preferred_video_codec_type(
             (SpiceMsgcDisplayPreferredVideoCodecType *)msg);
     default:
-        return RedChannelClient::handle_message(rcc, type, size, msg);
+        return CommonGraphicsChannelClient::handle_message(type, size, msg);
     }
 }
 
@@ -450,7 +448,6 @@ stream_channel_class_init(StreamChannelClass *klass)
     object_class->constructed = stream_channel_constructed;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
-    channel_class->handle_message = handle_message;
 
     channel_class->send_item = stream_channel_send_item;
     channel_class->connect = stream_channel_connect;

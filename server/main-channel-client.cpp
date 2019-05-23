@@ -413,7 +413,7 @@ void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping,
         /*
          * channel client monitors the connectivity using ping-pong messages
          */
-        RedChannelClient::handle_message(mcc, SPICE_MSGC_PONG, size, ping);
+        mcc->RedChannelClient::handle_message(SPICE_MSGC_PONG, size, ping);
         return;
     }
 

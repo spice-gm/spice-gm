@@ -271,11 +271,9 @@ static void inputs_channel_send_item(RedChannelClient *rcc, RedPipeItem *base)
     rcc->begin_send_message();
 }
 
-static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
-                                          uint32_t size, void *message)
+bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *message)
 {
-    InputsChannel *inputs_channel = INPUTS_CHANNEL(rcc->get_channel());
-    InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
+    InputsChannel *inputs_channel = INPUTS_CHANNEL(get_channel());
     uint32_t i;
     RedsState *reds = inputs_channel->get_server();
 
@@ -309,7 +307,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         SpiceMouseInstance *mouse = inputs_channel_get_mouse(inputs_channel);
         SpiceMsgcMouseMotion *mouse_motion = (SpiceMsgcMouseMotion *) message;
 
-        inputs_channel_client_on_mouse_motion(icc);
+        inputs_channel_client_on_mouse_motion(this);
         if (mouse && reds_get_mouse_mode(reds) == SPICE_MOUSE_MODE_SERVER) {
             SpiceMouseInterface *sif;
             sif = SPICE_UPCAST(SpiceMouseInterface, mouse->base.sif);
@@ -323,7 +321,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         SpiceMsgcMousePosition *pos = (SpiceMsgcMousePosition *) message;
         SpiceTabletInstance *tablet = inputs_channel_get_tablet(inputs_channel);
 
-        inputs_channel_client_on_mouse_motion(icc);
+        inputs_channel_client_on_mouse_motion(this);
         if (reds_get_mouse_mode(reds) != SPICE_MOUSE_MODE_CLIENT) {
             break;
         }
@@ -430,7 +428,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         break;
     }
     default:
-        return RedChannelClient::handle_message(rcc, type, size, message);
+        return RedChannelClient::handle_message(type, size, message);
     }
     return TRUE;
 }
@@ -616,7 +614,6 @@ inputs_channel_class_init(InputsChannelClass *klass)
     object_class->finalize = inputs_channel_finalize;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_INPUTS, NULL);
-    channel_class->handle_message = inputs_channel_handle_message;
 
     /* channel callbacks */
     channel_class->send_item = inputs_channel_send_item;

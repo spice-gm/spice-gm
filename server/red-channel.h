@@ -44,8 +44,6 @@ struct RedChannelClient;
 struct RedClient;
 struct MainChannelClient;
 
-typedef bool (*channel_handle_message_proc)(RedChannelClient *rcc, uint16_t type,
-                                            uint32_t size, void *msg);
 typedef void (*channel_send_pipe_item_proc)(RedChannelClient *rcc, RedPipeItem *item);
 
 typedef bool (*channel_handle_migrate_flush_mark_proc)(RedChannelClient *base);
@@ -78,7 +76,6 @@ struct RedChannelClass
      * in bytes
      */
     spice_parse_channel_func_t parser;
-    channel_handle_message_proc handle_message;
 
     // TODO: add ASSERTS for thread_id  in client and channel calls
     /*

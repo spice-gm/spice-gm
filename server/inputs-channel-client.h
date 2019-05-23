@@ -37,6 +37,7 @@ G_BEGIN_DECLS
 class InputsChannelClient final: public RedChannelClient
 {
     uint8_t recv_buf[RECEIVE_BUF_SIZE];
+    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
 public:
     uint16_t motion_count; // XXX private
 

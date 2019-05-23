@@ -92,7 +92,6 @@ red_test_channel_class_init(RedTestChannelClass *klass)
 {
     RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PORT, NULL);
-    channel_class->handle_message = RedChannelClient::handle_message;
     channel_class->send_item = test_channel_send_item;
     channel_class->connect = test_connect_client;
 }

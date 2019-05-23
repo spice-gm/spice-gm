@@ -1066,25 +1066,23 @@ static bool dcc_handle_gl_draw_done(DisplayChannelClient *dcc)
     return TRUE;
 }
 
-bool dcc_handle_message(RedChannelClient *rcc, uint16_t type, uint32_t size, void *msg)
+bool DisplayChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-
     switch (type) {
     case SPICE_MSGC_DISPLAY_INIT:
-        return dcc_handle_init(dcc, (SpiceMsgcDisplayInit *)msg);
+        return dcc_handle_init(this, (SpiceMsgcDisplayInit *)msg);
     case SPICE_MSGC_DISPLAY_STREAM_REPORT:
-        return dcc_handle_stream_report(dcc, (SpiceMsgcDisplayStreamReport *)msg);
+        return dcc_handle_stream_report(this, (SpiceMsgcDisplayStreamReport *)msg);
     case SPICE_MSGC_DISPLAY_PREFERRED_COMPRESSION:
-        return dcc_handle_preferred_compression(dcc,
+        return dcc_handle_preferred_compression(this,
             (SpiceMsgcDisplayPreferredCompression *)msg);
     case SPICE_MSGC_DISPLAY_GL_DRAW_DONE:
-        return dcc_handle_gl_draw_done(dcc);
+        return dcc_handle_gl_draw_done(this);
     case SPICE_MSGC_DISPLAY_PREFERRED_VIDEO_CODEC_TYPE:
-        return dcc_handle_preferred_video_codec_type(dcc,
+        return dcc_handle_preferred_video_codec_type(this,
             (SpiceMsgcDisplayPreferredVideoCodecType *)msg);
     default:
-        return RedChannelClient::handle_message(rcc, type, size, msg);
+        return RedChannelClient::handle_message(type, size, msg);
     }
 }
 

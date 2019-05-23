@@ -1055,7 +1055,6 @@ void RedChannelClient::handle_incoming()
         size_t parsed_size;
         message_destructor_t parsed_free = NULL;
         RedChannel *channel = get_channel();
-        RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
         if (buffer->header_pos < buffer->header.header_size) {
             bytes_read = red_peer_receive(stream,
@@ -1115,8 +1114,7 @@ void RedChannelClient::handle_incoming()
             disconnect();
             return;
         }
-        ret_handle = klass->handle_message(this, msg_type,
-                                           parsed_size, parsed);
+        ret_handle = handle_message(msg_type, parsed_size, parsed);
         if (parsed_free != NULL) {
             parsed_free(parsed);
         }
@@ -1299,39 +1297,37 @@ void RedChannelClient::handle_migrate_data(uint32_t size, void *message)
     priv->seamless_migration_done();
 }
 
-
-bool RedChannelClient::handle_message(RedChannelClient *rcc, uint16_t type,
-                                      uint32_t size, void *message)
+bool RedChannelClient::handle_message(uint16_t type, uint32_t size, void *message)
 {
     switch (type) {
     case SPICE_MSGC_ACK_SYNC:
-        rcc->priv->ack_data.client_generation = ((SpiceMsgcAckSync *) message)->generation;
+        priv->ack_data.client_generation = ((SpiceMsgcAckSync *) message)->generation;
         break;
     case SPICE_MSGC_ACK:
-        if (rcc->priv->ack_data.client_generation == rcc->priv->ack_data.generation) {
-            rcc->priv->ack_data.messages_window -= rcc->priv->ack_data.client_window;
-            rcc->priv->watch_update_mask(SPICE_WATCH_EVENT_READ|SPICE_WATCH_EVENT_WRITE);
-            rcc->push();
+        if (priv->ack_data.client_generation == priv->ack_data.generation) {
+            priv->ack_data.messages_window -= priv->ack_data.client_window;
+            priv->watch_update_mask(SPICE_WATCH_EVENT_READ|SPICE_WATCH_EVENT_WRITE);
+            push();
         }
         break;
     case SPICE_MSGC_DISCONNECTING:
         break;
     case SPICE_MSGC_MIGRATE_FLUSH_MARK:
-        if (!rcc->priv->wait_migrate_flush_mark) {
+        if (!priv->wait_migrate_flush_mark) {
             spice_error("unexpected flush mark");
             return FALSE;
         }
-        rcc->handle_migrate_flush_mark();
-        rcc->priv->wait_migrate_flush_mark = FALSE;
+        handle_migrate_flush_mark();
+        priv->wait_migrate_flush_mark = FALSE;
         break;
     case SPICE_MSGC_MIGRATE_DATA:
-        rcc->handle_migrate_data(size, message);
+        handle_migrate_data(size, message);
         break;
     case SPICE_MSGC_PONG:
-        rcc->priv->handle_pong((SpiceMsgPing*) message);
+        priv->handle_pong((SpiceMsgPing*) message);
         break;
     default:
-        red_channel_warning(rcc->get_channel(), "invalid message type %u",
+        red_channel_warning(get_channel(), "invalid message type %u",
                             type);
         return FALSE;
     }

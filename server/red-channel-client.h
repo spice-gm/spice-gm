@@ -57,8 +57,7 @@ public:
      * It should be followed by some way to guarantee a disconnection. */
     void shutdown();
     /* handles general channel msgs from the client */
-    static bool handle_message(RedChannelClient *rcc, uint16_t type,
-                               uint32_t size, void *message);
+    virtual bool handle_message(uint16_t type, uint32_t size, void *message);
     /* when preparing send_data: should call init and then use marshaller */
     void init_send_data(uint16_t msg_type);
 
@@ -124,8 +123,8 @@ public:
     RedStream *get_stream();
     RedClient *get_client();
 
-    /* Note that the header is valid only between red_channel_reset_send_data and
-     * red_channel_begin_send_message.*/
+    /* Note that the header is valid only between reset_send_data and
+     * begin_send_message.*/
     void set_header_sub_list(uint32_t sub_list);
 
     /*

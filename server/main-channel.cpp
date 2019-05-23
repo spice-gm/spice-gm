@@ -157,11 +157,9 @@ void main_channel_migrate_switch(MainChannel *main_chan, RedsMigSpice *mig_targe
     main_chan->pipes_add_type(RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_SWITCH_HOST);
 }
 
-static bool main_channel_handle_message(RedChannelClient *rcc, uint16_t type,
-                                        uint32_t size, void *message)
+bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *message)
 {
-    RedChannel *channel = rcc->get_channel();
-    MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
+    RedChannel *channel = get_channel();
     RedsState *reds = channel->get_server();
 
     switch (type) {
@@ -169,50 +167,50 @@ static bool main_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         SpiceMsgcMainAgentStart *tokens;
 
         tokens = (SpiceMsgcMainAgentStart *)message;
-        reds_on_main_agent_start(reds, mcc, tokens->num_tokens);
+        reds_on_main_agent_start(reds, this, tokens->num_tokens);
         break;
     }
     case SPICE_MSGC_MAIN_AGENT_DATA:
-        reds_on_main_agent_data(reds, mcc, message, size);
+        reds_on_main_agent_data(reds, this, message, size);
         break;
     case SPICE_MSGC_MAIN_AGENT_TOKEN: {
         SpiceMsgcMainAgentTokens *tokens;
 
         tokens = (SpiceMsgcMainAgentTokens *)message;
-        reds_on_main_agent_tokens(reds, mcc, tokens->num_tokens);
+        reds_on_main_agent_tokens(reds, this, tokens->num_tokens);
         break;
     }
     case SPICE_MSGC_MAIN_ATTACH_CHANNELS:
-        main_channel_push_channels(mcc);
+        main_channel_push_channels(this);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_CONNECTED:
-        main_channel_client_handle_migrate_connected(mcc,
+        main_channel_client_handle_migrate_connected(this,
                                                      TRUE /* success */,
                                                      FALSE /* seamless */);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_CONNECTED_SEAMLESS:
-        main_channel_client_handle_migrate_connected(mcc,
+        main_channel_client_handle_migrate_connected(this,
                                                      TRUE /* success */,
                                                      TRUE /* seamless */);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_CONNECT_ERROR:
-        main_channel_client_handle_migrate_connected(mcc, FALSE, FALSE);
+        main_channel_client_handle_migrate_connected(this, FALSE, FALSE);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_DST_DO_SEAMLESS:
-        main_channel_client_handle_migrate_dst_do_seamless(mcc,
+        main_channel_client_handle_migrate_dst_do_seamless(this,
             ((SpiceMsgcMainMigrateDstDoSeamless *)message)->src_version);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_END:
-        main_channel_client_handle_migrate_end(mcc);
+        main_channel_client_handle_migrate_end(this);
         break;
     case SPICE_MSGC_MAIN_MOUSE_MODE_REQUEST:
         reds_on_main_mouse_mode_request(reds, message, size);
         break;
     case SPICE_MSGC_PONG:
-        main_channel_client_handle_pong(mcc, (SpiceMsgPing *)message, size);
+        main_channel_client_handle_pong(this, (SpiceMsgPing *)message, size);
         break;
     default:
-        return RedChannelClient::handle_message(rcc, type, size, message);
+        return RedChannelClient::handle_message(type, size, message);
     }
     return TRUE;
 }
@@ -278,7 +276,6 @@ main_channel_class_init(MainChannelClass *klass)
     object_class->constructed = main_channel_constructed;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_MAIN, NULL);
-    channel_class->handle_message = main_channel_handle_message;
 
     /* channel callbacks */
     channel_class->send_item = main_channel_client_send_item;
