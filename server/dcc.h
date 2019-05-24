@@ -49,6 +49,7 @@ protected:
     virtual bool config_socket() override;
     virtual void on_disconnect() override;
     virtual void send_item(RedPipeItem *item) override;
+    virtual bool handle_migrate_data(uint32_t size, void *message) override;
 
 public:
     red::unique_link<DisplayChannelClientPrivate> priv;

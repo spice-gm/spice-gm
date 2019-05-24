@@ -20,8 +20,6 @@
 
 #include "smartcard-channel-client.h"
 
-XXX_CAST(RedChannelClient, SmartCardChannelClient, SMARTCARD_CHANNEL_CLIENT)
-
 struct SmartCardChannelClientPrivate
 {
     SPICE_CXX_GLIB_ALLOCATOR
@@ -261,15 +259,12 @@ bool SmartCardChannelClient::handle_message(uint16_t type, uint32_t size, void *
     return TRUE;
 }
 
-bool smartcard_channel_client_handle_migrate_data(RedChannelClient *rcc,
-                                                  uint32_t size,
-                                                  void *message)
+bool SmartCardChannelClient::handle_migrate_data(uint32_t size, void *message)
 {
-    SmartCardChannelClient *scc;
+    SmartCardChannelClient *scc = this;
     SpiceMigrateDataHeader *header;
     SpiceMigrateDataSmartcard *mig_data;
 
-    scc = SMARTCARD_CHANNEL_CLIENT(rcc);
     header = (SpiceMigrateDataHeader *)message;
     mig_data = (SpiceMigrateDataSmartcard *)(header + 1);
     if (size < sizeof(SpiceMigrateDataHeader) + sizeof(SpiceMigrateDataSmartcard)) {

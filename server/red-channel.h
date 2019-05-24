@@ -45,8 +45,6 @@ struct RedClient;
 struct MainChannelClient;
 
 typedef bool (*channel_handle_migrate_flush_mark_proc)(RedChannelClient *base);
-typedef bool (*channel_handle_migrate_data_proc)(RedChannelClient *base,
-                                                 uint32_t size, void *message);
 typedef uint64_t (*channel_handle_migrate_data_get_serial_proc)(RedChannelClient *base,
                                             uint32_t size, void *message);
 
@@ -76,7 +74,6 @@ struct RedChannelClass
     spice_parse_channel_func_t parser;
 
     channel_handle_migrate_flush_mark_proc handle_migrate_flush_mark;
-    channel_handle_migrate_data_proc handle_migrate_data;
     channel_handle_migrate_data_get_serial_proc handle_migrate_data_get_serial;
 
     /*

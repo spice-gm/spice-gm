@@ -1148,8 +1148,9 @@ static bool restore_surfaces_lossy(DisplayChannelClient *dcc,
     return TRUE;
 }
 
-bool dcc_handle_migrate_data(DisplayChannelClient *dcc, uint32_t size, void *message)
+bool DisplayChannelClient::handle_migrate_data(uint32_t size, void *message)
 {
+    DisplayChannelClient *dcc = this;
     DisplayChannel *display = DCC_TO_DC(dcc);
     int surfaces_restored = FALSE;
     SpiceMigrateDataHeader *header = (SpiceMigrateDataHeader *)message;

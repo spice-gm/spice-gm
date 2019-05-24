@@ -166,13 +166,15 @@ public:
      */
     virtual void send_item(RedPipeItem *item) {};
 
+    virtual bool handle_migrate_data(uint32_t size, void *message) { return false; }
+
     /* Private functions */
 private:
     void send_any_item(RedPipeItem *item);
     void handle_outgoing();
     void handle_incoming();
     void handle_migrate_flush_mark();
-    void handle_migrate_data(uint32_t size, void *message);
+    void handle_migrate_data_early(uint32_t size, void *message);
     inline bool prepare_pipe_add(RedPipeItem *item);
     void pipe_add_before_pos(RedPipeItem *item, GList *pipe_item_pos);
     void send_set_ack();

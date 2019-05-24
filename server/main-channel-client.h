@@ -43,6 +43,7 @@ protected:
     virtual void on_disconnect() override;
     virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
     virtual void send_item(RedPipeItem *item)  override;
+    virtual bool handle_migrate_data(uint32_t size, void *message) override;
 
 public:
     red::unique_link<MainChannelClientPrivate> priv;

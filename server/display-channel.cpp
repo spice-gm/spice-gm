@@ -21,8 +21,6 @@
 #include "display-channel-private.h"
 #include "red-qxl.h"
 
-XXX_CAST(RedChannelClient, DisplayChannelClient, DISPLAY_CHANNEL_CLIENT);
-
 G_DEFINE_TYPE(DisplayChannel, display_channel, TYPE_COMMON_GRAPHICS_CHANNEL)
 
 static void display_channel_connect(RedChannel *channel, RedClient *client,
@@ -2225,11 +2223,6 @@ static uint64_t handle_migrate_data_get_serial(RedChannelClient *rcc, uint32_t s
     return migrate_data->message_serial;
 }
 
-static bool handle_migrate_data(RedChannelClient *rcc, uint32_t size, void *message)
-{
-    return dcc_handle_migrate_data(DISPLAY_CHANNEL_CLIENT(rcc), size, message);
-}
-
 static SpiceCanvas *image_surfaces_get(SpiceImageSurfaces *surfaces, uint32_t surface_id)
 {
     DisplayChannelPrivate *p = SPICE_CONTAINEROF(surfaces, DisplayChannelPrivate, image_surfaces);
@@ -2510,7 +2503,6 @@ display_channel_class_init(DisplayChannelClass *klass)
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
 
     channel_class->handle_migrate_flush_mark = handle_migrate_flush_mark;
-    channel_class->handle_migrate_data = handle_migrate_data;
     channel_class->handle_migrate_data_get_serial = handle_migrate_data_get_serial;
 
     // client callbacks

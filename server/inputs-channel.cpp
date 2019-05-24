@@ -40,8 +40,6 @@
 #include "migration-protocol.h"
 #include "utils.h"
 
-XXX_CAST(RedChannelClient, InputsChannelClient, INPUTS_CHANNEL_CLIENT);
-
 struct InputsChannel final: public RedChannel
 {
     VDAgentMouseState mouse_state;
@@ -528,12 +526,9 @@ static bool inputs_channel_handle_migrate_flush_mark(RedChannelClient *rcc)
     return TRUE;
 }
 
-static bool inputs_channel_handle_migrate_data(RedChannelClient *rcc,
-                                               uint32_t size,
-                                               void *message)
+bool InputsChannelClient::handle_migrate_data(uint32_t size, void *message)
 {
-    InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
-    InputsChannel *inputs = INPUTS_CHANNEL(rcc->get_channel());
+    InputsChannel *inputs = INPUTS_CHANNEL(get_channel());
     SpiceMigrateDataHeader *header;
     SpiceMigrateDataInputs *mig_data;
 
@@ -552,7 +547,7 @@ static bool inputs_channel_handle_migrate_data(RedChannelClient *rcc,
         return FALSE;
     }
     key_modifiers_sender(inputs);
-    icc->handle_migrate_data(mig_data->motion_count);
+    handle_migrate_data(mig_data->motion_count);
     return TRUE;
 }
 
@@ -616,7 +611,6 @@ inputs_channel_class_init(InputsChannelClass *klass)
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_INPUTS, NULL);
 
     /* channel callbacks */
-    channel_class->handle_migrate_data = inputs_channel_handle_migrate_data;
     channel_class->handle_migrate_flush_mark = inputs_channel_handle_migrate_flush_mark;
 
     // client callbacks

@@ -162,6 +162,7 @@ protected:
     virtual void on_disconnect() override;
     virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
     virtual void send_item(RedPipeItem *item) override;
+    virtual bool handle_migrate_data(uint32_t size, void *message) override;
 };
 
 static RedChannelClient *
@@ -439,14 +440,13 @@ static bool spicevmc_channel_client_handle_migrate_flush_mark(RedChannelClient *
     return TRUE;
 }
 
-static bool spicevmc_channel_client_handle_migrate_data(RedChannelClient *rcc,
-                                                        uint32_t size, void *message)
+bool VmcChannelClient::handle_migrate_data(uint32_t size, void *message)
 {
     SpiceMigrateDataHeader *header;
     SpiceMigrateDataSpiceVmc *mig_data;
     RedVmcChannel *channel;
 
-    channel = RED_VMC_CHANNEL(rcc->get_channel());
+    channel = RED_VMC_CHANNEL(get_channel());
 
     header = (SpiceMigrateDataHeader *)message;
     mig_data = (SpiceMigrateDataSpiceVmc *)(header + 1);
@@ -701,7 +701,6 @@ red_vmc_channel_class_init(RedVmcChannelClass *klass)
     object_class->finalize = red_vmc_channel_finalize;
 
     channel_class->handle_migrate_flush_mark = spicevmc_channel_client_handle_migrate_flush_mark;
-    channel_class->handle_migrate_data = spicevmc_channel_client_handle_migrate_data;
 
     // client callbacks
     channel_class->connect = spicevmc_connect;

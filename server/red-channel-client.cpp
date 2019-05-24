@@ -1273,14 +1273,16 @@ void RedChannelClient::handle_migrate_flush_mark()
 //  3) source migrates to target
 //  4) target sends data to all
 // So need to make all the handlers work with per channel/client data (what data exactly?)
-void RedChannelClient::handle_migrate_data(uint32_t size, void *message)
+void RedChannelClient::handle_migrate_data_early(uint32_t size, void *message)
 {
     RedChannel *channel = get_channel();
     RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
     red_channel_debug(channel, "rcc %p size %u", this, size);
 
-    if (!klass->handle_migrate_data) {
+    uint32_t flags;
+    g_object_get(priv->channel, "migration-flags", &flags, NULL);
+    if (!(flags & SPICE_MIGRATE_NEED_DATA_TRANSFER)) {
         return;
     }
     if (!is_waiting_for_migrate_data()) {
@@ -1290,7 +1292,7 @@ void RedChannelClient::handle_migrate_data(uint32_t size, void *message)
     if (klass->handle_migrate_data_get_serial) {
         priv->set_message_serial(klass->handle_migrate_data_get_serial(this, size, message));
     }
-    if (!klass->handle_migrate_data(this, size, message)) {
+    if (!handle_migrate_data(size, message)) {
         spice_channel_client_error(this, "handle_migrate_data failed");
         return;
     }
@@ -1321,7 +1323,7 @@ bool RedChannelClient::handle_message(uint16_t type, uint32_t size, void *messag
         priv->wait_migrate_flush_mark = FALSE;
         break;
     case SPICE_MSGC_MIGRATE_DATA:
-        handle_migrate_data(size, message);
+        handle_migrate_data_early(size, message);
         break;
     case SPICE_MSGC_PONG:
         priv->handle_pong((SpiceMsgPing*) message);

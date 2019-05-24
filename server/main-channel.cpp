@@ -99,19 +99,17 @@ static void main_channel_push_migrate_data_item(MainChannel *main_chan)
     main_chan->pipes_add_type(RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_DATA);
 }
 
-static bool main_channel_handle_migrate_data(RedChannelClient *rcc,
-                                             uint32_t size, void *message)
+bool MainChannelClient::handle_migrate_data(uint32_t size, void *message)
 {
-    RedChannel *channel = rcc->get_channel();
-    MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
+    RedChannel *channel = get_channel();
+    MainChannelClient *mcc = this;
     SpiceMigrateDataHeader *header = (SpiceMigrateDataHeader *)message;
 
     /* not supported with multi-clients */
     spice_assert(channel->get_n_clients() == 1);
 
     if (size < sizeof(SpiceMigrateDataHeader) + sizeof(SpiceMigrateDataMain)) {
-        red_channel_warning(rcc->get_channel(),
-                            "bad message size %u", size);
+        red_channel_warning(channel, "bad message size %u", size);
         return FALSE;
     }
     if (!migration_protocol_validate_header(header,
@@ -279,7 +277,6 @@ main_channel_class_init(MainChannelClass *klass)
 
     /* channel callbacks */
     channel_class->handle_migrate_flush_mark = main_channel_handle_migrate_flush_mark;
-    channel_class->handle_migrate_data = main_channel_handle_migrate_data;
 
     // client callbacks
     channel_class->migrate = main_channel_client_migrate;
