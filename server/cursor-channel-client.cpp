@@ -60,12 +60,10 @@ void CursorChannelClient::on_disconnect()
     cursor_channel_client_reset_cursor_cache(this);
 }
 
-void cursor_channel_client_migrate(RedChannelClient *rcc)
+void CursorChannelClient::migrate()
 {
-    spice_return_if_fail(rcc);
-
-    rcc->pipe_add_type(RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE);
-    RedChannelClient::default_migrate(rcc);
+    pipe_add_type(RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE);
+    RedChannelClient::migrate();
 }
 
 CursorChannelClient::CursorChannelClient(RedChannel *channel,

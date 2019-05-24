@@ -301,7 +301,6 @@ red_channel_class_init(RedChannelClass *klass)
 
     klass->connect = red_channel_client_default_connect;
     klass->disconnect = red_channel_client_default_disconnect;
-    klass->migrate = RedChannelClient::default_migrate;
 }
 
 static void
@@ -708,10 +707,8 @@ typedef struct RedMessageMigrate {
 static void handle_dispatcher_migrate(void *opaque, void *payload)
 {
     RedMessageMigrate *msg = (RedMessageMigrate*) payload;
-    RedChannel *channel = msg->rcc->get_channel();
-    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
-    klass->migrate(msg->rcc);
+    msg->rcc->migrate();
     msg->rcc->unref();
 }
 
@@ -719,8 +716,7 @@ void RedChannel::migrate_client(RedChannelClient *rcc)
 {
     if (priv->dispatcher == NULL ||
         pthread_equal(pthread_self(), priv->thread_id)) {
-        RedChannelClass *klass = RED_CHANNEL_GET_CLASS(this);
-        klass->migrate(rcc);
+        rcc->migrate();
         return;
     }
 

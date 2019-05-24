@@ -570,14 +570,11 @@ uint64_t main_channel_client_get_roundtrip_ms(MainChannelClient *mcc)
     return mcc->priv->latency / 1000;
 }
 
-XXX_CAST(RedChannelClient, MainChannelClient, MAIN_CHANNEL_CLIENT);
-
-void main_channel_client_migrate(RedChannelClient *rcc)
+void MainChannelClient::migrate()
 {
-    RedChannel *channel = rcc->get_channel();
-    reds_on_main_channel_migrate(channel->get_server(),
-                                 MAIN_CHANNEL_CLIENT(rcc));
-    RedChannelClient::default_migrate(rcc);
+    RedChannel *channel = get_channel();
+    reds_on_main_channel_migrate(channel->get_server(), this);
+    RedChannelClient::migrate();
 }
 
 gboolean main_channel_client_connect_semi_seamless(MainChannelClient *mcc)

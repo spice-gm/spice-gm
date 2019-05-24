@@ -52,7 +52,6 @@ typedef uint64_t (*channel_handle_migrate_data_get_serial_proc)(RedChannelClient
 typedef void (*channel_client_connect_proc)(RedChannel *channel, RedClient *client, RedStream *stream,
                                             int migration, RedChannelCapabilities *caps);
 typedef void (*channel_client_disconnect_proc)(RedChannelClient *base);
-typedef void (*channel_client_migrate_proc)(RedChannelClient *base);
 
 
 static inline gboolean test_capability(const uint32_t *caps, int num_caps, uint32_t cap)
@@ -82,7 +81,6 @@ struct RedChannelClass
      */
     channel_client_connect_proc connect;
     channel_client_disconnect_proc disconnect;
-    channel_client_migrate_proc migrate;
 };
 
 #define FOREACH_CLIENT(_channel, _data) \

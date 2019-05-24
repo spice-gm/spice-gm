@@ -386,7 +386,6 @@ cursor_channel_class_init(CursorChannelClass *klass)
 
     // client callbacks
     channel_class->connect = (channel_client_connect_proc) cursor_channel_connect;
-    channel_class->migrate = cursor_channel_client_migrate;
 }
 
 static void

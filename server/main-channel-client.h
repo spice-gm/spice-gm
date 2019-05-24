@@ -44,6 +44,7 @@ protected:
     virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
     virtual void send_item(RedPipeItem *item)  override;
     virtual bool handle_migrate_data(uint32_t size, void *message) override;
+    virtual void migrate() override;
 
 public:
     red::unique_link<MainChannelClientPrivate> priv;
@@ -66,7 +67,6 @@ void main_channel_client_push_init(MainChannelClient *mcc,
                                    int multi_media_time,
                                    int ram_hint);
 void main_channel_client_push_notify(MainChannelClient *mcc, const char *msg);
-void main_channel_client_migrate(RedChannelClient *rcc);
 gboolean main_channel_client_connect_semi_seamless(MainChannelClient *mcc);
 void main_channel_client_connect_seamless(MainChannelClient *mcc);
 void main_channel_client_handle_migrate_connected(MainChannelClient *mcc,

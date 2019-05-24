@@ -105,6 +105,7 @@ public:
     virtual bool config_socket() override;
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    virtual void migrate() override;
 };
 
 static void snd_playback_alloc_frames(PlaybackChannelClient *playback);
@@ -1101,12 +1102,10 @@ static void snd_set_playback_peer(RedChannel *red_channel, RedClient *client, Re
     }
 }
 
-XXX_CAST(RedChannelClient, SndChannelClient, SND_CHANNEL_CLIENT)
-
-static void snd_migrate_channel_client(RedChannelClient *rcc)
+void SndChannelClient::migrate()
 {
-    snd_set_command(SND_CHANNEL_CLIENT(rcc), SND_MIGRATE_MASK);
-    snd_send(SND_CHANNEL_CLIENT(rcc));
+    snd_set_command(this, SND_MIGRATE_MASK);
+    snd_send(this);
 }
 
 SPICE_GNUC_VISIBLE void spice_server_record_set_volume(SpiceRecordInstance *sin,
@@ -1320,7 +1319,6 @@ playback_channel_class_init(PlaybackChannelClass *klass)
 
     // client callbacks
     channel_class->connect = snd_set_playback_peer;
-    channel_class->migrate = snd_migrate_channel_client;
 }
 
 void snd_attach_playback(RedsState *reds, SpicePlaybackInstance *sin)
@@ -1364,7 +1362,6 @@ record_channel_class_init(RecordChannelClass *klass)
 
     // client callbacks
     channel_class->connect = snd_set_record_peer;
-    channel_class->migrate = snd_migrate_channel_client;
 }
 
 void snd_attach_record(RedsState *reds, SpiceRecordInstance *sin)

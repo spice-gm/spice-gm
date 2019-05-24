@@ -277,9 +277,6 @@ main_channel_class_init(MainChannelClass *klass)
 
     /* channel callbacks */
     channel_class->handle_migrate_flush_mark = main_channel_handle_migrate_flush_mark;
-
-    // client callbacks
-    channel_class->migrate = main_channel_client_migrate;
 }
 
 static int main_channel_connect_semi_seamless(MainChannel *main_channel)

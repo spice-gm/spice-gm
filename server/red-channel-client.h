@@ -48,7 +48,6 @@ public:
     virtual bool init();
 
     bool is_connected() const;
-    static void default_migrate(RedChannelClient *rcc);
     bool is_waiting_for_migrate_data() const;
     bool test_remote_common_cap(uint32_t cap) const;
     bool test_remote_cap(uint32_t cap) const;
@@ -151,6 +150,9 @@ public:
 
     void ref() { g_atomic_int_inc(&_ref); }
     void unref() { if (g_atomic_int_dec_and_test(&_ref)) delete this; }
+
+    // callback from client
+    virtual void migrate();
 
     /* configure socket connected to the client */
     virtual bool config_socket() { return true; }

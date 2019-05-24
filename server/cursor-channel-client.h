@@ -40,6 +40,11 @@ public:
 protected:
     virtual void on_disconnect() override;
     void send_item(RedPipeItem *pipe_item) override;
+    /**
+     * Migrate a client channel from a CursorChannel.
+     * This is the equivalent of RedChannel client migrate callback.
+     */
+    virtual void migrate() override;
 
 public:
     red::unique_link<CursorChannelClientPrivate> priv;
@@ -60,12 +65,6 @@ enum {
     RED_PIPE_ITEM_TYPE_CURSOR_INIT,
     RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE,
 };
-
-/**
- * Migrate a client channel from a CursorChannel.
- * This is the equivalent of RedChannel client migrate callback.
- */
-void                 cursor_channel_client_migrate(RedChannelClient *client);
 
 G_END_DECLS
 

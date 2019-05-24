@@ -488,11 +488,11 @@ static void inputs_connect(RedChannel *channel, RedClient *client,
     inputs_pipe_add_init(rcc);
 }
 
-static void inputs_migrate(RedChannelClient *rcc)
+void InputsChannelClient::migrate()
 {
-    InputsChannel *inputs = INPUTS_CHANNEL(rcc->get_channel());
+    InputsChannel *inputs = INPUTS_CHANNEL(get_channel());
     inputs->src_during_migrate = TRUE;
-    RedChannelClient::default_migrate(rcc);
+    RedChannelClient::migrate();
 }
 
 static void inputs_channel_push_keyboard_modifiers(InputsChannel *inputs, uint8_t modifiers)
@@ -615,7 +615,6 @@ inputs_channel_class_init(InputsChannelClass *klass)
 
     // client callbacks
     channel_class->connect = inputs_connect;
-    channel_class->migrate = inputs_migrate;
 }
 
 static SpiceKbdInstance* inputs_channel_get_keyboard(InputsChannel *inputs)

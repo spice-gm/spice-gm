@@ -27,7 +27,6 @@ static void display_channel_connect(RedChannel *channel, RedClient *client,
                                     RedStream *stream, int migration,
                                     RedChannelCapabilities *caps);
 static void display_channel_disconnect(RedChannelClient *rcc);
-static void display_channel_migrate(RedChannelClient *rcc);
 
 enum {
     PROP0,
@@ -2508,7 +2507,6 @@ display_channel_class_init(DisplayChannelClass *klass)
     // client callbacks
     channel_class->connect = display_channel_connect;
     channel_class->disconnect = display_channel_disconnect;
-    channel_class->migrate = display_channel_migrate;
 
     g_object_class_install_property(object_class,
                                     PROP_N_SURFACES,
@@ -2629,9 +2627,9 @@ static void display_channel_disconnect(RedChannelClient *rcc)
     rcc->disconnect();
 }
 
-static void display_channel_migrate(RedChannelClient *rcc)
+void DisplayChannelClient::migrate()
 {
-    DisplayChannel *display = DISPLAY_CHANNEL(rcc->get_channel());
+    DisplayChannel *display = DISPLAY_CHANNEL(get_channel());
 
     /* We need to stop the streams, and to send upgrade_items to the client.
      * Otherwise, (1) the client might display lossy regions that we don't track
@@ -2644,8 +2642,8 @@ static void display_channel_migrate(RedChannelClient *rcc)
      * handle_dev_stop already took care of releasing all the dev ram resources.
      */
     video_stream_detach_and_stop(display);
-    if (rcc->is_connected()) {
-        RedChannelClient::default_migrate(rcc);
+    if (is_connected()) {
+        RedChannelClient::migrate();
     }
 }
 

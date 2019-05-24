@@ -912,16 +912,16 @@ bool RedChannelClient::is_waiting_for_migrate_data() const
     return priv->wait_migrate_data;
 }
 
-void RedChannelClient::default_migrate(RedChannelClient *rcc)
+void RedChannelClient::migrate()
 {
-    rcc->priv->cancel_ping_timer();
-    red_timer_remove(rcc->priv->latency_monitor.timer);
-    rcc->priv->latency_monitor.timer = NULL;
+    priv->cancel_ping_timer();
+    red_timer_remove(priv->latency_monitor.timer);
+    priv->latency_monitor.timer = NULL;
 
-    red_timer_remove(rcc->priv->connectivity_monitor.timer);
-    rcc->priv->connectivity_monitor.timer = NULL;
+    red_timer_remove(priv->connectivity_monitor.timer);
+    priv->connectivity_monitor.timer = NULL;
 
-    rcc->pipe_add_type(RED_PIPE_ITEM_TYPE_MIGRATE);
+    pipe_add_type(RED_PIPE_ITEM_TYPE_MIGRATE);
 }
 
 void RedChannelClient::shutdown()
