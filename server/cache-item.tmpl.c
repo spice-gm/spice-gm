@@ -24,7 +24,6 @@
 #define CACHE_HASH_SIZE CURSOR_CACHE_HASH_SIZE
 #define FUNC_NAME(name) red_cursor_cache_##name
 #define VAR_NAME(name) cursor_cache_##name
-#define CHANNEL CursorChannel
 #define CHANNELCLIENT CursorChannelClient
 
 #elif defined(CLIENT_PALETTE_CACHE)
@@ -34,7 +33,6 @@
 #define CACHE_HASH_SIZE PALETTE_CACHE_HASH_SIZE
 #define FUNC_NAME(name) red_palette_cache_##name
 #define VAR_NAME(name) palette_cache_##name
-#define CHANNEL DisplayChannel
 #define CHANNELCLIENT DisplayChannelClient
 #else
 
@@ -127,5 +125,4 @@ static void FUNC_NAME(reset)(CHANNELCLIENT *channel_client, long size)
 #undef CACHE_HASH_SIZE
 #undef FUNC_NAME
 #undef VAR_NAME
-#undef CHANNEL
 #undef CHANNELCLIENT
