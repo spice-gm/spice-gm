@@ -50,14 +50,14 @@ struct CursorChannelClientPrivate
 static int _cursor_count = 0;
 #endif
 
-void cursor_channel_client_reset_cursor_cache(CursorChannelClient *ccc)
+void CursorChannelClient::reset_cursor_cache()
 {
-    red_cursor_cache_reset(ccc, CLIENT_CURSOR_CACHE_SIZE);
+    red_cursor_cache_reset(this, CLIENT_CURSOR_CACHE_SIZE);
 }
 
 void CursorChannelClient::on_disconnect()
 {
-    cursor_channel_client_reset_cursor_cache(this);
+    reset_cursor_cache();
 }
 
 void CursorChannelClient::migrate()
@@ -91,12 +91,12 @@ CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor, RedClient 
     return rcc;
 }
 
-RedCacheItem* cursor_channel_client_cache_find(CursorChannelClient *ccc, uint64_t id)
+RedCacheItem* CursorChannelClient::cache_find(uint64_t id)
 {
-    return red_cursor_cache_find(ccc, id);
+    return red_cursor_cache_find(this, id);
 }
 
-int cursor_channel_client_cache_add(CursorChannelClient *ccc, uint64_t id, size_t size)
+int CursorChannelClient::cache_add(uint64_t id, size_t size)
 {
-    return red_cursor_cache_add(ccc, id, size);
+    return red_cursor_cache_add(this, id, size);
 }

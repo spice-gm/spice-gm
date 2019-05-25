@@ -37,6 +37,10 @@ public:
                         RedClient *client,
                         RedStream *stream,
                         RedChannelCapabilities *caps);
+    void reset_cursor_cache();
+    RedCacheItem* cache_find(uint64_t id);
+    int cache_add(uint64_t id, size_t size);
+
 protected:
     virtual void on_disconnect() override;
     void send_item(RedPipeItem *pipe_item) override;
@@ -55,10 +59,6 @@ CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor,
                                                RedStream *stream,
                                                int mig_target,
                                                RedChannelCapabilities *caps);
-
-void cursor_channel_client_reset_cursor_cache(CursorChannelClient *ccc);
-RedCacheItem* cursor_channel_client_cache_find(CursorChannelClient *ccc, uint64_t id);
-int cursor_channel_client_cache_add(CursorChannelClient *ccc, uint64_t id, size_t size);
 
 enum {
     RED_PIPE_ITEM_TYPE_CURSOR = RED_PIPE_ITEM_TYPE_COMMON_LAST,

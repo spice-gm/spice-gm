@@ -95,11 +95,11 @@ static void cursor_fill(CursorChannelClient *ccc, RedCursorPipeItem *cursor,
     *red_cursor = cursor_cmd->u.set.shape;
 
     if (red_cursor->header.unique) {
-        if (cursor_channel_client_cache_find(ccc, red_cursor->header.unique)) {
+        if (ccc->cache_find(red_cursor->header.unique)) {
             red_cursor->flags |= SPICE_CURSOR_FLAGS_FROM_CACHE;
             return;
         }
-        if (cursor_channel_client_cache_add(ccc, red_cursor->header.unique, 1)) {
+        if (ccc->cache_add(red_cursor->header.unique, 1)) {
             red_cursor->flags |= SPICE_CURSOR_FLAGS_CACHE_ME;
         }
     }
@@ -206,12 +206,12 @@ void CursorChannelClient::send_item(RedPipeItem *pipe_item)
         red_marshall_inval(this, m, SPICE_CONTAINEROF(pipe_item, RedCacheItem, u.pipe_data));
         break;
     case RED_PIPE_ITEM_TYPE_CURSOR_INIT:
-        cursor_channel_client_reset_cursor_cache(ccc);
-        red_marshall_cursor_init(ccc, m);
+        reset_cursor_cache();
+        red_marshall_cursor_init(this, m);
         break;
     case RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE:
-        cursor_channel_client_reset_cursor_cache(ccc);
-        ccc->init_send_data(SPICE_MSG_CURSOR_INVAL_ALL);
+        reset_cursor_cache();
+        init_send_data(SPICE_MSG_CURSOR_INVAL_ALL);
         break;
     default:
         spice_error("invalid pipe item type");
