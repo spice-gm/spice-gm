@@ -38,7 +38,6 @@ struct CursorChannelClientPrivate
     RedCacheItem *cursor_cache[CURSOR_CACHE_HASH_SIZE];
     Ring cursor_cache_lru;
     long cursor_cache_available;
-    uint32_t cursor_cache_items;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE(CursorChannelClient, cursor_channel_client,

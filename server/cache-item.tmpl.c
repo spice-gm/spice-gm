@@ -72,7 +72,6 @@ static void FUNC_NAME(remove)(CHANNELCLIENT *channel_client, RedCacheItem *item)
         now = &(*now)->u.cache_data.next;
     }
     ring_remove(&item->u.cache_data.lru_link);
-    channel_client->priv->VAR_NAME(items)--;
     channel_client->priv->VAR_NAME(available) += item->u.cache_data.size;
 
     red_pipe_item_init(&item->u.pipe_data, RED_PIPE_ITEM_TYPE_INVAL_ONE);
@@ -98,7 +97,6 @@ static int FUNC_NAME(add)(CHANNELCLIENT *channel_client, uint64_t id, size_t siz
         }
         FUNC_NAME(remove)(channel_client, tail);
     }
-    ++channel_client->priv->VAR_NAME(items);
     item->u.cache_data.next = channel_client->priv->CACHE_NAME[(key = CACHE_HASH_KEY(id))];
     channel_client->priv->CACHE_NAME[key] = item;
     ring_item_init(&item->u.cache_data.lru_link);
@@ -121,7 +119,6 @@ static void FUNC_NAME(reset)(CHANNELCLIENT *channel_client, long size)
     }
     ring_init(&channel_client->priv->VAR_NAME(lru));
     channel_client->priv->VAR_NAME(available) = size;
-    channel_client->priv->VAR_NAME(items) = 0;
 }
 
 

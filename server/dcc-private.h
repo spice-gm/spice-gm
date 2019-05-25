@@ -44,7 +44,6 @@ struct DisplayChannelClientPrivate
     RedCacheItem *palette_cache[PALETTE_CACHE_HASH_SIZE];
     Ring palette_cache_lru;
     long palette_cache_available;
-    uint32_t palette_cache_items;
 
     struct {
         FreeList free_list;
