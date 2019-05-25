@@ -40,6 +40,10 @@ public:
     void reset_cursor_cache();
     RedCacheItem* cache_find(uint64_t id);
     int cache_add(uint64_t id, size_t size);
+    CursorChannel* get_channel()
+    {
+        return CURSOR_CHANNEL(CommonGraphicsChannelClient::get_channel());
+    }
 
 protected:
     virtual void on_disconnect() override;

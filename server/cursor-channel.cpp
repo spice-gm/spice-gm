@@ -119,7 +119,7 @@ static void red_marshall_cursor_init(CursorChannelClient *ccc, SpiceMarshaller *
     CursorChannel *cursor_channel;
     SpiceMsgCursorInit msg;
 
-    cursor_channel = CURSOR_CHANNEL(ccc->get_channel());
+    cursor_channel = ccc->get_channel();
 
     ccc->init_send_data(SPICE_MSG_CURSOR_INIT);
     msg.visible = cursor_channel->cursor_visible;
@@ -135,7 +135,7 @@ static void red_marshall_cursor(CursorChannelClient *ccc,
                                 SpiceMarshaller *m,
                                 RedCursorPipeItem *cursor_pipe_item)
 {
-    CursorChannel *cursor_channel = CURSOR_CHANNEL(ccc->get_channel());
+    CursorChannel *cursor_channel = ccc->get_channel();
     RedCursorPipeItem *item = cursor_pipe_item;
     RedCursorCmd *cmd;
 
