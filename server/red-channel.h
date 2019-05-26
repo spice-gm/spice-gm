@@ -104,7 +104,7 @@ struct RedChannelClass
 };
 
 #define FOREACH_CLIENT(_channel, _data) \
-    GLIST_FOREACH((_channel ? red_channel_get_clients(RED_CHANNEL(_channel)) : NULL), \
+    GLIST_FOREACH((_channel ? red_channel_get_clients(_channel) : NULL), \
                   RedChannelClient, _data)
 
 /* Red Channel interface */

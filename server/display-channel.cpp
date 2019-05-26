@@ -336,7 +336,7 @@ static void streams_update_visible_region(DisplayChannel *display, Drawable *dra
     RingItem *item;
     DisplayChannelClient *dcc;
 
-    if (!red_channel_is_connected(RED_CHANNEL(display))) {
+    if (!red_channel_is_connected(display)) {
         return;
     }
 
@@ -399,7 +399,7 @@ static void pipes_add_drawable_after(DisplayChannel *display,
         pipes_add_drawable(display, drawable);
         return;
     }
-    if (num_other_linked != red_channel_get_n_clients(RED_CHANNEL(display))) {
+    if (num_other_linked != red_channel_get_n_clients(display)) {
         spice_debug("TODO: not O(n^2)");
         FOREACH_DCC(display, dcc) {
             int sent = 0;
@@ -1465,9 +1465,9 @@ bool display_channel_wait_for_migrate_data(DisplayChannel *display)
     uint64_t end_time = spice_get_monotonic_time_ns() + DISPLAY_CLIENT_MIGRATE_DATA_TIMEOUT;
     RedChannelClient *rcc;
     int ret = FALSE;
-    GList *clients = red_channel_get_clients(RED_CHANNEL(display));
+    GList *clients = red_channel_get_clients(display);
 
-    if (!red_channel_is_waiting_for_migrate_data(RED_CHANNEL(display))) {
+    if (!red_channel_is_waiting_for_migrate_data(display)) {
         return FALSE;
     }
 
@@ -2111,9 +2111,11 @@ void display_channel_destroy_surfaces(DisplayChannel *display)
     }
     spice_warn_if_fail(ring_is_empty(&display->priv->streams));
 
-    if (red_channel_is_connected(RED_CHANNEL(display))) {
-        red_channel_pipes_add_type(RED_CHANNEL(display), RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
-        red_channel_pipes_add_empty_msg(RED_CHANNEL(display), SPICE_MSG_DISPLAY_STREAM_DESTROY_ALL);
+    if (red_channel_is_connected(display)) {
+        red_channel_pipes_add_type(display,
+                                   RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
+        red_channel_pipes_add_empty_msg(display,
+                                        SPICE_MSG_DISPLAY_STREAM_DESTROY_ALL);
     }
 
     display_channel_free_glz_drawables(display);
@@ -2182,7 +2184,7 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
 
     if (display->priv->renderer == RED_RENDERER_INVALID) {
         int i;
-        RedsState *reds = red_channel_get_server(RED_CHANNEL(display));
+        RedsState *reds = red_channel_get_server(display);
         GArray *renderers = reds_get_renderers(reds);
         for (i = 0; i < renderers->len; i++) {
             uint32_t renderer = g_array_index(renderers, uint32_t, i);
@@ -2293,7 +2295,7 @@ static void
 display_channel_constructed(GObject *object)
 {
     DisplayChannel *self = DISPLAY_CHANNEL(object);
-    RedChannel *channel = RED_CHANNEL(self);
+    RedChannel *channel = self;
 
     G_OBJECT_CLASS(display_channel_parent_class)->constructed(object);
 
@@ -2302,7 +2304,7 @@ display_channel_constructed(GObject *object)
     stat_init(&self->priv->add_stat, "add", CLOCK_THREAD_CPUTIME_ID);
     stat_init(&self->priv->exclude_stat, "exclude", CLOCK_THREAD_CPUTIME_ID);
     stat_init(&self->priv->__exclude_stat, "__exclude", CLOCK_THREAD_CPUTIME_ID);
-    RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
+    RedsState *reds = red_channel_get_server(self);
     const RedStatNode *stat = red_channel_get_stat_node(channel);
     stat_init_counter(&self->priv->cache_hits_counter, reds, stat,
                       "cache_hits", TRUE);
@@ -2391,7 +2393,7 @@ static void display_channel_update_compression(DisplayChannel *display, DisplayC
 
 void display_channel_gl_scanout(DisplayChannel *display)
 {
-    red_channel_pipes_new_add(RED_CHANNEL(display), dcc_gl_scanout_item_new, NULL);
+    red_channel_pipes_new_add(display, dcc_gl_scanout_item_new, NULL);
 }
 
 static void set_gl_draw_async_count(DisplayChannel *display, int num)
@@ -2409,7 +2411,7 @@ void display_channel_gl_draw(DisplayChannel *display, SpiceMsgDisplayGlDraw *dra
 
     spice_return_if_fail(display->priv->gl_draw_async_count == 0);
 
-    num = red_channel_pipes_new_add(RED_CHANNEL(display), dcc_gl_draw_item_new, draw);
+    num = red_channel_pipes_new_add(display, dcc_gl_draw_item_new, draw);
     set_gl_draw_async_count(display, num);
 }
 
@@ -2544,7 +2546,7 @@ display_channel_class_init(DisplayChannelClass *klass)
 
 void display_channel_debug_oom(DisplayChannel *display, const char *msg)
 {
-    RedChannel *channel = RED_CHANNEL(display);
+    RedChannel *channel = display;
 
     spice_debug("%s #draw=%u, #glz_draw=%u current %u pipes %u",
                 msg,
@@ -2579,7 +2581,7 @@ static void guest_set_client_capabilities(DisplayChannel *display)
 #define CLEAR_CAP(a,c)                                                  \
         ((a)[(c) / 8] &= ~(1 << ((c) % 8)))
 
-    if ((red_channel_get_n_clients(RED_CHANNEL(display)) == 0)) {
+    if ((red_channel_get_n_clients(display) == 0)) {
         red_qxl_set_client_capabilities(display->priv->qxl, FALSE, caps);
     } else {
         // Take least common denominator

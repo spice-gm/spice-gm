@@ -349,7 +349,7 @@ static void before_reattach_stream(DisplayChannel *display,
 
     spice_return_if_fail(stream->current);
 
-    if (!red_channel_is_connected(RED_CHANNEL(display))) {
+    if (!red_channel_is_connected(display)) {
         return;
     }
 
@@ -930,7 +930,7 @@ void video_stream_detach_behind(DisplayChannel *display,
     Ring *ring = &display->priv->streams;
     RingItem *item = ring_get_head(ring);
     DisplayChannelClient *dcc;
-    bool is_connected = red_channel_is_connected(RED_CHANNEL(display));
+    bool is_connected = red_channel_is_connected(display);
 
     while (item) {
         VideoStream *stream = SPICE_CONTAINEROF(item, VideoStream, link);

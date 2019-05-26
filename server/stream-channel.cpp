@@ -515,7 +515,7 @@ stream_channel_init(StreamChannel *channel)
 void
 stream_channel_change_format(StreamChannel *channel, const StreamMsgFormat *fmt)
 {
-    RedChannel *red_channel = RED_CHANNEL(channel);
+    RedChannel *red_channel = channel;
 
     // send destroy old stream
     red_channel_pipes_add_type(red_channel, RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
@@ -585,7 +585,7 @@ stream_channel_send_data(StreamChannel *channel, const void *data, size_t size, 
         return;
     }
 
-    RedChannel *red_channel = RED_CHANNEL(channel);
+    RedChannel *red_channel = channel;
 
     StreamDataItem *item = (StreamDataItem*) g_malloc(sizeof(*item) + size);
     red_pipe_item_init_full(&item->base, RED_PIPE_ITEM_TYPE_STREAM_DATA,
@@ -624,7 +624,7 @@ stream_channel_reset(StreamChannel *channel)
         uint8_t codecs_buffer[MAX_SUPPORTED_CODECS];
     } start_msg;
     StreamMsgStartStop *const start = &start_msg.base;
-    RedChannel *red_channel = RED_CHANNEL(channel);
+    RedChannel *red_channel = channel;
 
     // send destroy old stream
     red_channel_pipes_add_type(red_channel, RED_PIPE_ITEM_TYPE_STREAM_DESTROY);

@@ -177,7 +177,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
 
     worker->process_display_generation++;
     *ring_is_empty = FALSE;
-    while (red_channel_max_pipe_size(RED_CHANNEL(worker->display_channel)) <= MAX_PIPE_SIZE) {
+    while (red_channel_max_pipe_size(worker->display_channel) <= MAX_PIPE_SIZE) {
         if (!red_qxl_get_command(worker->qxl, &ext_cmd)) {
             *ring_is_empty = TRUE;
             if (worker->display_poll_tries < CMD_RING_POLL_RETRIES) {
@@ -249,7 +249,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
             spice_error("bad command type");
         }
         n++;
-        if (red_channel_all_blocked(RED_CHANNEL(worker->display_channel))
+        if (red_channel_all_blocked(worker->display_channel)
             || spice_get_monotonic_time_ns() - start > NSEC_PER_SEC / 100) {
             worker->event_timeout = 0;
             return n;
@@ -263,7 +263,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
 static bool red_process_is_blocked(RedWorker *worker)
 {
     return red_channel_max_pipe_size(RED_CHANNEL(worker->cursor_channel)) > MAX_PIPE_SIZE ||
-           red_channel_max_pipe_size(RED_CHANNEL(worker->display_channel)) > MAX_PIPE_SIZE;
+           red_channel_max_pipe_size(worker->display_channel) > MAX_PIPE_SIZE;
 }
 
 typedef int (*red_process_t)(RedWorker *worker, int *ring_is_empty);
@@ -311,7 +311,7 @@ static void flush_commands(RedWorker *worker, RedChannel *red_channel,
 
 static void flush_display_commands(RedWorker *worker)
 {
-    flush_commands(worker, RED_CHANNEL(worker->display_channel),
+    flush_commands(worker, worker->display_channel,
                    red_process_display);
 }
 
@@ -437,7 +437,7 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
     display_channel_set_monitors_config_to_primary(display);
 
     CommonGraphicsChannel *common = COMMON_GRAPHICS_CHANNEL(display);
-    RedChannel *channel = RED_CHANNEL(display);
+    RedChannel *channel = display;
     if (red_channel_is_connected(channel) &&
         !common_graphics_channel_get_during_target_migrate(common)) {
         /* guest created primary, so it will (hopefully) send a monitors_config
@@ -530,7 +530,7 @@ static void handle_dev_stop(void *opaque, void *payload)
      * purge the pipe, send destroy_all_surfaces
      * to the client (there is no such message right now), and start
      * from scratch on the destination side */
-    red_channel_wait_all_sent(RED_CHANNEL(worker->display_channel), COMMON_CLIENT_TIMEOUT);
+    red_channel_wait_all_sent(worker->display_channel, COMMON_CLIENT_TIMEOUT);
     red_channel_wait_all_sent(RED_CHANNEL(worker->cursor_channel), COMMON_CLIENT_TIMEOUT);
 }
 
@@ -566,7 +566,7 @@ static void handle_dev_oom(void *opaque, void *payload)
     RedWorker *worker = (RedWorker*) opaque;
     DisplayChannel *display = worker->display_channel;
 
-    RedChannel *display_red_channel = RED_CHANNEL(display);
+    RedChannel *display_red_channel = display;
     int ring_is_empty;
 
     spice_return_if_fail(red_qxl_is_running(worker->qxl));
@@ -1107,7 +1107,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
                                                   reds_get_streaming_video(reds),
                                                   reds_get_video_codecs(reds),
                                                   init_info.n_surfaces);
-    channel = RED_CHANNEL(worker->display_channel);
+    channel = worker->display_channel;
     red_channel_init_stat_node(channel, &worker->stat, "display_channel");
     display_channel_set_image_compression(worker->display_channel,
                                           spice_server_get_image_compression(reds));
@@ -1124,7 +1124,7 @@ static void *red_worker_main(void *arg)
            MAX_PIPE_SIZE > NARROW_CLIENT_ACK_WINDOW); //ensure wakeup by ack message
 
     red_channel_reset_thread_id(RED_CHANNEL(worker->cursor_channel));
-    red_channel_reset_thread_id(RED_CHANNEL(worker->display_channel));
+    red_channel_reset_thread_id(worker->display_channel);
 
     GMainLoop *loop = g_main_loop_new(worker->core.main_context, FALSE);
     worker->loop = loop;
@@ -1181,7 +1181,7 @@ void red_worker_free(RedWorker *worker)
 
     red_worker_close_channel(RED_CHANNEL(worker->cursor_channel));
     worker->cursor_channel = NULL;
-    red_worker_close_channel(RED_CHANNEL(worker->display_channel));
+    red_worker_close_channel(worker->display_channel);
     worker->display_channel = NULL;
 
     if (worker->dispatch_watch) {

@@ -253,7 +253,7 @@ static void snd_send(SndChannelClient * client);
 /* sound channels only support a single client */
 static SndChannelClient *snd_channel_get_client(SndChannel *channel)
 {
-    GList *clients = red_channel_get_clients(RED_CHANNEL(channel));
+    GList *clients = red_channel_get_clients(channel);
     if (clients == NULL) {
         return NULL;
     }
@@ -1000,7 +1000,7 @@ void snd_set_playback_latency(RedClient *client, uint32_t latency)
         SndChannel *now = (SndChannel*) l->data;
         SndChannelClient *scc = snd_channel_get_client(now);
         uint32_t type;
-        g_object_get(RED_CHANNEL(now), "channel-type", &type, NULL);
+        g_object_get(now, "channel-type", &type, NULL);
         if (type == SPICE_CHANNEL_PLAYBACK && scc &&
             red_channel_client_get_client(scc) == client) {
 
@@ -1239,7 +1239,7 @@ SPICE_GNUC_VISIBLE uint32_t spice_server_record_get_samples(SpiceRecordInstance 
 
 static void snd_set_rate(SndChannel *channel, uint32_t frequency, uint32_t cap_opus)
 {
-    RedChannel *red_channel = RED_CHANNEL(channel);
+    RedChannel *red_channel = channel;
     channel->frequency = frequency;
     if (red_channel && snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_OPUS, frequency)) {
         red_channel_set_cap(red_channel, cap_opus);
@@ -1365,14 +1365,14 @@ static void
 playback_channel_constructed(GObject *object)
 {
     SndChannel *self = SND_CHANNEL(object);
-    RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
+    RedsState *reds = red_channel_get_server(self);
 
     G_OBJECT_CLASS(playback_channel_parent_class)->constructed(object);
 
-    red_channel_set_cap(RED_CHANNEL(self), SPICE_PLAYBACK_CAP_VOLUME);
+    red_channel_set_cap(self, SPICE_PLAYBACK_CAP_VOLUME);
 
     add_channel(self);
-    reds_register_channel(reds, RED_CHANNEL(self));
+    reds_register_channel(reds, self);
 }
 
 static void
@@ -1411,14 +1411,14 @@ static void
 record_channel_constructed(GObject *object)
 {
     SndChannel *self = SND_CHANNEL(object);
-    RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
+    RedsState *reds = red_channel_get_server(self);
 
     G_OBJECT_CLASS(record_channel_parent_class)->constructed(object);
 
-    red_channel_set_cap(RED_CHANNEL(self), SPICE_RECORD_CAP_VOLUME);
+    red_channel_set_cap(self, SPICE_RECORD_CAP_VOLUME);
 
     add_channel(self);
-    reds_register_channel(reds, RED_CHANNEL(self));
+    reds_register_channel(reds, self);
 }
 
 static void
@@ -1454,7 +1454,7 @@ static void snd_detach_common(SndChannel *channel)
         return;
     }
 
-    red_channel_destroy(RED_CHANNEL(channel));
+    red_channel_destroy(channel);
 }
 
 void snd_detach_playback(SpicePlaybackInstance *sin)
@@ -1475,7 +1475,7 @@ void snd_set_playback_compression(bool on)
         SndChannel *now = (SndChannel*) l->data;
         SndChannelClient *client = snd_channel_get_client(now);
         uint32_t type;
-        g_object_get(RED_CHANNEL(now), "channel-type", &type, NULL);
+        g_object_get(now, "channel-type", &type, NULL);
         if (type == SPICE_CHANNEL_PLAYBACK && client) {
             PlaybackChannelClient* playback = PLAYBACK_CHANNEL_CLIENT(client);
             RedChannelClient *rcc = playback;

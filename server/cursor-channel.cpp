@@ -271,11 +271,11 @@ void cursor_channel_process_cmd(CursorChannel *cursor, RedCursorCmd *cursor_cmd)
         return;
     }
 
-    if (red_channel_is_connected(RED_CHANNEL(cursor)) &&
+    if (red_channel_is_connected(cursor) &&
         (cursor->mouse_mode == SPICE_MOUSE_MODE_SERVER
          || cursor_cmd->type != QXL_CURSOR_MOVE
          || cursor_show)) {
-        red_channel_pipes_add(RED_CHANNEL(cursor), &cursor_pipe_item->base);
+        red_channel_pipes_add(cursor, &cursor_pipe_item->base);
     } else {
         red_pipe_item_unref(&cursor_pipe_item->base);
     }
@@ -283,7 +283,7 @@ void cursor_channel_process_cmd(CursorChannel *cursor, RedCursorCmd *cursor_cmd)
 
 void cursor_channel_reset(CursorChannel *cursor)
 {
-    RedChannel *channel = RED_CHANNEL(cursor);
+    RedChannel *channel = cursor;
 
     spice_return_if_fail(cursor);
 
@@ -305,7 +305,7 @@ static void cursor_channel_init_client(CursorChannel *cursor, CursorChannelClien
 {
     spice_return_if_fail(cursor);
 
-    if (!red_channel_is_connected(RED_CHANNEL(cursor))
+    if (!red_channel_is_connected(cursor)
         || common_graphics_channel_get_during_target_migrate(COMMON_GRAPHICS_CHANNEL(cursor))) {
         spice_debug("during_target_migrate: skip init");
         return;
@@ -315,7 +315,7 @@ static void cursor_channel_init_client(CursorChannel *cursor, CursorChannelClien
         red_channel_client_pipe_add_type(client,
                                          RED_PIPE_ITEM_TYPE_CURSOR_INIT);
     else
-        red_channel_pipes_add_type(RED_CHANNEL(cursor), RED_PIPE_ITEM_TYPE_CURSOR_INIT);
+        red_channel_pipes_add_type(cursor, RED_PIPE_ITEM_TYPE_CURSOR_INIT);
 }
 
 void cursor_channel_do_init(CursorChannel *cursor)

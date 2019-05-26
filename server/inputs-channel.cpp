@@ -275,7 +275,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
     InputsChannel *inputs_channel = INPUTS_CHANNEL(red_channel_client_get_channel(rcc));
     InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
     uint32_t i;
-    RedsState *reds = red_channel_get_server(RED_CHANNEL(inputs_channel));
+    RedsState *reds = red_channel_get_server(inputs_channel);
 
     switch (type) {
     case SPICE_MSGC_INPUTS_KEY_DOWN: {
@@ -499,11 +499,11 @@ static void inputs_migrate(RedChannelClient *rcc)
 
 static void inputs_channel_push_keyboard_modifiers(InputsChannel *inputs, uint8_t modifiers)
 {
-    if (!inputs || !red_channel_is_connected(RED_CHANNEL(inputs)) ||
+    if (!inputs || !red_channel_is_connected(inputs) ||
         inputs->src_during_migrate) {
         return;
     }
-    red_channel_pipes_add(RED_CHANNEL(inputs),
+    red_channel_pipes_add(inputs,
                           red_inputs_key_modifiers_item_new(modifiers));
 }
 
@@ -574,13 +574,13 @@ static void
 inputs_channel_constructed(GObject *object)
 {
     InputsChannel *self = INPUTS_CHANNEL(object);
-    RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
-    SpiceCoreInterfaceInternal *core = red_channel_get_core_interface(RED_CHANNEL(self));
+    RedsState *reds = red_channel_get_server(self);
+    SpiceCoreInterfaceInternal *core = red_channel_get_core_interface(self);
 
     G_OBJECT_CLASS(inputs_channel_parent_class)->constructed(object);
 
-    red_channel_set_cap(RED_CHANNEL(self), SPICE_INPUTS_CAP_KEY_SCANCODE);
-    reds_register_channel(reds, RED_CHANNEL(self));
+    red_channel_set_cap(self, SPICE_INPUTS_CAP_KEY_SCANCODE);
+    reds_register_channel(reds, self);
 
     self->key_modifiers_timer = core->timer_add(core, key_modifiers_sender, self);
     if (!self->key_modifiers_timer) {
@@ -635,7 +635,7 @@ static SpiceKbdInstance* inputs_channel_get_keyboard(InputsChannel *inputs)
 int inputs_channel_set_keyboard(InputsChannel *inputs, SpiceKbdInstance *keyboard)
 {
     if (inputs->keyboard) {
-        red_channel_warning(RED_CHANNEL(inputs), "already have keyboard");
+        red_channel_warning(inputs, "already have keyboard");
         return -1;
     }
     inputs->keyboard = keyboard;
@@ -651,7 +651,7 @@ static SpiceMouseInstance* inputs_channel_get_mouse(InputsChannel *inputs)
 int inputs_channel_set_mouse(InputsChannel *inputs, SpiceMouseInstance *mouse)
 {
     if (inputs->mouse) {
-        red_channel_warning(RED_CHANNEL(inputs), "already have mouse");
+        red_channel_warning(inputs, "already have mouse");
         return -1;
     }
     inputs->mouse = mouse;
@@ -667,11 +667,11 @@ static SpiceTabletInstance* inputs_channel_get_tablet(InputsChannel *inputs)
 int inputs_channel_set_tablet(InputsChannel *inputs, SpiceTabletInstance *tablet)
 {
     if (inputs->tablet) {
-        red_channel_warning(RED_CHANNEL(inputs), "already have tablet");
+        red_channel_warning(inputs, "already have tablet");
         return -1;
     }
     inputs->tablet = tablet;
-    inputs->tablet->st = spice_tablet_state_new(red_channel_get_server(RED_CHANNEL(inputs)));
+    inputs->tablet->st = spice_tablet_state_new(red_channel_get_server(inputs));
     return 0;
 }
 

@@ -628,7 +628,7 @@ MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient 
     mcc = (MainChannelClient *)
           g_initable_new(TYPE_MAIN_CHANNEL_CLIENT,
                          NULL, NULL,
-                         "channel", RED_CHANNEL(main_chan),
+                         "channel", main_chan,
                          "client", client,
                          "stream", stream,
                          "caps", caps,

@@ -4278,7 +4278,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_connect(SpiceServer *reds, const cha
      */
     try_seamless = reds->seamless_migration_enabled &&
                    red_channel_test_remote_cap(RED_CHANNEL(reds->main_channel),
-                   SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS);
+                                               SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS);
     /* main channel will take care of clients that are still during migration (at target)*/
     if (main_channel_migrate_connect(reds->main_channel, reds->config->mig_spice,
                                      try_seamless)) {

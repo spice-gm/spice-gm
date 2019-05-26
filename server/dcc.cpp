@@ -305,7 +305,7 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
         return;
     }
     surface = &display->priv->surfaces[surface_id];
-    create = red_surface_create_item_new(RED_CHANNEL(display),
+    create = red_surface_create_item_new(display,
                                          surface_id, surface->context.width,
                                          surface->context.height,
                                          surface->context.format, flags);

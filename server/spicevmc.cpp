@@ -180,12 +180,12 @@ static void
 red_vmc_channel_constructed(GObject *object)
 {
     RedVmcChannel *self = RED_VMC_CHANNEL(object);
-    RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
+    RedsState *reds = red_channel_get_server(self);
 
     G_OBJECT_CLASS(red_vmc_channel_parent_class)->constructed(object);
 
-    red_channel_init_stat_node(RED_CHANNEL(self), NULL, "spicevmc");
-    const RedStatNode *stat = red_channel_get_stat_node(RED_CHANNEL(self));
+    red_channel_init_stat_node(self, NULL, "spicevmc");
+    const RedStatNode *stat = red_channel_get_stat_node(self);
     stat_init_counter(&self->in_data, reds, stat, "in_data", TRUE);
     stat_init_counter(&self->in_compressed, reds, stat, "in_compressed", TRUE);
     stat_init_counter(&self->in_decompressed, reds, stat, "in_decompressed", TRUE);
@@ -194,10 +194,10 @@ red_vmc_channel_constructed(GObject *object)
     stat_init_counter(&self->out_uncompressed, reds, stat, "out_uncompressed", TRUE);
 
 #ifdef USE_LZ4
-    red_channel_set_cap(RED_CHANNEL(self), SPICE_SPICEVMC_CAP_DATA_COMPRESS_LZ4);
+    red_channel_set_cap(self, SPICE_SPICEVMC_CAP_DATA_COMPRESS_LZ4);
 #endif
 
-    reds_register_channel(reds, RED_CHANNEL(self));
+    reds_register_channel(reds, self);
 }
 
 static void
@@ -426,7 +426,7 @@ static void spicevmc_red_channel_client_on_disconnect(RedChannelClient *rcc)
         if (red_char_device_client_exists(channel->chardev, client)) {
             red_char_device_client_remove(channel->chardev, client);
         } else {
-            red_channel_warning(RED_CHANNEL(channel),
+            red_channel_warning(channel,
                                 "client %p have already been removed from char dev %p",
                                 client, channel->chardev);
         }
@@ -762,7 +762,7 @@ static void spicevmc_connect(RedChannel *channel, RedClient *client,
     sin = vmc_channel->chardev_sin;
 
     if (vmc_channel->rcc) {
-        red_channel_warning(RED_CHANNEL(channel),
+        red_channel_warning(channel,
                             "channel client (%p) already connected, refusing second connection",
                             vmc_channel->rcc);
         // TODO: notify client in advance about the in use channel using
@@ -852,7 +852,7 @@ red_char_device_spicevmc_dispose(GObject *object)
         self->channel->chardev = NULL;
 
         // close all current connections and drop the reference
-        red_channel_destroy(RED_CHANNEL(self->channel));
+        red_channel_destroy(self->channel);
         self->channel = NULL;
     }
     G_OBJECT_CLASS(red_char_device_spicevmc_parent_class)->dispose(object);

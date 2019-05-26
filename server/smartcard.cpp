@@ -541,11 +541,11 @@ static void
 red_smartcard_channel_constructed(GObject *object)
 {
     RedSmartcardChannel *self = RED_SMARTCARD_CHANNEL(object);
-    RedsState *reds = red_channel_get_server(RED_CHANNEL(self));
+    RedsState *reds = red_channel_get_server(self);
 
     G_OBJECT_CLASS(red_smartcard_channel_parent_class)->constructed(object);
 
-    reds_register_channel(reds, RED_CHANNEL(self));
+    reds_register_channel(reds, self);
 }
 
 static void
