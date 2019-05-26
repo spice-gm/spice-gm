@@ -202,7 +202,7 @@ static void smartcard_channel_client_add_reader(SmartCardChannelClient *scc)
         SpiceCharDeviceInstance *char_device = smartcard_readers_get_unattached();
 
         if (!char_device) {
-            smartcard_channel_client_push_error(RED_CHANNEL_CLIENT(scc),
+            smartcard_channel_client_push_error(scc,
                                                 VSCARD_UNDEFINED_READER_ID,
                                                 VSC_CANNOT_ADD_MORE_READERS);
             return;
@@ -222,7 +222,7 @@ static void smartcard_channel_client_remove_reader(SmartCardChannelClient *scc,
     RedCharDeviceSmartcard *dev;
 
     if (char_device == NULL) {
-        smartcard_channel_client_push_error(RED_CHANNEL_CLIENT(scc),
+        smartcard_channel_client_push_error(scc,
                                             reader_id, VSC_GENERAL_ERROR);
         return;
     }
@@ -230,7 +230,7 @@ static void smartcard_channel_client_remove_reader(SmartCardChannelClient *scc,
     dev = RED_CHAR_DEVICE_SMARTCARD(char_device->st);
     spice_assert(scc->priv->smartcard == dev);
     if (!smartcard_char_device_notify_reader_remove(dev)) {
-        smartcard_channel_client_push_error(RED_CHANNEL_CLIENT(scc),
+        smartcard_channel_client_push_error(scc,
                                             reader_id, VSC_GENERAL_ERROR);
         return;
     }

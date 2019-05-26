@@ -234,7 +234,7 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
     /* removing the newest drawables that their destination is surface_id and
        no other drawable depends on them */
 
-    rcc = RED_CHANNEL_CLIENT(dcc);
+    rcc = dcc;
     for (l = red_channel_client_get_pipe(rcc)->head; l != NULL; ) {
         Drawable *drawable;
         RedDrawablePipeItem *dpi = NULL;
@@ -310,7 +310,7 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
                                          surface->context.height,
                                          surface->context.format, flags);
     dcc->priv->surface_client_created[surface_id] = TRUE;
-    red_channel_client_pipe_add(RED_CHANNEL_CLIENT(dcc), &create->base);
+    red_channel_client_pipe_add(dcc, &create->base);
 }
 
 // adding the pipe item after pos. If pos == NULL, adding to head.
@@ -368,9 +368,9 @@ RedImageItem *dcc_add_surface_area_image(DisplayChannelClient *dcc,
     }
 
     if (pipe_item_pos) {
-        red_channel_client_pipe_add_after_pos(RED_CHANNEL_CLIENT(dcc), &item->base, pipe_item_pos);
+        red_channel_client_pipe_add_after_pos(dcc, &item->base, pipe_item_pos);
     } else {
-        red_channel_client_pipe_add(RED_CHANNEL_CLIENT(dcc), &item->base);
+        red_channel_client_pipe_add(dcc, &item->base);
     }
 
     return item;
@@ -458,7 +458,7 @@ void dcc_prepend_drawable(DisplayChannelClient *dcc, Drawable *drawable)
     RedDrawablePipeItem *dpi = red_drawable_pipe_item_new(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
-    red_channel_client_pipe_add(RED_CHANNEL_CLIENT(dcc), &dpi->base);
+    red_channel_client_pipe_add(dcc, &dpi->base);
 }
 
 void dcc_append_drawable(DisplayChannelClient *dcc, Drawable *drawable)
@@ -466,7 +466,7 @@ void dcc_append_drawable(DisplayChannelClient *dcc, Drawable *drawable)
     RedDrawablePipeItem *dpi = red_drawable_pipe_item_new(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
-    red_channel_client_pipe_add_tail(RED_CHANNEL_CLIENT(dcc), &dpi->base);
+    red_channel_client_pipe_add_tail(dcc, &dpi->base);
 }
 
 void dcc_add_drawable_after(DisplayChannelClient *dcc, Drawable *drawable, RedPipeItem *pos)
@@ -474,7 +474,7 @@ void dcc_add_drawable_after(DisplayChannelClient *dcc, Drawable *drawable, RedPi
     RedDrawablePipeItem *dpi = red_drawable_pipe_item_new(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
-    red_channel_client_pipe_add_after(RED_CHANNEL_CLIENT(dcc), &dpi->base, pos);
+    red_channel_client_pipe_add_after(dcc, &dpi->base, pos);
 }
 
 static void dcc_init_stream_agents(DisplayChannelClient *dcc)
@@ -539,8 +539,8 @@ static bool display_channel_client_wait_for_init(DisplayChannelClient *dcc)
     dcc->priv->expect_init = TRUE;
     uint64_t end_time = spice_get_monotonic_time_ns() + COMMON_CLIENT_TIMEOUT;
     for (;;) {
-        red_channel_client_receive(RED_CHANNEL_CLIENT(dcc));
-        if (!red_channel_client_is_connected(RED_CHANNEL_CLIENT(dcc))) {
+        red_channel_client_receive(dcc);
+        if (!red_channel_client_is_connected(dcc)) {
             break;
         }
         if (dcc->priv->pixmap_cache && dcc->priv->encoders.glz_dict) {
@@ -554,7 +554,7 @@ static bool display_channel_client_wait_for_init(DisplayChannelClient *dcc)
         }
         if (spice_get_monotonic_time_ns() > end_time) {
             spice_warning("timeout");
-            red_channel_client_disconnect(RED_CHANNEL_CLIENT(dcc));
+            red_channel_client_disconnect(dcc);
             break;
         }
         usleep(DISPLAY_CLIENT_RETRY_INTERVAL);
@@ -565,7 +565,7 @@ static bool display_channel_client_wait_for_init(DisplayChannelClient *dcc)
 void dcc_start(DisplayChannelClient *dcc)
 {
     DisplayChannel *display = DCC_TO_DC(dcc);
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(dcc);
+    RedChannelClient *rcc = dcc;
 
     red_channel_client_push_set_ack(rcc);
 
@@ -630,7 +630,7 @@ void dcc_video_stream_agent_clip(DisplayChannelClient* dcc, VideoStreamAgent *ag
 {
     VideoStreamClipItem *item = video_stream_clip_item_new(agent);
 
-    red_channel_client_pipe_add(RED_CHANNEL_CLIENT(dcc), &item->base);
+    red_channel_client_pipe_add(dcc, &item->base);
 }
 
 static void red_monitors_config_item_free(RedPipeItem *pipe_item)
@@ -665,14 +665,14 @@ void dcc_push_monitors_config(DisplayChannelClient *dcc)
         return;
     }
 
-    if (!red_channel_client_test_remote_cap(RED_CHANNEL_CLIENT(dcc),
+    if (!red_channel_client_test_remote_cap(dcc,
                                             SPICE_DISPLAY_CAP_MONITORS_CONFIG)) {
         return;
     }
 
-    mci = red_monitors_config_item_new(red_channel_client_get_channel(RED_CHANNEL_CLIENT(dcc)),
+    mci = red_monitors_config_item_new(red_channel_client_get_channel(dcc),
                                        monitors_config);
-    red_channel_client_pipe_add(RED_CHANNEL_CLIENT(dcc), &mci->base);
+    red_channel_client_pipe_add(dcc, &mci->base);
 }
 
 static RedSurfaceDestroyItem *red_surface_destroy_item_new(uint32_t surface_id)
@@ -745,7 +745,7 @@ void dcc_destroy_surface(DisplayChannelClient *dcc, uint32_t surface_id)
 
     dcc->priv->surface_client_created[surface_id] = FALSE;
     destroy = red_surface_destroy_item_new(surface_id);
-    red_channel_client_pipe_add(RED_CHANNEL_CLIENT(dcc), &destroy->base);
+    red_channel_client_pipe_add(dcc, &destroy->base);
 }
 
 #define MIN_DIMENSION_TO_QUIC 3
@@ -869,7 +869,7 @@ int dcc_compress_image(DisplayChannelClient *dcc,
         goto lz_compress;
 #ifdef USE_LZ4
     case SPICE_IMAGE_COMPRESSION_LZ4:
-        if (red_channel_client_test_remote_cap(RED_CHANNEL_CLIENT(dcc),
+        if (red_channel_client_test_remote_cap(dcc,
                                                SPICE_DISPLAY_CAP_LZ4_COMPRESSION)) {
             success = image_encoders_compress_lz4(&dcc->priv->encoders, dest, src, o_comp_data);
             break;
@@ -952,12 +952,12 @@ bool dcc_pixmap_cache_unlocked_add(DisplayChannelClient *dcc, uint64_t id,
     spice_assert(size > 0);
 
     item = g_new(NewCacheItem, 1);
-    serial = red_channel_client_get_message_serial(RED_CHANNEL_CLIENT(dcc));
+    serial = red_channel_client_get_message_serial(dcc);
 
     if (cache->generation != dcc->priv->pixmap_cache_generation) {
         if (!dcc->priv->pending_pixmaps_sync) {
-            red_channel_client_pipe_add_type(
-                                             RED_CHANNEL_CLIENT(dcc), RED_PIPE_ITEM_TYPE_PIXMAP_SYNC);
+            red_channel_client_pipe_add_type(dcc,
+                                             RED_PIPE_ITEM_TYPE_PIXMAP_SYNC);
             dcc->priv->pending_pixmaps_sync = TRUE;
         }
         g_free(item);
@@ -1010,7 +1010,7 @@ bool dcc_pixmap_cache_unlocked_add(DisplayChannelClient *dcc, uint64_t id,
 static bool dcc_handle_init(DisplayChannelClient *dcc, SpiceMsgcDisplayInit *init)
 {
     gboolean success;
-    RedClient *client = red_channel_client_get_client(RED_CHANNEL_CLIENT(dcc));
+    RedClient *client = red_channel_client_get_client(dcc);
 
     spice_return_val_if_fail(dcc->priv->expect_init, FALSE);
     dcc->priv->expect_init = FALSE;
@@ -1223,7 +1223,7 @@ static int dcc_handle_migrate_glz_dictionary(DisplayChannelClient *dcc,
 {
     GlzEncDictRestoreData glz_dict_data = migrate->glz_dict_data;
     return image_encoders_restore_glz_dictionary(&dcc->priv->encoders,
-                                                 red_channel_client_get_client(RED_CHANNEL_CLIENT(dcc)),
+                                                 red_channel_client_get_client(dcc),
                                                  migrate->glz_dict_id,
                                                  &glz_dict_data);
 }
@@ -1299,7 +1299,7 @@ bool dcc_handle_migrate_data(DisplayChannelClient *dcc, uint32_t size, void *mes
      * channel client that froze the cache on the src size receives the migrate
      * data and unfreezes the cache by setting its size > 0 and by triggering
      * pixmap_cache_reset */
-    dcc->priv->pixmap_cache = pixmap_cache_get(red_channel_client_get_client(RED_CHANNEL_CLIENT(dcc)),
+    dcc->priv->pixmap_cache = pixmap_cache_get(red_channel_client_get_client(dcc),
                                                migrate_data->pixmap_cache_id, -1);
     spice_return_val_if_fail(dcc->priv->pixmap_cache, FALSE);
 
@@ -1314,7 +1314,7 @@ bool dcc_handle_migrate_data(DisplayChannelClient *dcc, uint32_t size, void *mes
         /* activating the cache. The cache will start to be active after
          * pixmap_cache_reset is called, when handling RED_PIPE_ITEM_TYPE_PIXMAP_RESET */
         dcc->priv->pixmap_cache->size = migrate_data->pixmap_cache_size;
-        red_channel_client_pipe_add_type(RED_CHANNEL_CLIENT(dcc), RED_PIPE_ITEM_TYPE_PIXMAP_RESET);
+        red_channel_client_pipe_add_type(dcc, RED_PIPE_ITEM_TYPE_PIXMAP_RESET);
     }
 
     if (dcc_handle_migrate_glz_dictionary(dcc, migrate_data)) {
@@ -1326,7 +1326,7 @@ bool dcc_handle_migrate_data(DisplayChannelClient *dcc, uint32_t size, void *mes
     dcc->is_low_bandwidth = migrate_data->low_bandwidth_setting;
 
     if (migrate_data->low_bandwidth_setting) {
-        red_channel_client_ack_set_client_window(RED_CHANNEL_CLIENT(dcc), WIDE_CLIENT_ACK_WINDOW);
+        red_channel_client_ack_set_client_window(dcc, WIDE_CLIENT_ACK_WINDOW);
         if (dcc->priv->jpeg_state == SPICE_WAN_COMPRESSION_AUTO) {
             display->priv->enable_jpeg = TRUE;
         }
@@ -1342,9 +1342,10 @@ bool dcc_handle_migrate_data(DisplayChannelClient *dcc, uint32_t size, void *mes
 
     spice_return_val_if_fail(surfaces_restored, FALSE);
 
-    red_channel_client_pipe_add_type(RED_CHANNEL_CLIENT(dcc), RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
+    red_channel_client_pipe_add_type(dcc,
+                                     RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
     /* enable sending messages */
-    red_channel_client_ack_zero_messages_window(RED_CHANNEL_CLIENT(dcc));
+    red_channel_client_ack_zero_messages_window(dcc);
     return TRUE;
 }
 

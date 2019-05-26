@@ -123,18 +123,18 @@ void inputs_channel_client_handle_migrate_data(InputsChannelClient *icc,
 
     for (; icc->priv->motion_count >= SPICE_INPUT_MOTION_ACK_BUNCH;
            icc->priv->motion_count -= SPICE_INPUT_MOTION_ACK_BUNCH) {
-        red_channel_client_pipe_add_type(RED_CHANNEL_CLIENT(icc),
+        red_channel_client_pipe_add_type(icc,
                                          RED_PIPE_ITEM_MOUSE_MOTION_ACK);
     }
 }
 
 void inputs_channel_client_on_mouse_motion(InputsChannelClient *icc)
 {
-    InputsChannel *inputs_channel = INPUTS_CHANNEL(red_channel_client_get_channel(RED_CHANNEL_CLIENT(icc)));
+    InputsChannel *inputs_channel = INPUTS_CHANNEL(red_channel_client_get_channel(icc));
 
     if (++icc->priv->motion_count % SPICE_INPUT_MOTION_ACK_BUNCH == 0 &&
         !inputs_channel_is_src_during_migrate(inputs_channel)) {
-        red_channel_client_pipe_add_type(RED_CHANNEL_CLIENT(icc),
+        red_channel_client_pipe_add_type(icc,
                                          RED_PIPE_ITEM_MOUSE_MOTION_ACK);
         icc->priv->motion_count = 0;
     }

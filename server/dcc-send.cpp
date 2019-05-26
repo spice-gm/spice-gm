@@ -53,7 +53,7 @@ static int dcc_pixmap_cache_unlocked_hit(DisplayChannelClient *dcc, uint64_t id,
     NewCacheItem *item;
     uint64_t serial;
 
-    serial = red_channel_client_get_message_serial(RED_CHANNEL_CLIENT(dcc));
+    serial = red_channel_client_get_message_serial(dcc);
     item = cache->hash_table[BITS_CACHE_HASH_KEY(id)];
 
     while (item) {
@@ -176,7 +176,7 @@ static bool is_brush_lossy(RedChannelClient *rcc, SpiceBrush *brush,
 
 static GList *dcc_get_tail(DisplayChannelClient *dcc)
 {
-    return red_channel_client_get_pipe(RED_CHANNEL_CLIENT(dcc))->tail;
+    return red_channel_client_get_pipe(dcc)->tail;
 }
 
 static void red_display_add_image_to_pixmap_cache(RedChannelClient *rcc,
@@ -356,7 +356,7 @@ static void marshaller_unref_drawable(uint8_t *data, void *opaque)
 static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
                               SpiceImage *simage, Drawable *drawable, int can_lossy)
 {
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(dcc);
+    RedChannelClient *rcc = dcc;
     DisplayChannel *display = DCC_TO_DC(dcc);
     SpiceImage image;
     compress_send_data_t comp_send_data = {0};
@@ -630,7 +630,7 @@ static bool pipe_rendered_drawables_intersect_with_areas(DisplayChannelClient *d
 
     spice_assert(num_surfaces);
 
-    for (l = red_channel_client_get_pipe(RED_CHANNEL_CLIENT(dcc))->head; l != NULL; l = l->next) {
+    for (l = red_channel_client_get_pipe(dcc)->head; l != NULL; l = l->next) {
         Drawable *drawable;
         RedPipeItem *pipe_item = (RedPipeItem *) l->data;
 
@@ -718,7 +718,7 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
     resent_areas[0] = *first_area;
     num_resent = 1;
 
-    pipe = red_channel_client_get_pipe(RED_CHANNEL_CLIENT(dcc));
+    pipe = red_channel_client_get_pipe(dcc);
 
     // going from the oldest to the newest
     for (l = pipe->tail; l != NULL; l = prev) {
@@ -751,7 +751,7 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
         resent_areas[num_resent] = drawable->red_drawable->bbox;
         num_resent++;
 
-        red_channel_client_pipe_remove_and_release_pos(RED_CHANNEL_CLIENT(dcc), l);
+        red_channel_client_pipe_remove_and_release_pos(dcc, l);
     }
 }
 
@@ -1886,7 +1886,7 @@ static void dcc_pixmap_cache_reset(DisplayChannelClient *dcc, SpiceMsgWaitForCha
     uint64_t serial;
     uint32_t i;
 
-    serial = red_channel_client_get_message_serial(RED_CHANNEL_CLIENT(dcc));
+    serial = red_channel_client_get_message_serial(dcc);
     pthread_mutex_lock(&cache->lock);
     pixmap_cache_clear(cache);
 

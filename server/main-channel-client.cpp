@@ -258,7 +258,7 @@ void main_channel_client_start_net_test(MainChannelClient *mcc, int test_rate)
     }
 
     if (!test_rate) {
-        red_channel_client_start_connectivity_monitoring(RED_CHANNEL_CLIENT(mcc),
+        red_channel_client_start_connectivity_monitoring(mcc,
                                                          CLIENT_CONNECTIVITY_TIMEOUT);
         return;
     }
@@ -283,7 +283,7 @@ static RedPipeItem *red_ping_item_new(int size)
 static void main_channel_client_push_ping(MainChannelClient *mcc, int size)
 {
     RedPipeItem *item = red_ping_item_new(size);
-    red_channel_client_pipe_add_push(RED_CHANNEL_CLIENT(mcc), item);
+    red_channel_client_pipe_add_push(mcc, item);
 }
 
 static RedPipeItem *main_agent_tokens_item_new(uint32_t num_tokens)
@@ -300,7 +300,7 @@ void main_channel_client_push_agent_tokens(MainChannelClient *mcc, uint32_t num_
 {
     RedPipeItem *item = main_agent_tokens_item_new(num_tokens);
 
-    red_channel_client_pipe_add_push(RED_CHANNEL_CLIENT(mcc), item);
+    red_channel_client_pipe_add_push(mcc, item);
 }
 
 static void main_agent_data_item_free(RedPipeItem *base)
@@ -331,7 +331,7 @@ void main_channel_client_push_agent_data(MainChannelClient *mcc, uint8_t* data, 
     RedPipeItem *item;
 
     item = main_agent_data_item_new(data, len, free_data, opaque);
-    red_channel_client_pipe_add_push(RED_CHANNEL_CLIENT(mcc), item);
+    red_channel_client_pipe_add_push(mcc, item);
 }
 
 static RedPipeItem *main_init_item_new(int connection_id,
@@ -365,7 +365,7 @@ void main_channel_client_push_init(MainChannelClient *mcc,
     item = main_init_item_new(mcc->priv->connection_id, display_channels_hint,
                               current_mouse_mode, is_client_mouse_allowed,
                               multi_media_time, ram_hint);
-    red_channel_client_pipe_add_push(RED_CHANNEL_CLIENT(mcc), item);
+    red_channel_client_pipe_add_push(mcc, item);
 }
 
 static RedPipeItem *main_name_item_new(const char *name)
@@ -383,12 +383,12 @@ void main_channel_client_push_name(MainChannelClient *mcc, const char *name)
 {
     RedPipeItem *item;
 
-    if (!red_channel_client_test_remote_cap(RED_CHANNEL_CLIENT(mcc),
+    if (!red_channel_client_test_remote_cap(mcc,
                                             SPICE_MAIN_CAP_NAME_AND_UUID))
         return;
 
     item = main_name_item_new(name);
-    red_channel_client_pipe_add_push(RED_CHANNEL_CLIENT(mcc), item);
+    red_channel_client_pipe_add_push(mcc, item);
 }
 
 static RedPipeItem *main_uuid_item_new(const uint8_t uuid[16])
@@ -405,18 +405,18 @@ void main_channel_client_push_uuid(MainChannelClient *mcc, const uint8_t uuid[16
 {
     RedPipeItem *item;
 
-    if (!red_channel_client_test_remote_cap(RED_CHANNEL_CLIENT(mcc),
+    if (!red_channel_client_test_remote_cap(mcc,
                                             SPICE_MAIN_CAP_NAME_AND_UUID))
         return;
 
     item = main_uuid_item_new(uuid);
-    red_channel_client_pipe_add_push(RED_CHANNEL_CLIENT(mcc), item);
+    red_channel_client_pipe_add_push(mcc, item);
 }
 
 void main_channel_client_push_notify(MainChannelClient *mcc, const char *msg)
 {
     RedPipeItem *item = main_notify_item_new(msg, 1);
-    red_channel_client_pipe_add_push(RED_CHANNEL_CLIENT(mcc), item);
+    red_channel_client_pipe_add_push(mcc, item);
 }
 
 RedPipeItem *main_mouse_mode_item_new(SpiceMouseMode current_mode, int is_client_mouse_allowed)
@@ -458,7 +458,7 @@ void main_channel_client_handle_migrate_connected(MainChannelClient *mcc,
                                                   int seamless)
 {
     if (mcc->priv->mig_wait_connect) {
-        RedChannel *channel = red_channel_client_get_channel(RED_CHANNEL_CLIENT(mcc));
+        RedChannel *channel = red_channel_client_get_channel(mcc);
         MainChannel *main_channel = MAIN_CHANNEL(channel);
 
         mcc->priv->mig_wait_connect = FALSE;
@@ -466,7 +466,7 @@ void main_channel_client_handle_migrate_connected(MainChannelClient *mcc,
         main_channel_on_migrate_connected(main_channel, success, seamless);
     } else {
         if (success) {
-            red_channel_client_pipe_add_empty_msg(RED_CHANNEL_CLIENT(mcc),
+            red_channel_client_pipe_add_empty_msg(mcc,
                                                   SPICE_MSG_MAIN_MIGRATE_CANCEL);
         }
     }
@@ -475,20 +475,20 @@ void main_channel_client_handle_migrate_connected(MainChannelClient *mcc,
 void main_channel_client_handle_migrate_dst_do_seamless(MainChannelClient *mcc,
                                                         uint32_t src_version)
 {
-    RedChannel *channel = red_channel_client_get_channel(RED_CHANNEL_CLIENT(mcc));
+    RedChannel *channel = red_channel_client_get_channel(mcc);
     if (reds_on_migrate_dst_set_seamless(red_channel_get_server(channel), mcc, src_version)) {
         mcc->priv->seamless_mig_dst = TRUE;
-        red_channel_client_pipe_add_empty_msg(RED_CHANNEL_CLIENT(mcc),
-                                             SPICE_MSG_MAIN_MIGRATE_DST_SEAMLESS_ACK);
+        red_channel_client_pipe_add_empty_msg(mcc,
+                                              SPICE_MSG_MAIN_MIGRATE_DST_SEAMLESS_ACK);
     } else {
-        red_channel_client_pipe_add_empty_msg(RED_CHANNEL_CLIENT(mcc),
+        red_channel_client_pipe_add_empty_msg(mcc,
                                               SPICE_MSG_MAIN_MIGRATE_DST_SEAMLESS_NACK);
     }
 }
 void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping, uint32_t size)
 {
     uint64_t roundtrip;
-    RedChannelClient* rcc = RED_CHANNEL_CLIENT(mcc);
+    RedChannelClient* rcc = mcc;
 
     roundtrip = spice_get_monotonic_time_ns() / NSEC_PER_MICROSEC - ping->timestamp;
 
@@ -549,15 +549,15 @@ void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping,
 
 void main_channel_client_handle_migrate_end(MainChannelClient *mcc)
 {
-    RedClient *client = red_channel_client_get_client(RED_CHANNEL_CLIENT(mcc));
+    RedClient *client = red_channel_client_get_client(mcc);
     if (!red_client_during_migrate_at_target(client)) {
-        red_channel_warning(red_channel_client_get_channel(RED_CHANNEL_CLIENT(mcc)),
+        red_channel_warning(red_channel_client_get_channel(mcc),
                             "unexpected SPICE_MSGC_MIGRATE_END");
         return;
     }
-    if (!red_channel_client_test_remote_cap(RED_CHANNEL_CLIENT(mcc),
+    if (!red_channel_client_test_remote_cap(mcc,
                                             SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE)) {
-        red_channel_warning(red_channel_client_get_channel(RED_CHANNEL_CLIENT(mcc)),
+        red_channel_warning(red_channel_client_get_channel(mcc),
                             "unexpected SPICE_MSGC_MIGRATE_END, "
                             "client does not support semi-seamless migration");
         return;
@@ -578,12 +578,12 @@ void main_channel_client_migrate_dst_complete(MainChannelClient *mcc)
 {
     if (mcc->priv->mig_wait_prev_complete) {
         if (mcc->priv->mig_wait_prev_try_seamless) {
-            RedChannel *channel = red_channel_client_get_channel(RED_CHANNEL_CLIENT(mcc));
+            RedChannel *channel = red_channel_client_get_channel(mcc);
             spice_assert(red_channel_get_n_clients(channel) == 1);
-            red_channel_client_pipe_add_type(RED_CHANNEL_CLIENT(mcc),
+            red_channel_client_pipe_add_type(mcc,
                                              RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN_SEAMLESS);
         } else {
-            red_channel_client_pipe_add_type(RED_CHANNEL_CLIENT(mcc),
+            red_channel_client_pipe_add_type(mcc,
                                              RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN);
         }
         mcc->priv->mig_wait_connect = TRUE;
@@ -595,7 +595,7 @@ gboolean main_channel_client_migrate_src_complete(MainChannelClient *mcc,
                                                   gboolean success)
 {
     gboolean ret = FALSE;
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(mcc);
+    RedChannelClient *rcc = mcc;
     bool semi_seamless_support = red_channel_client_test_remote_cap(rcc,
                                                                     SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE);
     if (semi_seamless_support && mcc->priv->mig_connect_ok) {
@@ -669,7 +669,7 @@ void main_channel_client_migrate(RedChannelClient *rcc)
 
 gboolean main_channel_client_connect_semi_seamless(MainChannelClient *mcc)
 {
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(mcc);
+    RedChannelClient *rcc = mcc;
     if (red_channel_client_test_remote_cap(rcc,
                                            SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE)) {
         RedClient *client = red_channel_client_get_client(rcc);
@@ -689,7 +689,7 @@ gboolean main_channel_client_connect_semi_seamless(MainChannelClient *mcc)
 
 void main_channel_client_connect_seamless(MainChannelClient *mcc)
 {
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(mcc);
+    RedChannelClient *rcc = mcc;
     RedClient *client = red_channel_client_get_client(rcc);
     spice_assert(red_channel_client_test_remote_cap(rcc,
                                                     SPICE_MAIN_CAP_SEAMLESS_MIGRATE));

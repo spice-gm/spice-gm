@@ -117,7 +117,7 @@ static void red_marshall_cursor_init(CursorChannelClient *ccc, SpiceMarshaller *
     spice_assert(ccc);
 
     CursorChannel *cursor_channel;
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(ccc);
+    RedChannelClient *rcc = ccc;
     SpiceMsgCursorInit msg;
 
     cursor_channel = CURSOR_CHANNEL(red_channel_client_get_channel(rcc));
@@ -136,7 +136,7 @@ static void red_marshall_cursor(CursorChannelClient *ccc,
                                 SpiceMarshaller *m,
                                 RedCursorPipeItem *cursor_pipe_item)
 {
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(ccc);
+    RedChannelClient *rcc = ccc;
     CursorChannel *cursor_channel = CURSOR_CHANNEL(red_channel_client_get_channel(rcc));
     RedCursorPipeItem *item = cursor_pipe_item;
     RedCursorCmd *cmd;
@@ -312,7 +312,7 @@ static void cursor_channel_init_client(CursorChannel *cursor, CursorChannelClien
     }
 
     if (client)
-        red_channel_client_pipe_add_type(RED_CHANNEL_CLIENT(client),
+        red_channel_client_pipe_add_type(client,
                                          RED_PIPE_ITEM_TYPE_CURSOR_INIT);
     else
         red_channel_pipes_add_type(RED_CHANNEL(cursor), RED_PIPE_ITEM_TYPE_CURSOR_INIT);
@@ -349,7 +349,7 @@ cursor_channel_connect(CursorChannel *cursor, RedClient *client, RedStream *stre
         return;
     }
 
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(ccc);
+    RedChannelClient *rcc = ccc;
     red_channel_client_ack_zero_messages_window(rcc);
     red_channel_client_push_set_ack(rcc);
 

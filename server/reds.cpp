@@ -987,7 +987,7 @@ static void vdi_port_on_free_self_token(RedCharDevice *self)
 static void vdi_port_remove_client(RedCharDevice *self,
                                    RedClient *client)
 {
-    red_channel_client_shutdown(RED_CHANNEL_CLIENT(red_client_get_main(client)));
+    red_channel_client_shutdown(red_client_get_main(client));
 }
 
 /****************************************************************************/
@@ -1087,7 +1087,7 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
         return;
     }
     spice_assert(reds->vdagent->st && reds->vdagent->st == dev_state);
-    rcc = RED_CHANNEL_CLIENT(mcc);
+    rcc = mcc;
     client = red_channel_client_get_client(rcc);
     reds->agent_dev->priv->client_agent_started = true;
     /*
@@ -1129,7 +1129,7 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
 
 void reds_on_main_agent_tokens(RedsState *reds, MainChannelClient *mcc, uint32_t num_tokens)
 {
-    RedClient *client = red_channel_client_get_client(RED_CHANNEL_CLIENT(mcc));
+    RedClient *client = red_channel_client_get_client(mcc);
     if (!reds->vdagent) {
         return;
     }
@@ -1156,7 +1156,7 @@ uint8_t *reds_get_agent_data_buffer(RedsState *reds, MainChannelClient *mcc, siz
     }
 
     spice_assert(dev->priv->recv_from_client_buf == NULL);
-    client = red_channel_client_get_client(RED_CHANNEL_CLIENT(mcc));
+    client = red_channel_client_get_client(mcc);
     dev->priv->recv_from_client_buf =
         red_char_device_write_buffer_get_client(RED_CHAR_DEVICE(dev),
                                                 client,
@@ -1236,7 +1236,7 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
 
 overflow:
     spice_warning("received invalid MonitorsConfig request from client, disconnecting");
-    red_channel_client_disconnect(RED_CHANNEL_CLIENT(mcc));
+    red_channel_client_disconnect(mcc);
     spice_buffer_free(cmc);
 }
 
@@ -1258,7 +1258,7 @@ void reds_on_main_agent_data(RedsState *reds, MainChannelClient *mcc, const void
         reds_on_main_agent_monitors_config(reds, mcc, message, size);
         return;
     case AGENT_MSG_FILTER_PROTO_ERROR:
-        red_channel_client_shutdown(RED_CHANNEL_CLIENT(mcc));
+        red_channel_client_shutdown(mcc);
         return;
     }
 
@@ -1546,7 +1546,7 @@ bool reds_handle_migrate_data(RedsState *reds, MainChannelClient *mcc,
     } else {
         spice_debug("agent was not attached on the source host");
         if (reds->vdagent) {
-            RedClient *client = red_channel_client_get_client(RED_CHANNEL_CLIENT(mcc));
+            RedClient *client = red_channel_client_get_client(mcc);
             /* red_char_device_client_remove disables waiting for migration data */
             red_char_device_client_remove(RED_CHAR_DEVICE(agent_dev), client);
             main_channel_push_agent_connected(reds->main_channel);
@@ -2012,7 +2012,7 @@ int reds_on_migrate_dst_set_seamless(RedsState *reds, MainChannelClient *mcc, ui
     if (reds->allow_multiple_clients  || src_version > SPICE_MIGRATION_PROTOCOL_VERSION) {
         reds->dst_do_seamless_migrate = FALSE;
     } else {
-        RedChannelClient *rcc = RED_CHANNEL_CLIENT(mcc);
+        RedChannelClient *rcc = mcc;
         RedClient *client = red_channel_client_get_client(rcc);
 
         red_client_set_migration_seamless(client);

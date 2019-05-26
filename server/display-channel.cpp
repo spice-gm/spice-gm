@@ -452,7 +452,7 @@ static void drawable_remove_from_pipes(Drawable *drawable)
     GLIST_FOREACH(drawable->pipes, RedDrawablePipeItem, dpi) {
         RedChannelClient *rcc;
 
-        rcc = RED_CHANNEL_CLIENT(dpi->dcc);
+        rcc = dpi->dcc;
         red_channel_client_pipe_remove_and_release(rcc, &dpi->base);
     }
 }
@@ -2060,7 +2060,7 @@ static void clear_surface_drawables_from_pipes(DisplayChannel *display, int surf
 
     FOREACH_DCC(display, dcc) {
         if (!dcc_clear_surface_drawables_from_pipe(dcc, surface_id, wait_if_used)) {
-            red_channel_client_disconnect(RED_CHANNEL_CLIENT(dcc));
+            red_channel_client_disconnect(dcc);
         }
     }
 }

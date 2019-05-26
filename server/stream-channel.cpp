@@ -451,7 +451,7 @@ stream_channel_connect(RedChannel *red_channel, RedClient *red_client, RedStream
 
 
     // see guest_set_client_capabilities
-    RedChannelClient *rcc = RED_CHANNEL_CLIENT(client);
+    RedChannelClient *rcc = client;
     red_channel_client_push_set_ack(rcc);
 
     // TODO what should happen on migration, dcc return if on migration wait ??
