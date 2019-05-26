@@ -41,10 +41,8 @@ typedef struct SmartCardChannelClient SmartCardChannelClient;
 typedef struct SmartCardChannelClientClass SmartCardChannelClientClass;
 typedef struct SmartCardChannelClientPrivate SmartCardChannelClientPrivate;
 
-struct SmartCardChannelClient
+struct SmartCardChannelClient final: public RedChannelClient
 {
-    RedChannelClient parent;
-
     SmartCardChannelClientPrivate *priv;
 };
 

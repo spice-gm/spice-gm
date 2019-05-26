@@ -43,10 +43,8 @@ typedef struct MainChannelClient MainChannelClient;
 typedef struct MainChannelClientClass MainChannelClientClass;
 typedef struct MainChannelClientPrivate MainChannelClientPrivate;
 
-struct MainChannelClient
+struct MainChannelClient final: public RedChannelClient
 {
-    RedChannelClient parent;
-
     MainChannelClientPrivate *priv;
 };
 

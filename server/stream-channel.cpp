@@ -46,9 +46,8 @@ typedef struct StreamChannelClientClass StreamChannelClientClass;
 
 /* we need to inherit from CommonGraphicsChannelClient
  * to get buffer handling */
-struct StreamChannelClient {
-    CommonGraphicsChannelClient parent;
-
+struct StreamChannelClient final: public CommonGraphicsChannelClient
+{
     /* current video stream id, <0 if not initialized or
      * we are not sending a stream */
     int stream_id;
@@ -65,9 +64,8 @@ GType stream_channel_client_get_type(void) G_GNUC_CONST;
 
 G_DEFINE_TYPE(StreamChannelClient, stream_channel_client, TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT)
 
-struct StreamChannel {
-    RedChannel parent;
-
+struct StreamChannel final: public RedChannel
+{
     /* current video stream id, <0 if not initialized or
      * we are not sending a stream */
     int stream_id;

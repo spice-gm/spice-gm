@@ -48,9 +48,8 @@
 SPICE_DECLARE_TYPE(RedSmartcardChannel, red_smartcard_channel, SMARTCARD_CHANNEL);
 #define RED_TYPE_SMARTCARD_CHANNEL red_smartcard_channel_get_type()
 
-struct RedSmartcardChannel
+struct RedSmartcardChannel final: public RedChannel
 {
-    RedChannel parent;
 };
 
 struct RedSmartcardChannelClass

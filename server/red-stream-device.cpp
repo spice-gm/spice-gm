@@ -191,7 +191,7 @@ stream_device_partial_read(StreamDevice *dev, SpiceCharDeviceInstance *sin)
         // Currently the only message that requires resizing is the cursor shape,
         // which is not expected to be sent so often.
         if (dev->msg_len > sizeof(*dev->msg)) {
-            dev->msg = g_realloc(dev->msg, sizeof(*dev->msg));
+            dev->msg = (StreamDevice::AllMessages*) g_realloc(dev->msg, sizeof(*dev->msg));
             dev->msg_len = sizeof(*dev->msg);
         }
     }
@@ -287,7 +287,7 @@ handle_msg_device_display_info(StreamDevice *dev, SpiceCharDeviceInstance *sin)
     spice_extra_assert(dev->hdr.type == STREAM_TYPE_DEVICE_DISPLAY_INFO);
 
     if (dev->msg_len < dev->hdr.size) {
-        dev->msg = g_realloc(dev->msg, dev->hdr.size);
+        dev->msg = (StreamDevice::AllMessages*) g_realloc(dev->msg, dev->hdr.size);
         dev->msg_len = dev->hdr.size;
     }
 
@@ -396,7 +396,7 @@ handle_msg_data(StreamDevice *dev, SpiceCharDeviceInstance *sin)
                dev->hdr.size, dev->frame_mmtime);
         if (dev->msg_len < dev->hdr.size) {
             g_free(dev->msg);
-            dev->msg = g_malloc(dev->hdr.size);
+            dev->msg = (StreamDevice::AllMessages*) g_malloc(dev->hdr.size);
             dev->msg_len = dev->hdr.size;
         }
     }
@@ -507,7 +507,7 @@ handle_msg_cursor_set(StreamDevice *dev, SpiceCharDeviceInstance *sin)
 
     // read part of the message till we get all
     if (dev->msg_len < dev->hdr.size) {
-        dev->msg = g_realloc(dev->msg, dev->hdr.size);
+        dev->msg = (StreamDevice::AllMessages*) g_realloc(dev->msg, dev->hdr.size);
         dev->msg_len = dev->hdr.size;
     }
     int n = sif->read(sin, dev->msg->buf + dev->msg_pos, dev->hdr.size - dev->msg_pos);
@@ -771,7 +771,7 @@ stream_device_class_init(StreamDeviceClass *klass)
 static void
 stream_device_init(StreamDevice *dev)
 {
-    dev->msg = g_malloc(sizeof(*dev->msg));
+    dev->msg = (StreamDevice::AllMessages*) g_malloc(sizeof(*dev->msg));
     dev->msg_len = sizeof(*dev->msg);
 }
 

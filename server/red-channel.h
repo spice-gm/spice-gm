@@ -66,10 +66,8 @@ static inline gboolean test_capability(const uint32_t *caps, int num_caps, uint3
     return VD_AGENT_HAS_CAPABILITY(caps, num_caps, cap);
 }
 
-struct RedChannel
+struct RedChannel: public GObject
 {
-    GObject parent;
-
     RedChannelPrivate *priv;
 };
 

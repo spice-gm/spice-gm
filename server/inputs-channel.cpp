@@ -40,10 +40,8 @@
 #include "migration-protocol.h"
 #include "utils.h"
 
-struct InputsChannel
+struct InputsChannel final: public RedChannel
 {
-    RedChannel parent;
-
     VDAgentMouseState mouse_state;
     int src_during_migrate;
     SpiceTimer *key_modifiers_timer;

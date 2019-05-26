@@ -46,10 +46,8 @@ typedef struct CommonGraphicsChannel CommonGraphicsChannel;
 typedef struct CommonGraphicsChannelClass CommonGraphicsChannelClass;
 typedef struct CommonGraphicsChannelPrivate CommonGraphicsChannelPrivate;
 
-struct CommonGraphicsChannel
+struct CommonGraphicsChannel: public RedChannel
 {
-    RedChannel parent;
-
     CommonGraphicsChannelPrivate *priv;
 };
 
@@ -89,9 +87,8 @@ typedef struct CommonGraphicsChannelClient CommonGraphicsChannelClient;
 typedef struct CommonGraphicsChannelClientClass CommonGraphicsChannelClientClass;
 typedef struct CommonGraphicsChannelClientPrivate CommonGraphicsChannelClientPrivate;
 
-struct CommonGraphicsChannelClient {
-    RedChannelClient parent;
-
+struct CommonGraphicsChannelClient: public RedChannelClient
+{
     CommonGraphicsChannelClientPrivate *priv;
 };
 

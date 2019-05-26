@@ -896,7 +896,7 @@ lz_compress:
 }
 
 #define CLIENT_PALETTE_CACHE
-#include "cache-item.tmpl.c"
+#include "cache-item.tmpl.cpp"
 #undef CLIENT_PALETTE_CACHE
 
 void dcc_palette_cache_palette(DisplayChannelClient *dcc, SpicePalette *palette,

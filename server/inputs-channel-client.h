@@ -42,10 +42,8 @@ typedef struct InputsChannelClient InputsChannelClient;
 typedef struct InputsChannelClientClass InputsChannelClientClass;
 typedef struct InputsChannelClientPrivate InputsChannelClientPrivate;
 
-struct InputsChannelClient
+struct InputsChannelClient final: public RedChannelClient
 {
-    RedChannelClient parent;
-
     InputsChannelClientPrivate *priv;
 };
 

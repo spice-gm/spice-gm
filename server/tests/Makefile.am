@@ -37,12 +37,12 @@ noinst_LIBRARIES = libtest.a
 libtest_a_SOURCES =				\
 	basic-event-loop.c			\
 	basic-event-loop.h			\
-	test-display-base.c			\
+	test-display-base.cpp			\
 	test-display-base.h			\
 	test-glib-compat.h			\
 	win-alarm.c				\
 	win-alarm.h				\
-	vmc-emu.c				\
+	vmc-emu.cpp				\
 	vmc-emu.h				\
 	$(NULL)
 
@@ -76,7 +76,11 @@ check_PROGRAMS =				\
 
 if HAVE_SMARTCARD
 check_PROGRAMS += test-smartcard
+test_smartcard_SOURCES = test-smartcard.cpp
 endif
+
+test_channel_SOURCES = test-channel.cpp
+test_stream_device_SOURCES = test-stream-device.cpp
 
 if !OS_WIN32
 check_PROGRAMS +=				\
@@ -160,7 +164,7 @@ if ENABLE_EXTRA_CHECKS
 TESTS += test-video-encoders
 endif
 
-test_gst_SOURCES = test-gst.c \
+test_gst_SOURCES = test-gst.cpp \
 	$(NULL)
 test_gst_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

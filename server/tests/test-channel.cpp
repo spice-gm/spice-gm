@@ -36,9 +36,8 @@
 SPICE_DECLARE_TYPE(RedTestChannel, red_test_channel, TEST_CHANNEL);
 #define RED_TYPE_TEST_CHANNEL red_test_channel_get_type()
 
-struct RedTestChannel
+struct RedTestChannel final: public RedChannel
 {
-    RedChannel parent;
 };
 
 struct RedTestChannelClass
@@ -51,9 +50,8 @@ G_DEFINE_TYPE(RedTestChannel, red_test_channel, RED_TYPE_CHANNEL)
 SPICE_DECLARE_TYPE(RedTestChannelClient, red_test_channel_client, TEST_CHANNEL_CLIENT);
 #define RED_TYPE_TEST_CHANNEL_CLIENT red_test_channel_client_get_type()
 
-struct RedTestChannelClient
+struct RedTestChannelClient final: public RedChannelClient
 {
-    RedChannelClient parent;
 };
 
 struct RedTestChannelClientClass

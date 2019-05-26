@@ -50,10 +50,8 @@ typedef struct DisplayChannel DisplayChannel;
 typedef struct DisplayChannelClass DisplayChannelClass;
 typedef struct DisplayChannelPrivate DisplayChannelPrivate;
 
-struct DisplayChannel
+struct DisplayChannel final: public CommonGraphicsChannel
 {
-    CommonGraphicsChannel parent;
-
     DisplayChannelPrivate *priv;
 };
 

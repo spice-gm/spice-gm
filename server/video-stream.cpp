@@ -483,7 +483,7 @@ GArray *video_stream_parse_preferred_codecs(SpiceMsgcDisplayPreferredVideoCodecT
     memset(indexes, 0x7f, sizeof(indexes));
 
     for (len = 0, i = 0; i < msg->num_of_codecs; i++) {
-        SpiceVideoCodecType video_codec = msg->codecs[i];
+        auto video_codec = msg->codecs[i];
 
         if (video_codec < SPICE_VIDEO_CODEC_TYPE_MJPEG ||
             video_codec >= SPICE_VIDEO_CODEC_TYPE_ENUM_END) {

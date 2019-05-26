@@ -84,10 +84,14 @@ typedef void (*snd_channel_on_message_done_proc)(SndChannelClient *client);
     (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_SND_CHANNEL_CLIENT, SndChannelClient))
 GType snd_channel_client_get_type(void) G_GNUC_CONST;
 
-/* Connects an audio client to a Spice client */
-struct SndChannelClient {
-    RedChannelClient parent;
+struct PersistentPipeItem: public RedPipeItem
+{
+    SndChannelClient *client;
+};
 
+/* Connects an audio client to a Spice client */
+struct SndChannelClient: public RedChannelClient
+{
     bool active;
     bool client_active;
 
@@ -96,7 +100,7 @@ struct SndChannelClient {
     /* we don't expect very big messages so don't allocate too much
      * bytes, data will be cached in RecordChannelClient::samples */
     uint8_t receive_buf[SND_CODEC_MAX_FRAME_BYTES + 64];
-    RedPipeItem persistent_pipe_item;
+    PersistentPipeItem persistent_pipe_item;
 
     snd_channel_on_message_done_proc on_message_done;
 };
@@ -139,9 +143,8 @@ struct AudioFrameContainer
     (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_PLAYBACK_CHANNEL_CLIENT, PlaybackChannelClient))
 GType playback_channel_client_get_type(void) G_GNUC_CONST;
 
-struct PlaybackChannelClient {
-    SndChannelClient parent;
-
+struct PlaybackChannelClient final: public SndChannelClient
+{
     AudioFrameContainer *frames;
     AudioFrame *free_frames;
     AudioFrame *in_progress;   /* Frame being sent to the client */
@@ -171,9 +174,8 @@ typedef struct SpiceVolumeState {
 GType snd_channel_get_type(void) G_GNUC_CONST;
 
 /* Base class for SpicePlaybackState and SpiceRecordState */
-struct SndChannel {
-    RedChannel parent;
-
+struct SndChannel: public RedChannel
+{
     bool active;
     SpiceVolumeState volume;
     uint32_t frequency;
@@ -191,8 +193,8 @@ G_DEFINE_TYPE(SndChannel, snd_channel, RED_TYPE_CHANNEL)
     (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_PLAYBACK_CHANNEL, PlaybackChannel))
 GType playback_channel_get_type(void) G_GNUC_CONST;
 
-struct SpicePlaybackState {
-    SndChannel channel;
+struct SpicePlaybackState final: public SndChannel
+{
 };
 
 typedef struct PlaybackChannelClass {
@@ -206,8 +208,8 @@ G_DEFINE_TYPE(PlaybackChannel, playback_channel, TYPE_SND_CHANNEL)
 #define RECORD_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_RECORD_CHANNEL, RecordChannel))
 GType record_channel_get_type(void) G_GNUC_CONST;
 
-struct SpiceRecordState {
-    SndChannel channel;
+struct SpiceRecordState final: public SndChannel
+{
 };
 
 typedef struct RecordChannelClass {
@@ -222,8 +224,8 @@ G_DEFINE_TYPE(RecordChannel, record_channel, TYPE_SND_CHANNEL)
     (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_RECORD_CHANNEL_CLIENT, RecordChannelClient))
 GType record_channel_client_get_type(void) G_GNUC_CONST;
 
-struct RecordChannelClient {
-    SndChannelClient parent;
+struct RecordChannelClient final: public SndChannelClient
+{
     uint32_t samples[RECORD_SAMPLES_SIZE];
     uint32_t write_pos;
     uint32_t read_pos;
@@ -652,7 +654,7 @@ static bool playback_send_mode(PlaybackChannelClient *playback_client)
  */
 static void snd_persistent_pipe_item_free(struct RedPipeItem *item)
 {
-    SndChannelClient *client = SPICE_CONTAINEROF(item, SndChannelClient, persistent_pipe_item);
+    SndChannelClient *client = static_cast<PersistentPipeItem*>(item)->client;
 
     red_pipe_item_init_full(item, RED_PIPE_ITEM_PERSISTENT,
                             snd_persistent_pipe_item_free);
@@ -675,6 +677,7 @@ static void snd_send(SndChannelClient * client)
     // just append a dummy item and push!
     red_pipe_item_init_full(&client->persistent_pipe_item, RED_PIPE_ITEM_PERSISTENT,
                             snd_persistent_pipe_item_free);
+    client->persistent_pipe_item.client = client;
     red_channel_client_pipe_add_push(rcc, &client->persistent_pipe_item);
 }
 
@@ -856,7 +859,7 @@ SPICE_GNUC_VISIBLE void spice_server_playback_set_volume(SpicePlaybackInstance *
                                                   uint8_t nchannels,
                                                   uint16_t *volume)
 {
-    snd_channel_set_volume(&sin->st->channel, nchannels, volume);
+    snd_channel_set_volume(sin->st, nchannels, volume);
 }
 
 static void snd_channel_set_mute(SndChannel *channel, uint8_t mute)
@@ -875,7 +878,7 @@ static void snd_channel_set_mute(SndChannel *channel, uint8_t mute)
 
 SPICE_GNUC_VISIBLE void spice_server_playback_set_mute(SpicePlaybackInstance *sin, uint8_t mute)
 {
-    snd_channel_set_mute(&sin->st->channel, mute);
+    snd_channel_set_mute(sin->st, mute);
 }
 
 static void snd_channel_client_start(SndChannelClient *client)
@@ -902,16 +905,16 @@ static void playback_channel_client_start(SndChannelClient *client)
 
 SPICE_GNUC_VISIBLE void spice_server_playback_start(SpicePlaybackInstance *sin)
 {
-    SndChannel *channel = &sin->st->channel;
+    SndChannel *channel = sin->st;
     channel->active = true;
     return playback_channel_client_start(snd_channel_get_client(channel));
 }
 
 SPICE_GNUC_VISIBLE void spice_server_playback_stop(SpicePlaybackInstance *sin)
 {
-    SndChannelClient *client = snd_channel_get_client(&sin->st->channel);
+    SndChannelClient *client = snd_channel_get_client(sin->st);
 
-    sin->st->channel.active = false;
+    sin->st->active = false;
     if (!client)
         return;
     PlaybackChannelClient *playback_client = PLAYBACK_CHANNEL_CLIENT(client);
@@ -937,7 +940,7 @@ SPICE_GNUC_VISIBLE void spice_server_playback_stop(SpicePlaybackInstance *sin)
 SPICE_GNUC_VISIBLE void spice_server_playback_get_buffer(SpicePlaybackInstance *sin,
                                                          uint32_t **frame, uint32_t *num_samples)
 {
-    SndChannelClient *client = snd_channel_get_client(&sin->st->channel);
+    SndChannelClient *client = snd_channel_get_client(sin->st);
 
     *frame = NULL;
     *num_samples = 0;
@@ -973,7 +976,7 @@ SPICE_GNUC_VISIBLE void spice_server_playback_put_samples(SpicePlaybackInstance 
         }
     }
     playback_client = frame->client;
-    if (!playback_client || snd_channel_get_client(&sin->st->channel) != SND_CHANNEL_CLIENT(playback_client)) {
+    if (!playback_client || snd_channel_get_client(sin->st) != SND_CHANNEL_CLIENT(playback_client)) {
         /* lost last reference, client has been destroyed previously */
         spice_debug("audio samples belong to a disconnected client");
         return;
@@ -1160,12 +1163,12 @@ SPICE_GNUC_VISIBLE void spice_server_record_set_volume(SpiceRecordInstance *sin,
                                                 uint8_t nchannels,
                                                 uint16_t *volume)
 {
-    snd_channel_set_volume(&sin->st->channel, nchannels, volume);
+    snd_channel_set_volume(sin->st, nchannels, volume);
 }
 
 SPICE_GNUC_VISIBLE void spice_server_record_set_mute(SpiceRecordInstance *sin, uint8_t mute)
 {
-    snd_channel_set_mute(&sin->st->channel, mute);
+    snd_channel_set_mute(sin->st, mute);
 }
 
 static void record_channel_client_start(SndChannelClient *client)
@@ -1182,16 +1185,16 @@ static void record_channel_client_start(SndChannelClient *client)
 
 SPICE_GNUC_VISIBLE void spice_server_record_start(SpiceRecordInstance *sin)
 {
-    SndChannel *channel = &sin->st->channel;
+    SndChannel *channel = sin->st;
     channel->active = true;
     record_channel_client_start(snd_channel_get_client(channel));
 }
 
 SPICE_GNUC_VISIBLE void spice_server_record_stop(SpiceRecordInstance *sin)
 {
-    SndChannelClient *client = snd_channel_get_client(&sin->st->channel);
+    SndChannelClient *client = snd_channel_get_client(sin->st);
 
-    sin->st->channel.active = false;
+    sin->st->active = false;
     if (!client)
         return;
     spice_assert(client->active);
@@ -1207,7 +1210,7 @@ SPICE_GNUC_VISIBLE void spice_server_record_stop(SpiceRecordInstance *sin)
 SPICE_GNUC_VISIBLE uint32_t spice_server_record_get_samples(SpiceRecordInstance *sin,
                                                             uint32_t *samples, uint32_t bufsize)
 {
-    SndChannelClient *client = snd_channel_get_client(&sin->st->channel);
+    SndChannelClient *client = snd_channel_get_client(sin->st);
     uint32_t read_pos;
     uint32_t now;
     uint32_t len;
@@ -1249,7 +1252,7 @@ SPICE_GNUC_VISIBLE uint32_t spice_server_get_best_playback_rate(SpicePlaybackIns
 
 SPICE_GNUC_VISIBLE void spice_server_set_playback_rate(SpicePlaybackInstance *sin, uint32_t frequency)
 {
-    snd_set_rate(&sin->st->channel, frequency, SPICE_PLAYBACK_CAP_OPUS);
+    snd_set_rate(sin->st, frequency, SPICE_PLAYBACK_CAP_OPUS);
 }
 
 SPICE_GNUC_VISIBLE uint32_t spice_server_get_best_record_rate(SpiceRecordInstance *sin)
@@ -1259,7 +1262,7 @@ SPICE_GNUC_VISIBLE uint32_t spice_server_get_best_record_rate(SpiceRecordInstanc
 
 SPICE_GNUC_VISIBLE void spice_server_set_record_rate(SpiceRecordInstance *sin, uint32_t frequency)
 {
-    snd_set_rate(&sin->st->channel, frequency, SPICE_RECORD_CAP_OPUS);
+    snd_set_rate(sin->st, frequency, SPICE_RECORD_CAP_OPUS);
 }
 
 static void
@@ -1455,12 +1458,12 @@ static void snd_detach_common(SndChannel *channel)
 
 void snd_detach_playback(SpicePlaybackInstance *sin)
 {
-    snd_detach_common(&sin->st->channel);
+    snd_detach_common(sin->st);
 }
 
 void snd_detach_record(SpiceRecordInstance *sin)
 {
-    snd_detach_common(&sin->st->channel);
+    snd_detach_common(sin->st);
 }
 
 void snd_set_playback_compression(bool on)

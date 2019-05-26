@@ -46,9 +46,8 @@ typedef struct DisplayChannelClient DisplayChannelClient;
 typedef struct DisplayChannelClientClass DisplayChannelClientClass;
 typedef struct DisplayChannelClientPrivate DisplayChannelClientPrivate;
 
-struct DisplayChannelClient {
-    CommonGraphicsChannelClient parent;
-
+struct DisplayChannelClient final: public CommonGraphicsChannelClient
+{
     int is_low_bandwidth;
 
     DisplayChannelClientPrivate *priv;

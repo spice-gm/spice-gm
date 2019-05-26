@@ -62,7 +62,7 @@ cursor_channel_client_init(CursorChannelClient *self)
 }
 
 #define CLIENT_CURSOR_CACHE
-#include "cache-item.tmpl.c"
+#include "cache-item.tmpl.cpp"
 #undef CLIENT_CURSOR_CACHE
 
 #ifdef DEBUG_CURSORS

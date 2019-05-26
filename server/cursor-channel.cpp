@@ -30,10 +30,8 @@ typedef struct RedCursorPipeItem {
     RedCursorCmd *red_cursor;
 } RedCursorPipeItem;
 
-struct CursorChannel
+struct CursorChannel final: public CommonGraphicsChannel
 {
-    CommonGraphicsChannel parent;
-
     RedCursorPipeItem *item;
     bool cursor_visible;
     SpicePoint16 cursor_position;

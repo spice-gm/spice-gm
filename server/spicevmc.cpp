@@ -87,10 +87,8 @@ static void spicevmc_red_channel_queue_data(RedVmcChannel *channel, RedVmcPipeIt
 
 G_DEFINE_TYPE(RedCharDeviceSpiceVmc, red_char_device_spicevmc, RED_TYPE_CHAR_DEVICE)
 
-struct RedVmcChannel
+struct RedVmcChannel: public RedChannel
 {
-    RedChannel parent;
-
     RedChannelClient *rcc;
     RedCharDevice *chardev; /* weak */
     SpiceCharDeviceInstance *chardev_sin;
@@ -113,9 +111,8 @@ struct RedVmcChannelClass
 
 G_DEFINE_TYPE(RedVmcChannel, red_vmc_channel, RED_TYPE_CHANNEL)
 
-struct RedVmcChannelUsbredir
+struct RedVmcChannelUsbredir final: public RedVmcChannel
 {
-    RedVmcChannel parent;
 };
 
 struct RedVmcChannelUsbredirClass
@@ -129,9 +126,8 @@ static void red_vmc_channel_usbredir_init(RedVmcChannelUsbredir *self)
 G_DEFINE_TYPE(RedVmcChannelUsbredir, red_vmc_channel_usbredir, RED_TYPE_VMC_CHANNEL)
 
 
-struct RedVmcChannelWebdav
+struct RedVmcChannelWebdav final: public RedVmcChannel
 {
-    RedVmcChannel parent;
 };
 
 struct RedVmcChannelWebdavClass
@@ -145,9 +141,8 @@ static void red_vmc_channel_webdav_init(RedVmcChannelWebdav *self)
 G_DEFINE_TYPE(RedVmcChannelWebdav, red_vmc_channel_webdav, RED_TYPE_VMC_CHANNEL)
 
 
-struct RedVmcChannelPort
+struct RedVmcChannelPort final: public RedVmcChannel
 {
-    RedVmcChannel parent;
 };
 
 struct RedVmcChannelPortClass
@@ -161,8 +156,8 @@ static void red_vmc_channel_port_init(RedVmcChannelPort *self)
 G_DEFINE_TYPE(RedVmcChannelPort, red_vmc_channel_port, RED_TYPE_VMC_CHANNEL)
 
 
-struct VmcChannelClient {
-    RedChannelClient parent;
+struct VmcChannelClient final: public RedChannelClient
+{
 };
 
 struct VmcChannelClientClass {

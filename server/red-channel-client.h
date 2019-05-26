@@ -138,10 +138,8 @@ gboolean red_channel_client_set_migration_seamless(RedChannelClient *rcc);
 void red_channel_client_block_read(RedChannelClient *rcc);
 void red_channel_client_unblock_read(RedChannelClient *rcc);
 
-struct RedChannelClient
+struct RedChannelClient: public GObject
 {
-    GObject parent;
-
     RedChannelClientPrivate *priv;
 };
 

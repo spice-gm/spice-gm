@@ -17,7 +17,7 @@
 */
 #include <config.h>
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <zlib.h>
 #include <pthread.h>
 #include <glib.h>
@@ -66,7 +66,11 @@ static ssize_t replay_fread(SpiceReplay *replay, uint8_t *buf, size_t size)
     return size;
 }
 
+#ifdef __USE_MINGW_ANSI_STDIO
+__attribute__((format(gnu_scanf, 2, 3)))
+#else
 __attribute__((format(scanf, 2, 3)))
+#endif
 static replay_t replay_fscanf_check(SpiceReplay *replay, const char *fmt, ...)
 {
     va_list ap;

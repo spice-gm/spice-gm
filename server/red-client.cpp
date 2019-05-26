@@ -207,7 +207,7 @@ void red_client_destroy(RedClient *client)
     client->disconnecting = TRUE;
     while (client->channels) {
         RedChannel *channel;
-        RedChannelClient *rcc = client->channels->data;
+        RedChannelClient *rcc = (RedChannelClient *) client->channels->data;
 
         // Remove the RedChannelClient we are processing from the list
         // Note that we own the object so it is safe to do some operations on it.
@@ -293,8 +293,8 @@ gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError
 
     // first must be the main one
     if (!client->mcc) {
-        client->mcc = (MainChannelClient *) g_object_ref(rcc);
         spice_assert(MAIN_CHANNEL_CLIENT(rcc) != NULL);
+        client->mcc = (MainChannelClient *) g_object_ref(rcc);
     }
     client->channels = g_list_prepend(client->channels, rcc);
     if (client->during_target_migrate && client->seamless_migrate) {

@@ -345,7 +345,7 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
     memset(&caps, 0, sizeof(caps));
     uint32_t common_caps = 1 << SPICE_COMMON_CAP_MINI_HEADER;
     caps.num_common_caps = 1;
-    caps.common_caps = spice_memdup(&common_caps, sizeof(common_caps));
+    caps.common_caps = (uint32_t*) spice_memdup(&common_caps, sizeof(common_caps));
 
     RedClient *client = red_client_new(server, FALSE);
     g_assert_nonnull(client);

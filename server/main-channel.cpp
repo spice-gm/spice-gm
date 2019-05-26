@@ -26,10 +26,8 @@
 #include "main-channel.h"
 #include "main-channel-client.h"
 
-struct MainChannel
+struct MainChannel final: public RedChannel
 {
-    RedChannel parent;
-
     // TODO: add refs and release (afrer all clients completed migration in one way or the other?)
     RedsMigSpice mig_target;
     int num_clients_mig_wait;
