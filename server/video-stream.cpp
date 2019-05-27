@@ -731,8 +731,7 @@ static VideoEncoder* dcc_create_video_encoder(DisplayChannelClient *dcc,
                                               uint64_t starting_bit_rate,
                                               VideoEncoderRateControlCbs *cbs)
 {
-    RedChannelClient *rcc = dcc;
-    bool client_has_multi_codec = red_channel_client_test_remote_cap(rcc, SPICE_DISPLAY_CAP_MULTI_CODEC);
+    bool client_has_multi_codec = red_channel_client_test_remote_cap(dcc, SPICE_DISPLAY_CAP_MULTI_CODEC);
     int i;
     GArray *video_codecs;
 
@@ -746,7 +745,7 @@ static VideoEncoder* dcc_create_video_encoder(DisplayChannelClient *dcc,
             continue;
         }
         if (client_has_multi_codec &&
-            !red_channel_client_test_remote_cap(rcc, video_codec->cap)) {
+            !red_channel_client_test_remote_cap(dcc, video_codec->cap)) {
             /* The client is recent but does not support this codec */
             continue;
         }
@@ -758,7 +757,7 @@ static VideoEncoder* dcc_create_video_encoder(DisplayChannelClient *dcc,
     }
 
     /* Try to use the builtin MJPEG video encoder as a fallback */
-    if (!client_has_multi_codec || red_channel_client_test_remote_cap(rcc, SPICE_DISPLAY_CAP_CODEC_MJPEG)) {
+    if (!client_has_multi_codec || red_channel_client_test_remote_cap(dcc, SPICE_DISPLAY_CAP_CODEC_MJPEG)) {
         return mjpeg_encoder_new(SPICE_VIDEO_CODEC_TYPE_MJPEG, starting_bit_rate, cbs, bitmap_ref, bitmap_unref);
     }
 
@@ -854,7 +853,6 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
 
     if (stream->current &&
         region_contains(&stream->current->tree_item.base.rgn, &agent->vis_region)) {
-        RedChannelClient *rcc;
         RedUpgradeItem *upgrade_item;
         int n_rects;
 
@@ -868,7 +866,6 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         }
         spice_debug("stream %d: upgrade by drawable. box ==>", stream_id);
         rect_debug(&stream->current->red_drawable->bbox);
-        rcc = dcc;
         upgrade_item = g_new(RedUpgradeItem, 1);
         red_pipe_item_init_full(&upgrade_item->base, RED_PIPE_ITEM_TYPE_UPGRADE,
                                 red_upgrade_item_free);
@@ -879,7 +876,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         upgrade_item->rects->num_rects = n_rects;
         region_ret_rects(&upgrade_item->drawable->tree_item.base.rgn,
                          upgrade_item->rects->rects, n_rects);
-        red_channel_client_pipe_add(rcc, &upgrade_item->base);
+        red_channel_client_pipe_add(dcc, &upgrade_item->base);
 
     } else {
         SpiceRect upgrade_area;

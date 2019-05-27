@@ -1080,15 +1080,13 @@ SpiceMsgChannels *reds_msg_channels_new(RedsState *reds)
 void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t num_tokens)
 {
     RedCharDevice *dev_state = RED_CHAR_DEVICE(reds->agent_dev);
-    RedChannelClient *rcc;
     RedClient *client;
 
     if (!reds->vdagent) {
         return;
     }
     spice_assert(reds->vdagent->st && reds->vdagent->st == dev_state);
-    rcc = mcc;
-    client = red_channel_client_get_client(rcc);
+    client = red_channel_client_get_client(mcc);
     reds->agent_dev->priv->client_agent_started = true;
     /*
      * Note that in older releases, send_tokens were set to ~0 on both client
@@ -1106,11 +1104,11 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
                                                   REDS_VDI_PORT_NUM_RECEIVE_BUFFS,
                                                   REDS_AGENT_WINDOW_SIZE,
                                                   num_tokens,
-                                                  red_channel_client_is_waiting_for_migrate_data(rcc));
+                                                  red_channel_client_is_waiting_for_migrate_data(mcc));
 
         if (!client_added) {
             spice_warning("failed to add client to agent");
-            red_channel_client_shutdown(rcc);
+            red_channel_client_shutdown(mcc);
             return;
         }
     } else {
@@ -2012,8 +2010,7 @@ int reds_on_migrate_dst_set_seamless(RedsState *reds, MainChannelClient *mcc, ui
     if (reds->allow_multiple_clients  || src_version > SPICE_MIGRATION_PROTOCOL_VERSION) {
         reds->dst_do_seamless_migrate = FALSE;
     } else {
-        RedChannelClient *rcc = mcc;
-        RedClient *client = red_channel_client_get_client(rcc);
+        RedClient *client = red_channel_client_get_client(mcc);
 
         red_client_set_migration_seamless(client);
         /* linking all the channels that have been connected before migration handshake */

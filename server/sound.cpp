@@ -1239,10 +1239,9 @@ SPICE_GNUC_VISIBLE uint32_t spice_server_record_get_samples(SpiceRecordInstance 
 
 static void snd_set_rate(SndChannel *channel, uint32_t frequency, uint32_t cap_opus)
 {
-    RedChannel *red_channel = channel;
     channel->frequency = frequency;
-    if (red_channel && snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_OPUS, frequency)) {
-        red_channel_set_cap(red_channel, cap_opus);
+    if (channel && snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_OPUS, frequency)) {
+        red_channel_set_cap(channel, cap_opus);
     }
 }
 

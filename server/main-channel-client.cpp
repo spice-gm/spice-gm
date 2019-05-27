@@ -488,7 +488,6 @@ void main_channel_client_handle_migrate_dst_do_seamless(MainChannelClient *mcc,
 void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping, uint32_t size)
 {
     uint64_t roundtrip;
-    RedChannelClient* rcc = mcc;
 
     roundtrip = spice_get_monotonic_time_ns() / NSEC_PER_MICROSEC - ping->timestamp;
 
@@ -496,7 +495,7 @@ void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping,
         /*
          * channel client monitors the connectivity using ping-pong messages
          */
-        red_channel_client_handle_message(rcc, SPICE_MSGC_PONG, size, ping);
+        red_channel_client_handle_message(mcc, SPICE_MSGC_PONG, size, ping);
         return;
     }
 
@@ -515,30 +514,30 @@ void main_channel_client_handle_pong(MainChannelClient *mcc, SpiceMsgPing *ping,
         mcc->priv->net_test_id = 0;
         if (roundtrip <= mcc->priv->latency) {
             // probably high load on client or server result with incorrect values
-            red_channel_debug(red_channel_client_get_channel(rcc),
+            red_channel_debug(red_channel_client_get_channel(mcc),
                               "net test: invalid values, latency %" G_GUINT64_FORMAT
                               " roundtrip %" G_GUINT64_FORMAT ". assuming high"
                               "bandwidth", mcc->priv->latency, roundtrip);
             mcc->priv->latency = 0;
             mcc->priv->net_test_stage = NET_TEST_STAGE_INVALID;
-            red_channel_client_start_connectivity_monitoring(rcc,
+            red_channel_client_start_connectivity_monitoring(mcc,
                                                              CLIENT_CONNECTIVITY_TIMEOUT);
             break;
         }
         mcc->priv->bitrate_per_sec = (uint64_t)(NET_TEST_BYTES * 8) * 1000000
             / (roundtrip - mcc->priv->latency);
         mcc->priv->net_test_stage = NET_TEST_STAGE_COMPLETE;
-        red_channel_debug(red_channel_client_get_channel(rcc),
+        red_channel_debug(red_channel_client_get_channel(mcc),
                           "net test: latency %f ms, bitrate %" G_GUINT64_FORMAT " bps (%f Mbps)%s",
                           (double)mcc->priv->latency / 1000,
                           mcc->priv->bitrate_per_sec,
                           (double)mcc->priv->bitrate_per_sec / 1024 / 1024,
                           main_channel_client_is_low_bandwidth(mcc) ? " LOW BANDWIDTH" : "");
-        red_channel_client_start_connectivity_monitoring(rcc,
+        red_channel_client_start_connectivity_monitoring(mcc,
                                                          CLIENT_CONNECTIVITY_TIMEOUT);
         break;
     default:
-        red_channel_warning(red_channel_client_get_channel(rcc),
+        red_channel_warning(red_channel_client_get_channel(mcc),
                             "invalid net test stage, ping id %d test id %d stage %d",
                             ping->id,
                             mcc->priv->net_test_id,
@@ -595,21 +594,20 @@ gboolean main_channel_client_migrate_src_complete(MainChannelClient *mcc,
                                                   gboolean success)
 {
     gboolean ret = FALSE;
-    RedChannelClient *rcc = mcc;
-    bool semi_seamless_support = red_channel_client_test_remote_cap(rcc,
+    bool semi_seamless_support = red_channel_client_test_remote_cap(mcc,
                                                                     SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE);
     if (semi_seamless_support && mcc->priv->mig_connect_ok) {
         if (success) {
-            red_channel_client_pipe_add_empty_msg(rcc,
+            red_channel_client_pipe_add_empty_msg(mcc,
                                                   SPICE_MSG_MAIN_MIGRATE_END);
             ret = TRUE;
         } else {
-            red_channel_client_pipe_add_empty_msg(rcc,
+            red_channel_client_pipe_add_empty_msg(mcc,
                                                   SPICE_MSG_MAIN_MIGRATE_CANCEL);
         }
     } else {
         if (success) {
-            red_channel_client_pipe_add_type(rcc,
+            red_channel_client_pipe_add_type(mcc,
                                              RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_SWITCH_HOST);
         }
     }
@@ -669,15 +667,14 @@ void main_channel_client_migrate(RedChannelClient *rcc)
 
 gboolean main_channel_client_connect_semi_seamless(MainChannelClient *mcc)
 {
-    RedChannelClient *rcc = mcc;
-    if (red_channel_client_test_remote_cap(rcc,
+    if (red_channel_client_test_remote_cap(mcc,
                                            SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE)) {
-        RedClient *client = red_channel_client_get_client(rcc);
+        RedClient *client = red_channel_client_get_client(mcc);
         if (red_client_during_migrate_at_target(client)) {
             mcc->priv->mig_wait_prev_complete = TRUE;
             mcc->priv->mig_wait_prev_try_seamless = FALSE;
         } else {
-            red_channel_client_pipe_add_type(rcc,
+            red_channel_client_pipe_add_type(mcc,
                                              RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN);
             mcc->priv->mig_wait_connect = TRUE;
         }
@@ -689,15 +686,14 @@ gboolean main_channel_client_connect_semi_seamless(MainChannelClient *mcc)
 
 void main_channel_client_connect_seamless(MainChannelClient *mcc)
 {
-    RedChannelClient *rcc = mcc;
-    RedClient *client = red_channel_client_get_client(rcc);
-    spice_assert(red_channel_client_test_remote_cap(rcc,
+    RedClient *client = red_channel_client_get_client(mcc);
+    spice_assert(red_channel_client_test_remote_cap(mcc,
                                                     SPICE_MAIN_CAP_SEAMLESS_MIGRATE));
     if (red_client_during_migrate_at_target(client)) {
         mcc->priv->mig_wait_prev_complete = TRUE;
         mcc->priv->mig_wait_prev_try_seamless = TRUE;
     } else {
-        red_channel_client_pipe_add_type(rcc,
+        red_channel_client_pipe_add_type(mcc,
                                          RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN_SEAMLESS);
         mcc->priv->mig_wait_connect = TRUE;
     }

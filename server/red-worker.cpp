@@ -437,16 +437,15 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
     display_channel_set_monitors_config_to_primary(display);
 
     CommonGraphicsChannel *common = COMMON_GRAPHICS_CHANNEL(display);
-    RedChannel *channel = display;
-    if (red_channel_is_connected(channel) &&
+    if (red_channel_is_connected(display) &&
         !common_graphics_channel_get_during_target_migrate(common)) {
         /* guest created primary, so it will (hopefully) send a monitors_config
          * now, don't send our own temporary one */
         if (!worker->driver_cap_monitors_config) {
             display_channel_push_monitors_config(display);
         }
-        red_channel_pipes_add_empty_msg(channel, SPICE_MSG_DISPLAY_MARK);
-        red_channel_push(channel);
+        red_channel_pipes_add_empty_msg(display, SPICE_MSG_DISPLAY_MARK);
+        red_channel_push(display);
     }
 
     cursor_channel_do_init(worker->cursor_channel);
@@ -566,14 +565,13 @@ static void handle_dev_oom(void *opaque, void *payload)
     RedWorker *worker = (RedWorker*) opaque;
     DisplayChannel *display = worker->display_channel;
 
-    RedChannel *display_red_channel = display;
     int ring_is_empty;
 
     spice_return_if_fail(red_qxl_is_running(worker->qxl));
     // streams? but without streams also leak
     display_channel_debug_oom(display, "OOM1");
     while (red_process_display(worker, &ring_is_empty)) {
-        red_channel_push(display_red_channel);
+        red_channel_push(display);
     }
     if (red_qxl_flush_resources(worker->qxl) == 0) {
         display_channel_free_some(worker->display_channel);

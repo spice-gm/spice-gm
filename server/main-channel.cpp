@@ -60,14 +60,13 @@ RedClient *main_channel_get_client_by_link_id(MainChannel *main_chan, uint32_t c
 
 static void main_channel_push_channels(MainChannelClient *mcc)
 {
-    RedChannelClient *rcc = mcc;
-    if (red_client_during_migrate_at_target(red_channel_client_get_client(rcc))) {
-        red_channel_warning(red_channel_client_get_channel(rcc),
+    if (red_client_during_migrate_at_target(red_channel_client_get_client(mcc))) {
+        red_channel_warning(red_channel_client_get_channel(mcc),
                             "warning: ignoring unexpected SPICE_MSGC_MAIN_ATTACH_CHANNELS"
                             "during migration");
         return;
     }
-    red_channel_client_pipe_add_type(rcc, RED_PIPE_ITEM_TYPE_MAIN_CHANNELS_LIST);
+    red_channel_client_pipe_add_type(mcc, RED_PIPE_ITEM_TYPE_MAIN_CHANNELS_LIST);
 }
 
 void main_channel_push_mouse_mode(MainChannel *main_chan, SpiceMouseMode current_mode,

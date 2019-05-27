@@ -92,7 +92,7 @@ typedef struct FreeList {
     WaitForChannels wait;
 } FreeList;
 
-#define DCC_TO_DC(dcc) ((DisplayChannel*)red_channel_client_get_channel((RedChannelClient*)dcc))
+#define DCC_TO_DC(dcc) ((DisplayChannel*)red_channel_client_get_channel(dcc))
 
 typedef struct RedSurfaceCreateItem {
     RedPipeItem base;

@@ -228,14 +228,12 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
 {
     GList *l;
     int x;
-    RedChannelClient *rcc;
 
     spice_return_val_if_fail(dcc != NULL, TRUE);
     /* removing the newest drawables that their destination is surface_id and
        no other drawable depends on them */
 
-    rcc = dcc;
-    for (l = red_channel_client_get_pipe(rcc)->head; l != NULL; ) {
+    for (l = red_channel_client_get_pipe(dcc)->head; l != NULL; ) {
         Drawable *drawable;
         RedDrawablePipeItem *dpi = NULL;
         int depend_found = FALSE;
@@ -253,7 +251,7 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
         }
 
         if (drawable->surface_id == surface_id) {
-            red_channel_client_pipe_remove_and_release_pos(rcc, item_pos);
+            red_channel_client_pipe_remove_and_release_pos(dcc, item_pos);
             continue;
         }
 
@@ -269,7 +267,7 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
             if (!wait_if_used) {
                 return TRUE;
             }
-            return red_channel_client_wait_pipe_item_sent(rcc, item_pos,
+            return red_channel_client_wait_pipe_item_sent(dcc, item_pos,
                                                           COMMON_CLIENT_TIMEOUT);
         }
     }
@@ -282,7 +280,7 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
      * in case that the pipe didn't contain any item that is dependent on the surface, but
      * there is one during sending. Use a shorter timeout, since it is just one item
      */
-    return red_channel_client_wait_outgoing_item(rcc, DISPLAY_CLIENT_SHORT_TIMEOUT);
+    return red_channel_client_wait_outgoing_item(dcc, DISPLAY_CLIENT_SHORT_TIMEOUT);
 }
 
 void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
@@ -565,31 +563,30 @@ static bool display_channel_client_wait_for_init(DisplayChannelClient *dcc)
 void dcc_start(DisplayChannelClient *dcc)
 {
     DisplayChannel *display = DCC_TO_DC(dcc);
-    RedChannelClient *rcc = dcc;
 
-    red_channel_client_push_set_ack(rcc);
+    red_channel_client_push_set_ack(dcc);
 
-    if (red_channel_client_is_waiting_for_migrate_data(rcc))
+    if (red_channel_client_is_waiting_for_migrate_data(dcc))
         return;
 
     if (!display_channel_client_wait_for_init(dcc))
         return;
 
     g_object_ref(dcc);
-    red_channel_client_ack_zero_messages_window(rcc);
+    red_channel_client_ack_zero_messages_window(dcc);
     if (display->priv->surfaces[0].context.canvas) {
         display_channel_current_flush(display, 0);
-        red_channel_client_pipe_add_type(rcc, RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
+        red_channel_client_pipe_add_type(dcc, RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
         dcc_create_surface(dcc, 0);
         dcc_push_surface_image(dcc, 0);
         dcc_push_monitors_config(dcc);
-        red_channel_client_pipe_add_empty_msg(rcc, SPICE_MSG_DISPLAY_MARK);
+        red_channel_client_pipe_add_empty_msg(dcc, SPICE_MSG_DISPLAY_MARK);
         dcc_create_all_streams(dcc);
     }
 
-    if (red_stream_is_plain_unix(red_channel_client_get_stream(rcc)) &&
-        red_channel_client_test_remote_cap(rcc, SPICE_DISPLAY_CAP_GL_SCANOUT)) {
-        red_channel_client_pipe_add(rcc, dcc_gl_scanout_item_new(rcc, NULL, 0));
+    if (red_stream_is_plain_unix(red_channel_client_get_stream(dcc)) &&
+        red_channel_client_test_remote_cap(dcc, SPICE_DISPLAY_CAP_GL_SCANOUT)) {
+        red_channel_client_pipe_add(dcc, dcc_gl_scanout_item_new(dcc, NULL, 0));
         dcc_push_monitors_config(dcc);
     }
     g_object_unref(dcc);

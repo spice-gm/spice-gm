@@ -2546,14 +2546,12 @@ display_channel_class_init(DisplayChannelClass *klass)
 
 void display_channel_debug_oom(DisplayChannel *display, const char *msg)
 {
-    RedChannel *channel = display;
-
     spice_debug("%s #draw=%u, #glz_draw=%u current %u pipes %u",
                 msg,
                 display->priv->drawable_count,
                 display->priv->encoder_shared_data.glz_drawable_count,
                 ring_get_length(&display->priv->current_list),
-                red_channel_sum_pipes_size(channel));
+                red_channel_sum_pipes_size(display));
 }
 
 static void guest_set_client_capabilities(DisplayChannel *display)

@@ -356,7 +356,6 @@ static void marshaller_unref_drawable(uint8_t *data, void *opaque)
 static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
                               SpiceImage *simage, Drawable *drawable, int can_lossy)
 {
-    RedChannelClient *rcc = dcc;
     DisplayChannel *display = DCC_TO_DC(dcc);
     SpiceImage image;
     compress_send_data_t comp_send_data = {0};
@@ -437,12 +436,12 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
         /* Images must be added to the cache only after they are compressed
            in order to prevent starvation in the client between pixmap_cache and
            global dictionary (in cases of multiple monitors) */
-        if (red_stream_get_family(red_channel_client_get_stream(rcc)) == AF_UNIX ||
+        if (red_stream_get_family(red_channel_client_get_stream(dcc)) == AF_UNIX ||
             !dcc_compress_image(dcc, &image, &simage->u.bitmap,
                                 drawable, can_lossy, &comp_send_data)) {
             SpicePalette *palette;
 
-            red_display_add_image_to_pixmap_cache(rcc, simage, &image, FALSE);
+            red_display_add_image_to_pixmap_cache(dcc, simage, &image, FALSE);
 
             *bitmap = simage->u.bitmap;
             bitmap->flags = bitmap->flags & SPICE_BITMAP_FLAGS_TOP_DOWN;
@@ -468,7 +467,7 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
             pthread_mutex_unlock(&dcc->priv->pixmap_cache->lock);
             return FILL_BITS_TYPE_BITMAP;
         } else {
-            red_display_add_image_to_pixmap_cache(rcc, simage, &image,
+            red_display_add_image_to_pixmap_cache(dcc, simage, &image,
                                                   comp_send_data.is_lossy);
 
             spice_marshall_Image(m, &image,
@@ -490,7 +489,7 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
         break;
     }
     case SPICE_IMAGE_TYPE_QUIC:
-        red_display_add_image_to_pixmap_cache(rcc, simage, &image, FALSE);
+        red_display_add_image_to_pixmap_cache(dcc, simage, &image, FALSE);
         image.u.quic = simage->u.quic;
         spice_marshall_Image(m, &image,
                              &bitmap_palette_out, &lzplt_palette_out);

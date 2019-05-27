@@ -158,15 +158,14 @@ request_new_stream(StreamChannel *channel, StreamMsgStartStop *start)
 static void
 stream_channel_client_on_disconnect(RedChannelClient *rcc)
 {
-    RedChannel *red_channel = red_channel_client_get_channel(rcc);
+    StreamChannel *channel = STREAM_CHANNEL(red_channel_client_get_channel(rcc));
 
     // if there are still some client connected keep streaming
     // TODO, maybe would be worth sending new codecs if they are better
-    if (red_channel_is_connected(red_channel)) {
+    if (red_channel_is_connected(channel)) {
         return;
     }
 
-    StreamChannel *channel = STREAM_CHANNEL(red_channel);
     channel->stream_id = -1;
     channel->width = 0;
     channel->height = 0;
@@ -515,22 +514,20 @@ stream_channel_init(StreamChannel *channel)
 void
 stream_channel_change_format(StreamChannel *channel, const StreamMsgFormat *fmt)
 {
-    RedChannel *red_channel = channel;
-
     // send destroy old stream
-    red_channel_pipes_add_type(red_channel, RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
+    red_channel_pipes_add_type(channel, RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
 
     // send new create surface if required
     if (channel->width != fmt->width || channel->height != fmt->height) {
         if (channel->width != 0 && channel->height != 0) {
-            red_channel_pipes_add_type(red_channel, RED_PIPE_ITEM_TYPE_SURFACE_DESTROY);
+            red_channel_pipes_add_type(channel, RED_PIPE_ITEM_TYPE_SURFACE_DESTROY);
         }
         channel->width = fmt->width;
         channel->height = fmt->height;
-        red_channel_pipes_add_type(red_channel, RED_PIPE_ITEM_TYPE_SURFACE_CREATE);
-        red_channel_pipes_add_type(red_channel, RED_PIPE_ITEM_TYPE_MONITORS_CONFIG);
+        red_channel_pipes_add_type(channel, RED_PIPE_ITEM_TYPE_SURFACE_CREATE);
+        red_channel_pipes_add_type(channel, RED_PIPE_ITEM_TYPE_MONITORS_CONFIG);
         // TODO monitors config ??
-        red_channel_pipes_add_empty_msg(red_channel, SPICE_MSG_DISPLAY_MARK);
+        red_channel_pipes_add_empty_msg(channel, SPICE_MSG_DISPLAY_MARK);
     }
 
     // allocate a new stream id
@@ -548,10 +545,10 @@ stream_channel_change_format(StreamChannel *channel, const StreamMsgFormat *fmt)
     item->stream_create.src_height = fmt->height;
     item->stream_create.dest = (SpiceRect) { 0, 0, fmt->width, fmt->height };
     item->stream_create.clip = (SpiceClip) { SPICE_CLIP_TYPE_NONE, NULL };
-    red_channel_pipes_add(red_channel, &item->base);
+    red_channel_pipes_add(channel, &item->base);
 
     // activate stream report if possible
-    red_channel_pipes_add_type(red_channel, RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
+    red_channel_pipes_add_type(channel, RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
 }
 
 static inline void
@@ -585,8 +582,6 @@ stream_channel_send_data(StreamChannel *channel, const void *data, size_t size, 
         return;
     }
 
-    RedChannel *red_channel = channel;
-
     StreamDataItem *item = (StreamDataItem*) g_malloc(sizeof(*item) + size);
     red_pipe_item_init_full(&item->base, RED_PIPE_ITEM_TYPE_STREAM_DATA,
                             data_item_free);
@@ -597,7 +592,7 @@ stream_channel_send_data(StreamChannel *channel, const void *data, size_t size, 
     stream_channel_update_queue_stat(channel, 1, size);
     // TODO try to optimize avoiding the copy
     memcpy(item->data.data, data, size);
-    red_channel_pipes_add(red_channel, &item->base);
+    red_channel_pipes_add(channel, &item->base);
 }
 
 void
@@ -624,21 +619,20 @@ stream_channel_reset(StreamChannel *channel)
         uint8_t codecs_buffer[MAX_SUPPORTED_CODECS];
     } start_msg;
     StreamMsgStartStop *const start = &start_msg.base;
-    RedChannel *red_channel = channel;
 
     // send destroy old stream
-    red_channel_pipes_add_type(red_channel, RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
+    red_channel_pipes_add_type(channel, RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
 
     // destroy display surface
     if (channel->width != 0 && channel->height != 0) {
-        red_channel_pipes_add_type(red_channel, RED_PIPE_ITEM_TYPE_SURFACE_DESTROY);
+        red_channel_pipes_add_type(channel, RED_PIPE_ITEM_TYPE_SURFACE_DESTROY);
     }
 
     channel->stream_id = -1;
     channel->width = 0;
     channel->height = 0;
 
-    if (!red_channel_is_connected(red_channel)) {
+    if (!red_channel_is_connected(channel)) {
         return;
     }
 
