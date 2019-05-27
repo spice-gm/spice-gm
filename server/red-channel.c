@@ -598,44 +598,32 @@ static bool red_channel_no_item_being_sent(RedChannel *channel)
  * TODO - inline? macro? right now this is the simplest from code amount
  */
 
-typedef void (*rcc_item_t)(RedChannelClient *rcc, RedPipeItem *item);
-
 /**
- * red_channel_pipes_create_batch:
+ * red_channel_pipes_new_add:
  * @channel: a channel
  * @creator: a callback to create pipe item (not null)
  * @data: the data to pass to the creator
- * @pipe_add: a callback to add non-null pipe items (not null)
  *
  * Returns: the number of added items
  **/
-static int red_channel_pipes_create_batch(RedChannel *channel,
-                                new_pipe_item_t creator, void *data,
-                                rcc_item_t pipe_add)
+int red_channel_pipes_new_add(RedChannel *channel,
+                              new_pipe_item_t creator, void *data)
 {
     RedChannelClient *rcc;
     RedPipeItem *item;
     int num = 0, n = 0;
 
     spice_assert(creator != NULL);
-    spice_assert(pipe_add != NULL);
 
     FOREACH_CLIENT(channel, rcc) {
         item = (*creator)(rcc, data, num++);
         if (item) {
-            (*pipe_add)(rcc, item);
+            red_channel_client_pipe_add(rcc, item);
             n++;
         }
     }
 
     return n;
-}
-
-int red_channel_pipes_new_add(RedChannel *channel,
-                              new_pipe_item_t creator, void *data)
-{
-    return red_channel_pipes_create_batch(channel, creator, data,
-                                          red_channel_client_pipe_add);
 }
 
 uint32_t red_channel_max_pipe_size(RedChannel *channel)
