@@ -2205,12 +2205,11 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
         send_create_surface(display, surface_id, data_is_valid);
 }
 
-static bool handle_migrate_flush_mark(RedChannelClient *rcc)
+void DisplayChannelClient::handle_migrate_flush_mark()
 {
-    RedChannel *channel = rcc->get_channel();
+    RedChannel *channel = get_channel();
 
     channel->pipes_add_type(RED_PIPE_ITEM_TYPE_MIGRATE_DATA);
-    return TRUE;
 }
 
 static uint64_t handle_migrate_data_get_serial(RedChannelClient *rcc, uint32_t size, void *message)
@@ -2501,7 +2500,6 @@ display_channel_class_init(DisplayChannelClass *klass)
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
 
-    channel_class->handle_migrate_flush_mark = handle_migrate_flush_mark;
     channel_class->handle_migrate_data_get_serial = handle_migrate_data_get_serial;
 
     // client callbacks

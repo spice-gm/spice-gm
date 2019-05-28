@@ -43,13 +43,12 @@ private:
     virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
     virtual void send_item(RedPipeItem *item) override;
     virtual bool handle_migrate_data(uint32_t size, void *message) override;
+    virtual void handle_migrate_flush_mark() override;
 };
 
 SmartCardChannelClient* smartcard_channel_client_create(RedChannel *channel,
                                                         RedClient *client, RedStream *stream,
                                                         RedChannelCapabilities *caps);
-
-bool smartcard_channel_client_handle_migrate_flush_mark(RedChannelClient *rcc);
 
 void smartcard_channel_client_send_data(RedChannelClient *rcc,
                                         SpiceMarshaller *m,
@@ -59,10 +58,6 @@ void smartcard_channel_client_send_data(RedChannelClient *rcc,
 void smartcard_channel_client_send_error(RedChannelClient *rcc,
                                          SpiceMarshaller *m,
                                          RedPipeItem *item);
-
-bool smartcard_channel_client_handle_migrate_data(RedChannelClient *rcc,
-                                                  uint32_t size,
-                                                  void *message);
 
 void smartcard_channel_client_set_char_device(SmartCardChannelClient *scc,
                                               RedCharDeviceSmartcard *device);

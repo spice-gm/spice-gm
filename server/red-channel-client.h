@@ -175,7 +175,7 @@ private:
     void send_any_item(RedPipeItem *item);
     void handle_outgoing();
     void handle_incoming();
-    void handle_migrate_flush_mark();
+    virtual void handle_migrate_flush_mark();
     void handle_migrate_data_early(uint32_t size, void *message);
     inline bool prepare_pipe_add(RedPipeItem *item);
     void pipe_add_before_pos(RedPipeItem *item, GList *pipe_item_pos);

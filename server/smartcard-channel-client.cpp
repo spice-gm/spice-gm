@@ -298,10 +298,9 @@ bool SmartCardChannelClient::handle_migrate_data(uint32_t size, void *message)
                                                      mig_data);
 }
 
-bool smartcard_channel_client_handle_migrate_flush_mark(RedChannelClient *rcc)
+void SmartCardChannelClient::handle_migrate_flush_mark()
 {
-    rcc->pipe_add_type(RED_PIPE_ITEM_TYPE_SMARTCARD_MIGRATE_DATA);
-    return TRUE;
+    pipe_add_type(RED_PIPE_ITEM_TYPE_SMARTCARD_MIGRATE_DATA);
 }
 
 void smartcard_channel_client_set_char_device(SmartCardChannelClient *scc,

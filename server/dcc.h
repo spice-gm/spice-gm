@@ -51,6 +51,7 @@ protected:
     virtual void send_item(RedPipeItem *item) override;
     virtual bool handle_migrate_data(uint32_t size, void *message) override;
     virtual void migrate() override;
+    virtual void handle_migrate_flush_mark() override;
 
 public:
     red::unique_link<DisplayChannelClientPrivate> priv;

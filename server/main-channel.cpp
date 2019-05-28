@@ -213,12 +213,11 @@ bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *messa
     return TRUE;
 }
 
-static bool main_channel_handle_migrate_flush_mark(RedChannelClient *rcc)
+void MainChannelClient::handle_migrate_flush_mark()
 {
-    RedChannel *channel = rcc->get_channel();
+    RedChannel *channel = get_channel();
     spice_debug("trace");
     main_channel_push_migrate_data_item(MAIN_CHANNEL(channel));
-    return TRUE;
 }
 
 MainChannelClient *main_channel_link(MainChannel *channel, RedClient *client,
@@ -274,9 +273,6 @@ main_channel_class_init(MainChannelClass *klass)
     object_class->constructed = main_channel_constructed;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_MAIN, NULL);
-
-    /* channel callbacks */
-    channel_class->handle_migrate_flush_mark = main_channel_handle_migrate_flush_mark;
 }
 
 static int main_channel_connect_semi_seamless(MainChannel *main_channel)

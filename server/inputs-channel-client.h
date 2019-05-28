@@ -57,6 +57,7 @@ protected:
     virtual void send_item(RedPipeItem *base) override;
     virtual bool handle_migrate_data(uint32_t size, void *message) override;
     virtual void migrate() override;
+    virtual void handle_migrate_flush_mark() override;
 };
 
 RedChannelClient* inputs_channel_client_create(RedChannel *channel,

@@ -1259,11 +1259,6 @@ void RedChannelClientPrivate::handle_pong(SpiceMsgPing *ping)
 
 void RedChannelClient::handle_migrate_flush_mark()
 {
-    RedChannel *channel = get_channel();
-    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
-    if (klass->handle_migrate_flush_mark) {
-        klass->handle_migrate_flush_mark(this);
-    }
 }
 
 // TODO: the whole migration is broken with multiple clients. What do we want to do?

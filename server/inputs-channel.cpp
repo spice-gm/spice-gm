@@ -520,10 +520,9 @@ static void key_modifiers_sender(void *opaque)
     inputs_channel_push_keyboard_modifiers(inputs, inputs->modifiers);
 }
 
-static bool inputs_channel_handle_migrate_flush_mark(RedChannelClient *rcc)
+void InputsChannelClient::handle_migrate_flush_mark()
 {
-    rcc->pipe_add_type(RED_PIPE_ITEM_MIGRATE_DATA);
-    return TRUE;
+    pipe_add_type(RED_PIPE_ITEM_MIGRATE_DATA);
 }
 
 bool InputsChannelClient::handle_migrate_data(uint32_t size, void *message)
@@ -609,9 +608,6 @@ inputs_channel_class_init(InputsChannelClass *klass)
     object_class->finalize = inputs_channel_finalize;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_INPUTS, NULL);
-
-    /* channel callbacks */
-    channel_class->handle_migrate_flush_mark = inputs_channel_handle_migrate_flush_mark;
 
     // client callbacks
     channel_class->connect = inputs_connect;

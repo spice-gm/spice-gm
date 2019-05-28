@@ -556,8 +556,6 @@ red_smartcard_channel_class_init(RedSmartcardChannelClass *klass)
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_SMARTCARD, NULL);
 
-    channel_class->handle_migrate_flush_mark = smartcard_channel_client_handle_migrate_flush_mark;
-
     // client callbacks
     channel_class->connect = smartcard_connect_client;
 }
