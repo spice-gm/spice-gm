@@ -130,7 +130,7 @@ bool red_channel_is_waiting_for_migrate_data(RedChannel *channel);
 /*
  * the disconnect callback is called from the channel's thread,
  * i.e., for display channels - red worker thread, for all the other - from the main thread.
- * red_channel_destroy can be called only from channel thread.
+ * RedChannel::destroy can be called only from channel thread.
  */
 void red_channel_destroy(RedChannel *channel);
 

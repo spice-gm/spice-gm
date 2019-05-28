@@ -453,7 +453,7 @@ static void drawable_remove_from_pipes(Drawable *drawable)
         RedChannelClient *rcc;
 
         rcc = dpi->dcc;
-        red_channel_client_pipe_remove_and_release(rcc, &dpi->base);
+        rcc->pipe_remove_and_release(&dpi->base);
     }
 }
 
@@ -1478,18 +1478,18 @@ bool display_channel_wait_for_migrate_data(DisplayChannel *display)
 
     g_object_ref(rcc);
     for (;;) {
-        red_channel_client_receive(rcc);
-        if (!red_channel_client_is_connected(rcc)) {
+        rcc->receive();
+        if (!rcc->is_connected()) {
             break;
         }
 
-        if (!red_channel_client_is_waiting_for_migrate_data(rcc)) {
+        if (!rcc->is_waiting_for_migrate_data()) {
             ret = TRUE;
             break;
         }
         if (spice_get_monotonic_time_ns() > end_time) {
             spice_warning("timeout");
-            red_channel_client_disconnect(rcc);
+            rcc->disconnect();
             break;
         }
         usleep(DISPLAY_CLIENT_RETRY_INTERVAL);
@@ -2060,7 +2060,7 @@ static void clear_surface_drawables_from_pipes(DisplayChannel *display, int surf
 
     FOREACH_DCC(display, dcc) {
         if (!dcc_clear_surface_drawables_from_pipe(dcc, surface_id, wait_if_used)) {
-            red_channel_client_disconnect(dcc);
+            dcc->disconnect();
         }
     }
 }
@@ -2205,7 +2205,7 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
 
 static bool handle_migrate_flush_mark(RedChannelClient *rcc)
 {
-    RedChannel *channel = red_channel_client_get_channel(rcc);
+    RedChannel *channel = rcc->get_channel();
 
     red_channel_pipes_add_type(channel, RED_PIPE_ITEM_TYPE_MIGRATE_DATA);
     return TRUE;
@@ -2588,7 +2588,7 @@ static void guest_set_client_capabilities(DisplayChannel *display)
         }
         FOREACH_CLIENT(display, rcc) {
             for (i = 0 ; i < SPICE_N_ELEMENTS(caps_available); ++i) {
-                if (!red_channel_client_test_remote_cap(rcc, caps_available[i]))
+                if (!rcc->test_remote_cap(caps_available[i]))
                     CLEAR_CAP(caps, caps_available[i]);
             }
         }
@@ -2627,16 +2627,16 @@ display_channel_connect(RedChannel *channel, RedClient *client,
 
 static void display_channel_disconnect(RedChannelClient *rcc)
 {
-    DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
+    DisplayChannel *display = DISPLAY_CHANNEL(rcc->get_channel());
 
     guest_set_client_capabilities(display);
 
-    red_channel_client_disconnect(rcc);
+    rcc->disconnect();
 }
 
 static void display_channel_migrate(RedChannelClient *rcc)
 {
-    DisplayChannel *display = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
+    DisplayChannel *display = DISPLAY_CHANNEL(rcc->get_channel());
 
     /* We need to stop the streams, and to send upgrade_items to the client.
      * Otherwise, (1) the client might display lossy regions that we don't track
@@ -2649,8 +2649,8 @@ static void display_channel_migrate(RedChannelClient *rcc)
      * handle_dev_stop already took care of releasing all the dev ram resources.
      */
     video_stream_detach_and_stop(display);
-    if (red_channel_client_is_connected(rcc)) {
-        red_channel_client_default_migrate(rcc);
+    if (rcc->is_connected()) {
+        RedChannelClient::default_migrate(rcc);
     }
 }
 

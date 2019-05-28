@@ -36,14 +36,14 @@
  * are deallocated only after red_channel_destroy is called and no RedChannelClient
  * refers to the channel.
  * RedChannelClient is created and destroyed by the calls to xxx_channel_client_new
- * and red_channel_client_disconnect. RedChannelClient resources are deallocated only when
+ * and RedChannelClient::disconnect. RedChannelClient resources are deallocated only when
  * its refs == 0. The reference count of RedChannelClient can be increased by routines
  * that include calls that might destroy the red_channel_client. For example,
  * red_peer_handle_incoming calls the handle_message proc of the channel, which
  * might lead to destroying the client. However, after the call to handle_message,
  * there is a call to the channel's release_msg_buf proc.
  *
- * Once red_channel_client_disconnect is called, the RedChannelClient is disconnected and
+ * Once RedChannelClient::disconnect is called, the RedChannelClient is disconnected and
  * removed from the RedChannel clients list, but if rcc->refs != 0, it will still hold
  * a reference to the Channel. The reason for this is that on the one hand RedChannel holds
  * callbacks that may be still in use by RedChannel, and on the other hand,
@@ -55,8 +55,8 @@
  * are associated with it. However, since part of these channel clients may still have
  * other references, they will not be completely released, until they are dereferenced.
  *
- * Note: red_channel_client_disconnect is not thread safe.
- * If a call to red_channel_client_disconnect is made from another location, it must be called
+ * Note: RedChannelClient::disconnect is not thread safe.
+ * If a call to RedChannelClient::disconnect is made from another location, it must be called
  * from the channel's thread.
 */
 struct RedChannelPrivate
@@ -219,7 +219,7 @@ static void red_channel_client_default_connect(RedChannel *channel, RedClient *c
 
 static void red_channel_client_default_disconnect(RedChannelClient *base)
 {
-    red_channel_client_disconnect(base);
+    base->disconnect();
 }
 
 static void
@@ -302,7 +302,7 @@ red_channel_class_init(RedChannelClass *klass)
 
     klass->connect = red_channel_client_default_connect;
     klass->disconnect = red_channel_client_default_disconnect;
-    klass->migrate = red_channel_client_default_migrate;
+    klass->migrate = RedChannelClient::default_migrate;
 }
 
 static void
@@ -317,17 +317,17 @@ red_channel_init(RedChannel *self)
 
 // utility to avoid possible invalid function cast
 static void
-red_channel_foreach_client(RedChannel *channel, void (*func)(RedChannelClient* client))
+red_channel_foreach_client(RedChannel *channel, void (RedChannelClient::*func)())
 {
     RedChannelClient *client;
     GLIST_FOREACH(channel->priv->clients, RedChannelClient, client) {
-        func(client);
+        (client->*func)();
     }
 }
 
 void red_channel_receive(RedChannel *channel)
 {
-    red_channel_foreach_client(channel, red_channel_client_receive);
+    red_channel_foreach_client(channel, &RedChannelClient::receive);
 }
 
 void red_channel_add_client(RedChannel *channel, RedChannelClient *rcc)
@@ -341,7 +341,7 @@ bool red_channel_test_remote_cap(RedChannel *channel, uint32_t cap)
     RedChannelClient *rcc;
 
     FOREACH_CLIENT(channel, rcc) {
-        if (!red_channel_client_test_remote_cap(rcc, cap)) {
+        if (!rcc->test_remote_cap(cap)) {
             return FALSE;
         }
     }
@@ -362,7 +362,7 @@ bool red_channel_is_waiting_for_migrate_data(RedChannel *channel)
     }
     spice_assert(n_clients == 1);
     rcc = (RedChannelClient*) g_list_nth_data(channel->priv->clients, 0);
-    return red_channel_client_is_waiting_for_migrate_data(rcc);
+    return rcc->is_waiting_for_migrate_data();
 }
 
 void red_channel_init_stat_node(RedChannel *channel, const RedStatNode *parent, const char *name)
@@ -410,13 +410,13 @@ void red_channel_destroy(RedChannel *channel)
     // prevent future connection
     reds_unregister_channel(channel->priv->reds, channel);
 
-    red_channel_foreach_client(channel, red_channel_client_disconnect);
+    red_channel_foreach_client(channel, &RedChannelClient::disconnect);
     g_object_unref(channel);
 }
 
 void red_channel_send(RedChannel *channel)
 {
-    red_channel_foreach_client(channel, red_channel_client_send);
+    red_channel_foreach_client(channel, &RedChannelClient::send);
 }
 
 void red_channel_push(RedChannel *channel)
@@ -425,7 +425,7 @@ void red_channel_push(RedChannel *channel)
         return;
     }
 
-    red_channel_foreach_client(channel, red_channel_client_push);
+    red_channel_foreach_client(channel, &RedChannelClient::push);
 }
 
 void red_channel_pipes_add(RedChannel *channel, RedPipeItem *item)
@@ -434,7 +434,7 @@ void red_channel_pipes_add(RedChannel *channel, RedPipeItem *item)
 
     FOREACH_CLIENT(channel, rcc) {
         red_pipe_item_ref(item);
-        red_channel_client_pipe_add(rcc, item);
+        rcc->pipe_add(item);
     }
 
     red_pipe_item_unref(item);
@@ -451,7 +451,7 @@ void red_channel_pipes_add_type(RedChannel *channel, int pipe_item_type)
 
 void red_channel_pipes_add_empty_msg(RedChannel *channel, int msg_type)
 {
-    red_channel_pipes_add(channel, red_channel_client_new_empty_msg(msg_type));
+    red_channel_pipes_add(channel, RedChannelClient::new_empty_msg(msg_type));
 }
 
 int red_channel_is_connected(RedChannel *channel)
@@ -467,7 +467,7 @@ const char *red_channel_get_name(RedChannel *channel)
 void red_channel_remove_client(RedChannel *channel, RedChannelClient *rcc)
 {
     GList *link;
-    g_return_if_fail(channel == red_channel_client_get_channel(rcc));
+    g_return_if_fail(channel == rcc->get_channel());
 
     if (!pthread_equal(pthread_self(), channel->priv->thread_id)) {
         red_channel_warning(channel,
@@ -487,7 +487,7 @@ void red_channel_remove_client(RedChannel *channel, RedChannelClient *rcc)
 
 void red_channel_disconnect(RedChannel *channel)
 {
-    red_channel_foreach_client(channel, red_channel_client_disconnect);
+    red_channel_foreach_client(channel, &RedChannelClient::disconnect);
 }
 
 typedef struct RedMessageConnect {
@@ -553,7 +553,7 @@ bool red_channel_all_blocked(RedChannel *channel)
         return FALSE;
     }
     FOREACH_CLIENT(channel, rcc) {
-        if (!red_channel_client_is_blocked(rcc)) {
+        if (!rcc->is_blocked()) {
             return FALSE;
         }
     }
@@ -566,7 +566,7 @@ static bool red_channel_any_blocked(RedChannel *channel)
     RedChannelClient *rcc;
 
     FOREACH_CLIENT(channel, rcc) {
-        if (red_channel_client_is_blocked(rcc)) {
+        if (rcc->is_blocked()) {
             return TRUE;
         }
     }
@@ -578,7 +578,7 @@ static bool red_channel_no_item_being_sent(RedChannel *channel)
     RedChannelClient *rcc;
 
     FOREACH_CLIENT(channel, rcc) {
-        if (!red_channel_client_no_item_being_sent(rcc)) {
+        if (!rcc->no_item_being_sent()) {
             return FALSE;
         }
     }
@@ -616,7 +616,7 @@ int red_channel_pipes_new_add(RedChannel *channel,
     FOREACH_CLIENT(channel, rcc) {
         item = (*creator)(rcc, data, num++);
         if (item) {
-            red_channel_client_pipe_add(rcc, item);
+            rcc->pipe_add(item);
             n++;
         }
     }
@@ -631,7 +631,7 @@ uint32_t red_channel_max_pipe_size(RedChannel *channel)
 
     FOREACH_CLIENT(channel, rcc) {
         uint32_t new_size;
-        new_size = red_channel_client_get_pipe_size(rcc);
+        new_size = rcc->get_pipe_size();
         pipe_size = MAX(pipe_size, new_size);
     }
     return pipe_size;
@@ -643,7 +643,7 @@ uint32_t red_channel_sum_pipes_size(RedChannel *channel)
     uint32_t sum = 0;
 
     FOREACH_CLIENT(channel, rcc) {
-        sum += red_channel_client_get_pipe_size(rcc);
+        sum += rcc->get_pipe_size();
     }
     return sum;
 }
@@ -653,10 +653,10 @@ static void red_channel_disconnect_if_pending_send(RedChannel *channel)
     RedChannelClient *rcc;
 
     FOREACH_CLIENT(channel, rcc) {
-        if (red_channel_client_is_blocked(rcc) || !red_channel_client_pipe_is_empty(rcc)) {
-            red_channel_client_disconnect(rcc);
+        if (rcc->is_blocked() || !rcc->pipe_is_empty()) {
+            rcc->disconnect();
         } else {
-            spice_assert(red_channel_client_no_item_being_sent(rcc));
+            spice_assert(rcc->no_item_being_sent());
         }
     }
 }
@@ -731,7 +731,7 @@ typedef struct RedMessageMigrate {
 static void handle_dispatcher_migrate(void *opaque, void *payload)
 {
     RedMessageMigrate *msg = (RedMessageMigrate*) payload;
-    RedChannel *channel = red_channel_client_get_channel(msg->rcc);
+    RedChannel *channel = msg->rcc->get_channel();
     RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
     klass->migrate(msg->rcc);
@@ -759,7 +759,7 @@ typedef struct RedMessageDisconnect {
 static void handle_dispatcher_disconnect(void *opaque, void *payload)
 {
     RedMessageDisconnect *msg = (RedMessageDisconnect*) payload;
-    RedChannel *channel = red_channel_client_get_channel(msg->rcc);
+    RedChannel *channel = msg->rcc->get_channel();
     RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
     klass->disconnect(msg->rcc);

@@ -120,8 +120,7 @@ void video_stream_stop(DisplayChannel *display, VideoStream *stream)
                 dcc_set_max_stream_bit_rate(dcc, stream_bit_rate);
             }
         }
-        red_channel_client_pipe_add(dcc,
-                                    video_stream_destroy_item_new(stream_agent));
+        dcc->pipe_add(video_stream_destroy_item_new(stream_agent));
         video_stream_agent_stats_print(stream_agent);
     }
     display->priv->streams_size_total -= stream->width * stream->height;
@@ -365,8 +364,7 @@ static void before_reattach_stream(DisplayChannel *display,
         dcc = dpi->dcc;
         agent = dcc_get_video_stream_agent(dcc, index);
 
-        if (red_channel_client_pipe_item_is_linked(dcc,
-                                                   &dpi->base)) {
+        if (dcc->pipe_item_is_linked(&dpi->base)) {
 #ifdef STREAM_STATS
             agent->stats.num_drops_pipe++;
 #endif
@@ -642,7 +640,7 @@ static uint64_t get_initial_bit_rate(DisplayChannelClient *dcc, VideoStream *str
         MainChannelClient *mcc;
         uint64_t net_test_bit_rate;
 
-        mcc = red_client_get_main(red_channel_client_get_client(dcc));
+        mcc = red_client_get_main(dcc->get_client());
         net_test_bit_rate = main_channel_client_is_network_info_initialized(mcc) ?
                                 main_channel_client_get_bitrate_per_sec(mcc) :
                                 0;
@@ -673,9 +671,9 @@ static uint32_t get_roundtrip_ms(void *opaque)
     int roundtrip;
     RedChannelClient *rcc = agent->dcc;
 
-    roundtrip = red_channel_client_get_roundtrip_ms(rcc);
+    roundtrip = rcc->get_roundtrip_ms();
     if (roundtrip < 0) {
-        MainChannelClient *mcc = red_client_get_main(red_channel_client_get_client(rcc));
+        MainChannelClient *mcc = red_client_get_main(rcc->get_client());
 
         /*
          * the main channel client roundtrip might not have been
@@ -699,7 +697,7 @@ static void update_client_playback_delay(void *opaque, uint32_t delay_ms)
 {
     VideoStreamAgent *agent = (VideoStreamAgent*) opaque;
     DisplayChannelClient *dcc = agent->dcc;
-    RedClient *client = red_channel_client_get_client(dcc);
+    RedClient *client = dcc->get_client();
     RedsState *reds = red_client_get_server(client);
 
     dcc_update_streams_max_latency(dcc, agent);
@@ -731,7 +729,7 @@ static VideoEncoder* dcc_create_video_encoder(DisplayChannelClient *dcc,
                                               uint64_t starting_bit_rate,
                                               VideoEncoderRateControlCbs *cbs)
 {
-    bool client_has_multi_codec = red_channel_client_test_remote_cap(dcc, SPICE_DISPLAY_CAP_MULTI_CODEC);
+    bool client_has_multi_codec = dcc->test_remote_cap(SPICE_DISPLAY_CAP_MULTI_CODEC);
     int i;
     GArray *video_codecs;
 
@@ -745,7 +743,7 @@ static VideoEncoder* dcc_create_video_encoder(DisplayChannelClient *dcc,
             continue;
         }
         if (client_has_multi_codec &&
-            !red_channel_client_test_remote_cap(dcc, video_codec->cap)) {
+            !dcc->test_remote_cap(video_codec->cap)) {
             /* The client is recent but does not support this codec */
             continue;
         }
@@ -757,7 +755,7 @@ static VideoEncoder* dcc_create_video_encoder(DisplayChannelClient *dcc,
     }
 
     /* Try to use the builtin MJPEG video encoder as a fallback */
-    if (!client_has_multi_codec || red_channel_client_test_remote_cap(dcc, SPICE_DISPLAY_CAP_CODEC_MJPEG)) {
+    if (!client_has_multi_codec || dcc->test_remote_cap(SPICE_DISPLAY_CAP_CODEC_MJPEG)) {
         return mjpeg_encoder_new(SPICE_VIDEO_CODEC_TYPE_MJPEG, starting_bit_rate, cbs, bitmap_ref, bitmap_unref);
     }
 
@@ -786,9 +784,9 @@ void dcc_create_stream(DisplayChannelClient *dcc, VideoStream *stream)
 
     uint64_t initial_bit_rate = get_initial_bit_rate(dcc, stream);
     agent->video_encoder = dcc_create_video_encoder(dcc, initial_bit_rate, &video_cbs);
-    red_channel_client_pipe_add(dcc, video_stream_create_item_new(agent));
+    dcc->pipe_add(video_stream_create_item_new(agent));
 
-    if (red_channel_client_test_remote_cap(dcc, SPICE_DISPLAY_CAP_STREAM_REPORT)) {
+    if (dcc->test_remote_cap(SPICE_DISPLAY_CAP_STREAM_REPORT)) {
         RedStreamActivateReportItem *report_pipe_item = g_new0(RedStreamActivateReportItem, 1);
 
         agent->report_id = rand();
@@ -796,7 +794,7 @@ void dcc_create_stream(DisplayChannelClient *dcc, VideoStream *stream)
                            RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
         report_pipe_item->stream_id = stream_id;
         report_pipe_item->report_id = agent->report_id;
-        red_channel_client_pipe_add(dcc, &report_pipe_item->base);
+        dcc->pipe_add(&report_pipe_item->base);
     }
 #ifdef STREAM_STATS
     memset(&agent->stats, 0, sizeof(StreamStats));
@@ -876,7 +874,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         upgrade_item->rects->num_rects = n_rects;
         region_ret_rects(&upgrade_item->drawable->tree_item.base.rgn,
                          upgrade_item->rects->rects, n_rects);
-        red_channel_client_pipe_add(dcc, &upgrade_item->base);
+        dcc->pipe_add(&upgrade_item->base);
 
     } else {
         SpiceRect upgrade_area;

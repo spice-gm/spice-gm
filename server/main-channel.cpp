@@ -52,7 +52,7 @@ RedClient *main_channel_get_client_by_link_id(MainChannel *main_chan, uint32_t c
     FOREACH_CLIENT(main_chan, rcc) {
         MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
         if (main_channel_client_get_connection_id(mcc) == connection_id) {
-            return red_channel_client_get_client(rcc);
+            return rcc->get_client();
         }
     }
     return NULL;
@@ -60,13 +60,13 @@ RedClient *main_channel_get_client_by_link_id(MainChannel *main_chan, uint32_t c
 
 static void main_channel_push_channels(MainChannelClient *mcc)
 {
-    if (red_client_during_migrate_at_target(red_channel_client_get_client(mcc))) {
-        red_channel_warning(red_channel_client_get_channel(mcc),
+    if (red_client_during_migrate_at_target(mcc->get_client())) {
+        red_channel_warning(mcc->get_channel(),
                             "warning: ignoring unexpected SPICE_MSGC_MAIN_ATTACH_CHANNELS"
                             "during migration");
         return;
     }
-    red_channel_client_pipe_add_type(mcc, RED_PIPE_ITEM_TYPE_MAIN_CHANNELS_LIST);
+    mcc->pipe_add_type(RED_PIPE_ITEM_TYPE_MAIN_CHANNELS_LIST);
 }
 
 void main_channel_push_mouse_mode(MainChannel *main_chan, SpiceMouseMode current_mode,
@@ -80,12 +80,10 @@ void main_channel_push_agent_connected(MainChannel *main_chan)
 {
     RedChannelClient *rcc;
     FOREACH_CLIENT(main_chan, rcc) {
-        if (red_channel_client_test_remote_cap(rcc,
-                                               SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS)) {
-            red_channel_client_pipe_add_type(rcc,
-                                             RED_PIPE_ITEM_TYPE_MAIN_AGENT_CONNECTED_TOKENS);
+        if (rcc->test_remote_cap(SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS)) {
+            rcc->pipe_add_type(RED_PIPE_ITEM_TYPE_MAIN_AGENT_CONNECTED_TOKENS);
         } else {
-            red_channel_client_pipe_add_empty_msg(rcc, SPICE_MSG_MAIN_AGENT_CONNECTED);
+            rcc->pipe_add_empty_msg(SPICE_MSG_MAIN_AGENT_CONNECTED);
         }
     }
 }
@@ -105,7 +103,7 @@ static void main_channel_push_migrate_data_item(MainChannel *main_chan)
 static bool main_channel_handle_migrate_data(RedChannelClient *rcc,
                                              uint32_t size, void *message)
 {
-    RedChannel *channel = red_channel_client_get_channel(rcc);
+    RedChannel *channel = rcc->get_channel();
     MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
     SpiceMigrateDataHeader *header = (SpiceMigrateDataHeader *)message;
 
@@ -113,7 +111,7 @@ static bool main_channel_handle_migrate_data(RedChannelClient *rcc,
     spice_assert(red_channel_get_n_clients(channel) == 1);
 
     if (size < sizeof(SpiceMigrateDataHeader) + sizeof(SpiceMigrateDataMain)) {
-        red_channel_warning(red_channel_client_get_channel(rcc),
+        red_channel_warning(rcc->get_channel(),
                             "bad message size %u", size);
         return FALSE;
     }
@@ -164,7 +162,7 @@ void main_channel_migrate_switch(MainChannel *main_chan, RedsMigSpice *mig_targe
 static bool main_channel_handle_message(RedChannelClient *rcc, uint16_t type,
                                         uint32_t size, void *message)
 {
-    RedChannel *channel = red_channel_client_get_channel(rcc);
+    RedChannel *channel = rcc->get_channel();
     MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
     RedsState *reds = red_channel_get_server(channel);
 
@@ -216,14 +214,14 @@ static bool main_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         main_channel_client_handle_pong(mcc, (SpiceMsgPing *)message, size);
         break;
     default:
-        return red_channel_client_handle_message(rcc, type, size, message);
+        return RedChannelClient::handle_message(rcc, type, size, message);
     }
     return TRUE;
 }
 
 static bool main_channel_handle_migrate_flush_mark(RedChannelClient *rcc)
 {
-    RedChannel *channel = red_channel_client_get_channel(rcc);
+    RedChannel *channel = rcc->get_channel();
     spice_debug("trace");
     main_channel_push_migrate_data_item(MAIN_CHANNEL(channel));
     return TRUE;
@@ -338,8 +336,7 @@ int main_channel_migrate_connect(MainChannel *main_channel, RedsMigSpice *mig_ta
         /* just test the first one */
         rcc = (RedChannelClient*) g_list_nth_data(clients, 0);
 
-        if (!red_channel_client_test_remote_cap(rcc,
-                                                SPICE_MAIN_CAP_SEAMLESS_MIGRATE)) {
+        if (!rcc->test_remote_cap(SPICE_MAIN_CAP_SEAMLESS_MIGRATE)) {
             return main_channel_connect_semi_seamless(main_channel);
         } else {
             return main_channel_connect_seamless(main_channel);

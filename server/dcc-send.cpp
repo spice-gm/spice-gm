@@ -53,7 +53,7 @@ static int dcc_pixmap_cache_unlocked_hit(DisplayChannelClient *dcc, uint64_t id,
     NewCacheItem *item;
     uint64_t serial;
 
-    serial = red_channel_client_get_message_serial(dcc);
+    serial = dcc->get_message_serial();
     item = cache->hash_table[BITS_CACHE_HASH_KEY(id)];
 
     while (item) {
@@ -176,7 +176,7 @@ static bool is_brush_lossy(RedChannelClient *rcc, SpiceBrush *brush,
 
 static GList *dcc_get_tail(DisplayChannelClient *dcc)
 {
-    return red_channel_client_get_pipe(dcc)->tail;
+    return dcc->get_pipe()->tail;
 }
 
 static void red_display_add_image_to_pixmap_cache(RedChannelClient *rcc,
@@ -184,7 +184,7 @@ static void red_display_add_image_to_pixmap_cache(RedChannelClient *rcc,
                                                   int is_lossy)
 {
     DisplayChannel *display_channel G_GNUC_UNUSED =
-        DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
+        DISPLAY_CHANNEL(rcc->get_channel());
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
 
     if ((image->descriptor.flags & SPICE_IMAGE_FLAGS_CACHE_ME)) {
@@ -237,7 +237,7 @@ static void send_free_list_legacy(RedChannelClient *rcc)
     SpiceMarshaller *inval_m;
     SpiceMarshaller *sub_list_m;
 
-    marshaller = red_channel_client_get_marshaller(rcc);
+    marshaller = rcc->get_marshaller();
     inval_m = spice_marshaller_get_submarshaller(marshaller);
 
     marshal_sub_msg_inval_list(inval_m, free_list);
@@ -254,7 +254,7 @@ static void send_free_list_legacy(RedChannelClient *rcc)
         spice_marshaller_add_uint32(sub_list_m, spice_marshaller_get_offset(wait_m));
     }
     spice_marshaller_add_uint32(sub_list_m, spice_marshaller_get_offset(inval_m));
-    red_channel_client_set_header_sub_list(rcc, spice_marshaller_get_offset(sub_list_m));
+    rcc->set_header_sub_list(spice_marshaller_get_offset(sub_list_m));
 }
 
 /* use mini header and SPICE_MSG_LIST */
@@ -271,7 +271,7 @@ static void send_free_list(RedChannelClient *rcc)
     uint32_t inval_offset = 0;
     int i;
 
-    urgent_marshaller = red_channel_client_switch_to_urgent_sender(rcc);
+    urgent_marshaller = rcc->switch_to_urgent_sender();
     for (i = 0; i < dcc->priv->send_data.num_pixmap_cache_items; i++) {
         int dummy;
         /* When using the urgent marshaller, the serial number of the message that is
@@ -284,12 +284,12 @@ static void send_free_list(RedChannelClient *rcc)
 
     if (!free_list->wait.header.wait_count) {
         /* only one message, no need for a list */
-        red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_INVAL_LIST);
+        rcc->init_send_data(SPICE_MSG_DISPLAY_INVAL_LIST);
         spice_marshall_msg_display_inval_list(urgent_marshaller, free_list->res);
         return;
     }
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_LIST);
+    rcc->init_send_data(SPICE_MSG_LIST);
 
     /* append invalidate list */
     inval_m = spice_marshaller_get_submarshaller(urgent_marshaller);
@@ -436,7 +436,7 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
         /* Images must be added to the cache only after they are compressed
            in order to prevent starvation in the client between pixmap_cache and
            global dictionary (in cases of multiple monitors) */
-        if (red_stream_get_family(red_channel_client_get_stream(dcc)) == AF_UNIX ||
+        if (red_stream_get_family(dcc->get_stream()) == AF_UNIX ||
             !dcc_compress_image(dcc, &image, &simage->u.bitmap,
                                 drawable, can_lossy, &comp_send_data)) {
             SpicePalette *palette;
@@ -552,7 +552,7 @@ static void marshall_qxl_draw_fill(RedChannelClient *rcc,
     SpiceMarshaller *mask_bitmap_out;
     SpiceFill fill;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_FILL);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_FILL);
     fill_base(base_marshaller, item);
     fill = drawable->u.fill;
     spice_marshall_Fill(base_marshaller,
@@ -629,7 +629,7 @@ static bool pipe_rendered_drawables_intersect_with_areas(DisplayChannelClient *d
 
     spice_assert(num_surfaces);
 
-    for (l = red_channel_client_get_pipe(dcc)->head; l != NULL; l = l->next) {
+    for (l = dcc->get_pipe()->head; l != NULL; l = l->next) {
         Drawable *drawable;
         RedPipeItem *pipe_item = (RedPipeItem *) l->data;
 
@@ -717,7 +717,7 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
     resent_areas[0] = *first_area;
     num_resent = 1;
 
-    pipe = red_channel_client_get_pipe(dcc);
+    pipe = dcc->get_pipe();
 
     // going from the oldest to the newest
     for (l = pipe->tail; l != NULL; l = prev) {
@@ -750,7 +750,7 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
         resent_areas[num_resent] = drawable->red_drawable->bbox;
         num_resent++;
 
-        red_channel_client_pipe_remove_and_release_pos(dcc, l);
+        dcc->pipe_remove_and_release_pos(l);
     }
 }
 
@@ -894,7 +894,7 @@ static FillBitsType red_marshall_qxl_draw_opaque(RedChannelClient *rcc,
     SpiceOpaque opaque;
     FillBitsType src_send_type;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_OPAQUE);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_OPAQUE);
     fill_base(base_marshaller, item);
     opaque = drawable->u.opaque;
     spice_marshall_Opaque(base_marshaller,
@@ -991,7 +991,7 @@ static FillBitsType red_marshall_qxl_draw_copy(RedChannelClient *rcc,
     SpiceCopy copy;
     FillBitsType src_send_type;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_COPY);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
     fill_base(base_marshaller, item);
     copy = drawable->u.copy;
     spice_marshall_Copy(base_marshaller,
@@ -1040,7 +1040,7 @@ static void red_marshall_qxl_draw_transparent(RedChannelClient *rcc,
     SpiceMarshaller *src_bitmap_out;
     SpiceTransparent transparent;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_TRANSPARENT);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_TRANSPARENT);
     fill_base(base_marshaller, item);
     transparent = drawable->u.transparent;
     spice_marshall_Transparent(base_marshaller,
@@ -1088,7 +1088,7 @@ static FillBitsType red_marshall_qxl_draw_alpha_blend(RedChannelClient *rcc,
     SpiceAlphaBlend alpha_blend;
     FillBitsType src_send_type;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_ALPHA_BLEND);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_ALPHA_BLEND);
     fill_base(base_marshaller, item);
     alpha_blend = drawable->u.alpha_blend;
     spice_marshall_AlphaBlend(base_marshaller,
@@ -1135,7 +1135,7 @@ static void red_marshall_qxl_copy_bits(RedChannelClient *rcc,
     RedDrawable *drawable = item->red_drawable;
     SpicePoint copy_bits;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_COPY_BITS);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_COPY_BITS);
     fill_base(base_marshaller, item);
     copy_bits = drawable->u.copy_bits.src_pos;
     spice_marshall_Point(base_marshaller,
@@ -1182,7 +1182,7 @@ static void red_marshall_qxl_draw_blend(RedChannelClient *rcc,
     SpiceMarshaller *mask_bitmap_out;
     SpiceBlend blend;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_BLEND);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_BLEND);
     fill_base(base_marshaller, item);
     blend = drawable->u.blend;
     spice_marshall_Blend(base_marshaller,
@@ -1246,7 +1246,7 @@ static void red_marshall_qxl_draw_blackness(RedChannelClient *rcc,
     SpiceMarshaller *mask_bitmap_out;
     SpiceBlackness blackness;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_BLACKNESS);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_BLACKNESS);
     fill_base(base_marshaller, item);
     blackness = drawable->u.blackness;
 
@@ -1280,7 +1280,7 @@ static void red_marshall_qxl_draw_whiteness(RedChannelClient *rcc,
     SpiceMarshaller *mask_bitmap_out;
     SpiceWhiteness whiteness;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_WHITENESS);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_WHITENESS);
     fill_base(base_marshaller, item);
     whiteness = drawable->u.whiteness;
 
@@ -1313,7 +1313,7 @@ static void red_marshall_qxl_draw_inverse(RedChannelClient *rcc,
     SpiceMarshaller *mask_bitmap_out;
     SpiceInvers inverse;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_INVERS);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_INVERS);
     fill_base(base_marshaller, item);
     inverse = drawable->u.invers;
 
@@ -1343,7 +1343,7 @@ static void red_marshall_qxl_draw_rop3(RedChannelClient *rcc,
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *mask_bitmap_out;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_ROP3);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_ROP3);
     fill_base(base_marshaller, item);
     rop3 = drawable->u.rop3;
     spice_marshall_Rop3(base_marshaller,
@@ -1426,7 +1426,7 @@ static void red_marshall_qxl_draw_composite(RedChannelClient *rcc,
     SpiceMarshaller *mask_bitmap_out;
     SpiceComposite composite;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_COMPOSITE);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COMPOSITE);
     fill_base(base_marshaller, item);
     composite = drawable->u.composite;
     spice_marshall_Composite(base_marshaller,
@@ -1507,7 +1507,7 @@ static void red_marshall_qxl_draw_stroke(RedChannelClient *rcc,
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *style_out;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_STROKE);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_STROKE);
     fill_base(base_marshaller, item);
     stroke = drawable->u.stroke;
     spice_marshall_Stroke(base_marshaller,
@@ -1587,7 +1587,7 @@ static void red_marshall_qxl_draw_text(RedChannelClient *rcc,
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *back_brush_pat_out;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_TEXT);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_TEXT);
     fill_base(base_marshaller, item);
     text = drawable->u.text;
     spice_marshall_Text(base_marshaller,
@@ -1700,7 +1700,7 @@ static bool red_marshall_stream_data(RedChannelClient *rcc,
                !rect_is_equal(&drawable->red_drawable->bbox, &stream->dest_area);
 
     if (is_sized &&
-        !red_channel_client_test_remote_cap(rcc, SPICE_DISPLAY_CAP_SIZED_STREAM)) {
+        !rcc->test_remote_cap(SPICE_DISPLAY_CAP_SIZED_STREAM)) {
         return FALSE;
     }
 
@@ -1736,7 +1736,7 @@ static bool red_marshall_stream_data(RedChannelClient *rcc,
     if (!is_sized) {
         SpiceMsgDisplayStreamData stream_data;
 
-        red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_STREAM_DATA);
+        rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA);
 
         stream_data.base.id = stream_id;
         stream_data.base.multi_media_time = frame_mm_time;
@@ -1746,7 +1746,7 @@ static bool red_marshall_stream_data(RedChannelClient *rcc,
     } else {
         SpiceMsgDisplayStreamDataSized stream_data;
 
-        red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_STREAM_DATA_SIZED);
+        rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA_SIZED);
 
         stream_data.base.id = stream_id;
         stream_data.base.multi_media_time = frame_mm_time;
@@ -1776,7 +1776,7 @@ static inline void marshall_inval_palette(RedChannelClient *rcc,
 {
     SpiceMsgDisplayInvalOne inval_one;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_INVAL_PALETTE);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_INVAL_PALETTE);
     inval_one.id = cache_item->id;
 
     spice_marshall_msg_display_inval_palette(base_marshaller, &inval_one);
@@ -1824,9 +1824,9 @@ static void display_channel_marshall_migrate_data(RedChannelClient *rcc,
     SpiceMigrateDataDisplay display_data = {0,};
     GlzEncDictRestoreData glz_dict_data;
 
-    display_channel = DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
+    display_channel = DISPLAY_CHANNEL(rcc->get_channel());
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_MIGRATE_DATA);
+    rcc->init_send_data(SPICE_MSG_MIGRATE_DATA);
     spice_marshaller_add_uint32(base_marshaller, SPICE_MIGRATE_DATA_DISPLAY_MAGIC);
     spice_marshaller_add_uint32(base_marshaller, SPICE_MIGRATE_DATA_DISPLAY_VERSION);
 
@@ -1834,7 +1834,7 @@ static void display_channel_marshall_migrate_data(RedChannelClient *rcc,
     SPICE_VERIFY(MIGRATE_DATA_DISPLAY_MAX_CACHE_CLIENTS == 4 &&
                  MIGRATE_DATA_DISPLAY_MAX_CACHE_CLIENTS == MAX_CACHE_CLIENTS);
 
-    display_data.message_serial = red_channel_client_get_message_serial(rcc);
+    display_data.message_serial = rcc->get_message_serial();
     display_data.low_bandwidth_setting = dcc_is_low_bandwidth(dcc);
 
     display_data.pixmap_cache_freezer = pixmap_cache_freeze(dcc->priv->pixmap_cache);
@@ -1861,7 +1861,7 @@ static void display_channel_marshall_pixmap_sync(RedChannelClient *rcc,
     SpiceMsgWaitForChannels wait;
     PixmapCache *pixmap_cache;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_WAIT_FOR_CHANNELS);
+    rcc->init_send_data(SPICE_MSG_WAIT_FOR_CHANNELS);
     pixmap_cache = dcc->priv->pixmap_cache;
 
     pthread_mutex_lock(&pixmap_cache->lock);
@@ -1885,7 +1885,7 @@ static void dcc_pixmap_cache_reset(DisplayChannelClient *dcc, SpiceMsgWaitForCha
     uint64_t serial;
     uint32_t i;
 
-    serial = red_channel_client_get_message_serial(dcc);
+    serial = dcc->get_message_serial();
     pthread_mutex_lock(&cache->lock);
     pixmap_cache_clear(cache);
 
@@ -1912,7 +1912,7 @@ static void display_channel_marshall_reset_cache(RedChannelClient *rcc,
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     SpiceMsgWaitForChannels wait;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_INVAL_ALL_PIXMAPS);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_INVAL_ALL_PIXMAPS);
     dcc_pixmap_cache_reset(dcc, &wait);
 
     spice_marshall_msg_display_inval_all_pixmaps(base_marshaller,
@@ -1960,7 +1960,7 @@ static void red_marshall_image(RedChannelClient *rcc,
     chunks = spice_chunks_new_linear(item->data, bitmap.stride * bitmap.y);
     bitmap.data = chunks;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_COPY);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
 
     copy.base.surface_id = item->surface_id;
     copy.base.box.left = item->pos.x;
@@ -2135,7 +2135,7 @@ static void marshall_qxl_drawable(RedChannelClient *rcc,
 
     Drawable *item = dpi->drawable;
     DisplayChannel *display =
-        DISPLAY_CHANNEL(red_channel_client_get_channel(rcc));
+        DISPLAY_CHANNEL(rcc->get_channel());
 
     spice_return_if_fail(display);
     /* allow sized frames to be streamed, even if they where replaced by another frame, since
@@ -2161,7 +2161,7 @@ static void marshall_stream_start(RedChannelClient *rcc,
         /* Without a video encoder nothing will be streamed */
         return;
     }
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_STREAM_CREATE);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_CREATE);
     SpiceMsgDisplayStreamCreate stream_create;
     SpiceClipRects clip_rects;
 
@@ -2199,7 +2199,7 @@ static void marshall_stream_clip(RedChannelClient *rcc,
 
     spice_return_if_fail(agent->stream);
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_STREAM_CLIP);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_CLIP);
     SpiceMsgDisplayStreamClip stream_clip;
 
     stream_clip.id = display_channel_get_video_stream_id(DCC_TO_DC(dcc), agent->stream);
@@ -2216,7 +2216,7 @@ static void marshall_stream_end(RedChannelClient *rcc,
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     SpiceMsgDisplayStreamDestroy destroy;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_STREAM_DESTROY);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_DESTROY);
     destroy.id = display_channel_get_video_stream_id(DCC_TO_DC(dcc), agent->stream);
     video_stream_agent_stop(agent);
     spice_marshall_msg_display_stream_destroy(base_marshaller, &destroy);
@@ -2226,13 +2226,13 @@ static void marshall_upgrade(RedChannelClient *rcc, SpiceMarshaller *m,
                              RedUpgradeItem *item)
 {
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-    RedChannel *channel = red_channel_client_get_channel(rcc);
+    RedChannel *channel = rcc->get_channel();
     RedDrawable *red_drawable;
     SpiceMsgDisplayDrawCopy copy;
     SpiceMarshaller *src_bitmap_out, *mask_bitmap_out;
 
     spice_assert(channel && item && item->drawable);
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_DRAW_COPY);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
 
     red_drawable = item->drawable->red_drawable;
     spice_assert(red_drawable->type == QXL_DRAW_COPY);
@@ -2258,7 +2258,7 @@ static void marshall_surface_create(RedChannelClient *rcc,
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
 
     region_init(&dcc->priv->surface_client_lossy_region[surface_create->surface_id]);
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_SURFACE_CREATE);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_SURFACE_CREATE);
 
     spice_marshall_msg_display_surface_create(base_marshaller, surface_create);
 }
@@ -2270,7 +2270,7 @@ static void marshall_surface_destroy(RedChannelClient *rcc,
     SpiceMsgSurfaceDestroy surface_destroy;
 
     region_destroy(&dcc->priv->surface_client_lossy_region[surface_id]);
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_SURFACE_DESTROY);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_SURFACE_DESTROY);
 
     surface_destroy.surface_id = surface_id;
 
@@ -2285,7 +2285,7 @@ static void marshall_monitors_config(RedChannelClient *rcc, SpiceMarshaller *bas
     SpiceMsgDisplayMonitorsConfig *msg = (SpiceMsgDisplayMonitorsConfig *) g_malloc0(sizeof(*msg) + heads_size);
     int count = 0; // ignore monitors_config->count, it may contain zero width monitors, remove them now
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_MONITORS_CONFIG);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_MONITORS_CONFIG);
     for (i = 0 ; i < monitors_config->count; ++i) {
         if (monitors_config->heads[i].width == 0 || monitors_config->heads[i].height == 0) {
             continue;
@@ -2310,7 +2310,7 @@ static void marshall_stream_activate_report(RedChannelClient *rcc,
 {
     SpiceMsgDisplayStreamActivateReport msg;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_STREAM_ACTIVATE_REPORT);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_STREAM_ACTIVATE_REPORT);
     msg.stream_id = report_item->stream_id;
     msg.unique_id = report_item->report_id;
     msg.max_window_size = RED_STREAM_CLIENT_REPORT_WINDOW;
@@ -2328,7 +2328,7 @@ static void marshall_gl_scanout(RedChannelClient *rcc,
 
     SpiceMsgDisplayGlScanoutUnix *scanout = red_qxl_get_gl_scanout(qxl);
     if (scanout != NULL) {
-        red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_GL_SCANOUT_UNIX);
+        rcc->init_send_data(SPICE_MSG_DISPLAY_GL_SCANOUT_UNIX);
         spice_marshall_msg_display_gl_scanout_unix(m, scanout);
     }
     red_qxl_put_gl_scanout(qxl, scanout);
@@ -2340,7 +2340,7 @@ static void marshall_gl_draw(RedChannelClient *rcc,
 {
     RedGlDrawItem *p = SPICE_UPCAST(RedGlDrawItem, item);
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_GL_DRAW);
+    rcc->init_send_data(SPICE_MSG_DISPLAY_GL_DRAW);
     spice_marshall_msg_display_gl_draw(m, &p->draw);
 }
 
@@ -2363,13 +2363,13 @@ static void begin_send_message(RedChannelClient *rcc)
         }
         free_list->wait.header.wait_count = sync_count;
 
-        if (red_channel_client_is_mini_header(rcc)) {
+        if (rcc->is_mini_header()) {
             send_free_list(rcc);
         } else {
             send_free_list_legacy(rcc);
         }
     }
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
 }
 
 static void reset_send_data(DisplayChannelClient *dcc)
@@ -2383,7 +2383,7 @@ static void reset_send_data(DisplayChannelClient *dcc)
 void dcc_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
 {
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
+    SpiceMarshaller *m = rcc->get_marshaller();
 
     reset_send_data(dcc);
     switch (pipe_item->type) {
@@ -2425,7 +2425,7 @@ void dcc_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
         break;
     case RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE:
         dcc_palette_cache_reset(dcc);
-        red_channel_client_init_send_data(rcc, SPICE_MSG_DISPLAY_INVAL_ALL_PALETTES);
+        rcc->init_send_data(SPICE_MSG_DISPLAY_INVAL_ALL_PALETTES);
         break;
     case RED_PIPE_ITEM_TYPE_CREATE_SURFACE: {
         RedSurfaceCreateItem *surface_create = SPICE_UPCAST(RedSurfaceCreateItem, pipe_item);
@@ -2459,7 +2459,7 @@ void dcc_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
     }
 
     // a message is pending
-    if (red_channel_client_send_message_pending(rcc)) {
+    if (rcc->send_message_pending()) {
         begin_send_message(rcc);
     }
 }

@@ -86,8 +86,8 @@ void cursor_channel_client_migrate(RedChannelClient *rcc)
 {
     spice_return_if_fail(rcc);
 
-    red_channel_client_pipe_add_type(rcc, RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE);
-    red_channel_client_default_migrate(rcc);
+    rcc->pipe_add_type(RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE);
+    RedChannelClient::default_migrate(rcc);
 }
 
 CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor, RedClient *client, RedStream *stream,

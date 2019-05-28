@@ -119,9 +119,9 @@ static void red_marshall_cursor_init(CursorChannelClient *ccc, SpiceMarshaller *
     CursorChannel *cursor_channel;
     SpiceMsgCursorInit msg;
 
-    cursor_channel = CURSOR_CHANNEL(red_channel_client_get_channel(ccc));
+    cursor_channel = CURSOR_CHANNEL(ccc->get_channel());
 
-    red_channel_client_init_send_data(ccc, SPICE_MSG_CURSOR_INIT);
+    ccc->init_send_data(SPICE_MSG_CURSOR_INIT);
     msg.visible = cursor_channel->cursor_visible;
     msg.position = cursor_channel->cursor_position;
     msg.trail_length = cursor_channel->cursor_trail_length;
@@ -135,7 +135,7 @@ static void red_marshall_cursor(CursorChannelClient *ccc,
                                 SpiceMarshaller *m,
                                 RedCursorPipeItem *cursor_pipe_item)
 {
-    CursorChannel *cursor_channel = CURSOR_CHANNEL(red_channel_client_get_channel(ccc));
+    CursorChannel *cursor_channel = CURSOR_CHANNEL(ccc->get_channel());
     RedCursorPipeItem *item = cursor_pipe_item;
     RedCursorCmd *cmd;
 
@@ -146,7 +146,7 @@ static void red_marshall_cursor(CursorChannelClient *ccc,
     case QXL_CURSOR_MOVE:
         {
             SpiceMsgCursorMove cursor_move;
-            red_channel_client_init_send_data(ccc, SPICE_MSG_CURSOR_MOVE);
+            ccc->init_send_data(SPICE_MSG_CURSOR_MOVE);
             cursor_move.position = cmd->u.position;
             spice_marshall_msg_cursor_move(m, &cursor_move);
             break;
@@ -155,7 +155,7 @@ static void red_marshall_cursor(CursorChannelClient *ccc,
         {
             SpiceMsgCursorSet cursor_set;
 
-            red_channel_client_init_send_data(ccc, SPICE_MSG_CURSOR_SET);
+            ccc->init_send_data(SPICE_MSG_CURSOR_SET);
             cursor_set.position = cmd->u.set.position;
             cursor_set.visible = cursor_channel->cursor_visible;
 
@@ -164,13 +164,13 @@ static void red_marshall_cursor(CursorChannelClient *ccc,
             break;
         }
     case QXL_CURSOR_HIDE:
-        red_channel_client_init_send_data(ccc, SPICE_MSG_CURSOR_HIDE);
+        ccc->init_send_data(SPICE_MSG_CURSOR_HIDE);
         break;
     case QXL_CURSOR_TRAIL:
         {
             SpiceMsgCursorTrail cursor_trail;
 
-            red_channel_client_init_send_data(ccc, SPICE_MSG_CURSOR_TRAIL);
+            ccc->init_send_data(SPICE_MSG_CURSOR_TRAIL);
             cursor_trail.length = cmd->u.trail.length;
             cursor_trail.frequency = cmd->u.trail.frequency;
             spice_marshall_msg_cursor_trail(m, &cursor_trail);
@@ -187,7 +187,7 @@ static inline void red_marshall_inval(RedChannelClient *rcc,
 {
     SpiceMsgDisplayInvalOne inval_one;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_CURSOR_INVAL_ONE);
+    rcc->init_send_data(SPICE_MSG_CURSOR_INVAL_ONE);
     inval_one.id = cach_item->id;
 
     spice_marshall_msg_cursor_inval_one(base_marshaller, &inval_one);
@@ -195,7 +195,7 @@ static inline void red_marshall_inval(RedChannelClient *rcc,
 
 static void cursor_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_item)
 {
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
+    SpiceMarshaller *m = rcc->get_marshaller();
     CursorChannelClient *ccc = CURSOR_CHANNEL_CLIENT(rcc);
 
     switch (pipe_item->type) {
@@ -211,13 +211,13 @@ static void cursor_channel_send_item(RedChannelClient *rcc, RedPipeItem *pipe_it
         break;
     case RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE:
         cursor_channel_client_reset_cursor_cache(ccc);
-        red_channel_client_init_send_data(rcc, SPICE_MSG_CURSOR_INVAL_ALL);
+        rcc->init_send_data(SPICE_MSG_CURSOR_INVAL_ALL);
         break;
     default:
         spice_error("invalid pipe item type");
     }
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
 }
 
 CursorChannel* cursor_channel_new(RedsState *server, int id,
@@ -308,8 +308,7 @@ static void cursor_channel_init_client(CursorChannel *cursor, CursorChannelClien
     }
 
     if (client)
-        red_channel_client_pipe_add_type(client,
-                                         RED_PIPE_ITEM_TYPE_CURSOR_INIT);
+        client->pipe_add_type(RED_PIPE_ITEM_TYPE_CURSOR_INIT);
     else
         red_channel_pipes_add_type(cursor, RED_PIPE_ITEM_TYPE_CURSOR_INIT);
 }
@@ -345,8 +344,8 @@ cursor_channel_connect(CursorChannel *cursor, RedClient *client, RedStream *stre
         return;
     }
 
-    red_channel_client_ack_zero_messages_window(ccc);
-    red_channel_client_push_set_ack(ccc);
+    ccc->ack_zero_messages_window();
+    ccc->push_set_ack();
 
     cursor_channel_init_client(cursor, ccc);
 }
@@ -384,7 +383,7 @@ cursor_channel_class_init(CursorChannelClass *klass)
     object_class->finalize = cursor_channel_finalize;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_CURSOR, NULL);
-    channel_class->handle_message = red_channel_client_handle_message;
+    channel_class->handle_message = RedChannelClient::handle_message;
 
     channel_class->send_item = cursor_channel_send_item;
 

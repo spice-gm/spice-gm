@@ -46,7 +46,7 @@ inputs_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
     InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
 
     if (size > sizeof(icc->priv->recv_buf)) {
-        red_channel_warning(red_channel_client_get_channel(rcc),
+        red_channel_warning(rcc->get_channel(),
                             "error: too large incoming message");
         return NULL;
     }
@@ -65,7 +65,7 @@ static void inputs_channel_client_on_disconnect(RedChannelClient *rcc)
     if (!rcc) {
         return;
     }
-    inputs_release_keys(INPUTS_CHANNEL(red_channel_client_get_channel(rcc)));
+    inputs_release_keys(INPUTS_CHANNEL(rcc->get_channel()));
 }
 
 static void
@@ -109,7 +109,7 @@ void inputs_channel_client_send_migrate_data(RedChannelClient *rcc,
 {
     InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_MIGRATE_DATA);
+    rcc->init_send_data(SPICE_MSG_MIGRATE_DATA);
 
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_INPUTS_MAGIC);
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_INPUTS_VERSION);
@@ -123,19 +123,17 @@ void inputs_channel_client_handle_migrate_data(InputsChannelClient *icc,
 
     for (; icc->priv->motion_count >= SPICE_INPUT_MOTION_ACK_BUNCH;
            icc->priv->motion_count -= SPICE_INPUT_MOTION_ACK_BUNCH) {
-        red_channel_client_pipe_add_type(icc,
-                                         RED_PIPE_ITEM_MOUSE_MOTION_ACK);
+        icc->pipe_add_type(RED_PIPE_ITEM_MOUSE_MOTION_ACK);
     }
 }
 
 void inputs_channel_client_on_mouse_motion(InputsChannelClient *icc)
 {
-    InputsChannel *inputs_channel = INPUTS_CHANNEL(red_channel_client_get_channel(icc));
+    InputsChannel *inputs_channel = INPUTS_CHANNEL(icc->get_channel());
 
     if (++icc->priv->motion_count % SPICE_INPUT_MOTION_ACK_BUNCH == 0 &&
         !inputs_channel_is_src_during_migrate(inputs_channel)) {
-        red_channel_client_pipe_add_type(icc,
-                                         RED_PIPE_ITEM_MOUSE_MOTION_ACK);
+        icc->pipe_add_type(RED_PIPE_ITEM_MOUSE_MOTION_ACK);
         icc->priv->motion_count = 0;
     }
 }

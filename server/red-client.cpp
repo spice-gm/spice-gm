@@ -162,7 +162,7 @@ void red_client_set_migration_seamless(RedClient *client) // dest
     /* update channel clients that got connected before the migration
      * type was set. red_client_add_channel will handle newer channel clients */
     FOREACH_CHANNEL_CLIENT(client, rcc) {
-        if (red_channel_client_set_migration_seamless(rcc)) {
+        if (rcc->set_migration_seamless()) {
             client->num_migrated_channels++;
         }
     }
@@ -182,8 +182,8 @@ void red_client_migrate(RedClient *client)
                       (void*) client->thread_id, (void*) pthread_self());
     }
     FOREACH_CHANNEL_CLIENT(client, rcc) {
-        if (red_channel_client_is_connected(rcc)) {
-            channel = red_channel_client_get_channel(rcc);
+        if (rcc->is_connected()) {
+            channel = rcc->get_channel();
             red_channel_migrate_client(channel, rcc);
         }
     }
@@ -221,7 +221,7 @@ void red_client_destroy(RedClient *client)
 
         // some channels may be in other threads, so disconnection
         // is not synchronous.
-        channel = red_channel_client_get_channel(rcc);
+        channel = rcc->get_channel();
 
         // some channels may be in other threads. However we currently
         // assume disconnect is synchronous (we changed the dispatcher
@@ -230,8 +230,8 @@ void red_client_destroy(RedClient *client)
         // ref count for channel clients.
         red_channel_disconnect_client(channel, rcc);
 
-        spice_assert(red_channel_client_pipe_is_empty(rcc));
-        spice_assert(red_channel_client_no_item_being_sent(rcc));
+        spice_assert(rcc->pipe_is_empty());
+        spice_assert(rcc->no_item_being_sent());
 
         g_object_unref(rcc);
         pthread_mutex_lock(&client->lock);
@@ -250,7 +250,7 @@ static RedChannelClient *red_client_get_channel(RedClient *client, int type, int
         int channel_type, channel_id;
         RedChannel *channel;
 
-        channel = red_channel_client_get_channel(rcc);
+        channel = rcc->get_channel();
         g_object_get(channel, "channel-type", &channel_type, "id", &channel_id, NULL);
         if (channel_type == type && channel_id == id) {
             return rcc;
@@ -266,7 +266,7 @@ gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError
     gboolean result = TRUE;
 
     spice_assert(rcc && client);
-    channel = red_channel_client_get_channel(rcc);
+    channel = rcc->get_channel();
 
     pthread_mutex_lock(&client->lock);
 
@@ -298,7 +298,7 @@ gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError
     }
     client->channels = g_list_prepend(client->channels, rcc);
     if (client->during_target_migrate && client->seamless_migrate) {
-        if (red_channel_client_set_migration_seamless(rcc)) {
+        if (rcc->set_migration_seamless()) {
             client->num_migrated_channels++;
         }
     }
@@ -325,7 +325,7 @@ void red_client_semi_seamless_migrate_complete(RedClient *client)
     }
     client->during_target_migrate = FALSE;
     FOREACH_CHANNEL_CLIENT(client, rcc) {
-        red_channel_client_semi_seamless_migration_complete(rcc);
+        rcc->semi_seamless_migration_complete();
     }
     pthread_mutex_unlock(&client->lock);
     reds_on_client_semi_seamless_migrate_complete(client->reds, client);
@@ -343,7 +343,7 @@ int red_client_during_migrate_at_target(RedClient *client)
 
 void red_client_remove_channel(RedChannelClient *rcc)
 {
-    RedClient *client = red_channel_client_get_client(rcc);
+    RedClient *client = rcc->get_client();
     pthread_mutex_lock(&client->lock);
     GList *link = g_list_find(client->channels, rcc);
     if (link) {

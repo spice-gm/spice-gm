@@ -232,14 +232,14 @@ static RedPipeItem *red_inputs_key_modifiers_item_new(uint8_t modifiers)
 
 static void inputs_channel_send_item(RedChannelClient *rcc, RedPipeItem *base)
 {
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
+    SpiceMarshaller *m = rcc->get_marshaller();
 
     switch (base->type) {
         case RED_PIPE_ITEM_KEY_MODIFIERS:
         {
             SpiceMsgInputsKeyModifiers key_modifiers;
 
-            red_channel_client_init_send_data(rcc, SPICE_MSG_INPUTS_KEY_MODIFIERS);
+            rcc->init_send_data(SPICE_MSG_INPUTS_KEY_MODIFIERS);
             key_modifiers.modifiers =
                 SPICE_UPCAST(RedKeyModifiersPipeItem, base)->modifiers;
             spice_marshall_msg_inputs_key_modifiers(m, &key_modifiers);
@@ -249,30 +249,30 @@ static void inputs_channel_send_item(RedChannelClient *rcc, RedPipeItem *base)
         {
             SpiceMsgInputsInit inputs_init;
 
-            red_channel_client_init_send_data(rcc, SPICE_MSG_INPUTS_INIT);
+            rcc->init_send_data(SPICE_MSG_INPUTS_INIT);
             inputs_init.keyboard_modifiers =
                 SPICE_UPCAST(RedInputsInitPipeItem, base)->modifiers;
             spice_marshall_msg_inputs_init(m, &inputs_init);
             break;
         }
         case RED_PIPE_ITEM_MOUSE_MOTION_ACK:
-            red_channel_client_init_send_data(rcc, SPICE_MSG_INPUTS_MOUSE_MOTION_ACK);
+            rcc->init_send_data(SPICE_MSG_INPUTS_MOUSE_MOTION_ACK);
             break;
         case RED_PIPE_ITEM_MIGRATE_DATA:
-            INPUTS_CHANNEL(red_channel_client_get_channel(rcc))->src_during_migrate = FALSE;
+            INPUTS_CHANNEL(rcc->get_channel())->src_during_migrate = FALSE;
             inputs_channel_client_send_migrate_data(rcc, m, base);
             break;
         default:
             spice_warning("invalid pipe iten %d", base->type);
             break;
     }
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
 }
 
 static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
                                           uint32_t size, void *message)
 {
-    InputsChannel *inputs_channel = INPUTS_CHANNEL(red_channel_client_get_channel(rcc));
+    InputsChannel *inputs_channel = INPUTS_CHANNEL(rcc->get_channel());
     InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
     uint32_t i;
     RedsState *reds = red_channel_get_server(inputs_channel);
@@ -428,7 +428,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
         break;
     }
     default:
-        return red_channel_client_handle_message(rcc, type, size, message);
+        return RedChannelClient::handle_message(rcc, type, size, message);
     }
     return TRUE;
 }
@@ -465,11 +465,11 @@ void inputs_release_keys(InputsChannel *inputs)
 static void inputs_pipe_add_init(RedChannelClient *rcc)
 {
     RedInputsInitPipeItem *item = g_new(RedInputsInitPipeItem, 1);
-    InputsChannel *inputs = INPUTS_CHANNEL(red_channel_client_get_channel(rcc));
+    InputsChannel *inputs = INPUTS_CHANNEL(rcc->get_channel());
 
     red_pipe_item_init(&item->base, RED_PIPE_ITEM_INPUTS_INIT);
     item->modifiers = kbd_get_leds(inputs_channel_get_keyboard(inputs));
-    red_channel_client_pipe_add_push(rcc, &item->base);
+    rcc->pipe_add_push(&item->base);
 }
 
 static void inputs_connect(RedChannel *channel, RedClient *client,
@@ -492,9 +492,9 @@ static void inputs_connect(RedChannel *channel, RedClient *client,
 
 static void inputs_migrate(RedChannelClient *rcc)
 {
-    InputsChannel *inputs = INPUTS_CHANNEL(red_channel_client_get_channel(rcc));
+    InputsChannel *inputs = INPUTS_CHANNEL(rcc->get_channel());
     inputs->src_during_migrate = TRUE;
-    red_channel_client_default_migrate(rcc);
+    RedChannelClient::default_migrate(rcc);
 }
 
 static void inputs_channel_push_keyboard_modifiers(InputsChannel *inputs, uint8_t modifiers)
@@ -525,7 +525,7 @@ static void key_modifiers_sender(void *opaque)
 
 static bool inputs_channel_handle_migrate_flush_mark(RedChannelClient *rcc)
 {
-    red_channel_client_pipe_add_type(rcc, RED_PIPE_ITEM_MIGRATE_DATA);
+    rcc->pipe_add_type(RED_PIPE_ITEM_MIGRATE_DATA);
     return TRUE;
 }
 
@@ -534,7 +534,7 @@ static bool inputs_channel_handle_migrate_data(RedChannelClient *rcc,
                                                void *message)
 {
     InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
-    InputsChannel *inputs = INPUTS_CHANNEL(red_channel_client_get_channel(rcc));
+    InputsChannel *inputs = INPUTS_CHANNEL(rcc->get_channel());
     SpiceMigrateDataHeader *header;
     SpiceMigrateDataInputs *mig_data;
 

@@ -92,16 +92,16 @@ test_connect_client(RedChannel *channel, RedClient *client, RedStream *stream,
     g_assert_nonnull(rcc);
 
     // requires an ACK after 10 messages
-    red_channel_client_ack_set_client_window(rcc, 10);
+    rcc->ack_set_client_window(10);
 
     // initialize ACK feature
-    red_channel_client_ack_zero_messages_window(rcc);
-    red_channel_client_push_set_ack(rcc);
+    rcc->ack_zero_messages_window();
+    rcc->push_set_ack();
 
     // send enough messages till we should require an ACK
     // the ACK is waited after 2 * 10, append some other messages
     for (int i = 0; i < 25; ++i) {
-        red_channel_client_pipe_add_empty_msg(rcc, SPICE_MSG_MIGRATE_DATA);
+        rcc->pipe_add_empty_msg(SPICE_MSG_MIGRATE_DATA);
     }
 }
 
@@ -110,7 +110,7 @@ red_test_channel_class_init(RedTestChannelClass *klass)
 {
     RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PORT, NULL);
-    channel_class->handle_message = red_channel_client_handle_message;
+    channel_class->handle_message = RedChannelClient::handle_message;
     channel_class->send_item = test_channel_send_item;
     channel_class->connect = test_connect_client;
 }

@@ -264,7 +264,7 @@ static SndChannelClient *snd_channel_get_client(SndChannel *channel)
 static RedsState* snd_channel_get_server(SndChannelClient *client)
 {
     g_return_val_if_fail(client != NULL, NULL);
-    return red_channel_get_server(red_channel_client_get_channel(client));
+    return red_channel_get_server(client->get_channel());
 }
 
 static void snd_playback_free_frame(PlaybackChannelClient *playback_client, AudioFrame *frame)
@@ -360,7 +360,7 @@ record_channel_handle_message(RedChannelClient *rcc, uint16_t type, uint32_t siz
         return snd_record_handle_write(record_client, size, message);
     case SPICE_MSGC_RECORD_MODE: {
         SpiceMsgcRecordMode *mode = (SpiceMsgcRecordMode *)message;
-        SndChannel *channel = SND_CHANNEL(red_channel_client_get_channel(rcc));
+        SndChannel *channel = SND_CHANNEL(rcc->get_channel());
         record_client->mode_time = mode->time;
         if (mode->mode != SPICE_AUDIO_DATA_MODE_RAW) {
             if (snd_codec_is_capable((SpiceAudioDataMode) mode->mode, channel->frequency)) {
@@ -368,13 +368,13 @@ record_channel_handle_message(RedChannelClient *rcc, uint16_t type, uint32_t siz
                                      SND_CODEC_DECODE) == SND_CODEC_OK) {
                     record_client->mode = mode->mode;
                 } else {
-                    red_channel_warning(red_channel_client_get_channel(rcc),
+                    red_channel_warning(rcc->get_channel(),
                                         "create decoder failed");
                     return false;
                 }
             }
             else {
-                red_channel_warning(red_channel_client_get_channel(rcc),
+                red_channel_warning(rcc->get_channel(),
                                     "unsupported mode %d",
                                     record_client->mode);
                 return false;
@@ -394,7 +394,7 @@ record_channel_handle_message(RedChannelClient *rcc, uint16_t type, uint32_t siz
         break;
     }
     default:
-        return red_channel_client_handle_message(rcc, type, size, message);
+        return RedChannelClient::handle_message(rcc, type, size, message);
     }
     return true;
 }
@@ -402,14 +402,14 @@ record_channel_handle_message(RedChannelClient *rcc, uint16_t type, uint32_t siz
 static bool snd_channel_send_migrate(SndChannelClient *client)
 {
     RedChannelClient *rcc = client;
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
+    SpiceMarshaller *m = rcc->get_marshaller();
     SpiceMsgMigrate migrate;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_MIGRATE);
+    rcc->init_send_data(SPICE_MSG_MIGRATE);
     migrate.flags = 0;
     spice_marshall_msg_migrate(m, &migrate);
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
@@ -423,24 +423,24 @@ static bool snd_send_volume(SndChannelClient *client, uint32_t cap, int msg)
     SpiceMsgAudioVolume *vol;
     uint8_t c;
     RedChannelClient *rcc = client;
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
-    SndChannel *channel = SND_CHANNEL(red_channel_client_get_channel(rcc));
+    SpiceMarshaller *m = rcc->get_marshaller();
+    SndChannel *channel = SND_CHANNEL(rcc->get_channel());
     SpiceVolumeState *st = &channel->volume;
 
-    if (!red_channel_client_test_remote_cap(rcc, cap)) {
+    if (!rcc->test_remote_cap(cap)) {
         return false;
     }
 
     vol = (SpiceMsgAudioVolume*) alloca(sizeof (SpiceMsgAudioVolume) +
                  st->volume_nchannels * sizeof (uint16_t));
-    red_channel_client_init_send_data(rcc, msg);
+    rcc->init_send_data(msg);
     vol->nchannels = st->volume_nchannels;
     for (c = 0; c < st->volume_nchannels; ++c) {
         vol->volume[c] = st->volume[c];
     }
     spice_marshall_SpiceMsgAudioVolume(m, vol);
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
@@ -454,19 +454,19 @@ static bool snd_send_mute(SndChannelClient *client, uint32_t cap, int msg)
 {
     SpiceMsgAudioMute mute;
     RedChannelClient *rcc = client;
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
-    SndChannel *channel = SND_CHANNEL(red_channel_client_get_channel(rcc));
+    SpiceMarshaller *m = rcc->get_marshaller();
+    SndChannel *channel = SND_CHANNEL(rcc->get_channel());
     SpiceVolumeState *st = &channel->volume;
 
-    if (!red_channel_client_test_remote_cap(rcc, cap)) {
+    if (!rcc->test_remote_cap(cap)) {
         return false;
     }
 
-    red_channel_client_init_send_data(rcc, msg);
+    rcc->init_send_data(msg);
     mute.mute = st->mute;
     spice_marshall_SpiceMsgAudioMute(m, &mute);
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
@@ -479,33 +479,33 @@ static bool snd_playback_send_mute(PlaybackChannelClient *playback_client)
 static bool snd_playback_send_latency(PlaybackChannelClient *playback_client)
 {
     RedChannelClient *rcc = playback_client;
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
+    SpiceMarshaller *m = rcc->get_marshaller();
     SpiceMsgPlaybackLatency latency_msg;
 
     spice_debug("latency %u", playback_client->latency);
-    red_channel_client_init_send_data(rcc, SPICE_MSG_PLAYBACK_LATENCY);
+    rcc->init_send_data(SPICE_MSG_PLAYBACK_LATENCY);
     latency_msg.latency_ms = playback_client->latency;
     spice_marshall_msg_playback_latency(m, &latency_msg);
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
 static bool snd_playback_send_start(PlaybackChannelClient *playback_client)
 {
     RedChannelClient *rcc = playback_client;
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
+    SpiceMarshaller *m = rcc->get_marshaller();
     SpiceMsgPlaybackStart start;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_PLAYBACK_START);
+    rcc->init_send_data(SPICE_MSG_PLAYBACK_START);
     start.channels = SPICE_INTERFACE_PLAYBACK_CHAN;
-    start.frequency = SND_CHANNEL(red_channel_client_get_channel(rcc))->frequency;
+    start.frequency = SND_CHANNEL(rcc->get_channel())->frequency;
     spice_assert(SPICE_INTERFACE_PLAYBACK_FMT == SPICE_INTERFACE_AUDIO_FMT_S16);
     start.format = SPICE_AUDIO_FMT_S16;
     start.time = reds_get_mm_time();
     spice_marshall_msg_playback_start(m, &start);
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
@@ -513,9 +513,9 @@ static bool snd_playback_send_stop(PlaybackChannelClient *playback_client)
 {
     RedChannelClient *rcc = playback_client;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_PLAYBACK_STOP);
+    rcc->init_send_data(SPICE_MSG_PLAYBACK_STOP);
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
@@ -533,18 +533,18 @@ static int snd_playback_send_ctl(PlaybackChannelClient *playback_client)
 static bool snd_record_send_start(RecordChannelClient *record_client)
 {
     RedChannelClient *rcc = record_client;
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
+    SpiceMarshaller *m = rcc->get_marshaller();
     SpiceMsgRecordStart start;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_RECORD_START);
+    rcc->init_send_data(SPICE_MSG_RECORD_START);
 
     start.channels = SPICE_INTERFACE_RECORD_CHAN;
-    start.frequency = SND_CHANNEL(red_channel_client_get_channel(rcc))->frequency;
+    start.frequency = SND_CHANNEL(rcc->get_channel())->frequency;
     spice_assert(SPICE_INTERFACE_RECORD_FMT == SPICE_INTERFACE_AUDIO_FMT_S16);
     start.format = SPICE_AUDIO_FMT_S16;
     spice_marshall_msg_record_start(m, &start);
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
@@ -552,9 +552,9 @@ static bool snd_record_send_stop(RecordChannelClient *record_client)
 {
     RedChannelClient *rcc = record_client;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_RECORD_STOP);
+    rcc->init_send_data(SPICE_MSG_RECORD_STOP);
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
@@ -593,12 +593,12 @@ static bool snd_record_send_migrate(RecordChannelClient *record_client)
 static bool snd_playback_send_write(PlaybackChannelClient *playback_client)
 {
     RedChannelClient *rcc = playback_client;
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
+    SpiceMarshaller *m = rcc->get_marshaller();
     AudioFrame *frame;
     SpiceMsgPlaybackPacket msg;
     RedPipeItem *pipe_item = &SND_CHANNEL_CLIENT(playback_client)->persistent_pipe_item;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_PLAYBACK_DATA);
+    rcc->init_send_data(SPICE_MSG_PLAYBACK_DATA);
 
     frame = playback_client->in_progress;
     msg.time = frame->time;
@@ -616,30 +616,30 @@ static bool snd_playback_send_write(PlaybackChannelClient *playback_client)
         if (snd_codec_encode(playback_client->codec, (uint8_t *) frame->samples,
                                     snd_codec_frame_size(playback_client->codec) * sizeof(frame->samples[0]),
                                     playback_client->encode_buf, &n) != SND_CODEC_OK) {
-            red_channel_warning(red_channel_client_get_channel(rcc), "encode failed");
-            red_channel_client_disconnect(rcc);
+            red_channel_warning(rcc->get_channel(), "encode failed");
+            rcc->disconnect();
             return false;
         }
         spice_marshaller_add_by_ref_full(m, playback_client->encode_buf, n,
                                          marshaller_unref_pipe_item, pipe_item);
     }
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
 static bool playback_send_mode(PlaybackChannelClient *playback_client)
 {
     RedChannelClient *rcc = playback_client;
-    SpiceMarshaller *m = red_channel_client_get_marshaller(rcc);
+    SpiceMarshaller *m = rcc->get_marshaller();
     SpiceMsgPlaybackMode mode;
 
-    red_channel_client_init_send_data(rcc, SPICE_MSG_PLAYBACK_MODE);
+    rcc->init_send_data(SPICE_MSG_PLAYBACK_MODE);
     mode.time = reds_get_mm_time();
     mode.mode = playback_client->mode;
     spice_marshall_msg_playback_mode(m, &mode);
 
-    red_channel_client_begin_send_message(rcc);
+    rcc->begin_send_message();
     return true;
 }
 
@@ -671,14 +671,14 @@ static void snd_send(SndChannelClient * client)
     g_return_if_fail(RED_IS_CHANNEL_CLIENT(client));
 
     rcc = client;
-    if (!red_channel_client_pipe_is_empty(rcc) || !client->command) {
+    if (!rcc->pipe_is_empty() || !client->command) {
         return;
     }
     // just append a dummy item and push!
     red_pipe_item_init_full(&client->persistent_pipe_item, RED_PIPE_ITEM_PERSISTENT,
                             snd_persistent_pipe_item_free);
     client->persistent_pipe_item.client = client;
-    red_channel_client_pipe_add_push(rcc, &client->persistent_pipe_item);
+    rcc->pipe_add_push(&client->persistent_pipe_item);
 }
 
 static void playback_channel_send_item(RedChannelClient *rcc, G_GNUC_UNUSED RedPipeItem *item)
@@ -704,7 +704,7 @@ static void playback_channel_send_item(RedChannelClient *rcc, G_GNUC_UNUSED RedP
             if (snd_playback_send_write(playback_client)) {
                 break;
             }
-            red_channel_warning(red_channel_client_get_channel(rcc),
+            red_channel_warning(rcc->get_channel(),
                                 "snd_send_playback_write failed");
         }
         if (client->command & SND_CTRL_MASK) {
@@ -778,8 +778,8 @@ static void record_channel_send_item(RedChannelClient *rcc, G_GNUC_UNUSED RedPip
 
 static bool snd_channel_client_config_socket(RedChannelClient *rcc)
 {
-    RedStream *stream = red_channel_client_get_stream(rcc);
-    RedClient *red_client = red_channel_client_get_client(rcc);
+    RedStream *stream = rcc->get_stream();
+    RedClient *red_client = rcc->get_client();
     MainChannelClient *mcc = red_client_get_main(red_client);
 
 #ifdef SO_PRIORITY
@@ -787,7 +787,7 @@ static bool snd_channel_client_config_socket(RedChannelClient *rcc)
     if (setsockopt(stream->socket, SOL_SOCKET, SO_PRIORITY, (void*)&priority,
                    sizeof(priority)) == -1) {
         if (errno != ENOTSUP) {
-            red_channel_warning(red_channel_client_get_channel(rcc),
+            red_channel_warning(rcc->get_channel(),
                                 "setsockopt failed, %s", strerror(errno));
         }
     }
@@ -797,7 +797,7 @@ static bool snd_channel_client_config_socket(RedChannelClient *rcc)
     int tos = IPTOS_LOWDELAY;
     if (setsockopt(stream->socket, IPPROTO_IP, IP_TOS, (void*)&tos, sizeof(tos)) == -1) {
         if (errno != ENOTSUP) {
-            red_channel_warning(red_channel_client_get_channel(rcc),
+            red_channel_warning(rcc->get_channel(),
                                 "setsockopt failed, %s",
                                 strerror(errno));
         }
@@ -1002,10 +1002,9 @@ void snd_set_playback_latency(RedClient *client, uint32_t latency)
         uint32_t type;
         g_object_get(now, "channel-type", &type, NULL);
         if (type == SPICE_CHANNEL_PLAYBACK && scc &&
-            red_channel_client_get_client(scc) == client) {
+            scc->get_client() == client) {
 
-            if (red_channel_client_test_remote_cap(scc,
-                                                   SPICE_PLAYBACK_CAP_LATENCY)) {
+            if (scc->test_remote_cap(SPICE_PLAYBACK_CAP_LATENCY)) {
                 PlaybackChannelClient* playback = (PlaybackChannelClient*)scc;
 
                 playback->latency = latency;
@@ -1059,7 +1058,7 @@ playback_channel_client_constructed(GObject *object)
 {
     PlaybackChannelClient *playback_client = PLAYBACK_CHANNEL_CLIENT(object);
     RedChannelClient *rcc = playback_client;
-    RedChannel *red_channel = red_channel_client_get_channel(rcc);
+    RedChannel *red_channel = rcc->get_channel();
     SndChannel *channel = SND_CHANNEL(red_channel);
     SndChannelClient *scc = SND_CHANNEL_CLIENT(playback_client);
 
@@ -1067,8 +1066,7 @@ playback_channel_client_constructed(GObject *object)
 
     scc->on_message_done = snd_playback_on_message_done;
 
-    bool client_can_opus = red_channel_client_test_remote_cap(rcc,
-                                          SPICE_PLAYBACK_CAP_OPUS);
+    bool client_can_opus = rcc->test_remote_cap(SPICE_PLAYBACK_CAP_OPUS);
     bool playback_compression =
         reds_config_get_playback_compression(red_channel_get_server(red_channel));
     int desired_mode = snd_desired_audio_mode(playback_compression, channel->frequency, client_can_opus);
@@ -1091,9 +1089,9 @@ static gboolean playback_channel_client_initable_init(GInitable *initable,
 {
     RedChannelClient *rcc = PLAYBACK_CHANNEL_CLIENT(initable);
     gboolean success;
-    RedClient *red_client = red_channel_client_get_client(rcc);
+    RedClient *red_client = rcc->get_client();
     SndChannelClient *scc = SND_CHANNEL_CLIENT(initable);
-    RedChannel *red_channel = red_channel_client_get_channel(rcc);
+    RedChannel *red_channel = rcc->get_channel();
     SndChannel *channel = SND_CHANNEL(red_channel);
 
     success = playback_channel_client_parent_initable_iface->init(initable, cancellable, error);
@@ -1132,7 +1130,7 @@ static void snd_set_peer(RedChannel *red_channel, RedClient *client, RedStream *
 
     /* sound channels currently only support a single client */
     if (snd_client) {
-        red_channel_client_disconnect(snd_client);
+        snd_client->disconnect();
     }
 
     snd_client = (SndChannelClient *)
@@ -1281,7 +1279,7 @@ static gboolean record_channel_client_initable_init(GInitable *initable,
 {
     gboolean success;
     RecordChannelClient *record_client = RECORD_CHANNEL_CLIENT(initable);
-    RedChannel *red_channel = red_channel_client_get_channel(record_client);
+    RedChannel *red_channel = record_client->get_channel();
     SndChannel *channel = SND_CHANNEL(red_channel);
     SndChannelClient *scc = SND_CHANNEL_CLIENT(record_client);
 
@@ -1383,7 +1381,7 @@ playback_channel_class_init(PlaybackChannelClass *klass)
     object_class->constructed = playback_channel_constructed;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PLAYBACK, NULL);
-    channel_class->handle_message = red_channel_client_handle_message;
+    channel_class->handle_message = RedChannelClient::handle_message;
     channel_class->send_item = playback_channel_send_item;
 
     // client callbacks
@@ -1478,8 +1476,7 @@ void snd_set_playback_compression(bool on)
         if (type == SPICE_CHANNEL_PLAYBACK && client) {
             PlaybackChannelClient* playback = PLAYBACK_CHANNEL_CLIENT(client);
             RedChannelClient *rcc = playback;
-            bool client_can_opus = red_channel_client_test_remote_cap(rcc,
-                                    SPICE_PLAYBACK_CAP_OPUS);
+            bool client_can_opus = rcc->test_remote_cap(SPICE_PLAYBACK_CAP_OPUS);
             int desired_mode = snd_desired_audio_mode(on, now->frequency, client_can_opus);
             if (playback->mode != desired_mode) {
                 playback->mode = desired_mode;

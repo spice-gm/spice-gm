@@ -70,9 +70,9 @@ static void common_release_recv_buf(RedChannelClient *rcc, uint16_t type, uint32
 
 bool common_channel_client_config_socket(RedChannelClient *rcc)
 {
-    RedClient *client = red_channel_client_get_client(rcc);
+    RedClient *client = rcc->get_client();
     MainChannelClient *mcc = red_client_get_main(client);
-    RedStream *stream = red_channel_client_get_stream(rcc);
+    RedStream *stream = rcc->get_stream();
     gboolean is_low_bandwidth;
 
     // TODO - this should be dynamic, not one time at channel creation
@@ -87,9 +87,7 @@ bool common_channel_client_config_socket(RedChannelClient *rcc)
         red_stream_set_no_delay(stream, !is_low_bandwidth);
     }
     // TODO: move wide/narrow ack setting to red_channel.
-    red_channel_client_ack_set_client_window(rcc,
-        is_low_bandwidth ?
-        WIDE_CLIENT_ACK_WINDOW : NARROW_CLIENT_ACK_WINDOW);
+    rcc->ack_set_client_window(is_low_bandwidth ? WIDE_CLIENT_ACK_WINDOW : NARROW_CLIENT_ACK_WINDOW);
     return TRUE;
 }
 

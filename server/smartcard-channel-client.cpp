@@ -168,7 +168,7 @@ void smartcard_channel_client_send_data(RedChannelClient *rcc,
     /* NOTE: 'vheader' is assumed to be owned by 'item' so we keep the pipe
      * item valid until the message is actually sent. */
     red_pipe_item_ref(item);
-    red_channel_client_init_send_data(rcc, SPICE_MSG_SMARTCARD_DATA);
+    rcc->init_send_data(SPICE_MSG_SMARTCARD_DATA);
     spice_marshaller_add_by_ref_full(m, (uint8_t*)vheader, sizeof(VSCMsgHeader) + vheader->length,
                                      marshaller_unref_pipe_item, item);
 }
@@ -192,7 +192,7 @@ static void smartcard_channel_client_push_error(RedChannelClient *rcc,
     error_item->vheader.type = VSC_Error;
     error_item->vheader.length = sizeof(error_item->error);
     error_item->error.code = error;
-    red_channel_client_pipe_add_push(rcc, &error_item->base);
+    rcc->pipe_add_push(&error_item->base);
 }
 
 static void smartcard_channel_client_add_reader(SmartCardChannelClient *scc)
@@ -255,7 +255,7 @@ bool smartcard_channel_client_handle_message(RedChannelClient *rcc,
 
     if (type != SPICE_MSGC_SMARTCARD_DATA) {
         /* Handles seamless migration protocol. Also handles ack's */
-        return red_channel_client_handle_message(rcc, type, size, message);
+        return RedChannelClient::handle_message(rcc, type, size, message);
     }
 
     switch (vheader->type) {
@@ -277,14 +277,14 @@ bool smartcard_channel_client_handle_message(RedChannelClient *rcc,
         case VSC_APDU:
             break; // passed on to device
         default:
-            red_channel_warning(red_channel_client_get_channel(rcc),
+            red_channel_warning(rcc->get_channel(),
                                 "ERROR: unexpected message on smartcard channel");
             return TRUE;
     }
 
     /* todo: fix */
     if (vheader->reader_id >= smartcard_get_n_readers()) {
-        red_channel_warning(red_channel_client_get_channel(rcc),
+        red_channel_warning(rcc->get_channel(),
                             "ERROR: received message for non existing reader: %d, %d, %d",
                             vheader->reader_id, vheader->type, vheader->length);
         return FALSE;
@@ -340,7 +340,7 @@ bool smartcard_channel_client_handle_migrate_data(RedChannelClient *rcc,
 
 bool smartcard_channel_client_handle_migrate_flush_mark(RedChannelClient *rcc)
 {
-    red_channel_client_pipe_add_type(rcc, RED_PIPE_ITEM_TYPE_SMARTCARD_MIGRATE_DATA);
+    rcc->pipe_add_type(RED_PIPE_ITEM_TYPE_SMARTCARD_MIGRATE_DATA);
     return TRUE;
 }
 
