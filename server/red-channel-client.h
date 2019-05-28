@@ -115,7 +115,7 @@ public:
     void push();
     void receive();
     void send();
-    void disconnect();
+    virtual void disconnect();
 
     /* Note: the valid times to call red_channel_get_marshaller are just during send_item callback. */
     SpiceMarshaller *get_marshaller();

@@ -26,7 +26,6 @@ G_DEFINE_TYPE(DisplayChannel, display_channel, TYPE_COMMON_GRAPHICS_CHANNEL)
 static void display_channel_connect(RedChannel *channel, RedClient *client,
                                     RedStream *stream, int migration,
                                     RedChannelCapabilities *caps);
-static void display_channel_disconnect(RedChannelClient *rcc);
 
 enum {
     PROP0,
@@ -2504,7 +2503,6 @@ display_channel_class_init(DisplayChannelClass *klass)
 
     // client callbacks
     channel_class->connect = display_channel_connect;
-    channel_class->disconnect = display_channel_disconnect;
 
     g_object_class_install_property(object_class,
                                     PROP_N_SURFACES,
@@ -2616,13 +2614,13 @@ display_channel_connect(RedChannel *channel, RedClient *client,
     dcc_start(dcc);
 }
 
-static void display_channel_disconnect(RedChannelClient *rcc)
+void DisplayChannelClient::disconnect()
 {
-    DisplayChannel *display = DISPLAY_CHANNEL(rcc->get_channel());
+    DisplayChannel *display = DISPLAY_CHANNEL(get_channel());
 
     guest_set_client_capabilities(display);
 
-    rcc->disconnect();
+    RedChannelClient::disconnect();
 }
 
 void DisplayChannelClient::migrate()

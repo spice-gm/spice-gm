@@ -216,11 +216,6 @@ static void red_channel_client_default_connect(RedChannel *channel, RedClient *c
     spice_error("not implemented");
 }
 
-static void red_channel_client_default_disconnect(RedChannelClient *base)
-{
-    base->disconnect();
-}
-
 static void
 red_channel_class_init(RedChannelClass *klass)
 {
@@ -300,7 +295,6 @@ red_channel_class_init(RedChannelClass *klass)
     g_object_class_install_property(object_class, PROP_DISPATCHER, spec);
 
     klass->connect = red_channel_client_default_connect;
-    klass->disconnect = red_channel_client_default_disconnect;
 }
 
 static void
@@ -732,18 +726,15 @@ typedef struct RedMessageDisconnect {
 static void handle_dispatcher_disconnect(void *opaque, void *payload)
 {
     RedMessageDisconnect *msg = (RedMessageDisconnect*) payload;
-    RedChannel *channel = msg->rcc->get_channel();
-    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
-    klass->disconnect(msg->rcc);
+    msg->rcc->disconnect();
 }
 
 void RedChannel::disconnect_client(RedChannelClient *rcc)
 {
     if (priv->dispatcher == NULL ||
         pthread_equal(pthread_self(), priv->thread_id)) {
-        RedChannelClass *klass = RED_CHANNEL_GET_CLASS(this);
-        klass->disconnect(rcc);
+        rcc->disconnect();
         return;
     }
 

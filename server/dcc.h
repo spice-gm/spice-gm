@@ -43,6 +43,7 @@ public:
                          SpiceImageCompression image_compression,
                          spice_wan_compression_t jpeg_state,
                          spice_wan_compression_t zlib_glz_state);
+    virtual void disconnect() override;
 
 protected:
     virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
