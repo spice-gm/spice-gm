@@ -1271,7 +1271,6 @@ void RedChannelClient::handle_migrate_flush_mark()
 void RedChannelClient::handle_migrate_data_early(uint32_t size, void *message)
 {
     RedChannel *channel = get_channel();
-    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
     red_channel_debug(channel, "rcc %p size %u", this, size);
 
@@ -1284,8 +1283,9 @@ void RedChannelClient::handle_migrate_data_early(uint32_t size, void *message)
         spice_channel_client_error(this, "unexpected");
         return;
     }
-    if (klass->handle_migrate_data_get_serial) {
-        priv->set_message_serial(klass->handle_migrate_data_get_serial(this, size, message));
+    uint64_t serial;
+    if (handle_migrate_data_get_serial(size, message, serial)) {
+        priv->set_message_serial(serial);
     }
     if (!handle_migrate_data(size, message)) {
         spice_channel_client_error(this, "handle_migrate_data failed");

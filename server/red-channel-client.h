@@ -169,6 +169,10 @@ public:
     virtual void send_item(RedPipeItem *item) {};
 
     virtual bool handle_migrate_data(uint32_t size, void *message) { return false; }
+    virtual bool handle_migrate_data_get_serial(uint32_t size, void *message, uint64_t &serial)
+    {
+        return false;
+    }
 
     /* Private functions */
 private:

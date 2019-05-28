@@ -44,10 +44,6 @@ struct RedChannelClient;
 struct RedClient;
 struct MainChannelClient;
 
-typedef uint64_t (*channel_handle_migrate_data_get_serial_proc)(RedChannelClient *base,
-                                            uint32_t size, void *message);
-
-
 typedef void (*channel_client_connect_proc)(RedChannel *channel, RedClient *client, RedStream *stream,
                                             int migration, RedChannelCapabilities *caps);
 
@@ -69,8 +65,6 @@ struct RedChannelClass
      * in bytes
      */
     spice_parse_channel_func_t parser;
-
-    channel_handle_migrate_data_get_serial_proc handle_migrate_data_get_serial;
 
     /*
      * callbacks that are triggered from client events.

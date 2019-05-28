@@ -2211,13 +2211,15 @@ void DisplayChannelClient::handle_migrate_flush_mark()
     channel->pipes_add_type(RED_PIPE_ITEM_TYPE_MIGRATE_DATA);
 }
 
-static uint64_t handle_migrate_data_get_serial(RedChannelClient *rcc, uint32_t size, void *message)
+bool DisplayChannelClient::handle_migrate_data_get_serial(uint32_t size, void *message,
+                                                          uint64_t &serial)
 {
     SpiceMigrateDataDisplay *migrate_data;
 
     migrate_data = (SpiceMigrateDataDisplay *)((uint8_t *)message + sizeof(SpiceMigrateDataHeader));
 
-    return migrate_data->message_serial;
+    serial = migrate_data->message_serial;
+    return true;
 }
 
 static SpiceCanvas *image_surfaces_get(SpiceImageSurfaces *surfaces, uint32_t surface_id)
@@ -2498,8 +2500,6 @@ display_channel_class_init(DisplayChannelClass *klass)
     object_class->finalize = display_channel_finalize;
 
     channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
-
-    channel_class->handle_migrate_data_get_serial = handle_migrate_data_get_serial;
 
     // client callbacks
     channel_class->connect = display_channel_connect;
