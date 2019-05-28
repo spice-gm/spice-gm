@@ -269,11 +269,11 @@ void cursor_channel_process_cmd(CursorChannel *cursor, RedCursorCmd *cursor_cmd)
         return;
     }
 
-    if (red_channel_is_connected(cursor) &&
+    if (cursor->is_connected() &&
         (cursor->mouse_mode == SPICE_MOUSE_MODE_SERVER
          || cursor_cmd->type != QXL_CURSOR_MOVE
          || cursor_show)) {
-        red_channel_pipes_add(cursor, &cursor_pipe_item->base);
+        cursor->pipes_add(&cursor_pipe_item->base);
     } else {
         red_pipe_item_unref(&cursor_pipe_item->base);
     }
@@ -288,12 +288,12 @@ void cursor_channel_reset(CursorChannel *cursor)
     cursor->cursor_position.x = cursor->cursor_position.y = 0;
     cursor->cursor_trail_length = cursor->cursor_trail_frequency = 0;
 
-    if (red_channel_is_connected(cursor)) {
-        red_channel_pipes_add_type(cursor, RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE);
+    if (cursor->is_connected()) {
+        cursor->pipes_add_type(RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE);
         if (!common_graphics_channel_get_during_target_migrate(cursor)) {
-            red_channel_pipes_add_empty_msg(cursor, SPICE_MSG_CURSOR_RESET);
+            cursor->pipes_add_empty_msg(SPICE_MSG_CURSOR_RESET);
         }
-        red_channel_wait_all_sent(cursor, COMMON_CLIENT_TIMEOUT);
+        cursor->wait_all_sent(COMMON_CLIENT_TIMEOUT);
     }
 }
 
@@ -301,7 +301,7 @@ static void cursor_channel_init_client(CursorChannel *cursor, CursorChannelClien
 {
     spice_return_if_fail(cursor);
 
-    if (!red_channel_is_connected(cursor)
+    if (!cursor->is_connected()
         || common_graphics_channel_get_during_target_migrate(cursor)) {
         spice_debug("during_target_migrate: skip init");
         return;
@@ -310,7 +310,7 @@ static void cursor_channel_init_client(CursorChannel *cursor, CursorChannelClien
     if (client)
         client->pipe_add_type(RED_PIPE_ITEM_TYPE_CURSOR_INIT);
     else
-        red_channel_pipes_add_type(cursor, RED_PIPE_ITEM_TYPE_CURSOR_INIT);
+        cursor->pipes_add_type(RED_PIPE_ITEM_TYPE_CURSOR_INIT);
 }
 
 void cursor_channel_do_init(CursorChannel *cursor)
@@ -366,7 +366,7 @@ static void
 cursor_channel_constructed(GObject *object)
 {
     RedChannel *red_channel = RED_CHANNEL(object);
-    RedsState *reds = red_channel_get_server(red_channel);
+    RedsState *reds = red_channel->get_server();
 
     G_OBJECT_CLASS(cursor_channel_parent_class)->constructed(object);
 

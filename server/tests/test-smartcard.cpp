@@ -359,8 +359,7 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
     g_assert_nonnull(mcc);
 
     // create our testing RedChannelClient
-    red_channel_connect(channel, client, create_dummy_stream(server, &client_socket),
-                        FALSE, &caps);
+    channel->connect(client, create_dummy_stream(server, &client_socket), FALSE, &caps);
     red_channel_capabilities_reset(&caps);
 
     // push data to device

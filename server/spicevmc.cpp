@@ -180,12 +180,12 @@ static void
 red_vmc_channel_constructed(GObject *object)
 {
     RedVmcChannel *self = RED_VMC_CHANNEL(object);
-    RedsState *reds = red_channel_get_server(self);
+    RedsState *reds = self->get_server();
 
     G_OBJECT_CLASS(red_vmc_channel_parent_class)->constructed(object);
 
-    red_channel_init_stat_node(self, NULL, "spicevmc");
-    const RedStatNode *stat = red_channel_get_stat_node(self);
+    self->init_stat_node(NULL, "spicevmc");
+    const RedStatNode *stat = self->get_stat_node();
     stat_init_counter(&self->in_data, reds, stat, "in_data", TRUE);
     stat_init_counter(&self->in_compressed, reds, stat, "in_compressed", TRUE);
     stat_init_counter(&self->in_decompressed, reds, stat, "in_decompressed", TRUE);
@@ -194,7 +194,7 @@ red_vmc_channel_constructed(GObject *object)
     stat_init_counter(&self->out_uncompressed, reds, stat, "out_uncompressed", TRUE);
 
 #ifdef USE_LZ4
-    red_channel_set_cap(self, SPICE_SPICEVMC_CAP_DATA_COMPRESS_LZ4);
+    self->set_cap(SPICE_SPICEVMC_CAP_DATA_COMPRESS_LZ4);
 #endif
 
     reds_register_channel(reds, self);
@@ -852,7 +852,7 @@ red_char_device_spicevmc_dispose(GObject *object)
         self->channel->chardev = NULL;
 
         // close all current connections and drop the reference
-        red_channel_destroy(self->channel);
+        self->channel->destroy();
         self->channel = NULL;
     }
     G_OBJECT_CLASS(red_char_device_spicevmc_parent_class)->dispose(object);

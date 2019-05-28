@@ -638,12 +638,12 @@ stream_device_dispose(GObject *object)
 
     if (dev->stream_channel) {
         // close all current connections and drop the reference
-        red_channel_destroy(RED_CHANNEL(dev->stream_channel));
+        RED_CHANNEL(dev->stream_channel)->destroy();
         dev->stream_channel = NULL;
     }
     if (dev->cursor_channel) {
         // close all current connections and drop the reference
-        red_channel_destroy(RED_CHANNEL(dev->cursor_channel));
+        RED_CHANNEL(dev->cursor_channel)->destroy();
         dev->cursor_channel = NULL;
     }
 

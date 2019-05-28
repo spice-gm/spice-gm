@@ -406,8 +406,8 @@ static void red_channel_client_constructed(GObject *object)
     self->priv->incoming.header.data = self->priv->incoming.header_buf;
 
     RedChannel *channel = self->priv->channel;
-    RedsState* reds = red_channel_get_server(channel);
-    const RedStatNode *node = red_channel_get_stat_node(channel);
+    RedsState* reds = channel->get_server();
+    const RedStatNode *node = channel->get_stat_node();
     stat_init_counter(&self->priv->out_messages, reds, node, "out_messages", TRUE);
     stat_init_counter(&self->priv->out_bytes, reds, node, "out_bytes", TRUE);
 }
@@ -626,7 +626,7 @@ static void red_channel_client_send_item(RedChannelClient *rcc, RedPipeItem *ite
             SPICE_UPCAST(MarkerPipeItem, item)->item_sent = true;
             break;
         default:
-            red_channel_send_item(rcc->priv->channel, rcc, item);
+            rcc->priv->channel->send_item(rcc, item);
             break;
     }
     red_pipe_item_unref(item);
@@ -803,7 +803,7 @@ static void red_channel_client_connectivity_timer(void *opaque)
 
 void RedChannelClient::start_connectivity_monitoring(uint32_t timeout_ms)
 {
-    SpiceCoreInterfaceInternal *core = red_channel_get_core_interface(priv->channel);
+    SpiceCoreInterfaceInternal *core = priv->channel->get_core_interface();
     if (!is_connected()) {
         return;
     }
@@ -936,7 +936,7 @@ static gboolean red_channel_client_initable_init(GInitable *initable,
         goto cleanup;
     }
 
-    core = red_channel_get_core_interface(self->priv->channel);
+    core = self->priv->channel->get_core_interface();
     red_stream_set_core_interface(self->priv->stream, core);
     self->priv->stream->watch =
         core->watch_add(core, self->priv->stream->socket,
@@ -957,9 +957,9 @@ static gboolean red_channel_client_initable_init(GInitable *initable,
             self->priv->monitor_latency ? PING_TEST_TIMEOUT_MS : PING_TEST_LONG_TIMEOUT_MS;
     }
 
-    red_channel_add_client(self->priv->channel, self);
+    self->priv->channel->add_client(self);
     if (!red_client_add_channel(self->priv->client, self, &local_error)) {
-        red_channel_remove_client(self->priv->channel, self);
+        self->priv->channel->remove_client(self);
     }
 
 cleanup:
@@ -1012,7 +1012,7 @@ static void red_channel_client_seamless_migration_done(RedChannelClient *rcc)
         red_channel_client_start_ping_timer(rcc, PING_TEST_IDLE_NET_TIMEOUT_MS);
         if (rcc->priv->connectivity_monitor.timer) {
             red_timer_start(rcc->priv->connectivity_monitor.timer,
-                              rcc->priv->connectivity_monitor.timeout);
+                            rcc->priv->connectivity_monitor.timeout);
         }
     }
 }
@@ -1671,7 +1671,7 @@ bool RedChannelClient::is_mini_header()
 gboolean RedChannelClient::is_connected()
 {
     return priv->channel
-        && (g_list_find(red_channel_get_clients(priv->channel), this) != NULL);
+        && (g_list_find(priv->channel->get_clients(), this) != NULL);
 }
 
 static void red_channel_client_clear_sent_item(RedChannelClient *rcc)
@@ -1737,7 +1737,7 @@ void RedChannelClient::disconnect()
     red_timer_remove(priv->connectivity_monitor.timer);
     priv->connectivity_monitor.timer = NULL;
 
-    red_channel_remove_client(channel, this);
+    channel->remove_client(this);
     red_channel_client_on_disconnect(this);
     // remove client from RedClient
     // NOTE this may trigger the free of the object, if we are in a watch/timer

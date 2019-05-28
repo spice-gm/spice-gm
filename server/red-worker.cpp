@@ -116,7 +116,7 @@ static int red_process_cursor(RedWorker *worker, int *ring_is_empty)
     }
 
     *ring_is_empty = FALSE;
-    while (red_channel_max_pipe_size(RED_CHANNEL(worker->cursor_channel)) <= MAX_PIPE_SIZE) {
+    while (RED_CHANNEL(worker->cursor_channel)->max_pipe_size() <= MAX_PIPE_SIZE) {
         if (!red_qxl_get_cursor_command(worker->qxl, &ext_cmd)) {
             *ring_is_empty = TRUE;
             if (worker->cursor_poll_tries < CMD_RING_POLL_RETRIES) {
@@ -177,7 +177,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
 
     worker->process_display_generation++;
     *ring_is_empty = FALSE;
-    while (red_channel_max_pipe_size(worker->display_channel) <= MAX_PIPE_SIZE) {
+    while (worker->display_channel->max_pipe_size() <= MAX_PIPE_SIZE) {
         if (!red_qxl_get_command(worker->qxl, &ext_cmd)) {
             *ring_is_empty = TRUE;
             if (worker->display_poll_tries < CMD_RING_POLL_RETRIES) {
@@ -249,7 +249,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
             spice_error("bad command type");
         }
         n++;
-        if (red_channel_all_blocked(worker->display_channel)
+        if (worker->display_channel->all_blocked()
             || spice_get_monotonic_time_ns() - start > NSEC_PER_SEC / 100) {
             worker->event_timeout = 0;
             return n;
@@ -262,8 +262,8 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
 
 static bool red_process_is_blocked(RedWorker *worker)
 {
-    return red_channel_max_pipe_size(RED_CHANNEL(worker->cursor_channel)) > MAX_PIPE_SIZE ||
-           red_channel_max_pipe_size(worker->display_channel) > MAX_PIPE_SIZE;
+    return RED_CHANNEL(worker->cursor_channel)->max_pipe_size() > MAX_PIPE_SIZE ||
+                  worker->display_channel->max_pipe_size() > MAX_PIPE_SIZE;
 }
 
 typedef int (*red_process_t)(RedWorker *worker, int *ring_is_empty);
@@ -280,7 +280,7 @@ static void flush_commands(RedWorker *worker, RedChannel *red_channel,
         }
 
         while (process(worker, &ring_is_empty)) {
-            red_channel_push(red_channel);
+            red_channel->push();
         }
 
         if (ring_is_empty) {
@@ -288,12 +288,12 @@ static void flush_commands(RedWorker *worker, RedChannel *red_channel,
         }
         end_time = spice_get_monotonic_time_ns() + COMMON_CLIENT_TIMEOUT;
         for (;;) {
-            red_channel_push(red_channel);
-            if (red_channel_max_pipe_size(red_channel) <= MAX_PIPE_SIZE) {
+            red_channel->push();
+            if (red_channel->max_pipe_size() <= MAX_PIPE_SIZE) {
                 break;
             }
-            red_channel_receive(red_channel);
-            red_channel_send(red_channel);
+            red_channel->receive();
+            red_channel->send();
             // TODO: MC: the whole timeout will break since it takes lowest timeout, should
             // do it client by client.
             if (spice_get_monotonic_time_ns() >= end_time) {
@@ -301,7 +301,7 @@ static void flush_commands(RedWorker *worker, RedChannel *red_channel,
                 // So we need to check the locations of the various pipe heads when counting,
                 // and disconnect only those/that.
                 spice_warning("flush timeout");
-                red_channel_disconnect(red_channel);
+                red_channel->disconnect();
             } else {
                 usleep(DISPLAY_CLIENT_RETRY_INTERVAL);
             }
@@ -437,15 +437,15 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
     display_channel_set_monitors_config_to_primary(display);
 
     CommonGraphicsChannel *common = display;
-    if (red_channel_is_connected(display) &&
+    if (display->is_connected() &&
         !common_graphics_channel_get_during_target_migrate(common)) {
         /* guest created primary, so it will (hopefully) send a monitors_config
          * now, don't send our own temporary one */
         if (!worker->driver_cap_monitors_config) {
             display_channel_push_monitors_config(display);
         }
-        red_channel_pipes_add_empty_msg(display, SPICE_MSG_DISPLAY_MARK);
-        red_channel_push(display);
+        display->pipes_add_empty_msg(SPICE_MSG_DISPLAY_MARK);
+        display->push();
     }
 
     cursor_channel_do_init(worker->cursor_channel);
@@ -529,8 +529,8 @@ static void handle_dev_stop(void *opaque, void *payload)
      * purge the pipe, send destroy_all_surfaces
      * to the client (there is no such message right now), and start
      * from scratch on the destination side */
-    red_channel_wait_all_sent(worker->display_channel, COMMON_CLIENT_TIMEOUT);
-    red_channel_wait_all_sent(RED_CHANNEL(worker->cursor_channel), COMMON_CLIENT_TIMEOUT);
+    worker->display_channel->wait_all_sent(COMMON_CLIENT_TIMEOUT);
+    RED_CHANNEL(worker->cursor_channel)->wait_all_sent(COMMON_CLIENT_TIMEOUT);
 }
 
 static void handle_dev_start(void *opaque, void *payload)
@@ -571,7 +571,7 @@ static void handle_dev_oom(void *opaque, void *payload)
     // streams? but without streams also leak
     display_channel_debug_oom(display, "OOM1");
     while (red_process_display(worker, &ring_is_empty)) {
-        red_channel_push(display);
+        display->push();
     }
     if (red_qxl_flush_resources(worker->qxl) == 0) {
         display_channel_free_some(worker->display_channel);
@@ -1097,7 +1097,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
     worker->cursor_channel = cursor_channel_new(reds, qxl->id,
                                                 &worker->core, dispatcher);
     channel = RED_CHANNEL(worker->cursor_channel);
-    red_channel_init_stat_node(channel, &worker->stat, "cursor_channel");
+    channel->init_stat_node(&worker->stat, "cursor_channel");
 
     // TODO: handle seamless migration. Temp, setting migrate to FALSE
     worker->display_channel = display_channel_new(reds, qxl, &worker->core, dispatcher,
@@ -1106,7 +1106,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
                                                   reds_get_video_codecs(reds),
                                                   init_info.n_surfaces);
     channel = worker->display_channel;
-    red_channel_init_stat_node(channel, &worker->stat, "display_channel");
+    channel->init_stat_node(&worker->stat, "display_channel");
     display_channel_set_image_compression(worker->display_channel,
                                           spice_server_get_image_compression(reds));
 
@@ -1121,8 +1121,8 @@ static void *red_worker_main(void *arg)
     SPICE_VERIFY(MAX_PIPE_SIZE > WIDE_CLIENT_ACK_WINDOW &&
            MAX_PIPE_SIZE > NARROW_CLIENT_ACK_WINDOW); //ensure wakeup by ack message
 
-    red_channel_reset_thread_id(RED_CHANNEL(worker->cursor_channel));
-    red_channel_reset_thread_id(worker->display_channel);
+    RED_CHANNEL(worker->cursor_channel)->reset_thread_id();
+    worker->display_channel->reset_thread_id();
 
     GMainLoop *loop = g_main_loop_new(worker->core.main_context, FALSE);
     worker->loop = loop;
@@ -1164,8 +1164,8 @@ bool red_worker_run(RedWorker *worker)
 
 static void red_worker_close_channel(RedChannel *channel)
 {
-    red_channel_reset_thread_id(channel);
-    red_channel_destroy(channel);
+    channel->reset_thread_id();
+    channel->destroy();
 }
 
 /*

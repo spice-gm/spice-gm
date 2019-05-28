@@ -295,8 +295,8 @@ static void channel_loop(void)
     server_core->watch_add = watch_add_inject;
 
     // create our testing RedChannelClient
-    red_channel_connect(channel, client, create_dummy_stream(server, &client_socket),
-                        FALSE, &caps);
+    channel->connect(client, create_dummy_stream(server, &client_socket),
+                     FALSE, &caps);
     red_channel_capabilities_reset(&caps);
 
     // remove code to inject code during RedChannelClient watch, we set it

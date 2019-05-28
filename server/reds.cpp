@@ -678,7 +678,7 @@ static void reds_agent_remove(RedsState *reds)
     reds->vdagent = NULL;
     reds_update_mouse_mode(reds);
     if (reds_main_channel_connected(reds) &&
-        !red_channel_is_waiting_for_migrate_data(RED_CHANNEL(reds->main_channel))) {
+        !RED_CHANNEL(reds->main_channel)->is_waiting_for_migrate_data()) {
         main_channel_push_agent_disconnected(reds->main_channel);
     }
 }
@@ -1558,9 +1558,9 @@ static void reds_channel_init_auth_caps(RedLinkInfo *link, RedChannel *channel)
 {
     RedsState *reds = link->reds;
     if (reds->config->sasl_enabled && !link->skip_auth) {
-        red_channel_set_common_cap(channel, SPICE_COMMON_CAP_AUTH_SASL);
+        channel->set_common_cap(SPICE_COMMON_CAP_AUTH_SASL);
     } else {
-        red_channel_set_common_cap(channel, SPICE_COMMON_CAP_AUTH_SPICE);
+        channel->set_common_cap(SPICE_COMMON_CAP_AUTH_SPICE);
     }
 }
 
@@ -1615,7 +1615,7 @@ static bool reds_send_link_ack(RedsState *reds, RedLinkInfo *link)
 
     reds_channel_init_auth_caps(link, channel); /* make sure common caps are set */
 
-    channel_caps = red_channel_get_local_capabilities(channel);
+    channel_caps = channel->get_local_capabilities();
     msg.ack.num_common_caps = GUINT32_TO_LE(channel_caps->num_common_caps);
     msg.ack.num_channel_caps = GUINT32_TO_LE(channel_caps->num_caps);
     hdr_size += channel_caps->num_common_caps * sizeof(uint32_t);
@@ -1955,9 +1955,8 @@ static void reds_channel_do_link(RedChannel *channel, RedClient *client,
     spice_assert(stream);
 
     red_channel_capabilities_init_from_link_message(&caps, link_msg);
-    red_channel_connect(channel, client, stream,
-                        red_client_during_migrate_at_target(client),
-                        &caps);
+    channel->connect(client, stream,
+                     red_client_during_migrate_at_target(client), &caps);
     red_channel_capabilities_reset(&caps);
 }
 
@@ -3140,7 +3139,7 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
     dev->priv->plug_generation++;
 
     if (dev->priv->mig_data ||
-        red_channel_is_waiting_for_migrate_data(RED_CHANNEL(reds->main_channel))) {
+        RED_CHANNEL(reds->main_channel)->is_waiting_for_migrate_data()) {
         /* Migration in progress (code is running on the destination host):
          * 1.  Add the client to spice char device, if it was not already added.
          * 2.a If this (qemu-kvm state load side of migration) happens first
@@ -3837,10 +3836,10 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
     g_list_free_full(reds->qxl_instances, (GDestroyNotify)red_qxl_destroy);
 
     if (reds->inputs_channel) {
-        red_channel_destroy(RED_CHANNEL(reds->inputs_channel));
+        RED_CHANNEL(reds->inputs_channel)->destroy();
     }
     if (reds->main_channel) {
-        red_channel_destroy(RED_CHANNEL(reds->main_channel));
+        RED_CHANNEL(reds->main_channel)->destroy();
     }
     red_timer_remove(reds->mig_timer);
 
@@ -4274,8 +4273,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_connect(SpiceServer *reds, const cha
      * be valid (see reds_reset_vdp for more details).
      */
     try_seamless = reds->seamless_migration_enabled &&
-                   red_channel_test_remote_cap(RED_CHANNEL(reds->main_channel),
-                                               SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS);
+                   RED_CHANNEL(reds->main_channel)->test_remote_cap(SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS);
     /* main channel will take care of clients that are still during migration (at target)*/
     if (main_channel_migrate_connect(reds->main_channel, reds->config->mig_spice,
                                      try_seamless)) {

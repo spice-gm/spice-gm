@@ -275,7 +275,7 @@ static bool inputs_channel_handle_message(RedChannelClient *rcc, uint16_t type,
     InputsChannel *inputs_channel = INPUTS_CHANNEL(rcc->get_channel());
     InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
     uint32_t i;
-    RedsState *reds = red_channel_get_server(inputs_channel);
+    RedsState *reds = inputs_channel->get_server();
 
     switch (type) {
     case SPICE_MSGC_INPUTS_KEY_DOWN: {
@@ -499,12 +499,11 @@ static void inputs_migrate(RedChannelClient *rcc)
 
 static void inputs_channel_push_keyboard_modifiers(InputsChannel *inputs, uint8_t modifiers)
 {
-    if (!inputs || !red_channel_is_connected(inputs) ||
+    if (!inputs || !inputs->is_connected() ||
         inputs->src_during_migrate) {
         return;
     }
-    red_channel_pipes_add(inputs,
-                          red_inputs_key_modifiers_item_new(modifiers));
+    inputs->pipes_add(red_inputs_key_modifiers_item_new(modifiers));
 }
 
 SPICE_GNUC_VISIBLE int spice_server_kbd_leds(SpiceKbdInstance *sin, int leds)
@@ -574,12 +573,12 @@ static void
 inputs_channel_constructed(GObject *object)
 {
     InputsChannel *self = INPUTS_CHANNEL(object);
-    RedsState *reds = red_channel_get_server(self);
-    SpiceCoreInterfaceInternal *core = red_channel_get_core_interface(self);
+    RedsState *reds = self->get_server();
+    SpiceCoreInterfaceInternal *core = self->get_core_interface();
 
     G_OBJECT_CLASS(inputs_channel_parent_class)->constructed(object);
 
-    red_channel_set_cap(self, SPICE_INPUTS_CAP_KEY_SCANCODE);
+    self->set_cap(SPICE_INPUTS_CAP_KEY_SCANCODE);
     reds_register_channel(reds, self);
 
     self->key_modifiers_timer = core->timer_add(core, key_modifiers_sender, self);
@@ -671,7 +670,7 @@ int inputs_channel_set_tablet(InputsChannel *inputs, SpiceTabletInstance *tablet
         return -1;
     }
     inputs->tablet = tablet;
-    inputs->tablet->st = spice_tablet_state_new(red_channel_get_server(inputs));
+    inputs->tablet->st = spice_tablet_state_new(inputs->get_server());
     return 0;
 }
 

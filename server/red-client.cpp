@@ -184,7 +184,7 @@ void red_client_migrate(RedClient *client)
     FOREACH_CHANNEL_CLIENT(client, rcc) {
         if (rcc->is_connected()) {
             channel = rcc->get_channel();
-            red_channel_migrate_client(channel, rcc);
+            channel->migrate_client(rcc);
         }
     }
 }
@@ -228,7 +228,7 @@ void red_client_destroy(RedClient *client)
         // to wait for disconnection)
         // TODO: should we go back to async. For this we need to use
         // ref count for channel clients.
-        red_channel_disconnect_client(channel, rcc);
+        channel->disconnect_client(rcc);
 
         spice_assert(rcc->pipe_is_empty());
         spice_assert(rcc->no_item_being_sent());

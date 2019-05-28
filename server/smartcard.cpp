@@ -541,7 +541,7 @@ static void
 red_smartcard_channel_constructed(GObject *object)
 {
     RedSmartcardChannel *self = RED_SMARTCARD_CHANNEL(object);
-    RedsState *reds = red_channel_get_server(self);
+    RedsState *reds = self->get_server();
 
     G_OBJECT_CLASS(red_smartcard_channel_parent_class)->constructed(object);
 

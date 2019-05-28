@@ -172,7 +172,7 @@ main_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
 
     if (type == SPICE_MSGC_MAIN_AGENT_DATA) {
         RedChannel *channel = rcc->get_channel();
-        return reds_get_agent_data_buffer(red_channel_get_server(channel), mcc, size);
+        return reds_get_agent_data_buffer(channel->get_server(), mcc, size);
     } else if (size > sizeof(mcc->priv->recv_buf)) {
         /* message too large, caller will log a message and close the connection */
         return NULL;
@@ -187,7 +187,7 @@ main_channel_client_release_msg_rcv_buf(RedChannelClient *rcc,
 {
     if (type == SPICE_MSGC_MAIN_AGENT_DATA) {
         RedChannel *channel = rcc->get_channel();
-        reds_release_agent_data_buffer(red_channel_get_server(channel), msg);
+        reds_release_agent_data_buffer(channel->get_server(), msg);
     }
 }
 
@@ -196,7 +196,7 @@ main_channel_client_release_msg_rcv_buf(RedChannelClient *rcc,
  */
 static void main_channel_client_on_disconnect(RedChannelClient *rcc)
 {
-    RedsState *reds = red_channel_get_server(rcc->get_channel());
+    RedsState *reds = rcc->get_channel()->get_server();
     main_dispatcher_client_disconnect(reds_get_main_dispatcher(reds),
                                       rcc->get_client());
 }
@@ -472,7 +472,7 @@ void main_channel_client_handle_migrate_dst_do_seamless(MainChannelClient *mcc,
                                                         uint32_t src_version)
 {
     RedChannel *channel = mcc->get_channel();
-    if (reds_on_migrate_dst_set_seamless(red_channel_get_server(channel), mcc, src_version)) {
+    if (reds_on_migrate_dst_set_seamless(channel->get_server(), mcc, src_version)) {
         mcc->priv->seamless_mig_dst = TRUE;
         mcc->pipe_add_empty_msg(SPICE_MSG_MAIN_MIGRATE_DST_SEAMLESS_ACK);
     } else {
@@ -569,7 +569,7 @@ void main_channel_client_migrate_dst_complete(MainChannelClient *mcc)
     if (mcc->priv->mig_wait_prev_complete) {
         if (mcc->priv->mig_wait_prev_try_seamless) {
             RedChannel *channel = mcc->get_channel();
-            spice_assert(red_channel_get_n_clients(channel) == 1);
+            spice_assert(channel->get_n_clients() == 1);
             mcc->pipe_add_type(RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN_SEAMLESS);
         } else {
             mcc->pipe_add_type(RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN);
@@ -645,7 +645,7 @@ uint64_t main_channel_client_get_roundtrip_ms(MainChannelClient *mcc)
 void main_channel_client_migrate(RedChannelClient *rcc)
 {
     RedChannel *channel = rcc->get_channel();
-    reds_on_main_channel_migrate(red_channel_get_server(channel),
+    reds_on_main_channel_migrate(channel->get_server(),
                                  MAIN_CHANNEL_CLIENT(rcc));
     RedChannelClient::default_migrate(rcc);
 }
@@ -699,7 +699,7 @@ static void main_channel_marshall_channels(RedChannelClient *rcc,
     RedChannel *channel = rcc->get_channel();
 
     rcc->init_send_data(SPICE_MSG_MAIN_CHANNELS_LIST);
-    channels_info = reds_msg_channels_new(red_channel_get_server(channel));
+    channels_info = reds_msg_channels_new(channel->get_server());
     spice_marshall_msg_main_channels_list(m, channels_info);
     g_free(channels_info);
 }
@@ -777,7 +777,7 @@ static void main_channel_marshall_migrate_data_item(RedChannelClient *rcc,
     RedChannel *channel = rcc->get_channel();
     rcc->init_send_data(SPICE_MSG_MIGRATE_DATA);
     // TODO: from reds split. ugly separation.
-    reds_marshall_migrate_data(red_channel_get_server(channel), m);
+    reds_marshall_migrate_data(channel->get_server(), m);
 }
 
 static void main_channel_marshall_init(RedChannelClient *rcc,
@@ -795,7 +795,7 @@ static void main_channel_marshall_init(RedChannelClient *rcc,
     if (item->is_client_mouse_allowed) {
         init.supported_mouse_modes |= SPICE_MOUSE_MODE_CLIENT;
     }
-    init.agent_connected = reds_has_vdagent(red_channel_get_server(channel));
+    init.agent_connected = reds_has_vdagent(channel->get_server());
     init.agent_tokens = REDS_AGENT_WINDOW_SIZE;
     init.multi_media_time = item->multi_media_time;
     init.ram_hint = item->ram_hint;

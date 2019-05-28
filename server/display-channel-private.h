@@ -134,7 +134,7 @@ struct DisplayChannelPrivate
 };
 
 #define FOREACH_DCC(_channel, _data) \
-    GLIST_FOREACH((_channel ? red_channel_get_clients(_channel) : NULL), \
+    GLIST_FOREACH((_channel ? _channel->get_clients() : NULL), \
                   DisplayChannelClient, _data)
 
 typedef struct RedMonitorsConfigItem {
