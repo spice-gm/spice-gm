@@ -78,9 +78,6 @@ typedef struct SpicePlaybackState PlaybackChannel;
 typedef struct SpiceRecordState RecordChannel;
 #define RecordChannel SpiceRecordState
 
-typedef void (*snd_channel_on_message_done_proc)(SndChannelClient *client);
-
-
 struct PersistentPipeItem: public RedPipeItem
 {
     SndChannelClient *client;
@@ -102,7 +99,7 @@ public:
     uint8_t receive_buf[SND_CODEC_MAX_FRAME_BYTES + 64];
     PersistentPipeItem persistent_pipe_item;
 
-    snd_channel_on_message_done_proc on_message_done;
+    virtual void on_message_done() {};
 
     inline SndChannel* get_channel();
 
@@ -156,6 +153,7 @@ public:
     uint8_t  encode_buf[SND_CODEC_MAX_COMPRESSED_BYTES];
 protected:
     virtual void send_item(RedPipeItem *item) override;
+    virtual void on_message_done() override;
 };
 
 typedef struct SpiceVolumeState {
@@ -247,15 +245,14 @@ static void snd_playback_free_frame(PlaybackChannelClient *playback_client, Audi
     playback_client->free_frames = frame;
 }
 
-static void snd_playback_on_message_done(SndChannelClient *client)
+void PlaybackChannelClient::on_message_done()
 {
-    PlaybackChannelClient *playback_client = (PlaybackChannelClient *)client;
-    if (playback_client->in_progress) {
-        snd_playback_free_frame(playback_client, playback_client->in_progress);
-        playback_client->in_progress = NULL;
-        if (playback_client->pending_frame) {
-            client->command |= SND_PLAYBACK_PCM_MASK;
-            snd_send(client);
+    if (in_progress) {
+        snd_playback_free_frame(this, in_progress);
+        in_progress = NULL;
+        if (pending_frame) {
+            command |= SND_PLAYBACK_PCM_MASK;
+            snd_send(this);
         }
     }
 }
@@ -627,9 +624,7 @@ static void snd_persistent_pipe_item_free(struct RedPipeItem *item)
     red_pipe_item_init_full(item, RED_PIPE_ITEM_PERSISTENT,
                             snd_persistent_pipe_item_free);
 
-    if (client->on_message_done) {
-        client->on_message_done(client);
-    }
+    client->on_message_done();
 }
 
 static void snd_send(SndChannelClient * client)
@@ -1010,8 +1005,6 @@ PlaybackChannelClient::PlaybackChannelClient(PlaybackChannel *channel,
     SndChannelClient(channel, client, stream, caps)
 {
     snd_playback_alloc_frames(this);
-
-    on_message_done = snd_playback_on_message_done;
 
     bool client_can_opus = test_remote_cap(SPICE_PLAYBACK_CAP_OPUS);
     bool playback_compression =
