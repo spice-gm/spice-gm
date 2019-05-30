@@ -368,10 +368,24 @@ static void red_char_device_client_send_queue_push(RedCharDeviceClient *dev_clie
     }
 }
 
-static void red_char_device_send_to_client_tokens_absorb(RedCharDeviceClient *dev_client,
-                                                         uint32_t tokens)
+static void
+red_char_device_send_to_client_tokens_absorb(RedCharDevice *dev,
+                                             RedClient *client,
+                                             uint32_t tokens,
+                                             bool reset)
 {
-    RedCharDevice *dev = dev_client->dev;
+    RedCharDeviceClient *dev_client;
+
+    dev_client = red_char_device_client_find(dev, client);
+
+    if (!dev_client) {
+        spice_error("client wasn't found dev %p client %p", dev, client);
+        return;
+    }
+
+    if (reset) {
+        dev_client->num_send_tokens = 0;
+    }
     dev_client->num_send_tokens += tokens;
 
     if (g_queue_get_length(dev_client->send_queue)) {
@@ -394,32 +408,14 @@ void red_char_device_send_to_client_tokens_add(RedCharDevice *dev,
                                                RedClient *client,
                                                uint32_t tokens)
 {
-    RedCharDeviceClient *dev_client;
-
-    dev_client = red_char_device_client_find(dev, client);
-
-    if (!dev_client) {
-        spice_error("client wasn't found dev %p client %p", dev, client);
-        return;
-    }
-    red_char_device_send_to_client_tokens_absorb(dev_client, tokens);
+    red_char_device_send_to_client_tokens_absorb(dev, client, tokens, false);
 }
 
 void red_char_device_send_to_client_tokens_set(RedCharDevice *dev,
                                                RedClient *client,
                                                uint32_t tokens)
 {
-    RedCharDeviceClient *dev_client;
-
-    dev_client = red_char_device_client_find(dev, client);
-
-    if (!dev_client) {
-        spice_error("client wasn't found dev %p client %p", dev, client);
-        return;
-    }
-
-    dev_client->num_send_tokens = 0;
-    red_char_device_send_to_client_tokens_absorb(dev_client, tokens);
+    red_char_device_send_to_client_tokens_absorb(dev, client, tokens, true);
 }
 
 /**************************
