@@ -213,7 +213,7 @@ static ssize_t stream_ssl_read_cb(RedStream *s, void *buf, size_t size)
 void red_stream_remove_watch(RedStream* s)
 {
     if (s->watch) {
-        s->priv->core->watch_remove(s->priv->core, s->watch);
+        red_watch_remove(s->watch);
         s->watch = NULL;
     }
 }

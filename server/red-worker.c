@@ -1185,7 +1185,7 @@ void red_worker_free(RedWorker *worker)
     worker->display_channel = NULL;
 
     if (worker->dispatch_watch) {
-        worker->core.watch_remove(&worker->core, worker->dispatch_watch);
+        red_watch_remove(worker->dispatch_watch);
     }
 
     g_main_context_unref(worker->core.main_context);

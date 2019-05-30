@@ -83,34 +83,9 @@ static SpiceTimer* base_timer_add(SpiceTimerFunc func, void *opaque)
     return base_core_interface.timer_add(&base_core_interface, func, opaque);
 }
 
-static void base_timer_start(SpiceTimer *timer, uint32_t ms)
-{
-    base_core_interface.timer_start(&base_core_interface, timer, ms);
-}
-
-static void base_timer_cancel(SpiceTimer *timer)
-{
-    base_core_interface.timer_cancel(&base_core_interface, timer);
-}
-
-static void base_timer_remove(SpiceTimer *timer)
-{
-    base_core_interface.timer_remove(&base_core_interface, timer);
-}
-
 static SpiceWatch *base_watch_add(int fd, int event_mask, SpiceWatchFunc func, void *opaque)
 {
     return base_core_interface.watch_add(&base_core_interface, fd, event_mask, func, opaque);
-}
-
-static void base_watch_update_mask(SpiceWatch *watch, int event_mask)
-{
-    base_core_interface.watch_update_mask(&base_core_interface, watch, event_mask);
-}
-
-static void base_watch_remove(SpiceWatch *watch)
-{
-    base_core_interface.watch_remove(&base_core_interface, watch);
 }
 
 static SpiceCoreInterface core = {
@@ -119,12 +94,12 @@ static SpiceCoreInterface core = {
         .minor_version = SPICE_INTERFACE_CORE_MINOR,
     },
     .timer_add = base_timer_add,
-    .timer_start = base_timer_start,
-    .timer_cancel = base_timer_cancel,
-    .timer_remove = base_timer_remove,
+    .timer_start = red_timer_start,
+    .timer_cancel = red_timer_cancel,
+    .timer_remove = red_timer_remove,
     .watch_add = base_watch_add,
-    .watch_update_mask = base_watch_update_mask,
-    .watch_remove = base_watch_remove,
+    .watch_update_mask = red_watch_update_mask,
+    .watch_remove = red_watch_remove,
     .channel_event = event_loop_channel_event,
 };
 

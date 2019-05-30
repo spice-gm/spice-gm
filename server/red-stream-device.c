@@ -120,7 +120,7 @@ stream_device_partial_read(StreamDevice *dev, SpiceCharDeviceInstance *sin)
         if (!dev->close_timer) {
             dev->close_timer = reds_core_timer_add(reds, close_timer_func, dev);
         }
-        reds_core_timer_start(reds, dev->close_timer, 0);
+        red_timer_start(dev->close_timer, 0);
         return false;
     }
 
@@ -649,8 +649,7 @@ stream_device_dispose(GObject *object)
 {
     StreamDevice *dev = STREAM_DEVICE(object);
 
-    RedsState *reds = red_char_device_get_server(RED_CHAR_DEVICE(dev));
-    reds_core_timer_remove(reds, dev->close_timer);
+    red_timer_remove(dev->close_timer);
 
     if (dev->stream_channel) {
         // close all current connections and drop the reference

@@ -187,7 +187,7 @@ static void red_char_device_client_free(RedCharDevice *dev,
 {
     GList *l, *next;
 
-    reds_core_timer_remove(dev->priv->reds, dev_client->wait_for_tokens_timer);
+    red_timer_remove(dev_client->wait_for_tokens_timer);
     dev_client->wait_for_tokens_timer = NULL;
 
     g_queue_free_full(dev_client->send_queue, (GDestroyNotify)red_pipe_item_unref);
@@ -273,8 +273,6 @@ static uint64_t red_char_device_max_send_tokens(RedCharDevice *dev)
 static void red_char_device_add_msg_to_client_queue(RedCharDeviceClient *dev_client,
                                                     RedPipeItem *msg)
 {
-    RedCharDevice *dev = dev_client->dev;
-
     if (g_queue_get_length(dev_client->send_queue) >= dev_client->max_send_queue_size) {
         red_char_device_handle_client_overflow(dev_client);
         return;
@@ -283,8 +281,8 @@ static void red_char_device_add_msg_to_client_queue(RedCharDeviceClient *dev_cli
     red_pipe_item_ref(msg);
     g_queue_push_head(dev_client->send_queue, msg);
     if (!dev_client->wait_for_tokens_started) {
-        reds_core_timer_start(dev->priv->reds, dev_client->wait_for_tokens_timer,
-                              RED_CHAR_DEVICE_WAIT_TOKENS_TIMEOUT);
+        red_timer_start(dev_client->wait_for_tokens_timer,
+                        RED_CHAR_DEVICE_WAIT_TOKENS_TIMEOUT);
         dev_client->wait_for_tokens_started = TRUE;
     }
 }
@@ -396,12 +394,12 @@ red_char_device_send_to_client_tokens_absorb(RedCharDevice *dev,
     }
 
     if (red_char_device_can_send_to_client(dev_client)) {
-        reds_core_timer_cancel(dev->priv->reds, dev_client->wait_for_tokens_timer);
+        red_timer_cancel(dev_client->wait_for_tokens_timer);
         dev_client->wait_for_tokens_started = FALSE;
         red_char_device_read_from_device(dev_client->dev);
     } else if (!g_queue_is_empty(dev_client->send_queue)) {
-        reds_core_timer_start(dev->priv->reds, dev_client->wait_for_tokens_timer,
-                              RED_CHAR_DEVICE_WAIT_TOKENS_TIMEOUT);
+        red_timer_start(dev_client->wait_for_tokens_timer,
+                        RED_CHAR_DEVICE_WAIT_TOKENS_TIMEOUT);
         dev_client->wait_for_tokens_started = TRUE;
     }
 }
@@ -462,7 +460,7 @@ static int red_char_device_write_to_device(RedCharDevice *dev)
     g_object_ref(dev);
 
     if (dev->priv->write_to_dev_timer) {
-        reds_core_timer_cancel(dev->priv->reds, dev->priv->write_to_dev_timer);
+        red_timer_cancel(dev->priv->write_to_dev_timer);
     }
 
     sif = spice_char_device_get_interface(dev->priv->sin);
@@ -499,8 +497,8 @@ static int red_char_device_write_to_device(RedCharDevice *dev)
     if (dev->priv->running) {
         if (dev->priv->cur_write_buf) {
             if (dev->priv->write_to_dev_timer) {
-                reds_core_timer_start(dev->priv->reds, dev->priv->write_to_dev_timer,
-                                      CHAR_DEVICE_WRITE_TO_TIMEOUT);
+                red_timer_start(dev->priv->write_to_dev_timer,
+                                CHAR_DEVICE_WRITE_TO_TIMEOUT);
             }
         } else {
             spice_assert(g_queue_is_empty(&dev->priv->write_queue));
@@ -517,7 +515,7 @@ static void red_char_device_write_retry(void *opaque)
     RedCharDevice *dev = opaque;
 
     if (dev->priv->write_to_dev_timer) {
-        reds_core_timer_cancel(dev->priv->reds, dev->priv->write_to_dev_timer);
+        red_timer_cancel(dev->priv->write_to_dev_timer);
     }
     red_char_device_write_to_device(dev);
 }
@@ -807,7 +805,7 @@ void red_char_device_stop(RedCharDevice *dev)
     dev->priv->running = FALSE;
     dev->priv->active = FALSE;
     if (dev->priv->write_to_dev_timer) {
-        reds_core_timer_cancel(dev->priv->reds, dev->priv->write_to_dev_timer);
+        red_timer_cancel(dev->priv->write_to_dev_timer);
     }
 }
 
@@ -992,7 +990,7 @@ static void red_char_device_init_device_instance(RedCharDevice *self)
 
     g_return_if_fail(self->priv->reds);
 
-    reds_core_timer_remove(self->priv->reds, self->priv->write_to_dev_timer);
+    red_timer_remove(self->priv->write_to_dev_timer);
     self->priv->write_to_dev_timer = NULL;
 
     if (self->priv->sin == NULL) {
@@ -1082,7 +1080,7 @@ red_char_device_finalize(GObject *object)
 {
     RedCharDevice *self = RED_CHAR_DEVICE(object);
 
-    reds_core_timer_remove(self->priv->reds, self->priv->write_to_dev_timer);
+    red_timer_remove(self->priv->write_to_dev_timer);
     self->priv->write_to_dev_timer = NULL;
 
     write_buffers_queue_free(&self->priv->write_queue);

@@ -410,7 +410,7 @@ static void reds_mig_cleanup(RedsState *reds)
         reds->mig_inprogress = FALSE;
         reds->mig_wait_connect = FALSE;
         reds->mig_wait_disconnect = FALSE;
-        reds_core_timer_cancel(reds, reds->mig_timer);
+        red_timer_cancel(reds->mig_timer);
         reds_mig_cleanup_wait_disconnect(reds);
     }
 }
@@ -2429,7 +2429,6 @@ static void reds_handle_new_link(RedLinkInfo *link)
 static void reds_handle_ssl_accept(int fd, int event, void *data)
 {
     RedLinkInfo *link = (RedLinkInfo *)data;
-    RedsState *reds = link->reds;
     RedStreamSslStatus return_code = red_stream_ssl_accept(link->stream);
 
     switch (return_code) {
@@ -2437,12 +2436,10 @@ static void reds_handle_ssl_accept(int fd, int event, void *data)
             reds_link_free(link);
             return;
         case RED_STREAM_SSL_STATUS_WAIT_FOR_READ:
-            reds_core_watch_update_mask(reds, link->stream->watch,
-                                        SPICE_WATCH_EVENT_READ);
+            red_watch_update_mask(link->stream->watch, SPICE_WATCH_EVENT_READ);
             return;
         case RED_STREAM_SSL_STATUS_WAIT_FOR_WRITE:
-            reds_core_watch_update_mask(reds, link->stream->watch,
-                                        SPICE_WATCH_EVENT_WRITE);
+            red_watch_update_mask(link->stream->watch, SPICE_WATCH_EVENT_WRITE);
             return;
         case RED_STREAM_SSL_STATUS_OK:
             red_stream_remove_watch(link->stream);
@@ -2702,7 +2699,7 @@ void reds_set_client_mm_time_latency(RedsState *reds, RedClient *client, uint32_
 static void reds_cleanup_net(SpiceServer *reds)
 {
     if (reds->listen_socket != -1) {
-       reds_core_watch_remove(reds, reds->listen_watch);
+       red_watch_remove(reds->listen_watch);
        if (reds->config->spice_listen_socket_fd != reds->listen_socket) {
           socket_close(reds->listen_socket);
        }
@@ -2710,7 +2707,7 @@ static void reds_cleanup_net(SpiceServer *reds)
        reds->listen_socket = -1;
     }
     if (reds->secure_listen_socket != -1) {
-       reds_core_watch_remove(reds, reds->secure_listen_watch);
+       red_watch_remove(reds->secure_listen_watch);
        socket_close(reds->secure_listen_socket);
        reds->secure_listen_watch = NULL;
        reds->secure_listen_socket = -1;
@@ -3031,7 +3028,7 @@ static void reds_mig_started(RedsState *reds)
 
     reds->mig_inprogress = TRUE;
     reds->mig_wait_connect = TRUE;
-    reds_core_timer_start(reds, reds->mig_timer, MIGRATE_TIMEOUT);
+    red_timer_start(reds->mig_timer, MIGRATE_TIMEOUT);
 }
 
 static void reds_mig_fill_wait_disconnect(RedsState *reds)
@@ -3046,7 +3043,7 @@ static void reds_mig_fill_wait_disconnect(RedsState *reds)
     }
     reds->mig_wait_connect = FALSE;
     reds->mig_wait_disconnect = TRUE;
-    reds_core_timer_start(reds, reds->mig_timer, MIGRATE_TIMEOUT);
+    red_timer_start(reds->mig_timer, MIGRATE_TIMEOUT);
 }
 
 static void reds_mig_cleanup_wait_disconnect(RedsState *reds)
@@ -3853,7 +3850,7 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
     if (reds->main_channel) {
         red_channel_destroy(RED_CHANNEL(reds->main_channel));
     }
-    reds_core_timer_remove(reds, reds->mig_timer);
+    red_timer_remove(reds->mig_timer);
 
     if (reds->ctx) {
         SSL_CTX_free(reds->ctx);
@@ -4432,24 +4429,6 @@ SpiceWatch *reds_core_watch_add(RedsState *reds,
    return reds->core.watch_add(&reds->core, fd, event_mask, func, opaque);
 }
 
-void reds_core_watch_update_mask(RedsState *reds,
-                                 SpiceWatch *watch,
-                                 int event_mask)
-{
-   g_return_if_fail(reds != NULL);
-   g_return_if_fail(reds->core.watch_update_mask != NULL);
-
-   reds->core.watch_update_mask(&reds->core, watch, event_mask);
-}
-
-void reds_core_watch_remove(RedsState *reds, SpiceWatch *watch)
-{
-   g_return_if_fail(reds != NULL);
-   g_return_if_fail(reds->core.watch_remove != NULL);
-
-   reds->core.watch_remove(&reds->core, watch);
-}
-
 SpiceTimer *reds_core_timer_add(RedsState *reds,
                                 SpiceTimerFunc func,
                                 void *opaque)
@@ -4459,38 +4438,6 @@ SpiceTimer *reds_core_timer_add(RedsState *reds,
 
    return reds->core.timer_add(&reds->core, func, opaque);
 
-}
-
-void reds_core_timer_start(RedsState *reds,
-                           SpiceTimer *timer,
-                           uint32_t ms)
-{
-   g_return_if_fail(reds != NULL);
-   g_return_if_fail(reds->core.timer_start != NULL);
-
-   return reds->core.timer_start(&reds->core, timer, ms);
-}
-
-void reds_core_timer_cancel(RedsState *reds,
-                            SpiceTimer *timer)
-{
-   g_return_if_fail(reds != NULL);
-   g_return_if_fail(reds->core.timer_cancel != NULL);
-
-   return reds->core.timer_cancel(&reds->core, timer);
-}
-
-void reds_core_timer_remove(RedsState *reds,
-                            SpiceTimer *timer)
-{
-    if (timer == NULL) {
-        return;
-    }
-
-    g_return_if_fail(reds != NULL);
-    g_return_if_fail(reds->core.timer_remove != NULL);
-
-    reds->core.timer_remove(&reds->core, timer);
 }
 
 void reds_update_client_mouse_allowed(RedsState *reds)

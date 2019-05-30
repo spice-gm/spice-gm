@@ -288,7 +288,7 @@ static void main_dispatcher_finalize(GObject *object)
 {
     MainDispatcher *self = MAIN_DISPATCHER(object);
 
-    reds_core_watch_remove(self->priv->reds, self->priv->watch);
+    red_watch_remove(self->priv->watch);
     self->priv->watch = NULL;
     G_OBJECT_CLASS(main_dispatcher_parent_class)->finalize(object);
 }

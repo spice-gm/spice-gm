@@ -40,17 +40,20 @@
 #define SPICE_UPCAST(type, ptr) \
     (verify_expr(SPICE_OFFSETOF(type, base) == 0,SPICE_CONTAINEROF(ptr, type, base)))
 
+SPICE_BEGIN_DECLS
+
+void red_timer_start(SpiceTimer *timer, uint32_t ms);
+void red_timer_cancel(SpiceTimer *timer);
+void red_timer_remove(SpiceTimer *timer);
+void red_watch_update_mask(SpiceWatch *watch, int event_mask);
+void red_watch_remove(SpiceWatch *watch);
+
 typedef struct SpiceCoreInterfaceInternal SpiceCoreInterfaceInternal;
 
 struct SpiceCoreInterfaceInternal {
     SpiceTimer *(*timer_add)(const SpiceCoreInterfaceInternal *iface, SpiceTimerFunc func, void *opaque);
-    void (*timer_start)(const SpiceCoreInterfaceInternal *iface, SpiceTimer *timer, uint32_t ms);
-    void (*timer_cancel)(const SpiceCoreInterfaceInternal *iface, SpiceTimer *timer);
-    void (*timer_remove)(const SpiceCoreInterfaceInternal *iface, SpiceTimer *timer);
 
     SpiceWatch *(*watch_add)(const SpiceCoreInterfaceInternal *iface, int fd, int event_mask, SpiceWatchFunc func, void *opaque);
-    void (*watch_update_mask)(const SpiceCoreInterfaceInternal *iface, SpiceWatch *watch, int event_mask);
-    void (*watch_remove)(const SpiceCoreInterfaceInternal *iface, SpiceWatch *watch);
 
     void (*channel_event)(const SpiceCoreInterfaceInternal *iface, int event, SpiceChannelEventInfo *info);
 
@@ -125,5 +128,7 @@ typedef struct GListIter {
     ModuleObjName ## Class *G_PASTE(G_PASTE(RED_,OBJ_NAME),_GET_CLASS)(void *obj) \
     { return G_TYPE_INSTANCE_GET_CLASS(obj, \
              module_obj_name ## _get_type(), ModuleObjName ## Class); }
+
+SPICE_END_DECLS
 
 #endif /* RED_COMMON_H_ */
