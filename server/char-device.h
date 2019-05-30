@@ -151,11 +151,11 @@ GType red_char_device_get_type(void) G_GNUC_CONST;
 /* buffer that is used for writing to the device */
 typedef struct RedCharDeviceWriteBufferPrivate RedCharDeviceWriteBufferPrivate;
 typedef struct RedCharDeviceWriteBuffer {
-    uint8_t *buf;
     uint32_t buf_size;
     uint32_t buf_used;
 
     RedCharDeviceWriteBufferPrivate *priv;
+    uint8_t buf[0];
 } RedCharDeviceWriteBuffer;
 
 void red_char_device_reset_dev_instance(RedCharDevice *dev,

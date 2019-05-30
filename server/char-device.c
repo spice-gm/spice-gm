@@ -149,11 +149,9 @@ red_char_device_remove_client(RedCharDevice *dev, RedClient *client)
 
 static void red_char_device_write_buffer_free(RedCharDeviceWriteBuffer *buf)
 {
-    if (buf == NULL)
-        return;
-
-    g_free(buf->buf);
-    g_free(buf);
+    if (buf) {
+        g_free(buf->priv);
+    }
 }
 
 static void write_buffers_queue_free(GQueue *write_queue)
@@ -533,22 +531,27 @@ red_char_device_write_buffer_get(RedCharDevice *dev, RedClient *client, int size
     ret = g_queue_pop_tail(&dev->priv->write_bufs_pool);
     if (ret) {
         dev->priv->cur_pool_size -= ret->buf_size;
-    } else {
+        if (ret->buf_size < size) {
+            spice_assert(!spice_extra_checks || ret->priv->refs == 1);
+            red_char_device_write_buffer_free(ret);
+            ret = NULL;
+        }
+    }
+    if (ret == NULL) {
         struct RedCharDeviceWriteBufferFull {
-            RedCharDeviceWriteBuffer buffer;
             RedCharDeviceWriteBufferPrivate priv;
+            RedCharDeviceWriteBuffer buffer;
         } *write_buf;
-        write_buf = g_new0(struct RedCharDeviceWriteBufferFull, 1);
+        write_buf = g_malloc(sizeof(struct RedCharDeviceWriteBufferFull) + size);
+        memset(write_buf, 0, sizeof(*write_buf));
+        write_buf->priv.refs = 1;
         ret = &write_buf->buffer;
+        ret->buf_size = size;
         ret->priv = &write_buf->priv;
     }
 
     spice_assert(!ret->buf_used);
 
-    if (ret->buf_size < size) {
-        ret->buf = g_realloc(ret->buf, size);
-        ret->buf_size = size;
-    }
     ret->priv->origin = origin;
 
     if (origin == WRITE_BUFFER_ORIGIN_CLIENT) {
