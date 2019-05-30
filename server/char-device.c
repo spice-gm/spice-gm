@@ -688,12 +688,6 @@ void red_char_device_reset_dev_instance(RedCharDevice *dev,
     g_object_notify(G_OBJECT(dev), "sin");
 }
 
-void red_char_device_destroy(RedCharDevice *char_dev)
-{
-    g_return_if_fail(RED_IS_CHAR_DEVICE(char_dev));
-    g_object_unref(char_dev);
-}
-
 static RedCharDeviceClient *red_char_device_client_new(RedClient *client,
                                                        int do_flow_control,
                                                        uint32_t max_send_queue_size,

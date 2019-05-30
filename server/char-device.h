@@ -91,7 +91,7 @@ GType red_char_device_get_type(void) G_GNUC_CONST;
  * How to use the api:
  * ==================
  * device attached: create new object instantiating a RedCharDevice child class
- * device detached: call red_char_device_destroy/reset
+ * device detached: call g_object_unref/red_char_device_reset
  *
  * client connected and associated with a device: red_char_device_client_add
  * client disconnected: red_char_device_client_remove
@@ -120,7 +120,7 @@ GType red_char_device_get_type(void) G_GNUC_CONST;
  * red_char_device_wakeup (for reading from the device)
  */
 /* refcounting is used to protect the char_dev from being deallocated in
- * case red_char_device_destroy has been called
+ * case g_object_unref has been called
  * during a callback, and we might still access the char_dev afterwards.
  */
 
@@ -160,7 +160,6 @@ typedef struct RedCharDeviceWriteBuffer {
 
 void red_char_device_reset_dev_instance(RedCharDevice *dev,
                                         SpiceCharDeviceInstance *sin);
-void red_char_device_destroy(RedCharDevice *dev);
 
 /* only one client is supported */
 void red_char_device_migrate_data_marshall(RedCharDevice *dev,
