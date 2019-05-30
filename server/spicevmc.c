@@ -812,7 +812,7 @@ RedCharDevice *spicevmc_device_connect(RedsState *reds,
 }
 
 /* Must be called from RedClient handling thread. */
-void spicevmc_device_disconnect(RedsState *reds, SpiceCharDeviceInstance *sin)
+void spicevmc_device_disconnect(SpiceCharDeviceInstance *sin)
 {
     g_object_unref(RED_CHAR_DEVICE(sin->st));
     sin->st = NULL;

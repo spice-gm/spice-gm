@@ -3379,7 +3379,7 @@ static int spice_server_char_device_remove_interface(RedsState *reds, SpiceBaseI
 #endif
     else if (strcmp(char_device->subtype, SUBTYPE_USBREDIR) == 0 ||
              strcmp(char_device->subtype, SUBTYPE_PORT) == 0) {
-        spicevmc_device_disconnect(reds, char_device);
+        spicevmc_device_disconnect(char_device);
     } else {
         spice_warning("failed to remove char device %s", char_device->subtype);
     }
