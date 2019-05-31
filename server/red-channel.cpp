@@ -464,9 +464,7 @@ uint32_t RedChannel::max_pipe_size()
     uint32_t pipe_size = 0;
 
     FOREACH_CLIENT(this, rcc) {
-        uint32_t new_size;
-        new_size = rcc->get_pipe_size();
-        pipe_size = MAX(pipe_size, new_size);
+        pipe_size = std::max(pipe_size, rcc->get_pipe_size());
     }
     return pipe_size;
 }
