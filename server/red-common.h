@@ -79,6 +79,10 @@ typedef struct GListIter {
     GList *next;
 } GListIter;
 
+/* Iterate through a GList. Note that the iteration is "safe" meaning that the
+ * current item can be removed while the list is scanned. This is required as
+ * the code inside the loop in some cases can remove the element we are
+ * processing */
 #define GLIST_FOREACH_GENERIC(_list, _iter, _type, _data, _dir) \
     for (GListIter _iter = { .link = _list }; \
         (_data = (_type *) (_iter.link ? _iter.link->data : NULL), \
