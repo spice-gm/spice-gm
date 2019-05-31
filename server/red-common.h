@@ -71,6 +71,7 @@ struct SpiceCoreInterfaceInternal {
 };
 
 extern const SpiceCoreInterfaceInternal event_loop_core;
+extern const SpiceCoreInterfaceInternal core_interface_adapter;
 
 typedef struct RedsState RedsState;
 

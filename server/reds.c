@@ -83,60 +83,6 @@ static void reds_client_monitors_config(RedsState *reds, VDAgentMonitorsConfig *
 static gboolean reds_use_client_monitors_config(RedsState *reds);
 static void reds_set_video_codecs(RedsState *reds, GArray *video_codecs);
 
-static SpiceTimer *adapter_timer_add(const SpiceCoreInterfaceInternal *iface, SpiceTimerFunc func, void *opaque)
-{
-    return iface->public_interface->timer_add(func, opaque);
-}
-
-static void adapter_timer_start(const SpiceCoreInterfaceInternal *iface, SpiceTimer *timer, uint32_t ms)
-{
-    iface->public_interface->timer_start(timer, ms);
-}
-
-static void adapter_timer_cancel(const SpiceCoreInterfaceInternal *iface, SpiceTimer *timer)
-{
-    iface->public_interface->timer_cancel(timer);
-}
-
-static void adapter_timer_remove(const SpiceCoreInterfaceInternal *iface, SpiceTimer *timer)
-{
-    iface->public_interface->timer_remove(timer);
-}
-
-static SpiceWatch *adapter_watch_add(const SpiceCoreInterfaceInternal *iface,
-                                     int fd, int event_mask, SpiceWatchFunc func, void *opaque)
-{
-    // note: Qemu API is fine having a SOCKET on Windows
-    return iface->public_interface->watch_add(fd, event_mask, func, opaque);
-}
-
-static void adapter_watch_update_mask(const SpiceCoreInterfaceInternal *iface, SpiceWatch *watch, int event_mask)
-{
-    iface->public_interface->watch_update_mask(watch, event_mask);
-}
-
-static void adapter_watch_remove(const SpiceCoreInterfaceInternal *iface, SpiceWatch *watch)
-{
-    iface->public_interface->watch_remove(watch);
-}
-
-static void adapter_channel_event(const SpiceCoreInterfaceInternal *iface, int event, SpiceChannelEventInfo *info)
-{
-    if (iface->public_interface->base.minor_version >= 3 && iface->public_interface->channel_event != NULL)
-        iface->public_interface->channel_event(event, info);
-}
-
-static const SpiceCoreInterfaceInternal core_interface_adapter = {
-    .timer_add = adapter_timer_add,
-    .timer_start = adapter_timer_start,
-    .timer_cancel = adapter_timer_cancel,
-    .timer_remove = adapter_timer_remove,
-    .watch_add = adapter_watch_add,
-    .watch_update_mask = adapter_watch_update_mask,
-    .watch_remove = adapter_watch_remove,
-    .channel_event = adapter_channel_event,
-};
-
 /* Debugging only variable: allow multiple client connections to the spice
  * server */
 #define SPICE_DEBUG_ALLOW_MC_ENV "SPICE_DEBUG_ALLOW_MC"
