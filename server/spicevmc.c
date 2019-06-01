@@ -360,29 +360,24 @@ static RedPipeItem *spicevmc_chardev_read_msg_from_dev(RedCharDevice *self,
 
         msg_item_compressed = try_compress_lz4(channel, n, msg_item);
         if (msg_item_compressed != NULL) {
-            return &msg_item_compressed->base;
+            red_channel_client_pipe_add_push(channel->rcc, &msg_item_compressed->base);
+            return NULL;
         }
 #endif
         stat_inc_counter(channel->out_data, n);
         msg_item->uncompressed_data_size = n;
         msg_item->buf_used = n;
-        return &msg_item->base;
-    } else {
-        channel->pipe_item = msg_item;
+        red_channel_client_pipe_add_push(channel->rcc, &msg_item->base);
         return NULL;
     }
+    channel->pipe_item = msg_item;
+    return NULL;
 }
 
 static void spicevmc_chardev_send_msg_to_client(RedCharDevice *self,
                                                 RedPipeItem *msg,
                                                 RedClient *client)
 {
-    RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
-    RedVmcChannel *channel = RED_VMC_CHANNEL(vmc->channel);
-
-    spice_assert(red_channel_client_get_client(channel->rcc) == client);
-    red_pipe_item_ref(msg);
-    red_channel_client_pipe_add_push(channel->rcc, msg);
 }
 
 static void red_port_init_item_free(struct RedPipeItem *base)
