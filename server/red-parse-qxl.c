@@ -626,9 +626,15 @@ static void red_put_brush(SpiceBrush *red)
 static void red_get_qmask_ptr(RedMemSlotInfo *slots, int group_id,
                               SpiceQMask *red, QXLQMask *qxl, uint32_t flags)
 {
-    red->flags  = qxl->flags;
-    red_get_point_ptr(&red->pos, &qxl->pos);
     red->bitmap = red_get_image(slots, group_id, qxl->bitmap, flags, true);
+    if (red->bitmap) {
+        red->flags  = qxl->flags;
+        red_get_point_ptr(&red->pos, &qxl->pos);
+    } else {
+        red->flags  = 0;
+        red->pos.x = 0;
+        red->pos.y = 0;
+    }
 }
 
 static void red_put_qmask(SpiceQMask *red)
