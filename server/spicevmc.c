@@ -786,7 +786,7 @@ static void spicevmc_connect(RedChannel *channel, RedClient *client,
         return;
     }
 
-    sif = spice_char_device_get_interface(vmc_channel->chardev_sin);
+    sif = spice_char_device_get_interface(sin);
     if (sif->state) {
         sif->state(sin, 1);
     }
