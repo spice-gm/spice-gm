@@ -22,6 +22,8 @@
 #include <libcacard.h>
 #endif
 
+#define RedCharDeviceClientOpaque RedChannelClient
+
 #include "reds.h"
 #include "char-device.h"
 #include "smartcard.h"
@@ -164,24 +166,22 @@ static RedPipeItem *smartcard_read_msg_from_device(RedCharDevice *self,
  * so no mutex is required. */
 static void smartcard_send_msg_to_client(RedCharDevice *self,
                                          RedPipeItem *msg,
-                                         RedClient *client)
+                                         RedChannelClient *client)
 {
     RedCharDeviceSmartcard *dev = RED_CHAR_DEVICE_SMARTCARD(self);
     RedChannelClient *rcc = RED_CHANNEL_CLIENT(dev->priv->scc);
 
-    spice_assert(dev->priv->scc &&
-                 red_channel_client_get_client(rcc) == client);
+    spice_assert(dev->priv->scc && rcc == client);
     red_pipe_item_ref(msg);
     red_channel_client_pipe_add_push(rcc, msg);
 }
 
-static void smartcard_remove_client(RedCharDevice *self, RedClient *client)
+static void smartcard_remove_client(RedCharDevice *self, RedChannelClient *client)
 {
     RedCharDeviceSmartcard *dev = RED_CHAR_DEVICE_SMARTCARD(self);
     RedChannelClient *rcc = RED_CHANNEL_CLIENT(dev->priv->scc);
 
-    spice_assert(dev->priv->scc &&
-                 red_channel_client_get_client(rcc) == client);
+    spice_assert(dev->priv->scc && rcc == client);
     red_channel_client_shutdown(rcc);
 }
 
@@ -305,7 +305,7 @@ void smartcard_char_device_attach_client(SpiceCharDeviceInstance *char_device,
     dev->priv->scc = scc;
     smartcard_channel_client_set_char_device(scc, dev);
     client_added = red_char_device_client_add(RED_CHAR_DEVICE(dev),
-                                              red_channel_client_get_client(RED_CHANNEL_CLIENT(scc)),
+                                              RED_CHANNEL_CLIENT(scc),
                                               FALSE, /* no flow control yet */
                                               0, /* send queue size */
                                               ~0,
@@ -362,7 +362,7 @@ void smartcard_char_device_detach_client(RedCharDeviceSmartcard *smartcard,
 
     spice_assert(smartcard->priv->scc == scc);
     red_char_device_client_remove(RED_CHAR_DEVICE(smartcard),
-                                  red_channel_client_get_client(RED_CHANNEL_CLIENT(scc)));
+                                  RED_CHANNEL_CLIENT(scc));
     smartcard_channel_client_set_char_device(scc, NULL);
     smartcard->priv->scc = NULL;
 

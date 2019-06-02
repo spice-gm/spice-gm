@@ -16,6 +16,8 @@
 */
 #include <config.h>
 
+#define RedCharDeviceClientOpaque RedChannelClient
+
 #include "smartcard-channel-client.h"
 
 struct SmartCardChannelClientPrivate
@@ -121,7 +123,6 @@ smartcard_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
                                            uint16_t type, uint32_t size)
 {
     SmartCardChannelClient *scc = SMARTCARD_CHANNEL_CLIENT(rcc);
-    RedClient *client = red_channel_client_get_client(rcc);
 
     /* TODO: only one reader is actually supported. When we fix the code to support
      * multiple readers, we will probably associate different devices to
@@ -137,7 +138,7 @@ smartcard_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
         spice_assert(smartcard_char_device_get_client(smartcard) || scc->priv->smartcard);
         spice_assert(!scc->priv->write_buf);
         scc->priv->write_buf =
-            red_char_device_write_buffer_get_client(RED_CHAR_DEVICE(smartcard), client, size);
+            red_char_device_write_buffer_get_client(RED_CHAR_DEVICE(smartcard), rcc, size);
 
         if (!scc->priv->write_buf) {
             spice_error("failed to allocate write buffer");
