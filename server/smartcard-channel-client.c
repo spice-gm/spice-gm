@@ -123,9 +123,9 @@ smartcard_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
     SmartCardChannelClient *scc = SMARTCARD_CHANNEL_CLIENT(rcc);
     RedClient *client = red_channel_client_get_client(rcc);
 
-    /* todo: only one reader is actually supported. When we fix the code to support
-     * multiple readers, we will porbably associate different devices to
-     * differenc channels */
+    /* TODO: only one reader is actually supported. When we fix the code to support
+     * multiple readers, we will probably associate different devices to
+     * different channels */
     if (!scc->priv->smartcard) {
         scc->priv->msg_in_write_buf = FALSE;
         return g_malloc(size);
