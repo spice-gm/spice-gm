@@ -137,23 +137,14 @@ RedCharDeviceSmartcard::read_one_msg_from_device()
         dev->priv->buf_pos = dev->priv->buf + remaining;
         dev->priv->buf_used = remaining;
         if (msg_to_client) {
-            return &msg_to_client->base;
+            if (dev->priv->scc) {
+                dev->priv->scc->pipe_add_push(&msg_to_client->base);
+            } else {
+                red_pipe_item_unref(&msg_to_client->base);
+            }
         }
     }
     return NULL;
-}
-
-/* this is called from both device input and client input. since the device is
- * a usb device, the context is still the main thread (kvm_main_loop, timers)
- * so no mutex is required. */
-void
-RedCharDeviceSmartcard::send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque)
-{
-    SmartCardChannelClient *scc = (SmartCardChannelClient *) opaque;
-
-    spice_assert(priv->scc && priv->scc == scc);
-    red_pipe_item_ref(msg);
-    scc->pipe_add_push(msg);
 }
 
 void RedCharDeviceSmartcard::remove_client(RedCharDeviceClientOpaque *opaque)
