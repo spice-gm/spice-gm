@@ -93,13 +93,13 @@ GType red_char_device_get_type(void) G_GNUC_CONST;
  * device attached: create new object instantiating a RedCharDevice child class
  * device detached: call red_char_device_destroy/reset
  *
- * client connected and associated with a device: red_char_device__add
- * client disconnected: red_char_device__remove
+ * client connected and associated with a device: red_char_device_client_add
+ * client disconnected: red_char_device_client_remove
  *
  * Writing to the device
  * ---------------------
  * Write the data into RedCharDeviceWriteBuffer:
- * call red_char_device_write_buffer_get/red_char_device_write_buffer_get_server_no_token
+ * call red_char_device_write_buffer_get_client/red_char_device_write_buffer_get_server
  * in order to get an appropriate buffer.
  * call red_char_device_write_buffer_add in order to push the buffer to the write queue.
  * If you choose not to push the buffer to the device, call
