@@ -174,11 +174,11 @@ void red_client_migrate(RedClient *client)
     RedChannel *channel;
 
     if (!pthread_equal(pthread_self(), client->thread_id)) {
-        spice_warning("client->thread_id (0x%" G_GSIZE_MODIFIER "x) != "
-                      "pthread_self (0x%" G_GSIZE_MODIFIER "x)."
+        spice_warning("client->thread_id (%p) != "
+                      "pthread_self (%p)."
                       "If one of the threads is != io-thread && != vcpu-thread,"
                       " this might be a BUG",
-                      client->thread_id, pthread_self());
+                      (void*) client->thread_id, (void*) pthread_self());
     }
     FOREACH_CHANNEL_CLIENT(client, rcc) {
         if (red_channel_client_is_connected(rcc)) {
@@ -193,12 +193,12 @@ void red_client_destroy(RedClient *client)
     RedChannelClient *rcc;
 
     if (!pthread_equal(pthread_self(), client->thread_id)) {
-        spice_warning("client->thread_id (0x%" G_GSIZE_MODIFIER "x) != "
-                      "pthread_self (0x%" G_GSIZE_MODIFIER "x)."
+        spice_warning("client->thread_id (%p) != "
+                      "pthread_self (%p)."
                       "If one of the threads is != io-thread && != vcpu-thread,"
                       " this might be a BUG",
-                      client->thread_id,
-                      pthread_self());
+                      (void*) client->thread_id,
+                      (void*) pthread_self());
     }
     red_client_set_disconnecting(client);
     FOREACH_CHANNEL_CLIENT(client, rcc) {
