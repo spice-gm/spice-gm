@@ -79,12 +79,15 @@ distcheck:
 makecheck-centos:
   before_script:
     - >
-      yum install git libtool make libasan orc-devel
-      python3 python3-six python3-pyparsing glib-networking
-      yum-utils yum-plugin-copr
+      yum install git libtool make libasan orc-devel glib-networking
+      yum-utils gcc glib2-devel celt051-devel
+      opus-devel pixman-devel openssl-devel libjpeg-devel
+      libcacard-devel cyrus-sasl-devel lz4-devel
+      gstreamer1-devel gstreamer1-plugins-base-devel
+      git-core pyparsing python-six
       -y
-    - yum copr enable @spice/nightly -y
-    - yum-builddep spice -y
+    - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
+    - (cd spice-protocol && ./autogen.sh --prefix=/usr && make install)
   image: centos:latest
   script:
   - >
