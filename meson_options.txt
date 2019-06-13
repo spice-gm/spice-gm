@@ -15,6 +15,7 @@ option('sasl',
 
 option('celt051',
     type : 'feature',
+    value : 'disabled',
     description: 'Enable celt051 audio codec')
 
 option('opus',
