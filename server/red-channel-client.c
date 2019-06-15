@@ -145,6 +145,7 @@ struct RedChannelClientPrivate
         } urgent;
     } send_data;
 
+    bool block_read;
     bool during_send;
     GQueue pipe;
 
@@ -969,8 +970,30 @@ red_channel_client_watch_update_mask(RedChannelClient *rcc, int event_mask)
         return;
     }
 
+    if (rcc->priv->block_read) {
+        event_mask &= ~SPICE_WATCH_EVENT_READ;
+    }
+
     core = red_channel_get_core_interface(rcc->priv->channel);
     core->watch_update_mask(core, rcc->priv->stream->watch, event_mask);
+}
+
+void red_channel_client_block_read(RedChannelClient *rcc)
+{
+    if (rcc->priv->block_read) {
+        return;
+    }
+    rcc->priv->block_read = true;
+    red_channel_client_watch_update_mask(rcc, SPICE_WATCH_EVENT_WRITE);
+}
+
+void red_channel_client_unblock_read(RedChannelClient *rcc)
+{
+    if (!rcc->priv->block_read) {
+        return;
+    }
+    rcc->priv->block_read = false;
+    red_channel_client_watch_update_mask(rcc, SPICE_WATCH_EVENT_READ|SPICE_WATCH_EVENT_WRITE);
 }
 
 static void red_channel_client_seamless_migration_done(RedChannelClient *rcc)
@@ -1213,6 +1236,11 @@ static void red_channel_client_handle_incoming(RedChannelClient *rcc)
         if (buffer->msg_pos < msg_size) {
             if (!buffer->msg) {
                 buffer->msg = red_channel_client_alloc_msg_buf(rcc, msg_type, msg_size);
+                if (buffer->msg == NULL && rcc->priv->block_read) {
+                    // if we are blocked by flow control just return, message will be read
+                    // when data will be available
+                    return;
+                }
                 if (buffer->msg == NULL) {
                     red_channel_warning(channel, "ERROR: channel refused to allocate buffer.");
                     red_channel_client_disconnect(rcc);
