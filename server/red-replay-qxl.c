@@ -311,10 +311,12 @@ static ssize_t red_replay_data_chunks(SpiceReplay *replay, const char *prefix,
     data_size = cur->data_size;
     cur->next_chunk = cur->prev_chunk = 0;
     while (count_chunks-- > 0) {
-        if (read_binary(replay, prefix, &next_data_size, (uint8_t**)&cur->next_chunk,
-            sizeof(QXLDataChunk)) == REPLAY_ERROR) {
+        uint8_t *data = NULL;
+        if (read_binary(replay, prefix, &next_data_size, &data,
+                        sizeof(QXLDataChunk)) == REPLAY_ERROR) {
             return -1;
         }
+        cur->next_chunk = QXLPHYSICAL_FROM_PTR(data);
         data_size += next_data_size;
         next = QXLPHYSICAL_TO_PTR(cur->next_chunk);
         next->prev_chunk = QXLPHYSICAL_FROM_PTR(cur);
@@ -472,7 +474,9 @@ static QXLImage *red_replay_image(SpiceReplay *replay, uint32_t flags)
         if (qxl_flags & QXL_BITMAP_DIRECT) {
             qxl->bitmap.data = QXLPHYSICAL_FROM_PTR(red_replay_image_data_flat(replay, &bitmap_size));
         } else {
-            size = red_replay_data_chunks(replay, "bitmap.data", (uint8_t**)&qxl->bitmap.data, 0);
+            uint8_t *data = NULL;
+            size = red_replay_data_chunks(replay, "bitmap.data", &data, 0);
+            qxl->bitmap.data = QXLPHYSICAL_FROM_PTR(data);
             if (size != bitmap_size) {
                 g_warning("bad image, %" G_GSIZE_FORMAT " != %" G_GSIZE_FORMAT, size, bitmap_size);
                 return NULL;
@@ -710,7 +714,9 @@ static void red_replay_stroke_ptr(SpiceReplay *replay, QXLStroke *qxl, uint32_t 
         size_t size;
 
         replay_fscanf(replay, "attr.style_nseg %d\n", &temp); qxl->attr.style_nseg = temp;
-        read_binary(replay, "style", &size, (uint8_t**)&qxl->attr.style, 0);
+        uint8_t *data = NULL;
+        read_binary(replay, "style", &size, &data, 0);
+        qxl->attr.style = QXLPHYSICAL_FROM_PTR(data);
     }
     red_replay_brush_ptr(replay, &qxl->brush, flags);
     replay_fscanf(replay, "fore_mode %d\n", &temp); qxl->fore_mode = temp;
@@ -1134,7 +1140,9 @@ static QXLSurfaceCmd *red_replay_surface_cmd(SpiceReplay *replay)
         }
         size = qxl->u.surface_create.height * abs(qxl->u.surface_create.stride);
         if ((qxl->flags & QXL_SURF_FLAG_KEEP_DATA) != 0) {
-            read_binary(replay, "data", &read_size, (uint8_t**)&qxl->u.surface_create.data, 0);
+            uint8_t *data = NULL;
+            read_binary(replay, "data", &read_size, &data, 0);
+            qxl->u.surface_create.data = QXLPHYSICAL_FROM_PTR(data);
             if (read_size != size) {
                 g_warning("mismatch %" G_GSIZE_FORMAT " != %" G_GSIZE_FORMAT, size, read_size);
             }
