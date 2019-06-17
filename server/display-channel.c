@@ -2032,7 +2032,11 @@ void display_channel_update(DisplayChannel *display,
     SpiceRect rect;
     RedSurface *surface;
 
-    spice_return_if_fail(display_channel_validate_surface(display, surface_id));
+    // Check that the request is valid, the surface_id comes directly from the guest
+    if (!display_channel_validate_surface(display, surface_id)) {
+        // just return, display_channel_validate_surface already logged a warning
+        return;
+    }
 
     red_get_rect_ptr(&rect, area);
     display_channel_draw(display, &rect, surface_id);
