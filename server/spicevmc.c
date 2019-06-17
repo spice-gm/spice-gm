@@ -491,9 +491,9 @@ static bool handle_compressed_msg(RedVmcChannel *channel, RedChannelClient *rcc,
     int decompressed_size;
     RedCharDeviceWriteBuffer *write_buf;
 
-    write_buf = red_char_device_write_buffer_get_client(channel->chardev,
-                                                        red_channel_client_get_client(rcc),
-                                                        compressed_data_msg->uncompressed_size);
+    write_buf = red_char_device_write_buffer_get_server(channel->chardev,
+                                                        compressed_data_msg->uncompressed_size,
+                                                        false);
     if (!write_buf) {
         return FALSE;
     }
@@ -565,6 +565,15 @@ static bool spicevmc_red_channel_client_handle_message(RedChannelClient *rcc,
     return TRUE;
 }
 
+/* if device manage to send some data attempt to unblock the channel */
+static void spicevmc_on_free_self_token(RedCharDevice *self)
+{
+    RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
+    RedVmcChannel *channel = RED_VMC_CHANNEL(vmc->channel);
+
+    red_channel_client_unblock_read(channel->rcc);
+}
+
 static uint8_t *spicevmc_red_channel_alloc_msg_rcv_buf(RedChannelClient *rcc,
                                                        uint16_t type,
                                                        uint32_t size)
@@ -572,16 +581,14 @@ static uint8_t *spicevmc_red_channel_alloc_msg_rcv_buf(RedChannelClient *rcc,
 
     switch (type) {
     case SPICE_MSGC_SPICEVMC_DATA: {
-        RedClient *client = red_channel_client_get_client(rcc);
         RedVmcChannel *channel = RED_VMC_CHANNEL(red_channel_client_get_channel(rcc));
 
         assert(!channel->recv_from_client_buf);
 
-        channel->recv_from_client_buf = red_char_device_write_buffer_get_client(channel->chardev,
-                                                                                client,
-                                                                                size);
+        channel->recv_from_client_buf = red_char_device_write_buffer_get_server(channel->chardev,
+                                                                                size, true);
         if (!channel->recv_from_client_buf) {
-            spice_error("failed to allocate write buffer");
+            red_channel_client_block_read(rcc);
             return NULL;
         }
         return channel->recv_from_client_buf->buf;
@@ -908,6 +915,7 @@ red_char_device_spicevmc_class_init(RedCharDeviceSpiceVmcClass *klass)
     char_dev_class->send_msg_to_client = spicevmc_chardev_send_msg_to_client;
     char_dev_class->remove_client = spicevmc_char_dev_remove_client;
     char_dev_class->port_event = spicevmc_port_event;
+    char_dev_class->on_free_self_token = spicevmc_on_free_self_token;
 
     g_object_class_install_property(object_class,
                                     PROP_CHANNEL,
@@ -934,7 +942,7 @@ red_char_device_spicevmc_new(SpiceCharDeviceInstance *sin,
                         "sin", sin,
                         "spice-server", reds,
                         "client-tokens-interval", 0ULL,
-                        "self-tokens", ~0ULL,
+                        "self-tokens", 128, // limit number of messages sent to device
                         "channel", channel,
                         NULL);
 }
