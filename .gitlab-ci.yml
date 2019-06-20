@@ -136,3 +136,23 @@ makecheck-windows:
   - mingw64-configure --disable-celt051
   - mingw64-make
   - mingw64-make LOG_COMPILE=wine -C server check || (cat server/tests/test-suite.log && exit 1)
+
+websocket-autobahn:
+  before_script:
+  - apt-get update || true
+  - apt-get install -y python-six python-pyparsing libopus-dev libssl-dev libglib2.0-dev
+  - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
+  - (cd spice-protocol && ./autogen.sh --prefix=/usr && make install)
+  image: crossbario/autobahn-testsuite
+  script:
+  - ./autogen.sh
+  - make -j4
+  - ./server/tests/test-websocket & pid=$!
+  - wstest -m fuzzingclient -s server/tests/fuzzingclient.json
+  - kill $pid
+  - server/tests/autobahn-check-report reports/servers/index.json
+  - rm -rf reports/servers
+  - ./server/tests/test-websocket -n & pid=$!
+  - wstest -m fuzzingclient -s server/tests/fuzzingclient.json
+  - kill $pid
+  - server/tests/autobahn-check-report reports/servers/index.json
