@@ -209,6 +209,15 @@ AC_SUBST(SSL_CFLAGS)
 AC_SUBST(SSL_LIBS)
 AS_VAR_APPEND([SPICE_REQUIRES], [" openssl"])
 
+save_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS $SSL_CFLAGS"
+AC_CHECK_DECLS([SSL_CTX_set_ecdh_auto], [], [], [
+AC_INCLUDES_DEFAULT
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+])
+CFLAGS="$save_CFLAGS"
+
 AC_CHECK_LIB(jpeg, jpeg_destroy_decompress,
     AC_MSG_CHECKING([for jpeglib.h])
     AC_TRY_CPP(
