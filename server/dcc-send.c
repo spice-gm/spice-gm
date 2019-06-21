@@ -1834,7 +1834,7 @@ static void display_channel_marshall_migrate_data(RedChannelClient *rcc,
     spice_marshaller_add_uint32(base_marshaller, SPICE_MIGRATE_DATA_DISPLAY_VERSION);
 
     spice_assert(dcc->priv->pixmap_cache);
-    spice_assert(MIGRATE_DATA_DISPLAY_MAX_CACHE_CLIENTS == 4 &&
+    SPICE_VERIFY(MIGRATE_DATA_DISPLAY_MAX_CACHE_CLIENTS == 4 &&
                  MIGRATE_DATA_DISPLAY_MAX_CACHE_CLIENTS == MAX_CACHE_CLIENTS);
 
     display_data.message_serial = red_channel_client_get_message_serial(rcc);
