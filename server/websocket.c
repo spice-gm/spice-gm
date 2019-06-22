@@ -63,6 +63,8 @@
 
 #define WEBSOCKET_GUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
+static void websocket_ack_close(void *opaque, websocket_write_cb_t write_cb);
+
 /* Perform a case insensitive search for needle in haystack.
    If found, return a pointer to the byte after the end of needle.
    Otherwise, return NULL */
@@ -441,7 +443,7 @@ int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
     return rc;
 }
 
-void websocket_ack_close(void *opaque, websocket_write_cb_t write_cb)
+static void websocket_ack_close(void *opaque, websocket_write_cb_t write_cb)
 {
     unsigned char header[2];
 

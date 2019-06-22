@@ -48,7 +48,6 @@ typedef struct {
 
 bool websocket_is_start(char *buf);
 void websocket_create_reply(char *buf, char *outbuf);
-void websocket_ack_close(void *opaque, websocket_write_cb_t write_cb);
 int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t len);
 int websocket_write(RedsWebSocket *ws, const void *buf, size_t len);
 int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt);
