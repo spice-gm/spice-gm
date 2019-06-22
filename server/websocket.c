@@ -478,10 +478,8 @@ int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
     }
 
     rc = ws->raw_write(ws->raw_stream, buf, len);
-    if (rc <= 0) {
-        ws->write_remainder = len;
-    } else {
-        ws->write_remainder = len - rc;
+    if (rc > 0) {
+        ws->write_remainder -= rc;
     }
     return rc;
 }
