@@ -668,37 +668,41 @@ static int websocket_ack_close(RedsWebSocket *ws)
     return rc;
 }
 
-static bool websocket_is_start(char *buf)
+static bool websocket_is_start(char *buf, bool *p_has_prototol)
 {
-    const char *protocol = find_str(buf, "\nSec-WebSocket-Protocol:");
+    *p_has_prototol = false;
     const char *key = find_str(buf, "\nSec-WebSocket-Key:");
 
     if (strncmp(buf, "GET ", 4) != 0 ||
-            protocol == NULL || key == NULL ||
+            key == NULL ||
             !g_str_has_suffix(buf, "\r\n\r\n")) {
         return false;
     }
 
-    /* check protocol value ignoring spaces before and after */
-    int binary_pos = -1;
-    sscanf(protocol, " binary %n", &binary_pos);
-    if (binary_pos <= 0) {
-        return false;
+    const char *protocol = find_str(buf, "\nSec-WebSocket-Protocol:");
+    if (protocol) {
+        *p_has_prototol = true;
+        /* check protocol value ignoring spaces before and after */
+        int binary_pos = -1;
+        sscanf(protocol, " binary %n", &binary_pos);
+        if (binary_pos <= 0) {
+            return false;
+        }
     }
 
     return true;
 }
 
-static void websocket_create_reply(char *buf, char *outbuf)
+static void websocket_create_reply(char *buf, char *outbuf, bool has_protocol)
 {
     char *key;
 
     key = generate_reply_key(buf);
     sprintf(outbuf, "HTTP/1.1 101 Switching Protocols\r\n"
-                    "Upgrade: websocket\r\n"
+                    "Upgrade: WebSocket\r\n"
                     "Connection: Upgrade\r\n"
-                    "Sec-WebSocket-Accept: %s\r\n"
-                    "Sec-WebSocket-Protocol: binary\r\n\r\n", key);
+                    "Sec-WebSocket-Accept: %s\r\n%s\r\n", key,
+                    has_protocol ? "Sec-WebSocket-Protocol: binary\r\n": "");
     g_free(key);
 }
 
@@ -731,13 +735,14 @@ RedsWebSocket *websocket_new(const void *buf, size_t len, void *stream, websocke
               so it seems wisest to live with this theoretical flaw.
     */
 
-    if (!websocket_is_start(rbuf)) {
+    bool has_protocol;
+    if (!websocket_is_start(rbuf, &has_protocol)) {
         return NULL;
     }
 
     char outbuf[1024];
 
-    websocket_create_reply(rbuf, outbuf);
+    websocket_create_reply(rbuf, outbuf, has_protocol);
     rc = write_cb(stream, outbuf, strlen(outbuf));
     if (rc != strlen(outbuf)) {
         return NULL;
