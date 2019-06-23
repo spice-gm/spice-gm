@@ -313,11 +313,13 @@ static void relay_data(uint8_t* buf, size_t size, websocket_frame_t *frame)
     }
 }
 
-int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
+int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size, unsigned *flags)
 {
     int n = 0;
     int rc;
     websocket_frame_t *frame = &ws->read_frame;
+
+    *flags = 0;
 
     if (ws->closed || ws->close_pending) {
         /* this avoids infinite loop in the case connection is still open and we have
@@ -355,12 +357,14 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
             websocket_clear_frame(frame);
             send_pending_data(ws);
             return 0;
-        } else if (frame->type == BINARY_FRAME) {
+        } else if (frame->type == BINARY_FRAME || frame->type == TEXT_FRAME) {
             rc = ws->raw_read(ws->raw_stream, buf,
                               MIN(size, frame->expected_len - frame->relayed));
             if (rc <= 0) {
                 goto read_error;
             }
+
+            *flags = frame->type;
 
             relay_data(buf, rc, frame);
             n += rc;
@@ -406,6 +410,9 @@ int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t size)
         frame->relayed += rc;
         if (frame->relayed >= frame->expected_len) {
             websocket_clear_frame(frame);
+            if (n) {
+                break;
+            }
         }
     }
 
@@ -421,12 +428,13 @@ read_error:
     return rc;
 }
 
-static int fill_header(uint8_t *header, uint64_t len)
+static int fill_header(uint8_t *header, uint64_t len, uint8_t type)
 {
     int used = 0;
     int i;
 
-    header[0] = FIN_FLAG | BINARY_FRAME;
+    type &= TYPE_MASK;
+    header[0] = FIN_FLAG | (type ? type : BINARY_FRAME);
     used++;
 
     header[1] = 0;
@@ -497,14 +505,14 @@ static int send_data_header_left(RedsWebSocket *ws)
     return -1;
 }
 
-static int send_data_header(RedsWebSocket *ws, uint64_t len)
+static int send_data_header(RedsWebSocket *ws, uint64_t len, uint8_t type)
 {
     spice_assert(ws->write_header_pos >= ws->write_header_len);
     spice_assert(ws->write_remainder == 0);
 
     /* fill a new header */
     ws->write_header_pos = 0;
-    ws->write_header_len = fill_header(ws->write_header, len);
+    ws->write_header_len = fill_header(ws->write_header, len, type);
 
     return send_data_header_left(ws);
 }
@@ -557,7 +565,7 @@ static int send_pending_data(RedsWebSocket *ws)
 }
 
 /* Write a WebSocket frame with the enclosed data out. */
-int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
+int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt, unsigned flags)
 {
     uint64_t len;
     int rc;
@@ -595,7 +603,7 @@ int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
     }
 
     ws->write_header_pos = 0;
-    ws->write_header_len = fill_header(ws->write_header, len);
+    ws->write_header_len = fill_header(ws->write_header, len, flags);
     iov_out[0].iov_len = ws->write_header_len;
     iov_out[0].iov_base = ws->write_header;
     rc = ws->raw_writev(ws->raw_stream, iov_out, iov_out_cnt);
@@ -622,7 +630,7 @@ int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt)
     return rc;
 }
 
-int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
+int websocket_write(RedsWebSocket *ws, const void *buf, size_t len, unsigned flags)
 {
     int rc;
 
@@ -636,7 +644,7 @@ int websocket_write(RedsWebSocket *ws, const void *buf, size_t len)
         return rc;
     }
     if (ws->write_remainder == 0) {
-        rc = send_data_header(ws, len);
+        rc = send_data_header(ws, len, flags);
         if (rc <= 0) {
             return rc;
         }

@@ -21,9 +21,23 @@ typedef ssize_t (*websocket_writev_cb_t)(void *opaque, struct iovec *iov, int io
 
 typedef struct RedsWebSocket RedsWebSocket;
 
+enum {
+    WEBSOCKET_TEXT = 1,
+    WEBSOCKET_BINARY= 2,
+    WEBSOCKET_FINAL = 0x80,
+    WEBSOCKET_TEXT_FINAL = WEBSOCKET_TEXT | WEBSOCKET_FINAL,
+    WEBSOCKET_BINARY_FINAL = WEBSOCKET_BINARY | WEBSOCKET_FINAL,
+};
+
 RedsWebSocket *websocket_new(const void *buf, size_t len, void *stream, websocket_read_cb_t read_cb,
                              websocket_write_cb_t write_cb, websocket_writev_cb_t writev_cb);
 void websocket_free(RedsWebSocket *ws);
-int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t len);
-int websocket_write(RedsWebSocket *ws, const void *buf, size_t len);
-int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt);
+
+/**
+ * Read data from websocket.
+ * Can return 0 in case client sent an empty text/binary data, check
+ * flags to detect this.
+ */
+int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t len, unsigned *flags);
+int websocket_write(RedsWebSocket *ws, const void *buf, size_t len, unsigned flags);
+int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt, unsigned flags);

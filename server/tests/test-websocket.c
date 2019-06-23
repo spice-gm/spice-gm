@@ -220,6 +220,7 @@ handle_client(int new_sock)
 
     char buffer[4096];
     size_t to_send = 0;
+    unsigned ws_flags = WEBSOCKET_BINARY_FINAL;
     while (!got_term) {
         int events = 0;
         if (sizeof(buffer) > to_send) {
@@ -231,7 +232,8 @@ handle_client(int new_sock)
         events = wait_for(new_sock, events);
         if (events & POLLIN) {
             assert(sizeof(buffer) > to_send);
-            int size = websocket_read(ws, (void *) (buffer + to_send), sizeof(buffer) - to_send);
+            int size = websocket_read(ws, (void *) (buffer + to_send), sizeof(buffer) - to_send,
+                                      &ws_flags);
 
             if (size < 0) {
                 if (errno == EIO) {
@@ -254,7 +256,7 @@ handle_client(int new_sock)
         }
 
         if (events & POLLOUT) {
-            int size = websocket_write(ws, buffer, to_send);
+            int size = websocket_write(ws, buffer, to_send, ws_flags);
 
             if (size < 0) {
                 switch (errno) {

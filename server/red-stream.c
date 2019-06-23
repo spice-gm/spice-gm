@@ -1163,17 +1163,23 @@ error:
 
 static ssize_t stream_websocket_read(RedStream *s, void *buf, size_t size)
 {
-    return websocket_read(s->priv->ws, buf, size);
+    unsigned flags;
+    int len;
+
+    do {
+        len = websocket_read(s->priv->ws, buf, size, &flags);
+    } while (len == 0 && flags != 0);
+    return len;
 }
 
 static ssize_t stream_websocket_write(RedStream *s, const void *buf, size_t size)
 {
-    return websocket_write(s->priv->ws, buf, size);
+    return websocket_write(s->priv->ws, buf, size, WEBSOCKET_BINARY_FINAL);
 }
 
 static ssize_t stream_websocket_writev(RedStream *s, const struct iovec *iov, int iovcnt)
 {
-    return websocket_writev(s->priv->ws, (struct iovec *) iov, iovcnt);
+    return websocket_writev(s->priv->ws, (struct iovec *) iov, iovcnt, WEBSOCKET_BINARY_FINAL);
 }
 
 /*
