@@ -2263,8 +2263,6 @@ DisplayChannel* display_channel_new(RedsState *reds,
     return display;
 }
 
-static SpiceCanvas *image_surfaces_get(SpiceImageSurfaces *surfaces, uint32_t surface_id);
-static void drawables_init(DisplayChannel *display);
 static void
 display_channel_init(DisplayChannel *self)
 {
