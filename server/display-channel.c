@@ -2275,12 +2275,17 @@ display_channel_init(DisplayChannel *self)
     self->priv = g_new0(DisplayChannelPrivate, 1);
     self->priv->image_compression = SPICE_IMAGE_COMPRESSION_AUTO_GLZ;
     self->priv->pub = self;
+    self->priv->renderer = RED_RENDERER_INVALID;
+    self->priv->stream_video = SPICE_STREAM_VIDEO_OFF;
 
     image_encoder_shared_init(&self->priv->encoder_shared_data);
 
     ring_init(&self->priv->current_list);
     drawables_init(self);
     self->priv->image_surfaces.ops = &image_surfaces_ops;
+
+    image_cache_init(&self->priv->image_cache);
+    display_channel_init_video_streams(self);
 }
 
 static void
@@ -2293,8 +2298,6 @@ display_channel_constructed(GObject *object)
 
     spice_assert(self->priv->video_codecs);
 
-    self->priv->renderer = RED_RENDERER_INVALID;
-
     stat_init(&self->priv->add_stat, "add", CLOCK_THREAD_CPUTIME_ID);
     stat_init(&self->priv->exclude_stat, "exclude", CLOCK_THREAD_CPUTIME_ID);
     stat_init(&self->priv->__exclude_stat, "__exclude", CLOCK_THREAD_CPUTIME_ID);
@@ -2306,9 +2309,6 @@ display_channel_constructed(GObject *object)
                       "add_to_cache", TRUE);
     stat_init_counter(&self->priv->non_cache_counter, reds, stat,
                       "non_cache", TRUE);
-    image_cache_init(&self->priv->image_cache);
-    self->priv->stream_video = SPICE_STREAM_VIDEO_OFF;
-    display_channel_init_video_streams(self);
 
     red_channel_set_cap(channel, SPICE_DISPLAY_CAP_MONITORS_CONFIG);
     red_channel_set_cap(channel, SPICE_DISPLAY_CAP_PREF_COMPRESSION);
