@@ -15,6 +15,9 @@
  *  License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef WEBSOCKET_H_
+#define WEBSOCKET_H_
+
 typedef ssize_t (*websocket_read_cb_t)(void *opaque, void *buf, size_t nbyte);
 typedef ssize_t (*websocket_write_cb_t)(void *opaque, const void *buf, size_t nbyte);
 typedef ssize_t (*websocket_writev_cb_t)(void *opaque, struct iovec *iov, int iovcnt);
@@ -41,3 +44,5 @@ void websocket_free(RedsWebSocket *ws);
 int websocket_read(RedsWebSocket *ws, uint8_t *buf, size_t len, unsigned *flags);
 int websocket_write(RedsWebSocket *ws, const void *buf, size_t len, unsigned flags);
 int websocket_writev(RedsWebSocket *ws, const struct iovec *iov, int iovcnt, unsigned flags);
+
+#endif
