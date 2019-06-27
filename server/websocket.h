@@ -18,6 +18,10 @@
 #ifndef WEBSOCKET_H_
 #define WEBSOCKET_H_
 
+#include <inttypes.h>
+
+#include "sys-socket.h"
+
 typedef ssize_t (*websocket_read_cb_t)(void *opaque, void *buf, size_t nbyte);
 typedef ssize_t (*websocket_write_cb_t)(void *opaque, const void *buf, size_t nbyte);
 typedef ssize_t (*websocket_writev_cb_t)(void *opaque, struct iovec *iov, int iovcnt);
