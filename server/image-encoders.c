@@ -217,7 +217,7 @@ static void encoder_data_reset(EncoderData *data)
 }
 
 /* Allocate more space for compressed buffer.
- * The pointer returned in io_ptr is garanteed to be aligned to 4 bytes.
+ * The pointer returned in io_ptr is guaranteed to be aligned to 4 bytes.
  */
 static int encoder_usr_more_space(EncoderData *enc_data, uint8_t **io_ptr)
 {
