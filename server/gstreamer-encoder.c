@@ -515,7 +515,8 @@ static void set_video_bit_rate(SpiceGstEncoder *encoder, uint64_t bit_rate)
         encoder->video_bit_rate = bit_rate;
         set_gstenc_bitrate(encoder);
 
-    } else  if (abs(bit_rate - encoder->video_bit_rate) > encoder->video_bit_rate * SPICE_GST_VIDEO_BITRATE_MARGIN) {
+    } else if (i64abs((int64_t)(bit_rate - encoder->video_bit_rate)) >
+               encoder->video_bit_rate * SPICE_GST_VIDEO_BITRATE_MARGIN) {
         encoder->video_bit_rate = bit_rate;
         set_pipeline_changes(encoder, SPICE_GST_VIDEO_PIPELINE_BITRATE);
     }

@@ -75,4 +75,9 @@ int red_channel_name_to_type(const char *name);
 
 void red_dump_openssl_errors(void);
 
+static inline int64_t i64abs(int64_t value)
+{
+    return (value >= 0) ? value : -value;
+}
+
 #endif /* UTILS_H_ */
