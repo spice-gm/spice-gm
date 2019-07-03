@@ -667,7 +667,7 @@ static void set_bit_rate(SpiceGstEncoder *encoder, uint64_t bit_rate)
     encoder->vbuffer_size = new_size;
     update_next_frame_mm_time(encoder);
 
-    /* Frames preceeding the bit rate change are not relevant to the current
+    /* Frames preceding the bit rate change are not relevant to the current
      * situation anymore.
      */
     encoder->stat_first = encoder->history_last;
