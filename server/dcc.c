@@ -1177,7 +1177,7 @@ static int dcc_handle_preferred_video_codec_type(DisplayChannelClient *dcc,
 
         if (video_codec < SPICE_VIDEO_CODEC_TYPE_MJPEG ||
             video_codec >= SPICE_VIDEO_CODEC_TYPE_ENUM_END) {
-            spice_debug("Client has sent unknow video-codec (value %d at index %d). "
+            spice_debug("Client has sent unknown video-codec (value %d at index %d). "
                         "Ignoring as server can't handle it",
                          video_codec, i);
             continue;
