@@ -544,12 +544,14 @@ which are described when running remote-viewer with `--help-spice`.
 To get USB redirection working on Windows clients, you need to install
 http://www.spice-space.org/download/windows/usbdk/[UsbDk]
 
-[[streamingagent]]
-Streaming Agent
+[[videostreaming]]
+Video Streaming
 ===============
 
-The SPICE streaming agent allows to send an encoded video stream of the guest
-desktop to the client.
+SPICE streaming allows sending an encoded video stream of the guest
+desktop to the client. The encoding can be done from the host (inside
+SPICE server) or from the guest, with the help of the SPICE streaming
+agent.
 
 The streaming agent is a daemon/service running in the guest OS so it must be
 installed if it does not yet exist on the guest system.  It relies on a
@@ -557,8 +559,8 @@ dedicated spiceport char device to achieve communication between the guest and
 the host.  This device must be added to the virtual machine as described below
 for the streaming agent to work in the guest.
 
-Configuration
--------------
+Guest Video Encoding: Agent Configuration
+-------------------------------------------
 
 .Using virt-manager
 
@@ -594,6 +596,41 @@ the needed devices for agent support in the guest OS:
 -device virtserialport,bus=virtio-serial0.0,nr=1,chardev=charchannel1,id=channel1,name=org.spice-space.stream.0 \
 -chardev spiceport,name=org.spice-space.stream.0,id=charchannel1
 
+
+Host Video Encoding
+-------------------
+
+For host video encoding, SPICE natively supports MJPEG encoding. For
+using further codecs, SPICE server must be compiled with GStreamer
+support.
+
+.Setting
+
+SPICE video streaming parameter can take three values:
+
+- `off`: no video detection is performed,
+- `all`: any fast-refreshing window can be encoded into a video stream,
+- `filter`: SPICE server adds additional filters to decide if video
+  streaming should be activated (at the moment, only small window
+  surfaces are skipped),
+
+.Using libvirt
+
+The `streaming` tag must be added to Spice `graphics`:
+
+[source,xml]
+
+<graphics type='spice' autoport='yes'>
+    <streaming mode='off|all|filter'/>
+</graphics>
+
+.Using QEMU
+
+Adding the following parameters to your QEMU command line will enable
+SPICE server video encoding:
+
+[source,sh]
+-spice ...,streaming-video=off|all|filter,...
 
 CAC smartcard redirection
 =========================
