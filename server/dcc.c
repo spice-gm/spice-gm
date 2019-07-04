@@ -1193,6 +1193,8 @@ static int dcc_handle_preferred_video_codec_type(DisplayChannelClient *dcc,
 
     /* New client preference */
     dcc_update_preferred_video_codecs(dcc);
+    video_stream_detach_and_stop(DCC_TO_DC(dcc));
+
     return TRUE;
 }
 

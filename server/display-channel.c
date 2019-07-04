@@ -255,6 +255,8 @@ void display_channel_set_video_codecs(DisplayChannel *display, GArray *video_cod
     g_clear_pointer(&display->priv->video_codecs, g_array_unref);
     display->priv->video_codecs = g_array_ref(video_codecs);
     g_object_notify(G_OBJECT(display), "video-codecs");
+
+    video_stream_detach_and_stop(display);
 }
 
 GArray *display_channel_get_video_codecs(DisplayChannel *display)
