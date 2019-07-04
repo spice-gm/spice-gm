@@ -3815,12 +3815,22 @@ static char* parse_next_video_codec(char *codecs, char **encoder, char **codec)
     return codecs + strcspn(codecs, ";");
 }
 
-static void reds_set_video_codecs_from_string(RedsState *reds, const char *codecs)
+/* Enable the encoders/codecs from the list specified in @codecs.
+ *
+ * @reds: the #RedsState to modify
+ * @codecs: a codec string in the following format: encoder:codec;encoder:codec
+ * @installed: (optional): a location to return the number of codecs successfull installed
+ * @return -1 if @codecs is %NULL (@installed is not modified) or the number of invalid
+ *         encoders/codecs found in @codecs.
+ */
+static int reds_set_video_codecs_from_string(RedsState *reds, const char *codecs,
+                                             unsigned int *installed)
 {
     char *encoder_name, *codec_name;
     GArray *video_codecs;
+    int invalid_codecs = 0;
 
-    g_return_if_fail(codecs != NULL);
+    g_return_val_if_fail(codecs != NULL, -1);
 
     if (strcmp(codecs, "auto") == 0) {
         codecs = default_video_codecs;
@@ -3833,15 +3843,19 @@ static void reds_set_video_codecs_from_string(RedsState *reds, const char *codec
         uint32_t encoder_index, codec_index;
         if (!encoder_name || !codec_name) {
             spice_warning("spice: invalid encoder:codec value at %s", codecs);
+            invalid_codecs++;
 
         } else if (!get_name_index(video_encoder_names, encoder_name, &encoder_index)){
             spice_warning("spice: unknown video encoder %s", encoder_name);
+            invalid_codecs++;
 
         } else if (!get_name_index(video_codec_names, codec_name, &codec_index)) {
             spice_warning("spice: unknown video codec %s", codec_name);
+            invalid_codecs++;
 
         } else if (!video_encoder_procs[encoder_index]) {
             spice_warning("spice: unsupported video encoder %s", encoder_name);
+            invalid_codecs++;
 
         } else {
             RedVideoCodec new_codec;
@@ -3862,6 +3876,12 @@ static void reds_set_video_codecs_from_string(RedsState *reds, const char *codec
     }
 
     g_free(codecs_copy);
+
+    if (installed) {
+        *installed = video_codecs->len;
+    }
+
+    return invalid_codecs;
 }
 
 SPICE_GNUC_VISIBLE int spice_server_init(SpiceServer *reds, SpiceCoreInterface *core)
@@ -3873,7 +3893,7 @@ SPICE_GNUC_VISIBLE int spice_server_init(SpiceServer *reds, SpiceCoreInterface *
         reds_add_renderer(reds, default_renderer);
     }
     if (reds->config->video_codecs->len == 0) {
-        reds_set_video_codecs_from_string(reds, default_video_codecs);
+        reds_set_video_codecs_from_string(reds, default_video_codecs, NULL);
     }
     return ret;
 }
@@ -4219,8 +4239,15 @@ uint32_t reds_get_streaming_video(const RedsState *reds)
 
 SPICE_GNUC_VISIBLE int spice_server_set_video_codecs(SpiceServer *reds, const char *video_codecs)
 {
-    reds_set_video_codecs_from_string(reds, video_codecs);
+    unsigned int installed = 0;
+
+    reds_set_video_codecs_from_string(reds, video_codecs, &installed);
+
+    if (!installed) {
+        return -1;
+    }
     reds_on_vc_change(reds);
+
     return 0;
 }
 
