@@ -920,24 +920,7 @@ void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
 
     // add the qxl devices to the message
     FOREACH_QXL_INSTANCE(reds, qxl) {
-        const char *const device_address = red_qxl_get_device_address(qxl);
-        const size_t device_address_len = strlen(device_address) + 1;
-        if (device_address_len == 1) {
-            continue;
-        }
-        for (size_t i = 0; i < red_qxl_get_monitors_count(qxl); ++i) {
-            spice_marshaller_add_uint32(m, qxl->id);
-            spice_marshaller_add_uint32(m, i);
-            spice_marshaller_add_uint32(m, red_qxl_get_device_display_ids(qxl)[i]);
-            spice_marshaller_add_uint32(m, device_address_len);
-            spice_marshaller_add(m, (void*) device_address, device_address_len);
-            ++device_count;
-
-            g_debug("   (qxl)    channel_id: %u monitor_id: %zu, device_address: %s, "
-                    "device_display_id: %u",
-                    qxl->id, i, device_address,
-                    red_qxl_get_device_display_ids(qxl)[i]);
-        }
+        device_count += red_qxl_marshall_device_display_info(qxl, m);
     }
 
     // add the stream devices to the message

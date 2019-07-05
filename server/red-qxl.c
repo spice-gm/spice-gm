@@ -809,22 +809,30 @@ void spice_qxl_set_device_info(QXLInstance *instance,
     reds_send_device_display_info(red_qxl_get_server(instance->st));
 }
 
-const char* red_qxl_get_device_address(const QXLInstance *qxl)
+uint32_t red_qxl_marshall_device_display_info(const QXLInstance *qxl, SpiceMarshaller *m)
 {
     const QXLState *qxl_state = qxl->st;
-    return qxl_state->device_address;
-}
+    uint32_t device_count = 0;
+    const char *const device_address = qxl_state->device_address;
+    const size_t device_address_len = strlen(device_address) + 1;
 
-const uint32_t* red_qxl_get_device_display_ids(const QXLInstance *qxl)
-{
-    const QXLState *qxl_state = qxl->st;
-    return qxl_state->device_display_ids;
-}
+    if (device_address_len == 1) {
+        return 0;
+    }
+    for (size_t i = 0; i < qxl_state->monitors_count; ++i) {
+        spice_marshaller_add_uint32(m, qxl->id);
+        spice_marshaller_add_uint32(m, i);
+        spice_marshaller_add_uint32(m, qxl_state->device_display_ids[i]);
+        spice_marshaller_add_uint32(m, device_address_len);
+        spice_marshaller_add(m, (void*) device_address, device_address_len);
+        ++device_count;
 
-size_t red_qxl_get_monitors_count(const QXLInstance *qxl)
-{
-    const QXLState *qxl_state = qxl->st;
-    return qxl_state->monitors_count;
+        g_debug("   (qxl)    channel_id: %u monitor_id: %zu, device_address: %s, "
+                "device_display_id: %u",
+                qxl->id, i, device_address,
+                qxl_state->device_display_ids[i]);
+    }
+    return device_count;
 }
 
 void red_qxl_init(RedsState *reds, QXLInstance *qxl)
