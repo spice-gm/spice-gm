@@ -27,6 +27,7 @@
 #include "char-device.h"
 #include "spice.h"
 #include "red-channel.h"
+#include "video-encoder.h"
 #include "main-dispatcher.h"
 #include "migration-protocol.h"
 
@@ -54,6 +55,7 @@ void reds_send_device_display_info(RedsState *reds);
 void reds_handle_agent_mouse_event(RedsState *reds, const VDAgentMouseState *mouse_state); // used by inputs_channel
 
 GArray* reds_get_renderers(RedsState *reds);
+char *reds_get_video_codec_fullname(RedVideoCodec *codec);
 
 enum {
     RED_RENDERER_INVALID,

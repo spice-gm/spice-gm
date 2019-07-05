@@ -136,6 +136,22 @@ enum {
 };
 
 int spice_server_set_video_codecs(SpiceServer *s, const char* video_codecs);
+
+/**
+ * Returns a newly allocated string describing video encoders/codecs
+ * currently allowed in @s Spice server. The string returned by
+ * this function must be released with spice_server_free_video_codecs.
+ *
+ * @s: the Spice server to query
+ * @return the string describing the video encoders/codecs currently enabled
+ */
+const char *spice_server_get_video_codecs(SpiceServer *s);
+
+/**
+ * Releases the memory of the video-codec string returned by
+ * spice_server_get_video_codecs.
+ */
+void spice_server_free_video_codecs(SpiceServer *s, const char *video_codecs);
 int spice_server_set_playback_compression(SpiceServer *s, int enable);
 int spice_server_set_agent_mouse(SpiceServer *s, int enable);
 int spice_server_set_agent_copypaste(SpiceServer *s, int enable);

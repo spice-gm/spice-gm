@@ -178,3 +178,9 @@ SPICE_SERVER_0.14.2 {
 global:
     spice_qxl_set_device_info;
 } SPICE_SERVER_0.13.2;
+
+SPICE_SERVER_0.14.3 {
+global:
+    spice_server_get_video_codecs;
+    spice_server_free_video_codecs;
+} SPICE_SERVER_0.14.2;

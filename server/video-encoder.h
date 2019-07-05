@@ -213,4 +213,6 @@ typedef struct RedVideoCodec {
     uint32_t cap;
 } RedVideoCodec;
 
+char *video_codecs_to_string(GArray *video_codecs, const char *sep);
+
 #endif /* VIDEO_ENCODER_H_ */

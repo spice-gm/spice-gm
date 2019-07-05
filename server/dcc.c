@@ -1120,9 +1120,8 @@ static gint sort_video_codecs_by_client_preference(gconstpointer a_pointer,
 
 static void dcc_update_preferred_video_codecs(DisplayChannelClient *dcc)
 {
-    guint i;
     GArray *video_codecs, *server_codecs;
-    GString *msg;
+    char *codecs_str;
 
     server_codecs = display_channel_get_video_codecs(DCC_TO_DC(dcc));
     spice_return_if_fail(server_codecs != NULL);
@@ -1137,13 +1136,9 @@ static void dcc_update_preferred_video_codecs(DisplayChannelClient *dcc)
     g_clear_pointer(&dcc->priv->preferred_video_codecs, g_array_unref);
     dcc->priv->preferred_video_codecs = video_codecs;
 
-    msg = g_string_new("Preferred video-codecs:");
-    for (i = 0; i < video_codecs->len; i++) {
-        RedVideoCodec codec = g_array_index(video_codecs, RedVideoCodec, i);
-        g_string_append_printf(msg, " %d", codec.type);
-    }
-    spice_debug("%s", msg->str);
-    g_string_free(msg, TRUE);
+    codecs_str = video_codecs_to_string(video_codecs, " ");
+    spice_debug("Preferred video-codecs: %s", codecs_str);
+    g_free(codecs_str);
 }
 
 static void on_display_video_codecs_update(GObject *gobject, GParamSpec *pspec, gpointer user_data)

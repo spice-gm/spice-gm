@@ -970,3 +970,26 @@ void video_stream_trace_add_drawable(DisplayChannel *display,
     trace->height = src_area->bottom - src_area->top;
     trace->dest_area = item->red_drawable->bbox;
 }
+
+/*
+ * video_codecs: an array of RedVideoCodec
+ * sep: a string for separating the list elements
+ *
+ * returns a string of "enc:codec<sep>"* that must be released
+ *         with g_free.
+ */
+char *video_codecs_to_string(GArray *video_codecs, const char *sep)
+{
+    int i;
+    GString *msg = g_string_new("");
+
+    for (i = 0; i < video_codecs->len; i++) {
+        RedVideoCodec codec = g_array_index(video_codecs, RedVideoCodec, i);
+        char *codec_name = reds_get_video_codec_fullname(&codec);
+
+        g_string_append_printf(msg, "%s%s", i ? sep : "", codec_name);
+        g_free(codec_name);
+    }
+
+    return g_string_free(msg, FALSE);
+}

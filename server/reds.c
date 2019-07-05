@@ -3708,6 +3708,16 @@ static gboolean get_name_index(const EnumNames names[], const char *name, uint32
     return FALSE;
 }
 
+/* returns NULL if index is invalid. */
+static const char *get_index_name(const EnumNames names[], uint32_t index)
+{
+    while (names->name != NULL && names->id != index) {
+        names++;
+    }
+
+    return names->name;
+}
+
 static const EnumNames renderer_names[] = {
     {RED_RENDERER_SW, "sw"},
     {RED_RENDERER_INVALID, NULL},
@@ -3755,6 +3765,24 @@ static const int video_codec_caps[] = {
     SPICE_DISPLAY_CAP_CODEC_VP9,
 };
 
+char *reds_get_video_codec_fullname(RedVideoCodec *codec)
+{
+    int i;
+    const char *encoder_name = NULL;
+    const char *codec_name = get_index_name(video_codec_names, codec->type);
+
+    spice_assert(codec_name);
+
+    for (i = 0; i < G_N_ELEMENTS(video_encoder_procs); i++) {
+        if (video_encoder_procs[i] == codec->create) {
+            encoder_name = get_index_name(video_encoder_names, i);
+            break;
+        }
+    }
+    spice_assert(encoder_name);
+
+    return g_strdup_printf("%s:%s", encoder_name, codec_name);
+}
 
 /* Parses the given codec string and returns newly-allocated strings describing
  * the next encoder and codec in the list. These strings must be freed by the
@@ -4194,6 +4222,16 @@ SPICE_GNUC_VISIBLE int spice_server_set_video_codecs(SpiceServer *reds, const ch
     reds_set_video_codecs_from_string(reds, video_codecs);
     reds_on_vc_change(reds);
     return 0;
+}
+
+SPICE_GNUC_VISIBLE const char *spice_server_get_video_codecs(SpiceServer *reds)
+{
+    return video_codecs_to_string(reds_get_video_codecs(reds), ";");
+}
+
+SPICE_GNUC_VISIBLE void spice_server_free_video_codecs(SpiceServer *reds, const char *video_codecs)
+{
+    g_free((char *) video_codecs);
 }
 
 GArray* reds_get_video_codecs(const RedsState *reds)
