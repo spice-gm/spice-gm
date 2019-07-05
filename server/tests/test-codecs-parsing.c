@@ -140,7 +140,7 @@ static void codecs_bad(void)
         g_test_expect_message(G_LOG_DOMAIN, test_cases[i].log_level, test_cases[i].error_message);
         if (test_cases[i].default_err_message)
             g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "*Failed to set video codecs*");
-        g_assert_cmpint(spice_server_set_video_codecs(server, test_cases[i].codecs), ==, 0);
+        g_assert_cmpint(spice_server_set_video_codecs(server, test_cases[i].codecs), !=, 0);
         g_test_assert_expected_messages();
     }
 
