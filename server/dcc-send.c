@@ -753,7 +753,6 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
 
         spice_assert(image);
         red_channel_client_pipe_remove_and_release_pos(RED_CHANNEL_CLIENT(dcc), l);
-        pipe_item = &image->base;
     }
 }
 
