@@ -725,7 +725,6 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
         RedPipeItem *pipe_item = l->data;
         Drawable *drawable;
         RedDrawablePipeItem *dpi;
-        RedImageItem *image;
 
         if (pipe_item->type != RED_PIPE_ITEM_TYPE_DRAW)
             continue;
@@ -745,13 +744,12 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
             continue;
         }
 
-        image = dcc_add_surface_area_image(dcc, drawable->red_drawable->surface_id,
-                                           &drawable->red_drawable->bbox, l, TRUE);
+        dcc_add_surface_area_image(dcc, drawable->red_drawable->surface_id,
+                                   &drawable->red_drawable->bbox, l, TRUE);
         resent_surface_ids[num_resent] = drawable->red_drawable->surface_id;
         resent_areas[num_resent] = drawable->red_drawable->bbox;
         num_resent++;
 
-        spice_assert(image);
         red_channel_client_pipe_remove_and_release_pos(RED_CHANNEL_CLIENT(dcc), l);
     }
 }
