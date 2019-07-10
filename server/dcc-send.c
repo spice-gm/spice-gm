@@ -711,7 +711,7 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
     int resent_surface_ids[MAX_PIPE_SIZE];
     SpiceRect resent_areas[MAX_PIPE_SIZE]; // not pointers since drawables may be released
     int num_resent;
-    GList *l;
+    GList *l, *prev;
     GQueue *pipe;
 
     resent_surface_ids[0] = first_surface_id;
@@ -721,11 +721,12 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
     pipe = red_channel_client_get_pipe(RED_CHANNEL_CLIENT(dcc));
 
     // going from the oldest to the newest
-    for (l = pipe->tail; l != NULL; l = l->prev) {
+    for (l = pipe->tail; l != NULL; l = prev) {
         RedPipeItem *pipe_item = l->data;
         Drawable *drawable;
         RedDrawablePipeItem *dpi;
 
+        prev = l->prev;
         if (pipe_item->type != RED_PIPE_ITEM_TYPE_DRAW)
             continue;
         dpi = SPICE_UPCAST(RedDrawablePipeItem, pipe_item);
