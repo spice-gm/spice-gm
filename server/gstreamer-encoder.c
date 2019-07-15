@@ -922,12 +922,7 @@ static gboolean create_pipeline(SpiceGstEncoder *encoder)
     switch (encoder->base.codec_type)
     {
     case SPICE_VIDEO_CODEC_TYPE_MJPEG:
-#ifdef HAVE_GSTREAMER_0_10
         gstenc_opts = g_strdup("");
-#else
-        /* Set max-threads to ensure zero-frame latency */
-        gstenc_opts = g_strdup("max-threads=1");
-#endif
         break;
     case SPICE_VIDEO_CODEC_TYPE_VP9:
     case SPICE_VIDEO_CODEC_TYPE_VP8: {
