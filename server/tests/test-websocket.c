@@ -193,10 +193,10 @@ main(int argc, char **argv)
         ++num_connections;
         handle_client(new_sock);
 
-        close(new_sock);
+        socket_close(new_sock);
     }
 
-    close(sock);
+    socket_close(sock);
     printf("handled %u connections\n", num_connections);
     return 0;
 }
