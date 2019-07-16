@@ -39,6 +39,7 @@
 #include <glib.h>
 #include <signal.h>
 
+#include "net-utils.h"
 #include "websocket.h"
 
 /*
@@ -72,16 +73,6 @@ static GOptionEntry cmd_entries[] = {
 };
 
 static void handle_client(int new_sock);
-
-static void
-set_nonblocking(int sock)
-{
-        unsigned int ioctl_nonblocking = 1;
-
-        if (ioctl(sock, FIONBIO, &ioctl_nonblocking) < 0) {
-            err(1, "ioctl");
-        }
-}
 
 static int
 wait_for(int sock, short events)
@@ -158,7 +149,7 @@ main(int argc, char **argv)
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
 
     if (non_blocking) {
-        set_nonblocking(sock);
+        red_socket_set_non_blocking(sock, true);
     }
 
     struct sockaddr_in sin;
@@ -205,7 +196,7 @@ static void
 handle_client(int new_sock)
 {
     if (non_blocking) {
-        set_nonblocking(new_sock);
+        red_socket_set_non_blocking(new_sock, true);
     }
 
     int enable = 1;
