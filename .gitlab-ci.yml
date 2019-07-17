@@ -8,9 +8,16 @@ before_script:
     glib2-devel celt051-devel pixman-devel alsa-lib-devel openssl-devel libjpeg-turbo-devel
     libcacard-devel cyrus-sasl-devel lz4-devel opus-devel
     gstreamer1-devel gstreamer1-plugins-base-devel
+    dconf
     -y
   - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
   - (cd spice-protocol && ./autogen.sh --prefix=/usr && make install)
+  # This is a workaround for Fedora docker image, this will add some
+  # missing configuration
+  # '/org/gnome/system/location/enabled' is just the first key path
+  # I found, nothing special in it
+  # TODO remove when the image will fix this issue
+  - dconf reset /org/gnome/system/location/enabled || true
 
 makecheck:
   script:
