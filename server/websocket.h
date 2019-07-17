@@ -18,7 +18,7 @@
 #ifndef WEBSOCKET_H_
 #define WEBSOCKET_H_
 
-#include <inttypes.h>
+#include <stdint.h>
 
 #include "sys-socket.h"
 
