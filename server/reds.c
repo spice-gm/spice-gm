@@ -3851,6 +3851,10 @@ static int reds_set_video_codecs_from_string(RedsState *reds, const char *codecs
         codecs = c;
     }
 
+    if (installed) {
+        *installed = video_codecs->len;
+    }
+
     if (video_codecs->len == 0) {
         spice_warning("Failed to set video codecs, input string: '%s'", codecs);
         g_array_unref(video_codecs);
@@ -3859,10 +3863,6 @@ static int reds_set_video_codecs_from_string(RedsState *reds, const char *codecs
     }
 
     g_free(codecs_copy);
-
-    if (installed) {
-        *installed = video_codecs->len;
-    }
 
     return invalid_codecs;
 }
