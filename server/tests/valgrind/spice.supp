@@ -36,3 +36,22 @@
 	...
 	fun:p11_kit_modules_load
 }
+
+{
+	gnutls_x509_ext_import_subject_alt_names
+	Memcheck:Cond
+	...
+	fun:gnutls_x509_ext_import_subject_alt_names
+	fun:gnutls_x509_crt_import
+	fun:gnutls_x509_trust_list_iter_get_ca
+}
+
+{
+	glib_g_socket_client_class_init
+	Memcheck:Leak
+	fun:calloc
+	...
+	fun:type_class_init_Wm
+	...
+	fun:g_socket_client_class_init
+}
