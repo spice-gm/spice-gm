@@ -1,7 +1,7 @@
 NULL =
 
 @VALGRIND_CHECK_RULES@
-VALGRIND_SUPPRESSIONS_FILES = $(srcdir)/valgrind/glib.supp
+VALGRIND_SUPPRESSIONS_FILES = $(srcdir)/valgrind/glib.supp $(srcdir)/valgrind/spice.supp
 EXTRA_DIST =				\
 	$(VALGRIND_SUPPRESSIONS_FILES)	\
 	meson.build			\

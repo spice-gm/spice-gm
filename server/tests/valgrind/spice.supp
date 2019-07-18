@@ -1,0 +1,38 @@
+{
+	px_proxy_factory_get_proxies
+	Memcheck:Leak
+	fun:malloc
+	fun:tls_get_addr_tail
+	...
+	fun:px_proxy_factory_get_proxies
+}
+
+{
+	px_proxy_factory_get_proxies2
+	Memcheck:Leak
+	fun:malloc
+	...
+	fun:__tls_get_addr
+	...
+	fun:px_proxy_factory_get_proxies
+}
+
+{
+	gnutls_tls_rnd_leak
+	Memcheck:Leak
+	fun:malloc
+	...
+	fun:__tls_get_addr
+	...
+	fun:gnutls_rnd
+}
+
+{
+	gnutls_tls_p11_kit_leak
+	Memcheck:Leak
+	fun:malloc
+	...
+	fun:__tls_get_addr
+	...
+	fun:p11_kit_modules_load
+}
