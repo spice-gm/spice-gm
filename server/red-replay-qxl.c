@@ -416,7 +416,7 @@ static uint8_t *red_replay_image_data_flat(SpiceReplay *replay, size_t *size)
 
 static QXLImage *red_replay_image(SpiceReplay *replay, uint32_t flags)
 {
-    QXLImage* qxl = NULL;
+    QXLImage* qxl = NULL, *data;
     size_t bitmap_size;
     ssize_t size;
     uint8_t qxl_flags;
@@ -497,10 +497,15 @@ static QXLImage *red_replay_image(SpiceReplay *replay, uint32_t flags)
         if (replay->error) {
             return NULL;
         }
-        qxl = replay_realloc(replay, qxl, sizeof(QXLImageDescriptor) + sizeof(QXLQUICData) +
-                             qxl->quic.data_size);
-        size = red_replay_data_chunks(replay, "quic.data", (uint8_t**)&qxl->quic.data, 0);
+        data = NULL;
+        size = red_replay_data_chunks(replay, "quic.data", (uint8_t**)&data,
+                                      sizeof(QXLImageDescriptor) + sizeof(QXLQUICData) +
+                                      sizeof(QXLDataChunk));
         spice_assert(size == qxl->quic.data_size);
+        data->descriptor = qxl->descriptor;
+        data->quic.data_size = qxl->quic.data_size;
+        replay_free(replay, qxl);
+        qxl = data;
         break;
     default:
         spice_warn_if_reached();
@@ -526,7 +531,9 @@ static void red_replay_image_free(SpiceReplay *replay, QXLPHYSICAL p, uint32_t f
     case SPICE_IMAGE_TYPE_SURFACE:
         break;
     case SPICE_IMAGE_TYPE_QUIC:
-        red_replay_data_chunks_free(replay, qxl, 0);
+        red_replay_data_chunks_free(replay, qxl,
+                                    sizeof(QXLImageDescriptor) + sizeof(QXLQUICData) +
+                                    sizeof(QXLDataChunk));
         qxl = NULL;
         break;
     default:
