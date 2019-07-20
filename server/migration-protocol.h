@@ -28,11 +28,13 @@
  * src-server to dst-server migration data messages
  * ************************************************/
 
+#include <spice/start-packed.h>
+
 /* increase the version when the version of any
  * of the migration data messages is increased */
 #define SPICE_MIGRATION_PROTOCOL_VERSION 1
 
-typedef struct __attribute__ ((__packed__)) SpiceMigrateDataHeader {
+typedef struct SPICE_ATTR_PACKED SpiceMigrateDataHeader {
     uint32_t magic;
     uint32_t version;
 } SpiceMigrateDataHeader;
@@ -46,7 +48,7 @@ typedef struct __attribute__ ((__packed__)) SpiceMigrateDataHeader {
 #define SPICE_MIGRATE_DATA_CHAR_DEVICE_VERSION 1
 
 /* Should be the first field of any of the char_devices migration data (see write_data_ptr) */
-typedef struct __attribute__ ((__packed__)) SpiceMigrateDataCharDevice {
+typedef struct SPICE_ATTR_PACKED SpiceMigrateDataCharDevice {
     uint32_t version;
     uint8_t connected;
     uint32_t num_client_tokens;
@@ -64,7 +66,7 @@ typedef struct __attribute__ ((__packed__)) SpiceMigrateDataCharDevice {
 #define SPICE_MIGRATE_DATA_SPICEVMC_VERSION 1 /* NOTE: increase version when CHAR_DEVICE_VERSION
                                                  is increased */
 #define SPICE_MIGRATE_DATA_SPICEVMC_MAGIC SPICE_MAGIC_CONST("SVMD")
-typedef struct __attribute__ ((__packed__)) SpiceMigrateDataSpiceVmc {
+typedef struct SPICE_ATTR_PACKED SpiceMigrateDataSpiceVmc {
     SpiceMigrateDataCharDevice base;
 } SpiceMigrateDataSpiceVmc;
 
@@ -75,7 +77,7 @@ typedef struct __attribute__ ((__packed__)) SpiceMigrateDataSpiceVmc {
 #define SPICE_MIGRATE_DATA_SMARTCARD_VERSION 1 /* NOTE: increase version when CHAR_DEVICE_VERSION
                                                   is increased */
 #define SPICE_MIGRATE_DATA_SMARTCARD_MAGIC SPICE_MAGIC_CONST("SCMD")
-typedef struct __attribute__ ((__packed__)) SpiceMigrateDataSmartcard {
+typedef struct SPICE_ATTR_PACKED SpiceMigrateDataSmartcard {
     SpiceMigrateDataCharDevice base;
     uint8_t reader_added;
     uint32_t read_size; /* partial data read from dev */
@@ -89,11 +91,11 @@ typedef struct __attribute__ ((__packed__)) SpiceMigrateDataSmartcard {
                                              is increased */
 #define SPICE_MIGRATE_DATA_MAIN_MAGIC SPICE_MAGIC_CONST("MNMD")
 
-typedef struct __attribute__ ((__packed__)) SpiceMigrateDataMain {
+typedef struct SPICE_ATTR_PACKED SpiceMigrateDataMain {
     SpiceMigrateDataCharDevice agent_base;
     uint8_t client_agent_started; /* for discarding messages */
 
-    struct __attribute__ ((__packed__)) {
+    struct SPICE_ATTR_PACKED {
         /* partial data read from device. Such data is stored only
          * if the chunk header or the entire msg header haven't yet been read completely.
          * Once the headers are read, partial reads of chunks can be sent as
@@ -107,7 +109,7 @@ typedef struct __attribute__ ((__packed__)) SpiceMigrateDataMain {
         uint8_t msg_filter_result;
     } agent2client;
 
-    struct __attribute__ ((__packed__)) {
+    struct SPICE_ATTR_PACKED {
         uint32_t msg_remaining;
         uint8_t msg_filter_result;
     } client2agent;
@@ -128,7 +130,7 @@ typedef struct __attribute__ ((__packed__)) SpiceMigrateDataMain {
  * */
 #define MIGRATE_DATA_DISPLAY_MAX_CACHE_CLIENTS 4
 
-typedef struct __attribute__ ((__packed__)) SpiceMigrateDataDisplay {
+typedef struct SPICE_ATTR_PACKED SpiceMigrateDataDisplay {
     uint64_t message_serial;
     uint8_t low_bandwidth_setting;
 
@@ -159,28 +161,28 @@ typedef struct __attribute__ ((__packed__)) SpiceMigrateDataDisplay {
 
 } SpiceMigrateDataDisplay;
 
-typedef struct __attribute__ ((__packed__)) SpiceMigrateDataRect {
+typedef struct SPICE_ATTR_PACKED SpiceMigrateDataRect {
     int32_t left;
     int32_t top;
     int32_t right;
     int32_t bottom;
 } SpiceMigrateDataRect;
 
-typedef struct __attribute__ ((__packed__)) MigrateDisplaySurfaceLossless {
+typedef struct SPICE_ATTR_PACKED MigrateDisplaySurfaceLossless {
     uint32_t id;
 } MigrateDisplaySurfaceLossless;
 
-typedef struct __attribute__ ((__packed__)) MigrateDisplaySurfaceLossy {
+typedef struct SPICE_ATTR_PACKED MigrateDisplaySurfaceLossy {
     uint32_t id;
     SpiceMigrateDataRect lossy_rect;
 } MigrateDisplaySurfaceLossy;
 
-typedef struct __attribute__ ((__packed__)) MigrateDisplaySurfacesAtClientLossless {
+typedef struct SPICE_ATTR_PACKED MigrateDisplaySurfacesAtClientLossless {
     uint32_t num_surfaces;
     MigrateDisplaySurfaceLossless surfaces[0];
 } MigrateDisplaySurfacesAtClientLossless;
 
-typedef struct __attribute__ ((__packed__)) MigrateDisplaySurfacesAtClientLossy {
+typedef struct SPICE_ATTR_PACKED MigrateDisplaySurfacesAtClientLossy {
     uint32_t num_surfaces;
     MigrateDisplaySurfaceLossy surfaces[0];
 } MigrateDisplaySurfacesAtClientLossy;
@@ -193,9 +195,11 @@ typedef struct __attribute__ ((__packed__)) MigrateDisplaySurfacesAtClientLossy 
 #define SPICE_MIGRATE_DATA_INPUTS_MAGIC SPICE_MAGIC_CONST("ICMD")
 
 
-typedef struct __attribute__ ((__packed__)) SpiceMigrateDataInputs {
+typedef struct SPICE_ATTR_PACKED SpiceMigrateDataInputs {
     uint16_t motion_count;
 } SpiceMigrateDataInputs;
+
+#include <spice/end-packed.h>
 
 static inline int migration_protocol_validate_header(SpiceMigrateDataHeader *header,
                                                      uint32_t magic,

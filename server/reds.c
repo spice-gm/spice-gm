@@ -256,7 +256,8 @@ struct RedCharDeviceVDIPortPrivate {
 };
 
 /* messages that are addressed to the agent and are created in the server */
-typedef struct __attribute__ ((__packed__)) VDInternalBuf {
+#include <spice/start-packed.h>
+typedef struct SPICE_ATTR_PACKED VDInternalBuf {
     VDIChunkHeader chunk_header;
     VDAgentMessage header;
     union {
@@ -265,6 +266,7 @@ typedef struct __attribute__ ((__packed__)) VDInternalBuf {
     }
     u;
 } VDInternalBuf;
+#include <spice/end-packed.h>
 
 SPICE_DECLARE_TYPE(RedCharDeviceVDIPort, red_char_device_vdi_port, CHAR_DEVICE_VDIPORT);
 #define RED_TYPE_CHAR_DEVICE_VDIPORT red_char_device_vdi_port_get_type()
