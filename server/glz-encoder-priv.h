@@ -76,7 +76,7 @@ struct WindowImageSegment {
 };
 
 
-struct  __attribute__ ((__packed__)) HashEntry {
+struct HashEntry {
     uint32_t image_seg_idx;
     uint32_t ref_pix_idx;
 };
