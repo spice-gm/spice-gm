@@ -74,7 +74,7 @@ endif
 if spice_server_has_gstreamer
   tests += [['test-gst', false]]
   if get_option('extra-checks')
-    test('video-encoders', files('video-encoders'))
+    test('test-video-encoders', files('test-video-encoders'))
   endif
 endif
 

@@ -139,13 +139,13 @@ libtest_stat3_a_CPPFLAGS = $(AM_CPPFLAGS) -DTEST_COMPRESS_STAT=1 -DTEST_RED_WORK
 libtest_stat4_a_SOURCES = stat-test.c
 libtest_stat4_a_CPPFLAGS = $(AM_CPPFLAGS) -DTEST_COMPRESS_STAT=1 -DTEST_RED_WORKER_STAT=1 -DTEST_NAME=stat_test4
 
-## test-gst (helper) and video-encoders (test)
+## test-gst (helper) and test-video-encoders (test)
 
 if HAVE_GSTREAMER
 noinst_PROGRAMS += test-gst
 
 if ENABLE_EXTRA_CHECKS
-TESTS += video-encoders
+TESTS += test-video-encoders
 endif
 
 test_gst_SOURCES = test-gst.c \
@@ -157,7 +157,7 @@ test_gst_CPPFLAGS = \
 	$(NULL)
 endif
 
-EXTRA_DIST += video-encoders
+EXTRA_DIST += test-video-encoders
 
 if HAVE_SASL
 check_PROGRAMS += test-sasl
