@@ -481,9 +481,8 @@ int main(int argc, char **argv)
     free_queue(cursor_queue);
     end_replay();
 
-    /* FIXME: there should be a way to join server threads before:
-     * g_main_loop_unref(loop);
-     */
+    g_main_loop_unref(loop);
+    basic_event_loop_destroy();
 
     return 0;
 }
