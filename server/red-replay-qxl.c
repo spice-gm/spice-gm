@@ -29,8 +29,8 @@
 #include "memslot.h"
 #include "red-parse-qxl.h"
 
-#define QXLPHYSICAL_FROM_PTR(ptr) ((QXLPHYSICAL)(intptr_t)(ptr))
-#define QXLPHYSICAL_TO_PTR(phy) ((void*)(intptr_t)(phy))
+#define QXLPHYSICAL_FROM_PTR(ptr) ((QXLPHYSICAL)(uintptr_t)(ptr))
+#define QXLPHYSICAL_TO_PTR(phy) ((void*)(uintptr_t)(phy))
 
 typedef enum {
     REPLAY_OK = 0,
