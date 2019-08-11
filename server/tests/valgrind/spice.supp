@@ -42,6 +42,7 @@
 	Memcheck:Cond
 	...
 	fun:gnutls_x509_ext_import_subject_alt_names
+	...
 	fun:gnutls_x509_crt_import
 	fun:gnutls_x509_trust_list_iter_get_ca
 }
