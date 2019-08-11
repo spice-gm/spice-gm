@@ -372,6 +372,15 @@ The macro may include additional information, e.g. a component. For example a fi
 
 Historically, some headers added underscores liberally, e.g. MY_MODULE_H_. This is neither necessary nor discouraged, although as a reminder, a leading underscore followed by a capital letter is reserved for the implementation and should not be used, so _MY_MODULE_H is, technically speaking, invalid C.
 
+Alternatively (recommended on newer code) you can use the `pragma once` directive, as:
+
+[source,c]
+----
+#pragma once
+
+...
+----
+
 Header inclusion
 ----------------
 
