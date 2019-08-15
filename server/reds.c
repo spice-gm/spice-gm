@@ -3301,8 +3301,8 @@ static void reds_on_char_device_destroy(RedsState *reds,
     reds->char_devices = g_list_remove(reds->char_devices, dev);
 }
 
-static int spice_server_char_device_add_interface(SpiceServer *reds,
-                                           SpiceBaseInstance *sin)
+static int
+spice_server_char_device_add_interface(SpiceServer *reds, SpiceBaseInstance *sin)
 {
     SpiceCharDeviceInstance* char_device =
             SPICE_UPCAST(SpiceCharDeviceInstance, sin);
