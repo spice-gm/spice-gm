@@ -233,6 +233,6 @@ void stat_file_remove_node(RedStatFile *stat_file, StatNodeRef ref)
 
 void stat_file_remove_counter(RedStatFile *stat_file, uint64_t *counter)
 {
-    stat_file_remove(stat_file, (SpiceStatNode *)(counter - SPICE_OFFSETOF(SpiceStatNode, value)));
+    stat_file_remove(stat_file, SPICE_CONTAINEROF(counter, SpiceStatNode, value));
 }
 #endif
