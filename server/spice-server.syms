@@ -10,7 +10,6 @@ global:
     spice_server_get_sock_info;
     spice_server_init;
     spice_server_kbd_leds;
-    spice_server_migrate_client_state;
     spice_server_migrate_end;
     spice_server_migrate_info;
     spice_server_migrate_start;
