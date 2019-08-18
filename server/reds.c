@@ -3138,9 +3138,9 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
     reds->vdagent = sin;
     reds_update_mouse_mode(reds);
 
-    sif = spice_char_device_get_interface(reds->vdagent);
+    sif = spice_char_device_get_interface(sin);
     if (sif->state) {
-        sif->state(reds->vdagent, 1);
+        sif->state(sin, 1);
     }
 
     if (!reds_main_channel_connected(reds)) {
