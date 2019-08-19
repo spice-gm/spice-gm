@@ -1373,12 +1373,9 @@ void reds_marshall_migrate_data(RedsState *reds, SpiceMarshaller *m)
            (see reds_reset_vdp) */
         spice_assert(!agent_dev->priv->agent_attached);
         red_char_device_migrate_data_marshall_empty(m);
-        null_agent_mig_data = spice_marshaller_reserve_space(m,
-                                                             sizeof(SpiceMigrateDataMain) -
-                                                             sizeof(SpiceMigrateDataCharDevice));
-        memset(null_agent_mig_data,
-               0,
-               sizeof(SpiceMigrateDataMain) - sizeof(SpiceMigrateDataCharDevice));
+        size_t padding_len = sizeof(SpiceMigrateDataMain) - sizeof(SpiceMigrateDataCharDevice);
+        null_agent_mig_data = spice_marshaller_reserve_space(m, padding_len);
+        memset(null_agent_mig_data, 0, padding_len);
         return;
     }
 
