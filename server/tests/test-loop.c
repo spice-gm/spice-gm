@@ -78,7 +78,8 @@ static SpiceTimer *twice_timers_remove[2] = { NULL, NULL };
 static int twice_remove_called = 0;
 static void timer_not_twice_remove(void *opaque)
 {
-    spice_assert(++twice_remove_called == 1);
+    ++twice_remove_called;
+    spice_assert(twice_remove_called == 1);
 
     /* delete timers, should not have another call */
     core->timer_remove(twice_timers_remove[0]);
