@@ -211,7 +211,6 @@ if host_machine.system() == 'windows'
 endif
 
 configure_file(output : 'config.h',
-               install : false,
                configuration : spice_server_config_data)
 
 #
