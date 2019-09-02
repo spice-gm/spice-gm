@@ -147,6 +147,7 @@ void video_stream_detach_and_stop(DisplayChannel *display);
 void video_stream_trace_add_drawable(DisplayChannel *display, Drawable *item);
 void video_stream_detach_behind(DisplayChannel *display, QRegion *region,
                                 Drawable *drawable);
+GArray *video_stream_parse_preferred_codecs(SpiceMsgcDisplayPreferredVideoCodecType *msg);
 
 void video_stream_agent_unref(DisplayChannel *display, VideoStreamAgent *agent);
 void video_stream_agent_stop(VideoStreamAgent *agent);

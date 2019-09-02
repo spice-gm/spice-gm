@@ -1158,38 +1158,10 @@ static void on_display_video_codecs_update(GObject *gobject, GParamSpec *pspec, 
 static int dcc_handle_preferred_video_codec_type(DisplayChannelClient *dcc,
                                                  SpiceMsgcDisplayPreferredVideoCodecType *msg)
 {
-    gint i, len;
-    gint indexes[SPICE_VIDEO_CODEC_TYPE_ENUM_END];
-    GArray *client;
-
     g_return_val_if_fail(msg->num_of_codecs > 0, TRUE);
 
-    /* set default to a big and positive number */
-    memset(indexes, 0x7f, sizeof(indexes));
-
-    for (len = 0, i = 0; i < msg->num_of_codecs; i++) {
-        gint video_codec = msg->codecs[i];
-
-        if (video_codec < SPICE_VIDEO_CODEC_TYPE_MJPEG ||
-            video_codec >= SPICE_VIDEO_CODEC_TYPE_ENUM_END) {
-            spice_debug("Client has sent unknown video-codec (value %d at index %d). "
-                        "Ignoring as server can't handle it",
-                         video_codec, i);
-            continue;
-        }
-
-        if (indexes[video_codec] < SPICE_VIDEO_CODEC_TYPE_ENUM_END) {
-            continue;
-        }
-
-        len++;
-        indexes[video_codec] = len;
-    }
-    client = g_array_sized_new(FALSE, FALSE, sizeof(gint), SPICE_VIDEO_CODEC_TYPE_ENUM_END);
-    g_array_append_vals(client, indexes, SPICE_VIDEO_CODEC_TYPE_ENUM_END);
-
     g_clear_pointer(&dcc->priv->client_preferred_video_codecs, g_array_unref);
-    dcc->priv->client_preferred_video_codecs = client;
+    dcc->priv->client_preferred_video_codecs = video_stream_parse_preferred_codecs(msg);
 
     /* New client preference */
     dcc_update_preferred_video_codecs(dcc);

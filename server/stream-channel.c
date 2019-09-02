@@ -52,6 +52,9 @@ struct StreamChannelClient {
     /* current video stream id, <0 if not initialized or
      * we are not sending a stream */
     int stream_id;
+    /* Array with SPICE_VIDEO_CODEC_TYPE_ENUM_END elements, with the client
+     * preference order (index) as value */
+    GArray *client_preferred_video_codecs;
 };
 
 struct StreamChannelClientClass {
@@ -114,15 +117,30 @@ typedef struct StreamDataItem {
 #define PRIMARY_SURFACE_ID 0
 
 static void stream_channel_client_on_disconnect(RedChannelClient *rcc);
+static bool
+stream_channel_handle_preferred_video_codec_type(RedChannelClient *rcc,
+                                                 SpiceMsgcDisplayPreferredVideoCodecType *msg);
 
 RECORDER(stream_channel_data, 32, "Stream channel data packet");
 
 static void
+stream_channel_client_finalize(GObject *object)
+{
+    StreamChannelClient *self = STREAM_CHANNEL_CLIENT(object);
+    g_clear_pointer(&self->client_preferred_video_codecs, g_array_unref);
+
+    G_OBJECT_CLASS(stream_channel_client_parent_class)->finalize(object);
+}
+
+static void
 stream_channel_client_class_init(StreamChannelClientClass *klass)
 {
+    GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
     RedChannelClientClass *channel_class = RED_CHANNEL_CLIENT_CLASS(klass);
 
     channel_class->on_disconnect = stream_channel_client_on_disconnect;
+    object_class->finalize = stream_channel_client_finalize;
 }
 
 static void
@@ -324,6 +342,9 @@ handle_message(RedChannelClient *rcc, uint16_t type, uint32_t size, void *msg)
     case SPICE_MSGC_DISPLAY_GL_DRAW_DONE:
         /* client should not send this message */
         return false;
+    case SPICE_MSGC_DISPLAY_PREFERRED_VIDEO_CODEC_TYPE:
+        return stream_channel_handle_preferred_video_codec_type(rcc,
+            (SpiceMsgcDisplayPreferredVideoCodecType *)msg);
     default:
         return red_channel_client_handle_message(rcc, type, size, msg);
     }
@@ -390,6 +411,22 @@ stream_channel_get_supported_codecs(StreamChannel *channel, uint8_t *out_codecs)
     return num;
 }
 
+static bool
+stream_channel_handle_preferred_video_codec_type(RedChannelClient *rcc,
+                                                 SpiceMsgcDisplayPreferredVideoCodecType *msg)
+{
+    StreamChannelClient *client = STREAM_CHANNEL_CLIENT(rcc);
+
+    if (msg->num_of_codecs == 0) {
+        return true;
+    }
+
+    g_clear_pointer(&client->client_preferred_video_codecs, g_array_unref);
+    client->client_preferred_video_codecs = video_stream_parse_preferred_codecs(msg);
+
+    return true;
+}
+
 static void
 stream_channel_connect(RedChannel *red_channel, RedClient *red_client, RedStream *stream,
                        int migration, RedChannelCapabilities *caps)
@@ -448,6 +485,7 @@ stream_channel_constructed(GObject *object)
 
     red_channel_set_cap(red_channel, SPICE_DISPLAY_CAP_MONITORS_CONFIG);
     red_channel_set_cap(red_channel, SPICE_DISPLAY_CAP_STREAM_REPORT);
+    red_channel_set_cap(red_channel, SPICE_DISPLAY_CAP_PREF_VIDEO_CODEC_TYPE);
 
     reds_register_channel(reds, red_channel);
 }
