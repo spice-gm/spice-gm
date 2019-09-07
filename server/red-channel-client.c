@@ -178,8 +178,7 @@ static bool red_channel_client_config_socket(RedChannelClient *rcc);
  */
 #define spice_channel_client_error(rcc, format, ...)                                     \
     do {                                                                                 \
-        RedChannel *_ch = red_channel_client_get_channel(rcc);                           \
-        red_channel_warning(_ch, format, ## __VA_ARGS__);                                \
+        red_channel_warning(rcc->priv->channel, format, ## __VA_ARGS__);                 \
         red_channel_client_shutdown(rcc);                                                \
     } while (0)
 
