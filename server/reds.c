@@ -3148,16 +3148,6 @@ static void reds_mig_finished(RedsState *reds, int completed)
     reds_mig_release(reds->config);
 }
 
-static void reds_mig_switch(RedsState *reds)
-{
-    if (!reds->config->mig_spice) {
-        spice_warning("reds_mig_switch called without migrate_info set");
-        return;
-    }
-    main_channel_migrate_switch(reds->main_channel, reds->config->mig_spice);
-    reds_mig_release(reds->config);
-}
-
 static void migrate_timeout(void *opaque)
 {
     RedsState *reds = opaque;
@@ -4427,7 +4417,12 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_switch(SpiceServer *reds)
        return 0;
     }
     reds->expect_migrate = FALSE;
-    reds_mig_switch(reds);
+    if (!reds->config->mig_spice) {
+        spice_warning("spice_server_migrate_switch called without migrate_info set");
+        return 0;
+    }
+    main_channel_migrate_switch(reds->main_channel, reds->config->mig_spice);
+    reds_mig_release(reds->config);
     return 0;
 }
 
