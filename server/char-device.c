@@ -158,6 +158,8 @@ static void red_char_device_write_buffer_free(RedCharDeviceWriteBuffer *buf)
     if (buf) {
         g_free(buf->priv);
     }
+    /* NOTE: do not free buf. buf was contained into a larger structure
+     * which contained both private and public part and was freed above */
 }
 
 static void write_buffers_queue_free(GQueue *write_queue)
