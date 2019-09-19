@@ -804,7 +804,7 @@ void spice_qxl_set_device_info(QXLInstance *instance,
     }
 
     instance->st->monitors_count = device_display_id_count;
-    instance->st->max_monitors = device_display_id_count;
+    instance->st->max_monitors = MAX(1u, device_display_id_count);
 
     reds_send_device_display_info(red_qxl_get_server(instance->st));
 }
