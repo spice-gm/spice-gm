@@ -566,7 +566,7 @@ void main_channel_client_handle_migrate_end(MainChannelClient *mcc)
         red_channel_warning(red_channel_client_get_channel(RED_CHANNEL_CLIENT(mcc)),
                             "unexpected SPICE_MSGC_MIGRATE_END, "
                             "client does not support semi-seamless migration");
-            return;
+        return;
     }
     red_client_semi_seamless_migrate_complete(client);
 }
