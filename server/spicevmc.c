@@ -942,7 +942,7 @@ red_char_device_spicevmc_new(SpiceCharDeviceInstance *sin,
                         "sin", sin,
                         "spice-server", reds,
                         "client-tokens-interval", 0ULL,
-                        "self-tokens", 128, // limit number of messages sent to device
+                        "self-tokens", UINT64_C(128), // limit number of messages sent to device
                         "channel", channel,
                         NULL);
 }
