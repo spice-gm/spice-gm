@@ -16,7 +16,7 @@ Will leave a log file, migrate_test.log, in current directory.
 """
 
 #
-# start one spiceclient, have two machines (active and target),
+# start one spice client, have two machines (active and target),
 # and repeat:
 #  active wait until it's active
 #  active client_migrate_info
@@ -58,7 +58,7 @@ def get_args():
     parser.add_argument('--qemu', dest='qemu', default='../../qemu/x86_64-softmmu/qemu-system-x86_64')
     parser.add_argument('--log_filename', dest='log_filename', default='migrate.log')
     parser.add_argument('--image', dest='image', default='')
-    parser.add_argument('--client', dest='client', default='spicy', choices=['spicec', 'spicy'])
+    parser.add_argument('--client', dest='client', default='spicy', choices=['spicy'])
     parser.add_argument('--vdagent', choices=['on', 'off'], default='on')
     args = parser.parse_args(sys.argv[1:])
     if os.path.exists(args.qemu):
