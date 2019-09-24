@@ -376,12 +376,6 @@ static RedPipeItem *spicevmc_chardev_read_msg_from_dev(RedCharDevice *self,
     return NULL;
 }
 
-static void spicevmc_chardev_send_msg_to_client(RedCharDevice *self,
-                                                RedPipeItem *msg,
-                                                RedClient *client)
-{
-}
-
 static void red_port_init_item_free(struct RedPipeItem *base)
 {
     RedPortInitPipeItem *item = SPICE_UPCAST(RedPortInitPipeItem, base);
@@ -912,7 +906,6 @@ red_char_device_spicevmc_class_init(RedCharDeviceSpiceVmcClass *klass)
     object_class->dispose = red_char_device_spicevmc_dispose;
 
     char_dev_class->read_one_msg_from_device = spicevmc_chardev_read_msg_from_dev;
-    char_dev_class->send_msg_to_client = spicevmc_chardev_send_msg_to_client;
     char_dev_class->remove_client = spicevmc_char_dev_remove_client;
     char_dev_class->port_event = spicevmc_port_event;
     char_dev_class->on_free_self_token = spicevmc_on_free_self_token;

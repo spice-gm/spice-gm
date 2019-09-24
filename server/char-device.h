@@ -63,7 +63,8 @@ struct RedCharDeviceClass
      * or till the reading fails */
     RedPipeItem* (*read_one_msg_from_device)(RedCharDevice *self,
                                              SpiceCharDeviceInstance *sin);
-    /* after this call, the message is unreferenced */
+    /* After this call, the message is unreferenced.
+     * Can be NULL. */
     void (*send_msg_to_client)(RedCharDevice *self,
                                RedPipeItem *msg,
                                RedCharDeviceClientOpaque *client);

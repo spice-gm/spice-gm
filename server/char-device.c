@@ -114,9 +114,11 @@ red_char_device_send_msg_to_client(RedCharDevice *dev,
                                    RedPipeItem *msg,
                                    RedCharDeviceClientOpaque *client)
 {
-   RedCharDeviceClass *klass = RED_CHAR_DEVICE_GET_CLASS(dev);
+    RedCharDeviceClass *klass = RED_CHAR_DEVICE_GET_CLASS(dev);
 
-   klass->send_msg_to_client(dev, msg, client);
+    if (klass->send_msg_to_client != NULL) {
+        klass->send_msg_to_client(dev, msg, client);
+    }
 }
 
 static void
