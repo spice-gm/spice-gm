@@ -58,7 +58,7 @@ def get_args():
     parser.add_argument('--qemu', dest='qemu', default='../../qemu/x86_64-softmmu/qemu-system-x86_64')
     parser.add_argument('--log_filename', dest='log_filename', default='migrate.log')
     parser.add_argument('--image', dest='image', default='')
-    parser.add_argument('--client', dest='client', default='spicy', choices=['spicy'])
+    parser.add_argument('--client', dest='client', default='spicy', choices=['spicy', 'remote-viewer'])
     parser.add_argument('--vdagent', choices=['on', 'off'], default='on')
     args = parser.parse_args(sys.argv[1:])
     if os.path.exists(args.qemu):
@@ -97,6 +97,9 @@ def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, e
 
 def start_client(client, spice_port):
     client_cmd = "spicy --uri spice://localhost:%s" % (spice_port)
+    if client == "remote-viewer":
+        client_cmd = "remote-viewer spice://localhost:%s" % (spice_port)
+
     return Popen(client_cmd.split(), executable=client)
 
 def wait_active(q, active):
