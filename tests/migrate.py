@@ -96,8 +96,8 @@ def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, e
     return proc
 
 def start_client(client, spice_port):
-    return Popen(("%(client)s -h localhost -p %(port)d" % dict(port=spice_port,
-        client=client)).split(), executable=client)
+    client_cmd = "spicy --uri spice://localhost:%s" % (spice_port)
+    return Popen(client_cmd.split(), executable=client)
 
 def wait_active(q, active):
     events = ["RESUME"] if active else ["STOP"]
