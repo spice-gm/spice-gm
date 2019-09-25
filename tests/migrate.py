@@ -58,7 +58,8 @@ def get_args():
     parser.add_argument('--log_filename', dest='log_filename', default='migrate.log')
     parser.add_argument('--image', dest='image', default='')
     parser.add_argument('--client', dest='client', default='spicy', choices=['spicy', 'remote-viewer'])
-    parser.add_argument('--vdagent', choices=['on', 'off'], default='on')
+    parser.add_argument('--vdagent', dest="vdagent", action='store_true', default=False,
+                        help="Append options for agent's virtserialport")
     args = parser.parse_args(sys.argv[1:])
     if os.path.exists(args.qemu):
         args.qemu_exec = args.qemu
@@ -209,7 +210,7 @@ def main():
     migrator = Migrator(client=args.client, qemu_exec=args.qemu_exec,
         image=args.image, log=log, monitor_files=[args.qmp1, args.qmp2],
         migration_port=args.migrate_port, spice_ports=[args.spice_port1,
-        args.spice_port2], vdagent=(args.vdagent=='on'))
+        args.spice_port2], vdagent=args.vdagent)
     atexit.register(cleanup, migrator)
     while True:
         migrator.iterate()
