@@ -8,7 +8,7 @@ VGA mode since it will just be SeaBIOS).
 
 Dependencies:
 either qmp in python path or running with spice and qemu side by side:
-qemu/QMP/qmp.py
+qemu/python/qemu/qmp.py
 spice/tests/migrate.py
 
 Will create two temporary unix sockets in /tmp
@@ -32,7 +32,7 @@ try:
     import qmp
 except:
     import sys
-    sys.path.append("../../qemu/QMP")
+    sys.path.append("../../qemu/python/qemu/")
     try:
         import qmp
     except:
