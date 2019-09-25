@@ -60,6 +60,8 @@ def get_args():
     parser.add_argument('--client', dest='client', default='spicy', choices=['spicy', 'remote-viewer'])
     parser.add_argument('--vdagent', dest="vdagent", action='store_true', default=False,
                         help="Append options for agent's virtserialport")
+    parser.add_argument('--wait-user-input', dest="wait_user_input", action='store_true', default=False,
+                        help="Wait user's input to start migration test")
     args = parser.parse_args(sys.argv[1:])
     if os.path.exists(args.qemu):
         args.qemu_exec = args.qemu
@@ -213,7 +215,7 @@ def main():
         args.spice_port2], vdagent=args.vdagent)
     atexit.register(cleanup, migrator)
     while True:
-        migrator.iterate()
+        migrator.iterate(args.wait_user_input)
 
 if __name__ == '__main__':
     main()
