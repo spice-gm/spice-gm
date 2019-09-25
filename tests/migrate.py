@@ -62,6 +62,8 @@ def get_args():
                         help="Append options for agent's virtserialport")
     parser.add_argument('--wait-user-input', dest="wait_user_input", action='store_true', default=False,
                         help="Wait user's input to start migration test")
+    parser.add_argument('--count', dest='counter', type=int, default=100,
+                        help="Number of migrations to run (set 0 for infinite)")
     args = parser.parse_args(sys.argv[1:])
     if os.path.exists(args.qemu):
         args.qemu_exec = args.qemu
@@ -214,8 +216,10 @@ def main():
         migration_port=args.migrate_port, spice_ports=[args.spice_port1,
         args.spice_port2], vdagent=args.vdagent)
     atexit.register(cleanup, migrator)
-    while True:
+    counter = 0
+    while args.counter == 0 or counter < args.counter:
         migrator.iterate(args.wait_user_input)
+        counter += 1
 
 if __name__ == '__main__':
     main()
