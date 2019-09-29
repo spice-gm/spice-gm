@@ -1464,7 +1464,7 @@ bool red_channel_client_handle_message(RedChannelClient *rcc, uint16_t type,
 {
     switch (type) {
     case SPICE_MSGC_ACK_SYNC:
-        rcc->priv->ack_data.client_generation = *(uint32_t *)(message);
+        rcc->priv->ack_data.client_generation = ((SpiceMsgcAckSync *) message)->generation;
         break;
     case SPICE_MSGC_ACK:
         if (rcc->priv->ack_data.client_generation == rcc->priv->ack_data.generation) {
