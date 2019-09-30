@@ -57,7 +57,8 @@ def get_args():
     parser.add_argument('--qemu', dest='qemu', default='../../qemu/x86_64-softmmu/qemu-system-x86_64')
     parser.add_argument('--log_filename', dest='log_filename', default='migrate.log')
     parser.add_argument('--image', dest='image', default='')
-    parser.add_argument('--client', dest='client', default='spicy', choices=['spicy', 'remote-viewer'])
+    parser.add_argument('--client', dest='client', default='none', choices=['spicy', 'remote-viewer', 'none'],
+                        help="Automatically lunch one of supported clients or none (default)")
     parser.add_argument('--vdagent', dest="vdagent", action='store_true', default=False,
                         help="Append options for agent's virtserialport")
     parser.add_argument('--wait-user-input', dest="wait_user_input", action='store_true', default=False,
@@ -140,7 +141,7 @@ class Migrator(object):
 
     def __init__(self, log, client, qemu_exec, image, monitor_files,
                  spice_ports, migration_port, vdagent):
-        self.client = client
+        self.client = client if client != "none" else None
         self.log = log
         self.qemu_exec = qemu_exec
         self.image = image
@@ -177,8 +178,10 @@ class Migrator(object):
         wait_active(self.active.qmp, True)
         wait_active(self.target.qmp, False)
         if not self.connected_client:
-            self.connected_client = start_client(client=self.client, spice_port=self.spice_ports[0])
-            wait_for_event(self.active.qmp, 'SPICE_INITIALIZED')
+            if self.client:
+                self.connected_client = start_client(client=self.client, spice_port=self.spice_ports[0])
+                wait_for_event(self.active.qmp, 'SPICE_INITIALIZED')
+
             if wait_for_user_input:
                 print "waiting for Enter to start migrations"
                 raw_input()
@@ -188,7 +191,10 @@ class Migrator(object):
         self.active.qmp.cmd('migrate', {'uri': 'tcp:localhost:%s' % self.migration_port})
         wait_active(self.active.qmp, False)
         wait_active(self.target.qmp, True)
-        wait_for_event(self.target.qmp, 'SPICE_CONNECTED')
+
+        if self.connected_client:
+            wait_for_event(self.target.qmp, 'SPICE_CONNECTED')
+
         dead = self.active
         dead.qmp.cmd("quit")
         dead.qmp.close()
