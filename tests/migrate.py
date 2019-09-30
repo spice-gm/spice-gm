@@ -129,20 +129,16 @@ def start_client(client, spice_port):
     return Popen(client_cmd.split(), executable=client)
 
 def wait_active(q, active):
-    events = ["RESUME"] if active else ["STOP"]
     while True:
         try:
             ret = q.cmd("query-status")
+            if ret["return"]["running"] == active:
+                break
         except:
             # ValueError
             time.sleep(0.1)
             continue
-        if ret and "return" in ret.keys():
-            if ret["return"]["running"] == active:
-                break
-        for e in q.get_events():
-            if e["event"] in events:
-                break
+
         time.sleep(0.5)
 
 def wait_for_event(q, event):
