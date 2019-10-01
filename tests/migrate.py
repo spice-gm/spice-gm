@@ -63,6 +63,8 @@ def get_args():
                         help="Append options for agent's virtserialport")
     parser.add_argument('--wait-user-input', dest="wait_user_input", action='store_true', default=False,
                         help="Wait user's input to start migration test")
+    parser.add_argument('--wait-user-connect', dest="wait_user_connect", action='store_true', default=False,
+                        help="Wait spice client to connect to move to next step of migration (default False)")
     parser.add_argument('--count', dest='counter', type=int, default=100,
                         help="Number of migrations to run (set 0 for infinite)")
     args = parser.parse_args(sys.argv[1:])
@@ -174,17 +176,20 @@ class Migrator(object):
             if os.path.exists(x):
                 os.unlink(x)
 
-    def iterate(self, wait_for_user_input=False):
+    def iterate(self, wait_for_user_input=False, wait_user_connect=False):
         wait_active(self.active.qmp, True)
         wait_active(self.target.qmp, False)
         if not self.connected_client:
             if self.client:
                 self.connected_client = start_client(client=self.client, spice_port=self.spice_ports[0])
-                wait_for_event(self.active.qmp, 'SPICE_INITIALIZED')
 
             if wait_for_user_input:
                 print "waiting for Enter to start migrations"
                 raw_input()
+
+        # Tester can launch its own client or we wait start_client() to connect
+        if wait_user_connect:
+            wait_for_event(self.active.qmp, 'SPICE_INITIALIZED')
 
         self.active.qmp.cmd('client_migrate_info', {'protocol':'spice',
             'hostname':'localhost', 'port':self.target.spice_port})
@@ -192,7 +197,7 @@ class Migrator(object):
         wait_active(self.active.qmp, False)
         wait_active(self.target.qmp, True)
 
-        if self.connected_client:
+        if self.connected_client or wait_user_connect:
             wait_for_event(self.target.qmp, 'SPICE_CONNECTED')
 
         dead = self.active
@@ -224,7 +229,7 @@ def main():
     atexit.register(cleanup, migrator)
     counter = 0
     while args.counter == 0 or counter < args.counter:
-        migrator.iterate(args.wait_user_input)
+        migrator.iterate(args.wait_user_input, args.wait_user_connect)
         counter += 1
 
 if __name__ == '__main__':
