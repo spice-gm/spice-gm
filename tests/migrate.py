@@ -77,10 +77,17 @@ def get_args():
         sys.exit(1)
     return args
 
-def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, extra_args=[]):
+def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, with_agent=False):
     incoming_args = []
     if incoming_port:
         incoming_args = ("-incoming tcp::%s" % incoming_port).split()
+
+    extra_args = []
+    if with_agent:
+        extra_args = ['-device', 'virtio-serial',
+                      '-chardev', 'spicevmc,name=vdagent,id=vdagent',
+                      '-device', 'virtserialport,chardev=vdagent,name=com.redhat.spice.0']
+
     args = ([qemu_exec, "-qmp", "unix:%s,server,nowait" % qmp_filename,
         "-spice", "disable-ticketing,port=%s" % spice_port]
         + incoming_args + extra_args)
@@ -151,13 +158,12 @@ class Migrator(object):
         self.monitor_files = monitor_files
         self.spice_ports = spice_ports
         self.vdagent = vdagent
-        extra_args = []
-        if self.vdagent:
-            extra_args = ['-device', 'virtio-serial', '-chardev', 'spicevmc,name=vdagent,id=vdagent', '-device', 'virtserialport,chardev=vdagent,name=com.redhat.spice.0']
+
         self.active = start_qemu(qemu_exec=qemu_exec, image=image, spice_port=spice_ports[0],
-                                 qmp_filename=monitor_files[0], extra_args=extra_args)
+                                 qmp_filename=monitor_files[0], with_agent=self.vdagent)
         self.target = start_qemu(qemu_exec=qemu_exec, image=image, spice_port=spice_ports[1],
-                                 qmp_filename=monitor_files[1], incoming_port=migration_port)
+                                 qmp_filename=monitor_files[1], with_agent=self.vdagent,
+                                 incoming_port=migration_port)
         self.remove_monitor_files()
         self.connected_client = None
 
@@ -213,6 +219,7 @@ class Migrator(object):
         self.target = start_qemu(spice_port=new_spice_port,
                             qemu_exec=self.qemu_exec, image=self.image,
                             qmp_filename=new_qmp_filename,
+                            with_agent=self.vdagent,
                             incoming_port=self.migration_port)
         print self.migration_count
         self.migration_count += 1
