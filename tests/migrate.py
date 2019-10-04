@@ -20,7 +20,7 @@ Will leave a log file, migrate_test.log, in current directory.
 # and repeat:
 #  active wait until it's active
 #  active client_migrate_info
-#  active migrate tcp:localhost:9000
+#  active migrate tcp:$hostname:9000
 #  _wait for event of quit
 #  active stop, active<->passive
 #
@@ -64,6 +64,8 @@ def get_args():
     parser.add_argument('--qemu', dest='qemu', default='../../qemu/x86_64-softmmu/qemu-system-x86_64')
     parser.add_argument('--log_filename', dest='log_filename', default='migrate.log')
     parser.add_argument('--image', dest='image', default='')
+    parser.add_argument("--hostname", dest='hostname', default='localhost',
+                        help="Set hostname used in migration message (default: localhost")
     parser.add_argument('--client', dest='client', default='none', choices=['spicy', 'remote-viewer', 'none'],
                         help="Automatically lunch one of supported clients or none (default)")
     parser.add_argument('--vdagent', dest="vdagent", action='store_true', default=False,
@@ -123,10 +125,10 @@ def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, w
     proc.incoming_port = incoming_port
     return proc
 
-def start_client(client, spice_port):
-    client_cmd = "spicy --uri spice://localhost:%s" % (spice_port)
+def start_client(client, hostname, spice_port):
+    client_cmd = f"spicy --uri spice://{hostname}:{spice_port}"
     if client == "remote-viewer":
-        client_cmd = "remote-viewer spice://localhost:%s" % (spice_port)
+        client_cmd = f"remote-viewer spice://{hostname}:{spice_port}"
 
     return Popen(client_cmd.split(), executable=client)
 
@@ -162,7 +164,7 @@ class Migrator(object):
     migration_count = 0
 
     def __init__(self, log, client, qemu_exec, image, monitor_files,
-                 spice_ports, migration_port, vdagent):
+                 spice_ports, migration_port, vdagent, hostname):
         self.client = client if client != "none" else None
         self.log = log
         self.qemu_exec = qemu_exec
@@ -171,6 +173,7 @@ class Migrator(object):
         self.monitor_files = monitor_files
         self.spice_ports = spice_ports
         self.vdagent = vdagent
+        self.hostname = hostname
 
         self.active = start_qemu(qemu_exec=qemu_exec, image=image, spice_port=spice_ports[0],
                                  qmp_filename=monitor_files[0], with_agent=self.vdagent)
@@ -200,7 +203,9 @@ class Migrator(object):
         wait_active(self.target.qmp, False)
         if not self.connected_client:
             if self.client:
-                self.connected_client = start_client(client=self.client, spice_port=self.spice_ports[0])
+                self.connected_client = start_client(client=self.client,
+                                                     hostname=self.hostname,
+                                                     spice_port=self.spice_ports[0])
 
             if wait_for_user_input:
                 print("waiting for Enter to start migrations")
@@ -212,11 +217,12 @@ class Migrator(object):
 
         self.active.qmp.cmd('client_migrate_info', {
                                 'protocol' : 'spice',
-                                'hostname' : 'localhost',
+                                'hostname' : self.hostname,
                                 'port' : self.target.spice_port
                             })
         self.active.qmp.cmd('migrate', {
-                                'uri': f'tcp:localhost:self.migration_port'
+                                'uri': f'tcp:localhost:self.migration_port',
+                                'uri': f'tcp:{self.hostname}:{self.migration_port}'
                             })
         wait_active(self.active.qmp, False)
         wait_active(self.target.qmp, True)
@@ -259,7 +265,7 @@ def main():
     migrator = Migrator(client=args.client, qemu_exec=args.qemu_exec,
         image=newimage, log=log, monitor_files=[args.qmp1, args.qmp2],
         migration_port=args.migrate_port, spice_ports=[args.spice_port1,
-        args.spice_port2], vdagent=args.vdagent)
+        args.spice_port2], vdagent=args.vdagent, hostname=args.hostname)
     atexit.register(cleanup, migrator)
     atexit.register(remove_image_file, newimage)
     counter = 0
