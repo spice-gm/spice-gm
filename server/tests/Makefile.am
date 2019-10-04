@@ -68,6 +68,10 @@ check_PROGRAMS =				\
 	test-record				\
 	$(NULL)
 
+if HAVE_SMARTCARD
+check_PROGRAMS += test-smartcard
+endif
+
 if !OS_WIN32
 check_PROGRAMS +=				\
 	test-stream				\

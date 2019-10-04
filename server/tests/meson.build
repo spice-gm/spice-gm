@@ -65,6 +65,10 @@ if spice_server_has_sasl
   tests += [['test-sasl', true]]
 endif
 
+if spice_server_has_smartcard == true
+  tests += [['test-smartcard', true]]
+endif
+
 if host_machine.system() != 'windows'
   tests += [
     ['test-stream', true],

@@ -29,5 +29,6 @@ test-leaks
 test-sasl
 test-record
 test-websocket
+test-smartcard
 /test-*.log
 /test-*.trs
