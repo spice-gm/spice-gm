@@ -209,7 +209,7 @@ class Migrator(object):
                 raw_input()
 
         # Tester can launch its own client or we wait start_client() to connect
-        if wait_user_connect:
+        if self.connected_client or wait_user_connect:
             wait_for_event(self.active.qmp, 'SPICE_INITIALIZED')
 
         self.active.qmp.cmd('client_migrate_info', {'protocol':'spice',
