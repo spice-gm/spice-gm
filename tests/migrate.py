@@ -241,8 +241,8 @@ class Migrator(object):
                             qmp_filename=new_qmp_filename,
                             with_agent=self.vdagent,
                             incoming_port=self.migration_port)
-        print(self.migration_count)
         self.migration_count += 1
+        print(self.migration_count)
 
 def main():
     args = get_args()
