@@ -175,10 +175,16 @@ class Migrator(object):
         self.vdagent = vdagent
         self.hostname = hostname
 
-        self.active = start_qemu(qemu_exec=qemu_exec, image=image, spice_port=spice_ports[0],
-                                 qmp_filename=monitor_files[0], with_agent=self.vdagent)
-        self.target = start_qemu(qemu_exec=qemu_exec, image=image, spice_port=spice_ports[1],
-                                 qmp_filename=monitor_files[1], with_agent=self.vdagent,
+        self.active = start_qemu(qemu_exec=qemu_exec,
+                                 image=image,
+                                 spice_port=spice_ports[0],
+                                 qmp_filename=monitor_files[0],
+                                 with_agent=self.vdagent)
+        self.target = start_qemu(qemu_exec=qemu_exec,
+                                 image=image,
+                                 spice_port=spice_ports[1],
+                                 qmp_filename=monitor_files[1],
+                                 with_agent=self.vdagent,
                                  incoming_port=migration_port)
         self.remove_monitor_files()
         self.connected_client = None
@@ -246,10 +252,11 @@ class Migrator(object):
         del dead
         self.active = self.target
         self.target = start_qemu(spice_port=new_spice_port,
-                            qemu_exec=self.qemu_exec, image=self.image,
-                            qmp_filename=new_qmp_filename,
-                            with_agent=self.vdagent,
-                            incoming_port=self.migration_port)
+                                 qemu_exec=self.qemu_exec,
+                                 image=self.image,
+                                 qmp_filename=new_qmp_filename,
+                                 with_agent=self.vdagent,
+                                 incoming_port=self.migration_port)
         self.migration_count += 1
         print(self.migration_count)
 
@@ -262,15 +269,21 @@ def main():
     qemu_img = run_shell_command("dirname %s" % args.qemu_exec) + '/qemu-img'
     run_shell_command('%s create -f qcow2 -b %s %s' % (qemu_img, args.image, newimage))
     print('using new image %s' % newimage)
-    migrator = Migrator(client=args.client, qemu_exec=args.qemu_exec,
-        image=newimage, log=log, monitor_files=[args.qmp1, args.qmp2],
-        migration_port=args.migrate_port, spice_ports=[args.spice_port1,
-        args.spice_port2], vdagent=args.vdagent, hostname=args.hostname)
+    migrator = Migrator(client=args.client,
+                        qemu_exec=args.qemu_exec,
+                        image=newimage,
+                        log=log,
+                        monitor_files=[args.qmp1, args.qmp2],
+                        migration_port=args.migrate_port,
+                        spice_ports=[args.spice_port1, args.spice_port2],
+                        vdagent=args.vdagent,
+                        hostname=args.hostname)
     atexit.register(cleanup, migrator)
     atexit.register(remove_image_file, newimage)
     counter = 0
     while args.counter == 0 or counter < args.counter:
-        migrator.iterate(args.wait_user_input, args.wait_user_connect)
+        migrator.iterate(wait_for_user_input=args.wait_user_input,
+                         wait_user_connect=args.wait_user_connect)
         counter += 1
 
 if __name__ == '__main__':
