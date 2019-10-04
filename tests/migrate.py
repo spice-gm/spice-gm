@@ -76,6 +76,8 @@ def get_args():
                         help="Wait spice client to connect to move to next step of migration (default False)")
     parser.add_argument('--count', dest='counter', type=int, default=100,
                         help="Number of migrations to run (set 0 for infinite)")
+    parser.add_argument('--seamless', dest="seamless_migration", action='store_true', default=False,
+                        help="Enable seamless-migration support")
     args = parser.parse_args(sys.argv[1:])
     if os.path.exists(args.qemu):
         args.qemu_exec = args.qemu
@@ -86,11 +88,12 @@ def get_args():
         sys.exit(1)
     return args
 
-def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, with_agent=False):
+def start_qemu(qemu_exec, seamless_migration, image, spice_port, qmp_filename, incoming_port=None, with_agent=False):
+    seamless_option = "on" if seamless_migration else "off"
     args = [
         qemu_exec,
         "-qmp", f"unix:{qmp_filename},server,nowait",
-        "-spice", f"disable-ticketing,port={spice_port}"
+        "-spice", f"seamless-migration={seamless_option},disable-ticketing,port={spice_port}"
     ]
     if incoming_port:
         args += (f"-incoming tcp::{incoming_port}").split()
@@ -164,7 +167,7 @@ class Migrator(object):
     migration_count = 0
 
     def __init__(self, log, client, qemu_exec, image, monitor_files,
-                 spice_ports, migration_port, vdagent, hostname):
+                 spice_ports, migration_port, vdagent, hostname, seamless_migration):
         self.client = client if client != "none" else None
         self.log = log
         self.qemu_exec = qemu_exec
@@ -174,16 +177,19 @@ class Migrator(object):
         self.spice_ports = spice_ports
         self.vdagent = vdagent
         self.hostname = hostname
+        self.seamless_migration = seamless_migration
 
         self.active = start_qemu(qemu_exec=qemu_exec,
                                  image=image,
                                  spice_port=spice_ports[0],
                                  qmp_filename=monitor_files[0],
+                                 seamless_migration=self.seamless_migration,
                                  with_agent=self.vdagent)
         self.target = start_qemu(qemu_exec=qemu_exec,
                                  image=image,
                                  spice_port=spice_ports[1],
                                  qmp_filename=monitor_files[1],
+                                 seamless_migration=self.seamless_migration,
                                  with_agent=self.vdagent,
                                  incoming_port=migration_port)
         self.remove_monitor_files()
@@ -255,6 +261,7 @@ class Migrator(object):
                                  qemu_exec=self.qemu_exec,
                                  image=self.image,
                                  qmp_filename=new_qmp_filename,
+                                 seamless_migration=self.seamless_migration,
                                  with_agent=self.vdagent,
                                  incoming_port=self.migration_port)
         self.migration_count += 1
@@ -277,6 +284,7 @@ def main():
                         migration_port=args.migrate_port,
                         spice_ports=[args.spice_port1, args.spice_port2],
                         vdagent=args.vdagent,
+                        seamless_migration=args.seamless_migration,
                         hostname=args.hostname)
     atexit.register(cleanup, migrator)
     atexit.register(remove_image_file, newimage)
