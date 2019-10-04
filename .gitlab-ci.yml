@@ -85,13 +85,15 @@ distcheck:
 # Same as makecheck job but use a Centos image
 makecheck-centos:
   before_script:
+    - dnf install -y 'dnf-command(config-manager)'
+    - dnf config-manager --set-enabled PowerTools
     - >
-      yum install git libtool make libasan orc-devel glib-networking
-      yum-utils gcc glib2-devel celt051-devel
+      dnf install git libtool make libasan orc-devel glib-networking
+      gcc glib2-devel
       opus-devel pixman-devel openssl-devel libjpeg-devel
       libcacard-devel cyrus-sasl-devel lz4-devel
       gstreamer1-devel gstreamer1-plugins-base-devel
-      git-core pyparsing python-six
+      git-core python3-pyparsing python3-six python3
       -y
     - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
     - (cd spice-protocol && ./autogen.sh --prefix=/usr && make install)
@@ -100,7 +102,7 @@ makecheck-centos:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    ./autogen.sh --enable-celt051
+    ./autogen.sh --disable-celt051
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
 
