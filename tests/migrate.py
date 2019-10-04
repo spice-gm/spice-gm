@@ -210,9 +210,14 @@ class Migrator(object):
         if self.connected_client or wait_user_connect:
             wait_for_event(self.active.qmp, 'SPICE_INITIALIZED')
 
-        self.active.qmp.cmd('client_migrate_info', {'protocol':'spice',
-            'hostname':'localhost', 'port':self.target.spice_port})
-        self.active.qmp.cmd('migrate', {'uri': 'tcp:localhost:%s' % self.migration_port})
+        self.active.qmp.cmd('client_migrate_info', {
+                                'protocol' : 'spice',
+                                'hostname' : 'localhost',
+                                'port' : self.target.spice_port
+                            })
+        self.active.qmp.cmd('migrate', {
+                                'uri': f'tcp:localhost:self.migration_port'
+                            })
         wait_active(self.active.qmp, False)
         wait_active(self.target.qmp, True)
 
