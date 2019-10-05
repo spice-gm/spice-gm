@@ -1464,10 +1464,6 @@ bool red_channel_client_handle_message(RedChannelClient *rcc, uint16_t type,
 {
     switch (type) {
     case SPICE_MSGC_ACK_SYNC:
-        if (size != sizeof(uint32_t)) {
-            red_channel_warning(red_channel_client_get_channel(rcc), "bad message size");
-            return FALSE;
-        }
         rcc->priv->ack_data.client_generation = *(uint32_t *)(message);
         break;
     case SPICE_MSGC_ACK:
