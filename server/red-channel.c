@@ -208,6 +208,7 @@ red_channel_constructed(GObject *object)
 
     G_OBJECT_CLASS(red_channel_parent_class)->constructed(object);
 
+    spice_assert(klass->parser != NULL);
     spice_assert(klass->handle_migrate_data ||
                  !(self->priv->migration_flags & SPICE_MIGRATE_NEED_DATA_TRANSFER));
 }

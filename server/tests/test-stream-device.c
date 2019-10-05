@@ -197,6 +197,9 @@ stream_channel_init(StreamChannel *channel)
 static void
 stream_channel_class_init(StreamChannelClass *klass)
 {
+    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
+
+    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
 }
 
 void stream_channel_change_format(StreamChannel *channel,

@@ -1175,18 +1175,9 @@ static uint8_t *red_channel_client_parse(RedChannelClient *rcc, uint8_t *message
 {
     RedChannel *channel = red_channel_client_get_channel(rcc);
     RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
-    uint8_t *parsed_message;
 
-    if (klass->parser) {
-        parsed_message = klass->parser(message, message + message_size, message_type,
-                                       SPICE_VERSION_MINOR, size_out, free_message);
-    } else {
-        parsed_message = message;
-        *size_out = message_size;
-        *free_message = NULL;
-    }
-
-    return parsed_message;
+    return klass->parser(message, message + message_size, message_type,
+                         SPICE_VERSION_MINOR, size_out, free_message);
 }
 
 // TODO: this implementation, as opposed to the old implementation in red_worker,
