@@ -547,6 +547,7 @@ red_smartcard_channel_class_init(RedSmartcardChannelClass *klass)
 
     object_class->constructed = red_smartcard_channel_constructed;
 
+    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_SMARTCARD, NULL);
     channel_class->handle_message = smartcard_channel_client_handle_message,
 
     channel_class->send_item = smartcard_channel_send_item;
