@@ -219,8 +219,7 @@ static void smartcard_channel_client_push_error(RedChannelClient *rcc,
     red_channel_client_pipe_add_push(rcc, &error_item->base);
 }
 
-static void smartcard_channel_client_add_reader(SmartCardChannelClient *scc,
-                                                uint8_t *name)
+static void smartcard_channel_client_add_reader(SmartCardChannelClient *scc)
 {
     if (!scc->priv->smartcard) { /* we already tried to attach a reader to the client
                                           when it connected */
@@ -288,7 +287,7 @@ bool smartcard_channel_client_handle_message(RedChannelClient *rcc,
     spice_assert(size == vheader->length + sizeof(VSCMsgHeader));
     switch (vheader->type) {
         case VSC_ReaderAdd:
-            smartcard_channel_client_add_reader(scc, msg + sizeof(VSCMsgHeader));
+            smartcard_channel_client_add_reader(scc);
             return TRUE;
             break;
         case VSC_ReaderRemove:
