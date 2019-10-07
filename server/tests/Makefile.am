@@ -37,6 +37,8 @@ libtest_a_SOURCES =				\
 	test-glib-compat.h			\
 	win-alarm.c				\
 	win-alarm.h				\
+	vmc-emu.c				\
+	vmc-emu.h				\
 	$(NULL)
 
 LDADD =								\

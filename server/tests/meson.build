@@ -13,6 +13,8 @@ test_lib_sources = [
   'test-glib-compat.h',
   'win-alarm.c',
   'win-alarm.h',
+  'vmc-emu.c',
+  'vmc-emu.h',
 ]
 
 test_libs = []
