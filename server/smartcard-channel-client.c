@@ -276,7 +276,8 @@ bool smartcard_channel_client_handle_message(RedChannelClient *rcc,
         case VSC_APDU:
             break; // passed on to device
         default:
-            printf("ERROR: unexpected message on smartcard channel\n");
+            red_channel_warning(red_channel_client_get_channel(rcc),
+                                "ERROR: unexpected message on smartcard channel");
             return TRUE;
     }
 
