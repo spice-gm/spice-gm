@@ -222,7 +222,9 @@ static int smartcard_char_device_add_to_readers(RedsState *reds, SpiceCharDevice
 
 SpiceCharDeviceInstance *smartcard_readers_get(uint32_t reader_id)
 {
-    spice_assert(reader_id < g_smartcard_readers.num);
+    if (reader_id >= g_smartcard_readers.num) {
+        return NULL;
+    }
     return g_smartcard_readers.sin[reader_id];
 }
 
