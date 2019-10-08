@@ -40,6 +40,9 @@ struct VmcEmu {
 
     unsigned write_pos;
     uint8_t write_buf[2048];
+
+    // this callback will be called when new data arrive to the device
+    void (*data_written_cb)(VmcEmu *vmc);
 };
 
 VmcEmu *vmc_emu_new(const char *subtype, const char *portname);

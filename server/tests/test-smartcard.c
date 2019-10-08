@@ -41,6 +41,15 @@ static SpiceCoreInterface *core;
 static Test *test;
 static VmcEmu *vmc;
 typedef int TestFixture;
+static int client_socket = -1;
+// buffer when data from channel are stored
+static SpiceBuffer channel_buf;
+// expected buffer in channel
+static SpiceBuffer channel_expected;
+// expected buffer in device
+static SpiceBuffer device_expected;
+
+static void next_test(void);
 
 static void test_smartcard_setup(TestFixture *fixture, gconstpointer user_data)
 {
@@ -101,7 +110,7 @@ static void send_ack_sync(int socket, uint32_t generation)
     g_assert_cmpint(socket_write(socket, &msg.type, 10), ==, 10);
 }
 
-static void send_data(int socket, uint32_t type)
+static void send_data(int socket, uint32_t type, uint32_t reader_id)
 {
     struct {
         uint16_t dummy;
@@ -114,24 +123,184 @@ static void send_data(int socket, uint32_t type)
     msg.type = GUINT16_TO_LE(SPICE_MSGC_SMARTCARD_DATA);
     msg.len = GUINT32_TO_LE(sizeof(VSCMsgHeader)+6);
     msg.vheader.type = GUINT32_TO_LE(type);
-    msg.vheader.reader_id = 0;
+    msg.vheader.reader_id = GUINT32_TO_LE(reader_id);
     msg.vheader.length = GUINT32_TO_LE(6);
     strcpy(msg.data, "hello");
 
     g_assert_cmpint(socket_write(socket, &msg.type, sizeof(msg)-4), ==, sizeof(msg)-4);
 }
 
-static void check_data(void *opaque)
+static void check_data(VmcEmu *vmc)
 {
-    static const char expected_buf[] =
-        // forwarded ReaderAdd message, note that payload is stripped
-        "\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00"
-        // forwarded APDU message
-        "\x00\x00\x00\x07\x00\x00\x00\x00\x00\x00\x00\x06\x68\x65\x6c\x6c\x6f\x00";
-    const size_t expected_buf_len = sizeof(expected_buf) - 1;
-    g_assert_cmpint(vmc->write_pos, ==, expected_buf_len);
-    g_assert_true(memcmp(vmc->write_buf, expected_buf, expected_buf_len) == 0);
-    basic_event_loop_quit();
+    g_assert_cmpint(device_expected.offset, !=, 0);
+    if (vmc->write_pos < device_expected.offset) {
+        return;
+    }
+    g_assert_cmpint(vmc->write_pos, ==, device_expected.offset);
+    g_assert_true(memcmp(vmc->write_buf, device_expected.buffer, device_expected.offset) == 0);
+    vmc->write_pos = 0;
+
+    next_test();
+}
+
+static void data_from_channel(int fd, int event, void *opaque)
+{
+    uint8_t buf[128];
+    ssize_t ret = socket_read(fd, buf, sizeof(buf));
+    if (ret <= 0) {
+        return;
+    }
+    spice_buffer_append(&channel_buf, buf, ret);
+
+    g_assert_cmpint(channel_expected.offset, !=, 0);
+    if (channel_buf.offset < channel_expected.offset) {
+        return;
+    }
+    g_assert_true(memcmp(channel_buf.buffer, channel_expected.buffer, channel_expected.offset) == 0);
+    spice_buffer_remove(&channel_buf, channel_expected.offset);
+
+    next_test();
+}
+
+static void next_test(void)
+{
+    static int test_num;
+
+    test_num++;
+    printf("Executing subtest %d\n", test_num);
+
+    spice_buffer_reset(&channel_expected);
+    spice_buffer_reset(&device_expected);
+
+    switch (test_num) {
+    // First test, send some message to channel expecting a reply
+    // for each message we are sending
+    case 1: {
+        static const char expected_buf[] =
+            // forwarded ReaderAdd message, note that payload is stripped
+            "\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00"
+            // forwarded APDU message
+            "\x00\x00\x00\x07\x00\x00\x00\x00\x00\x00\x00\x06\x68\x65\x6c\x6c\x6f\x00"
+            "\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00";
+        spice_buffer_append(&device_expected, expected_buf, sizeof(expected_buf) - 1);
+
+        send_data(client_socket, VSC_ReaderAdd, 0);
+        send_data(client_socket, VSC_APDU, 0);
+        send_data(client_socket, VSC_ReaderRemove, 0);
+        } break;
+    // Second test, send an init and remove a reader that is not present,
+    // we expect an error for the removal (the Init is ignored)
+    case 2: {
+        static const char expected_buf[] =
+            // forwarded Error message
+            "\x65\x00\x10\x00\x00\x00"
+            "\x02\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x01\x00\x00\x00";
+        spice_buffer_append(&channel_expected, expected_buf, sizeof(expected_buf) - 1);
+
+        // Init message, ignored
+        send_data(client_socket, VSC_Init, 0);
+        // remove again, this will trigger an error
+        send_data(client_socket, VSC_ReaderRemove, 0);
+        } break;
+    // Third test, APDU messages from device are forwarded to the channel.
+    // We split the header and payload of the first message to check device code can handle it.
+    // The second message is send inside a block with the end of the first to trigger
+    // an hard path in the device code
+    case 3: {
+        static const char expected_buf[] =
+            // forwarded APDU message
+            "\x65\x00\x12\x00\x00\x00"
+            "\x07\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00" "foobaz"
+            "\x65\x00\x12\x00\x00\x00"
+            "\x07\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00" "foobar";
+        spice_buffer_append(&channel_expected, expected_buf, sizeof(expected_buf) - 1);
+
+        vmc_emu_reset(vmc);
+        // data from device
+        uint8_t *p = vmc->message;
+
+        // add VSC_APDU message
+        memcpy(p, "\x00\x00\x00\x07\x00\x00\x00\x00\x00\x00\x00\x06" "foobaz", 18);
+        p += 18;
+        memcpy(p, "\x00\x00\x00\x07\x00\x00\x00\x00\x00\x00\x00\x06" "foobar", 18);
+        p += 18;
+        vmc_emu_add_read_till(vmc, vmc->message + 8);
+        vmc_emu_add_read_till(vmc, vmc->message + 14);
+        vmc_emu_add_read_till(vmc, p);
+
+        spice_server_char_device_wakeup(&vmc->instance);
+        } break;
+    // Fourth test, we should get back an error if client tried to remove
+    // a not existing reader
+    case 4: {
+        static const char expected_buf[] =
+            // forwarded Error message
+            "\x65\x00\x10\x00\x00\x00"
+            "\x02\x00\x00\x00\x05\x00\x00\x00\x04\x00\x00\x00\x01\x00\x00\x00";
+        spice_buffer_append(&channel_expected, expected_buf, sizeof(expected_buf) - 1);
+
+        // remove invalid, this will trigger an error
+        send_data(client_socket, VSC_ReaderRemove, 5);
+        } break;
+    // Fifth test, similar to previous but using an huge reader_id field to trigger
+    // possible buffer overflow
+    case 5: {
+        static const char expected_buf[] =
+            // forwarded Error message
+            "\x65\x00\x10\x00\x00\x00"
+            "\x02\x00\x00\x00\x05\x01\x00\x00\x04\x00\x00\x00\x01\x00\x00\x00";
+        spice_buffer_append(&channel_expected, expected_buf, sizeof(expected_buf) - 1);
+
+        // remove invalid and huge, this will trigger an error, should not crash
+        send_data(client_socket, VSC_ReaderRemove, 261);
+        } break;
+    // Sixth test, send an invalid message from client, a log is triggered
+    // but channel continues to work
+    case 6: {
+        static const char expected_buf[] =
+            // forwarded APDU message
+            "\x00\x00\x00\x07\x00\x00\x00\x00\x00\x00\x00\x06\x68\x65\x6c\x6c\x6f\x00";
+        spice_buffer_append(&device_expected, expected_buf, sizeof(expected_buf) - 1);
+
+        g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                              "*ERROR: unexpected message on smartcard channel*");
+
+        // invalid message type, should log a warning
+        send_data(client_socket, 0xabcd, 0);
+        // APDU just to get an event
+        send_data(client_socket, VSC_APDU, 0);
+        } break;
+    // Seventh test, an Error message from device are forwarded to the channel.
+    // Note that the header is in big endian order while the error from device
+    // is in little endian order. This seems weird but it's correct with the
+    // current libcacard implementation which just send error as host order
+    case 7: {
+        g_test_assert_expected_messages();
+
+        static const char expected_buf[] =
+            // forwarded Error message
+            "\x65\x00\x10\x00\x00\x00"
+            "\x02\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x0a\x0b\x0c\x0d";
+        spice_buffer_append(&channel_expected, expected_buf, sizeof(expected_buf) - 1);
+
+        vmc_emu_reset(vmc);
+        // data from device
+        uint8_t *p = vmc->message;
+
+        // add Error message
+        memcpy(p, "\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x04\x0a\x0b\x0c\x0d", 16);
+        p += 16;
+        vmc_emu_add_read_till(vmc, p);
+
+        spice_server_char_device_wakeup(&vmc->instance);
+        } break;
+    case 8:
+        g_test_assert_expected_messages();
+        basic_event_loop_quit();
+        break;
+    default:
+        abort();
+    }
 }
 
 static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
@@ -144,6 +313,7 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
     // add VSC_Init message
     memcpy(p, "\x00\x00\x00\x01\x0a\x0b\x0c\x0d\x00\x00\x00\x00", 12);
     p += 12;
+    vmc_emu_add_read_till(vmc, vmc->message + 2); // check header is decoded correctly when split
     vmc_emu_add_read_till(vmc, p);
 
     // find Smartcard channel to connect to
@@ -170,7 +340,6 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
     red_client_set_main(client, mcc);
 
     // create our testing RedChannelClient
-    int client_socket;
     red_channel_connect(channel, client, create_dummy_stream(server, &client_socket),
                         FALSE, &caps);
     red_channel_capabilities_reset(&caps);
@@ -180,21 +349,20 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
 
     // push data into channel
     send_ack_sync(client_socket, 1);
-    send_data(client_socket, VSC_ReaderAdd);
-    send_data(client_socket, VSC_APDU);
 
-    // check data are processed after a short time
-    SpiceTimer *watch_timer;
-    watch_timer = core->timer_add(check_data, core);
-    core->timer_start(watch_timer, 100);
+    // check data are processed
+    SpiceWatch *watch = core->watch_add(client_socket, SPICE_WATCH_EVENT_READ,
+                                        data_from_channel, NULL);
+    vmc->data_written_cb = check_data;
 
     // start all test
     alarm(10);
+    next_test();
     basic_event_loop_mainloop();
     alarm(0);
 
     // cleanup
-    core->timer_remove(watch_timer);
+    core->watch_remove(watch);
     red_client_destroy(client);
     g_object_unref(main_channel);
     g_object_unref(channel);

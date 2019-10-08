@@ -31,6 +31,9 @@ static int vmc_write(SpiceCharDeviceInstance *sin,
     unsigned copy = MIN(sizeof(vmc->write_buf) - vmc->write_pos, len);
     memcpy(vmc->write_buf+vmc->write_pos, buf, copy);
     vmc->write_pos += copy;
+    if (copy && vmc->data_written_cb) {
+        vmc->data_written_cb(vmc);
+    }
     return len;
 }
 
