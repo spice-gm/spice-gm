@@ -47,30 +47,6 @@ smartcard_channel_client_release_msg_rcv_buf(RedChannelClient *rcc, uint16_t typ
                                              uint32_t size, uint8_t *msg);
 static void smartcard_channel_client_on_disconnect(RedChannelClient *rcc);
 
-static void smart_card_channel_client_get_property(GObject *object,
-                                                   guint property_id,
-                                                   GValue *value,
-                                                   GParamSpec *pspec)
-{
-    switch (property_id)
-    {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static void smart_card_channel_client_set_property(GObject *object,
-                                                   guint property_id,
-                                                   const GValue *value,
-                                                   GParamSpec *pspec)
-{
-    switch (property_id)
-    {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
 static void smart_card_channel_client_finalize(GObject *object)
 {
     SmartCardChannelClient *self = SMARTCARD_CHANNEL_CLIENT(object);
@@ -90,8 +66,6 @@ static void smart_card_channel_client_class_init(SmartCardChannelClientClass *kl
     client_class->release_recv_buf = smartcard_channel_client_release_msg_rcv_buf;
     client_class->on_disconnect = smartcard_channel_client_on_disconnect;
 
-    object_class->get_property = smart_card_channel_client_get_property;
-    object_class->set_property = smart_card_channel_client_set_property;
     object_class->finalize = smart_card_channel_client_finalize;
 }
 
