@@ -130,19 +130,28 @@ static RedPipeItem *smartcard_read_msg_from_device(RedCharDevice *self,
     RedCharDeviceSmartcard *dev = RED_CHAR_DEVICE_SMARTCARD(self);
     SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
     VSCMsgHeader *vheader = (VSCMsgHeader*)dev->priv->buf;
-    int n;
     int remaining;
     int actual_length;
 
-    while ((n = sif->read(sin, dev->priv->buf_pos, dev->priv->buf_size - dev->priv->buf_used)) > 0) {
+    while (true) {
         RedMsgItem *msg_to_client;
 
-        dev->priv->buf_pos += n;
-        dev->priv->buf_used += n;
-        if (dev->priv->buf_used < sizeof(VSCMsgHeader)) {
-            continue;
+        // it's possible we already got a full message from a previous partial
+        // read. In this case we don't need to read any byte
+        if (dev->priv->buf_used < sizeof(VSCMsgHeader) ||
+            dev->priv->buf_used - sizeof(VSCMsgHeader) < ntohl(vheader->length)) {
+            int n = sif->read(sin, dev->priv->buf_pos, dev->priv->buf_size - dev->priv->buf_used);
+            if (n <= 0) {
+                break;
+            }
+            dev->priv->buf_pos += n;
+            dev->priv->buf_used += n;
+
+            if (dev->priv->buf_used < sizeof(VSCMsgHeader)) {
+                continue;
+            }
+            smartcard_read_buf_prepare(dev, vheader);
         }
-        smartcard_read_buf_prepare(dev, vheader);
         actual_length = ntohl(vheader->length);
         if (dev->priv->buf_used - sizeof(VSCMsgHeader) < actual_length) {
             continue;
