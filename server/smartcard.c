@@ -150,9 +150,9 @@ static RedPipeItem *smartcard_read_msg_from_device(RedCharDevice *self,
         msg_to_client = smartcard_char_device_on_message_from_device(dev, vheader);
         remaining = dev->priv->buf_used - sizeof(VSCMsgHeader) - actual_length;
         if (remaining > 0) {
-            memcpy(dev->priv->buf, dev->priv->buf_pos, remaining);
+            memmove(dev->priv->buf, dev->priv->buf_pos - remaining, remaining);
         }
-        dev->priv->buf_pos = dev->priv->buf;
+        dev->priv->buf_pos = dev->priv->buf + remaining;
         dev->priv->buf_used = remaining;
         if (msg_to_client) {
             return &msg_to_client->base;
