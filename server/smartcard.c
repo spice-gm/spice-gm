@@ -151,6 +151,7 @@ static RedPipeItem *smartcard_read_msg_from_device(RedCharDevice *self,
                 continue;
             }
             smartcard_read_buf_prepare(dev, vheader);
+            vheader = (VSCMsgHeader*)dev->priv->buf;
         }
         actual_length = ntohl(vheader->length);
         if (dev->priv->buf_used - sizeof(VSCMsgHeader) < actual_length) {
