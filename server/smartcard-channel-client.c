@@ -252,8 +252,7 @@ bool smartcard_channel_client_handle_message(RedChannelClient *rcc,
     SmartCardChannelClient *scc = SMARTCARD_CHANNEL_CLIENT(rcc);
 
     if (type != SPICE_MSGC_SMARTCARD_DATA) {
-        /* Handles seamless migration protocol. Also handles ack's,
-         * spicy sends them while spicec does not */
+        /* Handles seamless migration protocol. Also handles ack's */
         return red_channel_client_handle_message(rcc, type, size, message);
     }
 
