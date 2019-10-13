@@ -1730,8 +1730,7 @@ void red_channel_client_disconnect(RedChannelClient *rcc)
     }
     red_channel_client_pipe_clear(rcc);
 
-    red_watch_remove(rcc->priv->stream->watch);
-    rcc->priv->stream->watch = NULL;
+    red_channel_client_shutdown(rcc);
 
     red_timer_remove(rcc->priv->latency_monitor.timer);
     rcc->priv->latency_monitor.timer = NULL;
