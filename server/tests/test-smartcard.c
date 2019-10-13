@@ -48,6 +48,7 @@ static SpiceBuffer channel_buf;
 static SpiceBuffer channel_expected;
 // expected buffer in device
 static SpiceBuffer device_expected;
+static SpiceWatch *watch;
 
 static void next_test(void);
 
@@ -148,6 +149,13 @@ static void data_from_channel(int fd, int event, void *opaque)
     uint8_t buf[128];
     ssize_t ret = socket_read(fd, buf, sizeof(buf));
     if (ret <= 0) {
+        g_assert(ret == 0 || errno == EAGAIN || errno == EINTR);
+        if (ret == 0) {
+            g_warning("TEST: connection closed");
+            core->watch_remove(watch);
+            watch = NULL;
+            next_test();
+        }
         return;
     }
     spice_buffer_append(&channel_buf, buf, ret);
@@ -294,7 +302,19 @@ static void next_test(void)
 
         spice_server_char_device_wakeup(&vmc->instance);
         } break;
-    case 8:
+    // Eighth test, a message with invalid reader ID from device caused the channel
+    // to be closed
+    case 8: {
+        g_test_assert_expected_messages();
+
+        g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                              "*ERROR: received message for non existing reader*");
+        g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                              "*TEST: connection closed*");
+
+        send_data(client_socket, VSC_APDU, 0xabcd);
+        } break;
+    case 9:
         g_test_assert_expected_messages();
         basic_event_loop_quit();
         break;
@@ -350,8 +370,7 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
     send_ack_sync(client_socket, 1);
 
     // check data are processed
-    SpiceWatch *watch = core->watch_add(client_socket, SPICE_WATCH_EVENT_READ,
-                                        data_from_channel, NULL);
+    watch = core->watch_add(client_socket, SPICE_WATCH_EVENT_READ, data_from_channel, NULL);
     vmc->data_written_cb = check_data;
 
     // start all test
@@ -361,7 +380,9 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
     alarm(0);
 
     // cleanup
-    core->watch_remove(watch);
+    if (watch) {
+        core->watch_remove(watch);
+    }
     red_client_destroy(client);
     g_object_unref(main_channel);
     g_object_unref(channel);
