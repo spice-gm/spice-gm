@@ -3,13 +3,16 @@ ASCIIDOC_FLAGS = -a icons -a toc
 
 EXTRA_DIST =					\
 	meson.build				\
+	spice_for_newbies.html			\
+	spice_for_newbies.txt			\
+	spice_protocol.html			\
+	spice_protocol.txt			\
 	spice_style.html			\
 	spice_style.txt				\
 	spice_threading_model.html		\
 	spice_threading_model.txt		\
+	vd_interfaces.html			\
 	vd_interfaces.txt			\
-	spice_protocol.txt			\
-	spice_for_newbies.txt			\
 	images/newbies/g_cmd_flow.png		\
 	images/newbies/g_sub.png		\
 	images/newbies/cli_bsc_stc.png		\
@@ -18,11 +21,11 @@ EXTRA_DIST =					\
 	$(NULL)
 
 HTML_FILES = \
+	spice_for_newbies.html \
+	spice_protocol.html \
 	spice_style.html \
 	spice_threading_model.html \
 	vd_interfaces.html \
-	spice_protocol.html \
-	spice_for_newbies.html \
 	$(NULL)
 
 if BUILD_MANUAL

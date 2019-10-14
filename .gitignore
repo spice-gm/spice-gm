@@ -34,8 +34,7 @@ INSTALL
 .tarball-version
 docs/manual/manual.chunked/
 docs/manual/manual.html
-docs/spice_style.html
-docs/spice_threading_model.html
+docs/*.html
 .dirstamp
 .deps
 .libs
