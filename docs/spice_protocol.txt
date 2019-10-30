@@ -1,4 +1,4 @@
-﻿= Spice remote computing protocol definition
+= Spice Protocol
 :revnumber: v1.0
 :revdate: 01.01.2009
 :revremark: Draft 1

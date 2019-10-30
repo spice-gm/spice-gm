@@ -1,5 +1,5 @@
 How does SPICE handle threading
--------------------------------
+===============================
 
 Lots of code runs in a single thread.
 
