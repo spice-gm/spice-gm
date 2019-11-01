@@ -56,3 +56,16 @@
 	...
 	fun:g_socket_client_class_init
 }
+
+# One-time getaddrinfo() configuration loading
+{
+	g-threaded-resolver-getaddrinfo-config2
+	Memcheck:Leak
+	match-leak-kinds:reachable,definite
+	fun:malloc
+	...
+	fun:__resolv_conf_allocate
+	...
+	fun:getaddrinfo
+	fun:do_lookup_by_name
+}
