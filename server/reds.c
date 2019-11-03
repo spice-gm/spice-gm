@@ -2802,12 +2802,9 @@ static int ssl_password_cb(char *buf, int size, int flags, void *userdata)
 #if OPENSSL_VERSION_NUMBER < 0x1010000FL
 static pthread_mutex_t *lock_cs;
 
-static unsigned long pthreads_thread_id(void)
+static void pthreads_thread_id(CRYPTO_THREADID *tid)
 {
-    unsigned long ret;
-
-    ret = (unsigned long)pthread_self();
-    return (ret);
+    CRYPTO_THREADID_set_numeric(tid, (unsigned long)pthread_self());
 }
 
 static void pthreads_locking_callback(int mode, int type, const char *file, int line)
@@ -2837,7 +2834,7 @@ static void openssl_thread_setup(void)
         pthread_mutex_init(&(lock_cs[i]), NULL);
     }
 
-    CRYPTO_set_id_callback(pthreads_thread_id);
+    CRYPTO_THREADID_set_callback(pthreads_thread_id);
     CRYPTO_set_locking_callback(pthreads_locking_callback);
 }
 
