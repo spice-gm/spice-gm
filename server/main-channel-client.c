@@ -232,7 +232,7 @@ static void main_channel_client_init(MainChannelClient *self)
     self->priv->bitrate_per_sec = ~0;
 }
 
-static bool main_channel_client_push_ping(MainChannelClient *mcc, int size);
+static void main_channel_client_push_ping(MainChannelClient *mcc, int size);
 
 static void main_notify_item_free(RedPipeItem *base)
 {
@@ -280,16 +280,15 @@ static RedPipeItem *red_ping_item_new(int size)
     return &item->base;
 }
 
-static bool main_channel_client_push_ping(MainChannelClient *mcc, int size)
+static void main_channel_client_push_ping(MainChannelClient *mcc, int size)
 {
     RedPipeItem *item;
 
     if (mcc == NULL) {
-        return FALSE;
+        return;
     }
     item = red_ping_item_new(size);
     red_channel_client_pipe_add_push(RED_CHANNEL_CLIENT(mcc), item);
-    return TRUE;
 }
 
 static RedPipeItem *main_agent_tokens_item_new(uint32_t num_tokens)
