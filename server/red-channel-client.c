@@ -203,6 +203,7 @@ enum {
 };
 
 #define PING_TEST_TIMEOUT_MS (MSEC_PER_SEC * 15)
+#define PING_TEST_LONG_TIMEOUT_MS (MSEC_PER_SEC * 60 * 5)
 #define PING_TEST_IDLE_NET_TIMEOUT_MS (MSEC_PER_SEC / 10)
 
 typedef struct RedEmptyMsgPipeItem {
@@ -784,11 +785,13 @@ void red_channel_client_start_connectivity_monitoring(RedChannelClient *rcc, uin
     if (rcc->priv->latency_monitor.timer == NULL) {
         rcc->priv->latency_monitor.timer = core->timer_add(
             core, red_channel_client_ping_timer, rcc);
-        if (!red_client_during_migrate_at_target(rcc->priv->client)) {
-            red_channel_client_start_ping_timer(rcc, PING_TEST_IDLE_NET_TIMEOUT_MS);
-        }
         rcc->priv->latency_monitor.roundtrip = -1;
-        rcc->priv->latency_monitor.timeout = PING_TEST_TIMEOUT_MS;
+    } else {
+        red_channel_client_cancel_ping_timer(rcc);
+    }
+    rcc->priv->latency_monitor.timeout = PING_TEST_TIMEOUT_MS;
+    if (!red_client_during_migrate_at_target(rcc->priv->client)) {
+        red_channel_client_start_ping_timer(rcc, PING_TEST_IDLE_NET_TIMEOUT_MS);
     }
     if (rcc->priv->connectivity_monitor.timer == NULL) {
         rcc->priv->connectivity_monitor.state = CONNECTIVITY_STATE_CONNECTED;
@@ -924,8 +927,7 @@ static gboolean red_channel_client_initable_init(GInitable *initable,
                         red_channel_client_event,
                         self);
 
-    if (self->priv->monitor_latency
-        && red_stream_get_family(self->priv->stream) != AF_UNIX) {
+    if (red_stream_get_family(self->priv->stream) != AF_UNIX) {
         self->priv->latency_monitor.timer =
             core->timer_add(core, red_channel_client_ping_timer, self);
 
@@ -934,7 +936,8 @@ static gboolean red_channel_client_initable_init(GInitable *initable,
                                                 PING_TEST_IDLE_NET_TIMEOUT_MS);
         }
         self->priv->latency_monitor.roundtrip = -1;
-        self->priv->latency_monitor.timeout = PING_TEST_TIMEOUT_MS;
+        self->priv->latency_monitor.timeout =
+            self->priv->monitor_latency ? PING_TEST_TIMEOUT_MS : PING_TEST_LONG_TIMEOUT_MS;
     }
 
     red_channel_add_client(self->priv->channel, self);
