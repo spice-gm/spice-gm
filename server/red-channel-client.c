@@ -326,14 +326,11 @@ red_channel_client_finalize(GObject *object)
 {
     RedChannelClient *self = RED_CHANNEL_CLIENT(object);
 
-    if (self->priv->latency_monitor.timer) {
-        red_timer_remove(self->priv->latency_monitor.timer);
-        self->priv->latency_monitor.timer = NULL;
-    }
-    if (self->priv->connectivity_monitor.timer) {
-        red_timer_remove(self->priv->connectivity_monitor.timer);
-        self->priv->connectivity_monitor.timer = NULL;
-    }
+    red_timer_remove(self->priv->latency_monitor.timer);
+    self->priv->latency_monitor.timer = NULL;
+
+    red_timer_remove(self->priv->connectivity_monitor.timer);
+    self->priv->connectivity_monitor.timer = NULL;
 
     red_stream_free(self->priv->stream);
     self->priv->stream = NULL;
@@ -1010,15 +1007,13 @@ bool red_channel_client_is_waiting_for_migrate_data(RedChannelClient *rcc)
 
 void red_channel_client_default_migrate(RedChannelClient *rcc)
 {
-    if (rcc->priv->latency_monitor.timer) {
-        red_channel_client_cancel_ping_timer(rcc);
-        red_timer_remove(rcc->priv->latency_monitor.timer);
-        rcc->priv->latency_monitor.timer = NULL;
-    }
-    if (rcc->priv->connectivity_monitor.timer) {
-        red_timer_remove(rcc->priv->connectivity_monitor.timer);
-        rcc->priv->connectivity_monitor.timer = NULL;
-    }
+    red_channel_client_cancel_ping_timer(rcc);
+    red_timer_remove(rcc->priv->latency_monitor.timer);
+    rcc->priv->latency_monitor.timer = NULL;
+
+    red_timer_remove(rcc->priv->connectivity_monitor.timer);
+    rcc->priv->connectivity_monitor.timer = NULL;
+
     red_channel_client_pipe_add_type(rcc, RED_PIPE_ITEM_TYPE_MIGRATE);
 }
 
@@ -1724,18 +1719,16 @@ void red_channel_client_disconnect(RedChannelClient *rcc)
         return;
     }
     red_channel_client_pipe_clear(rcc);
-    if (rcc->priv->stream->watch) {
-        red_watch_remove(rcc->priv->stream->watch);
-        rcc->priv->stream->watch = NULL;
-    }
-    if (rcc->priv->latency_monitor.timer) {
-        red_timer_remove(rcc->priv->latency_monitor.timer);
-        rcc->priv->latency_monitor.timer = NULL;
-    }
-    if (rcc->priv->connectivity_monitor.timer) {
-        red_timer_remove(rcc->priv->connectivity_monitor.timer);
-        rcc->priv->connectivity_monitor.timer = NULL;
-    }
+
+    red_watch_remove(rcc->priv->stream->watch);
+    rcc->priv->stream->watch = NULL;
+
+    red_timer_remove(rcc->priv->latency_monitor.timer);
+    rcc->priv->latency_monitor.timer = NULL;
+
+    red_timer_remove(rcc->priv->connectivity_monitor.timer);
+    rcc->priv->connectivity_monitor.timer = NULL;
+
     red_channel_remove_client(channel, rcc);
     red_channel_client_on_disconnect(rcc);
 }
