@@ -189,7 +189,6 @@ stream_channel_client_new(StreamChannel *channel, RedClient *client, RedStream *
                          "channel", channel,
                          "client", client,
                          "stream", stream,
-                         "monitor-latency", FALSE,
                          "caps", caps,
                          NULL);
 
