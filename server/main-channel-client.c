@@ -282,12 +282,7 @@ static RedPipeItem *red_ping_item_new(int size)
 
 static void main_channel_client_push_ping(MainChannelClient *mcc, int size)
 {
-    RedPipeItem *item;
-
-    if (mcc == NULL) {
-        return;
-    }
-    item = red_ping_item_new(size);
+    RedPipeItem *item = red_ping_item_new(size);
     red_channel_client_pipe_add_push(RED_CHANNEL_CLIENT(mcc), item);
 }
 
