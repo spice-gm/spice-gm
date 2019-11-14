@@ -1094,29 +1094,29 @@ static void red_channel_client_handle_outgoing(RedChannelClient *rcc)
             switch (errno) {
             case EAGAIN:
                 red_channel_client_set_blocked(rcc);
-                return;
+                break;
             case EINTR:
                 continue;
             case EPIPE:
                 red_channel_client_disconnect(rcc);
-                return;
+                break;
             default:
                 red_channel_warning(red_channel_client_get_channel(rcc), "%s", strerror(errno));
                 red_channel_client_disconnect(rcc);
-                return;
+                break;
             }
-        } else {
-            buffer->pos += n;
-            red_channel_client_data_sent(rcc, n);
-            if (buffer->pos == buffer->size) { // finished writing data
-                /* reset buffer before calling on_msg_done, since it
-                 * can trigger another call to red_channel_client_handle_outgoing (when
-                 * switching from the urgent marshaller to the main one */
-                buffer->pos = 0;
-                buffer->size = 0;
-                red_channel_client_msg_sent(rcc);
-                return;
-            }
+            return;
+        }
+        buffer->pos += n;
+        red_channel_client_data_sent(rcc, n);
+        if (buffer->pos == buffer->size) { // finished writing data
+            /* reset buffer before calling on_msg_done, since it
+             * can trigger another call to red_channel_client_handle_outgoing (when
+             * switching from the urgent marshaller to the main one */
+            buffer->pos = 0;
+            buffer->size = 0;
+            red_channel_client_msg_sent(rcc);
+            return;
         }
     }
 }
