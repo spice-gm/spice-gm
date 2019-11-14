@@ -754,7 +754,7 @@ static void red_channel_client_connectivity_timer(void *opaque)
                    rcc->priv->latency_monitor.state == PING_STATE_LATENCY) {
             monitor->state = CONNECTIVITY_STATE_WAIT_PONG;
         } else {
-             monitor->state = CONNECTIVITY_STATE_CONNECTED;
+            monitor->state = CONNECTIVITY_STATE_CONNECTED;
         }
         red_timer_start(monitor->timer, monitor->timeout);
     } else {
