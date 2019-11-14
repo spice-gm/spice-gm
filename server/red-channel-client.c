@@ -78,6 +78,7 @@ typedef struct RedChannelClientLatencyMonitor {
     QosPingState state;
     uint64_t last_pong_time;
     SpiceTimer *timer;
+    uint32_t timeout;
     uint32_t id;
     bool tcp_nodelay;
     bool warmup_was_sent;
@@ -249,8 +250,8 @@ static void red_channel_client_restart_ping_timer(RedChannelClient *rcc)
     }
     passed = (spice_get_monotonic_time_ns() - rcc->priv->latency_monitor.last_pong_time) / NSEC_PER_MILLISEC;
     timeout = PING_TEST_IDLE_NET_TIMEOUT_MS;
-    if (passed  < PING_TEST_TIMEOUT_MS) {
-        timeout += PING_TEST_TIMEOUT_MS - passed;
+    if (passed  < rcc->priv->latency_monitor.timeout) {
+        timeout += rcc->priv->latency_monitor.timeout - passed;
     }
 
     red_channel_client_start_ping_timer(rcc, timeout);
@@ -787,6 +788,7 @@ void red_channel_client_start_connectivity_monitoring(RedChannelClient *rcc, uin
             red_channel_client_start_ping_timer(rcc, PING_TEST_IDLE_NET_TIMEOUT_MS);
         }
         rcc->priv->latency_monitor.roundtrip = -1;
+        rcc->priv->latency_monitor.timeout = PING_TEST_TIMEOUT_MS;
     }
     if (rcc->priv->connectivity_monitor.timer == NULL) {
         rcc->priv->connectivity_monitor.state = CONNECTIVITY_STATE_CONNECTED;
@@ -932,6 +934,7 @@ static gboolean red_channel_client_initable_init(GInitable *initable,
                                                 PING_TEST_IDLE_NET_TIMEOUT_MS);
         }
         self->priv->latency_monitor.roundtrip = -1;
+        self->priv->latency_monitor.timeout = PING_TEST_TIMEOUT_MS;
     }
 
     red_channel_add_client(self->priv->channel, self);
@@ -1392,7 +1395,7 @@ static void red_channel_client_handle_pong(RedChannelClient *rcc, SpiceMsgPing *
 
     rcc->priv->latency_monitor.last_pong_time = now;
     rcc->priv->latency_monitor.state = PING_STATE_NONE;
-    red_channel_client_start_ping_timer(rcc, PING_TEST_TIMEOUT_MS);
+    red_channel_client_start_ping_timer(rcc, rcc->priv->latency_monitor.timeout);
 }
 
 static void red_channel_client_handle_migrate_flush_mark(RedChannelClient *rcc)
