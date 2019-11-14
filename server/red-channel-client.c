@@ -756,8 +756,7 @@ static void red_channel_client_connectivity_timer(void *opaque)
         } else {
              monitor->state = CONNECTIVITY_STATE_CONNECTED;
         }
-        red_timer_start(rcc->priv->connectivity_monitor.timer,
-                          rcc->priv->connectivity_monitor.timeout);
+        red_timer_start(monitor->timer, monitor->timeout);
     } else {
         monitor->state = CONNECTIVITY_STATE_DISCONNECTED;
         red_channel_warning(rcc->priv->channel,
