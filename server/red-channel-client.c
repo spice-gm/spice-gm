@@ -682,13 +682,13 @@ static void red_channel_client_ping_timer(void *opaque)
 #ifdef HAVE_LINUX_SOCKIOS_H /* SIOCOUTQ is a Linux only ioctl on sockets. */
     int so_unsent_size = 0;
 
-    /* retrieving the occupied size of the socket's tcp snd buffer (unacked + unsent) */
+    /* retrieving the occupied size of the socket's tcp send buffer (unacked + unsent) */
     if (ioctl(rcc->priv->stream->socket, SIOCOUTQ, &so_unsent_size) == -1) {
         red_channel_warning(red_channel_client_get_channel(rcc),
                             "ioctl(SIOCOUTQ) failed, %s", strerror(errno));
     }
     if (so_unsent_size > 0) {
-        /* tcp snd buffer is still occupied. rescheduling ping */
+        /* tcp send buffer is still occupied. rescheduling ping */
         red_channel_client_start_ping_timer(rcc, PING_TEST_IDLE_NET_TIMEOUT_MS);
         return;
     }
