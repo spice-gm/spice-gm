@@ -70,7 +70,7 @@
 	fun:do_lookup_by_name
 }
 
-# g_type_create_instance Valgring malloc annotation, for
+# g_type_create_instance Valgrind malloc annotation, for
 # some reason this has issues with Fedora 31 from test-listen test
 {
 	g_type_create_instance-valgrind
