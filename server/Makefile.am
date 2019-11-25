@@ -12,7 +12,6 @@ AM_CPPFLAGS =					\
 	$(LZ4_CFLAGS)				\
 	$(PIXMAN_CFLAGS)			\
 	$(SASL_CFLAGS)				\
-	$(SLIRP_CFLAGS)				\
 	$(SMARTCARD_CFLAGS)			\
 	$(GSTREAMER_0_10_CFLAGS)		\
 	$(GSTREAMER_1_0_CFLAGS)			\
@@ -42,7 +41,6 @@ endif
 libserver_la_LIBADD =							\
 	$(SPICE_COMMON_DIR)/common/libspice-common.la			\
 	$(SPICE_COMMON_DIR)/common/libspice-common-server.la		\
-	$(GL_LIBS)							\
 	$(GLIB2_LIBS)							\
 	$(GOBJECT2_LIBS)						\
 	$(JPEG_LIBS)							\
@@ -50,7 +48,6 @@ libserver_la_LIBADD =							\
 	$(LIBRT)							\
 	$(PIXMAN_LIBS)							\
 	$(SASL_LIBS)							\
-	$(SLIRP_LIBS)							\
 	$(GSTREAMER_0_10_LIBS)						\
 	$(GSTREAMER_1_0_LIBS)						\
 	$(SSL_LIBS)							\
