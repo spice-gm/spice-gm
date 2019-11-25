@@ -69,3 +69,14 @@
 	fun:getaddrinfo
 	fun:do_lookup_by_name
 }
+
+# g_type_create_instance Valgring malloc annotation, for
+# some reason this has issues with Fedora 31 from test-listen test
+{
+	g_type_create_instance-valgrind
+	Memcheck:Leak
+	fun:g_type_create_instance
+	...
+	fun:g_socket_client_connect
+	fun:fake_client_connect_tls
+}
