@@ -30,7 +30,6 @@ SPICE_SERVER_VERSION=`printf "0x%02x%02x%02x" $major $minor $micro`
 AC_SUBST(SPICE_SERVER_VERSION)
 
 AC_CONFIG_MACRO_DIR([m4])
-m4_include([subprojects/spice-common/m4/spice-deps.m4])
 AM_CONFIG_HEADER([config.h])
 AC_CONFIG_AUX_DIR(.)
 
@@ -85,7 +84,6 @@ AM_CONDITIONAL([OS_WIN32],[test "$os_win32" = "yes"])
 dnl =========================================================================
 dnl Check optional features
 SPICE_CHECK_SMARTCARD
-SPICE_EXTRA_CHECKS
 
 AC_ARG_ENABLE(gstreamer,
               AS_HELP_STRING([--enable-gstreamer=@<:@auto/0.10/1.0/yes/no@:>@],
@@ -148,18 +146,12 @@ AX_VALGRIND_CHECK
 
 SPICE_CHECK_LZ4
 SPICE_CHECK_SASL
-SPICE_CHECK_INSTRUMENTATION
 AM_CONDITIONAL(HAVE_SASL, test "x$have_sasl" = "xyes")
 
 dnl =========================================================================
 dnl Check deps
-AC_CONFIG_SUBDIRS([subprojects/spice-common])
-COMMON_CFLAGS='-I ${top_srcdir}/subprojects/spice-common/ -I ${top_builddir}/subprojects/spice-common/'
-COMMON_CFLAGS="$COMMON_CFLAGS -DG_LOG_DOMAIN=\\\"Spice\\\""
-AC_SUBST(COMMON_CFLAGS)
-
-SPICE_COMMON_DIR='${top_builddir}/subprojects/spice-common'
-AC_SUBST(SPICE_COMMON_DIR)
+m4_define([SPICE_PROTOCOL_MIN_VER],[0.14.0])
+m4_include([subprojects/spice-common/m4/common.m4])
 
 AC_CHECK_LIBM
 AC_SUBST(LIBM)
@@ -177,10 +169,6 @@ SPICE_REQUIRES=""
 AS_IF([test x"$have_smartcard" = "xyes"], [
     AS_VAR_APPEND([SPICE_REQUIRES], [" libcacard >= 2.5.1"])
 ])
-
-SPICE_PROTOCOL_MIN_VER=0.14.0
-PKG_CHECK_MODULES([SPICE_PROTOCOL], [spice-protocol >= $SPICE_PROTOCOL_MIN_VER])
-AC_SUBST([SPICE_PROTOCOL_MIN_VER])
 
 GLIB2_REQUIRED=2.38
 GLIB2_ENCODED_VERSION="GLIB_VERSION_2_38"
@@ -201,8 +189,6 @@ PKG_CHECK_MODULES(PIXMAN, pixman-1 >= $PIXMAN_REQUIRED)
 AC_SUBST(PIXMAN_CFLAGS)
 AC_SUBST(PIXMAN_LIBS)
 AS_VAR_APPEND([SPICE_REQUIRES], [" pixman-1 >= $PIXMAN_REQUIRED"])
-
-SPICE_CHECK_CELT051
 
 PKG_CHECK_MODULES(SSL, openssl >= 1.0.0)
 AC_SUBST(SSL_CFLAGS)

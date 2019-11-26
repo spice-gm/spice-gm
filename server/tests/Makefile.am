@@ -16,13 +16,12 @@ AM_CPPFLAGS =					\
 	-I$(top_srcdir)/server			\
 	-I$(top_builddir)/server		\
 	-I$(top_srcdir)/server/tests		\
-	$(COMMON_CFLAGS)			\
+	$(SPICE_COMMON_CFLAGS)			\
 	$(GIO_UNIX_CFLAGS)			\
 	$(GLIB2_CFLAGS)				\
 	$(GOBJECT2_CFLAGS)			\
 	$(SMARTCARD_CFLAGS)			\
 	$(SPICE_NONPKGCONFIG_CFLAGS)		\
-	$(SPICE_PROTOCOL_CFLAGS)		\
 	$(WARN_CFLAGS)				\
 	$(NULL)
 
