@@ -165,3 +165,18 @@ websocket-autobahn:
   - wstest -m fuzzingclient -s server/tests/fuzzingclient.json
   - kill $pid
   - server/tests/autobahn-check-report reports/servers/index.json
+
+trigger-website-update:
+  image: alpine:latest
+  before_script:
+  - apk add curl
+  only:
+    variables:
+    - $TOKEN
+    changes:
+    - "docs/*.txt"
+    - "docs/images/*"
+    - "docs/manual/*.txt"
+    - "docs/manual/images/*"
+  script:
+  - curl -X POST -F token=$TOKEN -F ref=master https://gitlab.freedesktop.org/api/v4/projects/spice%2Fspice-space/trigger/pipeline
