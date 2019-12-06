@@ -2101,13 +2101,12 @@ static void reds_handle_other_links(RedsState *reds, RedLinkInfo *link)
     if (red_client_during_migrate_at_target(client) && !reds->dst_do_seamless_migrate) {
         spice_assert(mig_client);
         reds_mig_target_client_add_pending_link(mig_client, link_mess, link->stream);
+        link->link_mess = NULL;
     } else {
         spice_assert(!mig_client);
         reds_channel_do_link(channel, client, link_mess, link->stream);
-        g_free(link_mess);
     }
     link->stream = NULL;
-    link->link_mess = NULL;
     reds_link_free(link);
 }
 
