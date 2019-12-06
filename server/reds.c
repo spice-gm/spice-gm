@@ -151,7 +151,6 @@ typedef struct RedLinkInfo {
     RedStream *stream;
     SpiceLinkHeader link_header;
     SpiceLinkMess *link_mess;
-    int mess_pos;
     TicketInfo tiTicketing;
     SpiceLinkAuthMechanism auth_mechanism;
     int skip_auth;
