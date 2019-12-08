@@ -193,15 +193,11 @@ and ensure it was received within the allowed time-frame.
 +
 .. SpiceLinkMess definition.
 +
-[source,c]
-----
-UINT32 magic
-----
-+
-value of this fields must be equal to SPICE_MAGIC
-+
 [cols="2*"]
 |===
+|UINT32 magic
+|value of this fields must be equal to SPICE_MAGIC
+
 |UINT32 major_version
 | value of this fields must be equal to SPICE_VERSION_MAJOR
 
@@ -1413,20 +1409,16 @@ Pixmap lines are ordered from top to bottom (i.e., line 0 is the highest line).
 |UINT32 stride
 |number of bytes to add for moving from the beginning of line n to the
 beginning  of line n+1
-|===
-+
+
+a|
 [source,c]
 ----
 union {
-	SPICE_ADDRESS palette; /* address of the color palette. Must be zero if no
-color table is required for format */
+	SPICE_ADDRESS palette;
+	UINT64 palette_id;
 }
 ----
-+
-[cols="2*"]
-|===
-|UINT64 palette_id
-|id of the palette, valid if FLAG_PAL_FROM_CACHE is set
+|address of the color palette (must be zero if no color table is required for format) *or* id of the palette (valid if FLAG_PAL_FROM_CACHE is set).
 
 |SPICE_ADDRESS data
 |address of line 0 of the pixmap.
@@ -1471,20 +1463,18 @@ pixmap lines are ordered from top to bottom (i.e. line 0 is the highest line).
 
 |UINT32 data_size
 |size of compressed data
-|===
-+
+
+a|
 [source,c]
 ----
 union {
-	SPICE_ADDRESS palette; /* address of the color palette (see SpicePalette section
-in “Raw raster image”). Zero value is disallowed. */
-	UINT64 palette_id; /* id of the palette, valid if FLAG_PAL_FROM_CACHE
-is set. */
+	SPICE_ADDRESS palette;
+	UINT64 palette_id;
 }
 ----
-+
-[cols="2*"]
-|===
+|address of the color palette (see SpicePalette section in “Raw raster image”)[zero value
+is disallowed] *or* id of the palette (valid if FLAG_PAL_FROM_CACHE).
+
 |UINT8[] data
 |compressed pixmap
 |===
