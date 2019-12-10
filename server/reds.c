@@ -1886,8 +1886,6 @@ static void reds_handle_main_link(RedsState *reds, RedLinkInfo *link)
     reds_info_new_channel(link, connection_id);
     stream = link->stream;
     link->stream = NULL;
-    link->link_mess = NULL;
-    reds_link_free(link);
     client = red_client_new(reds, mig_target);
     reds->clients = g_list_prepend(reds->clients, client);
 
@@ -1897,7 +1895,6 @@ static void reds_handle_main_link(RedsState *reds, RedLinkInfo *link)
                             &caps);
     red_channel_capabilities_reset(&caps);
     spice_debug("NEW Client %p mcc %p connect-id %d", client, mcc, connection_id);
-    g_free(link_mess);
 
     if (reds->vdagent) {
         if (mig_target) {
@@ -2072,7 +2069,6 @@ static void reds_handle_other_links(RedsState *reds, RedLinkInfo *link)
     // where do we store it? on reds, but should be a list (MC).
     if (!client) {
         reds_send_link_result(link, SPICE_LINK_ERR_BAD_CONNECTION_ID);
-        reds_link_free(link);
         return;
     }
 
@@ -2080,7 +2076,6 @@ static void reds_handle_other_links(RedsState *reds, RedLinkInfo *link)
     if (!(channel = reds_find_channel(reds, link_mess->channel_type,
                                       link_mess->channel_id))) {
         reds_send_link_result(link, SPICE_LINK_ERR_CHANNEL_NOT_AVAILABLE);
-        reds_link_free(link);
         return;
     }
 
@@ -2107,7 +2102,6 @@ static void reds_handle_other_links(RedsState *reds, RedLinkInfo *link)
         reds_channel_do_link(channel, client, link_mess, link->stream);
     }
     link->stream = NULL;
-    reds_link_free(link);
 }
 
 static void reds_handle_link(RedLinkInfo *link)
@@ -2120,6 +2114,7 @@ static void reds_handle_link(RedLinkInfo *link)
     } else {
         reds_handle_other_links(reds, link);
     }
+    reds_link_free(link);
 }
 
 static void reds_handle_ticket(void *opaque)
