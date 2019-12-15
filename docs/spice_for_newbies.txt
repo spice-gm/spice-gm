@@ -26,7 +26,6 @@ client. Spice-related components include the QXL device and guest QXL driver.
 
 . Graphic Commands Flow
 +
-[#img-sunset]
 .Graphic Commands Flow
 image::g_cmd_flow.png[align="center"]
 +
@@ -53,7 +52,6 @@ display.
 +
 . Agent Commands Flow
 +
-[#img-sunset]
 .Agent Commands Flow
 image::a_cmd_flow.png[align="center"]
 +
@@ -76,7 +74,6 @@ Spice cross-platform (Linux & Windows) client is the interface for the end user.
 
 . Client Basic Structure
 +
-[#img-sunset]
 .Client Basic Structure
 image::cli_bsc_stc.png[align="center"]
 +
@@ -162,7 +159,6 @@ frame buffer are (1) Running out of resources; (2) The guest needs to read from 
 +
 .. Server Structure
 +
-[#img-sunset]
 .Sever Structure
 image::srv_stc.png[align="center"]
 +
@@ -199,7 +195,6 @@ Reds is responsible for:
 +
 ... Graphics subsystem
 +
-[#img-sunset]
 .Graphics subsystem
 image::g_sub.png[align="center"]
 +
