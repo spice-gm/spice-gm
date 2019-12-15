@@ -167,9 +167,9 @@ websocket-autobahn:
   - server/tests/autobahn-check-report reports/servers/index.json
 
 trigger-website-update:
-  image: alpine:latest
+  image: ruby:latest
   before_script:
-  - apk add curl
+  - gem install asciidoctor
   only:
     variables:
     - $TOKEN
@@ -179,4 +179,6 @@ trigger-website-update:
     - "docs/manual/*.txt"
     - "docs/manual/images/*"
   script:
+  - asciidoctor -d book docs/*.txt docs/manual/*.txt > errors 2>&1
+  - if [ -n "$(cat errors)" ] ; then cat errors; exit 1 ; fi
   - curl -X POST -F token=$TOKEN -F ref=master https://gitlab.freedesktop.org/api/v4/projects/spice%2Fspice-space/trigger/pipeline
