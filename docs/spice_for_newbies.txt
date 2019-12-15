@@ -31,7 +31,7 @@ image::g_cmd_flow.png[align="center"]
 +
 The above figure shows the basic Spice architecture and guest-to-client data
 flow of graphic commands, when using libspice with QEMU. libspice can be used by
-any other VDI footnoteref:[svdi,Spice VD Interfaces documentation] compatible
+any other VDIfootnote:svdi[Spice VD Interfaces documentation] compatible
 host application as well. Graphic commands data flow starts by a user
 application requesting the OS graphic engine (X or GDI) to perform a rendering
 operation. The graphic engine passes the commands to the QXL driver, which
@@ -145,7 +145,7 @@ factory for enabling RedClient to create channels by channel type.
 Spice server is implemented in libspice, a Virtual Device Interface (VDI) pluggable library. VDI
 provides a standard way to publish interfaces of virtual devices by a software component. This
 enables other software components to interact with these devices. For more information, refer to
-footnoteref:[svdi]. From one side, the server communicates with a remote client using the Spice
+footnote:svdi[]. From one side, the server communicates with a remote client using the Spice
 protocol. From the other side, it interacts with the VDI host application (e.g., QEMU).
 For display remoting purposes the server maintains a commands queue and a tree for managing the
 current objects dependencies and hidings. QXL commands are processed and translated to Spice
@@ -171,7 +171,7 @@ The main and input channels are controlled by handler functions (implemented in 
 and cursor channels are handled by a red worker thread per display.  The audio playback and record
 channels have their own handlers (snd_worker.c). Libspice and the VDI host application (e.g. QEMU)
 communicate via interfaces defined for each functionality (e.g., QXL, agent, keyboard, mouse,
-tablet, playback, record), as detailed in footnoteref:[svdi].
+tablet, playback, record), as detailed in footnote:svdi[].
 +
 As shown in the above figures, spice server consists of the following major components:
 +
@@ -244,7 +244,7 @@ renderer addition.
 Spice protocol is used for client-server communication, i.e., for transferring graphical objects,
 keyboard and mouse events, cursor information, audio playback and record chunks, and control
 commands. Detailed documentation of the Spice protocol can be found in
-footnoteref:[spice_remote,Spice remote computing protocol definition].
+footnote:spice_remote[Spice remote computing protocol definition].
 +
 . QXL Device
 +
@@ -323,10 +323,10 @@ The server also uses OpenGL for hardware acceleration, sharing the same code as 
 +
 Spice offers several image compression algorithms, which can be chosen on server initiation, and
 dynamically at run-time. Quic is Spice proprietary image compression utility which is based on the
-SFALIC algorithm footnoteref:[sfalic,Starosolski&#44; R.:
+SFALIC algorithm footnote:sfalic[Starosolski&#44; R.:
 http://sun.aei.polsl.pl/~rstaros/papers/s2006-spe-sfalic.pdf[Simple Fast and Adaptive Lossless Image
 Compression Algorithm], Software-Practice and Experience, 2007, 37(1):65-91, DOI 10.1002/spe.746.].
-The LZ (LZSS) footnoteref:[lzss,Lempel-Ziv-Storer-Szymanski: &ldquo;Data compression via textual
+The LZ (LZSS) footnote:lzss[Lempel-Ziv-Storer-Szymanski: &ldquo;Data compression via textual
 substitution&rdquo; published in Journal of the ACM (pp. 928-951)] algorithm, adjusted to images, is
 another option. Both Quic and LZ are local algorithms, i.e., they encode each image independently.
 Global LZ (GLZ) is another Spice proprietary, that uses LZ with an history-based global dictionary.
@@ -394,7 +394,7 @@ client machine settings. This is implemented by a client command to the guest ag
 . 2-way Audio and Lip-sync
 +
 Spice supports audio playback and recording. Playback is compressed using the CELT
-footnoteref:[celt,http://www.celt-codec.org/[The CELT ultra-low delay audio codec]] algorithm.
+footnote:celt[http://www.celt-codec.org/[The CELT ultra-low delay audio codec]] algorithm.
 Lip-sync between video and audio is achieved by time-stamping the video frames in the QXL device and
 injecting them in the client side, synchronized with the audio, which is independent.
 +
