@@ -560,7 +560,7 @@ the host.  This device must be added to the virtual machine as described below
 for the streaming agent to work in the guest.
 
 Guest Video Encoding: Agent Configuration
--------------------------------------------
+-----------------------------------------
 
 .Using virt-manager
 
@@ -808,7 +808,7 @@ up to libvirt:
 
 ****
 TODO proof-read the following section:
-*****
+****
 
 [source,sh]
 host$ virsh domdisplay
@@ -1159,7 +1159,7 @@ required Spice components.
 Client requirements
 ~~~~~~~~~~~~~~~~~~~
 
-See the https://gitlab.freedesktop.org/spice/spice-gtk/raw/master/README
+See the https://gitlab.freedesktop.org/spice/spice-gtk/raw/master/README.md
 [README file in spice-gtk] for the list of dependencies.
 
 Host requirements
@@ -1354,7 +1354,7 @@ Yaniv Kamay
 
 [[glossary]]
 Glossary
-========
+--------
 
 [glossary]
 Host::
