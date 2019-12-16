@@ -595,46 +595,46 @@ visibility notifications will be directed to the log.
 +
 [source,c]
 ----
-RED_MAIN_MIGRATE_BEGIN 			= 101
-RED_MAIN_MIGRATE_CANCEL			= 102
-RED_MAIN_INIT 				= 103
-RED_MAIN_CHANNELS_LIST 			= 104
-RED_MAIN_MOUSE_MODE			= 105
-RED_MAIN_MULTI_MEDIA_TIME 		= 106
+SPICE_MSG_MAIN_MIGRATE_BEGIN		= 101
+SPICE_MSG_MAIN_MIGRATE_CANCEL		= 102
+SPICE_MSG_MAIN_INIT			= 103
+SPICE_MSG_MAIN_CHANNELS_LIST		= 104
+SPICE_MSG_MAIN_MOUSE_MODE		= 105
+SPICE_MSG_MAIN_MULTI_MEDIA_TIME		= 106
 
-RED_MAIN_AGENT_CONNECTED		= 107
-RED_MAIN_AGENT_DISCONNECTED 		= 108
-RED_MAIN_AGENT_DATA			= 109
-RED_MAIN_AGENT_TOKEN			= 110
+SPICE_MSG_MAIN_AGENT_CONNECTED		= 107
+SPICE_MSG_MAIN_AGENT_DISCONNECTED	= 108
+SPICE_MSG_MAIN_AGENT_DATA		= 109
+SPICE_MSG_MAIN_AGENT_TOKEN		= 110
 ----
 +
 . Client messages
 +
 [source,c]
 ----
-REDC_MAIN_RESERVED	 		= 101
-REDC_MAIN_MIGRATE_READY 		= 102
-REDC_MAIN_MIGRATE_ERROR	 		= 103
-REDC_MAIN_ATTACH_CHANNELS 		= 104
-REDC_MAIN_MOUSE_MODE_REQUEST 		= 105
+SPICE_MSGC_MAIN_CLIENT_INFO		= 101
+SPICE_MSGC_MAIN_MIGRATE_CONNECTED	= 102
+SPICE_MSGC_MAIN_MIGRATE_CONNECT_ERROR	= 103
+SPICE_MSGC_MAIN_ATTACH_CHANNELS		= 104
+SPICE_MSGC_MAIN_MOUSE_MODE_REQUEST	= 105
 
-REDC_MAIN_AGENT_START 			= 106
-REDC_MAIN_AGENT_DATA 			= 107
-REDC_MAIN_AGENT_TOKEN			= 108
+SPICE_MSGC_MAIN_AGENT_START		= 106
+SPICE_MSGC_MAIN_AGENT_DATA		= 107
+SPICE_MSGC_MAIN_AGENT_TOKEN		= 108
 ----
 +
 . Migration control
 +
 Spice migration control is performed using the main channel messages. Spice
-server initiates migration process by sending RED_MAIN_MIGRATE_BEGIN message.
+server initiates migration process by sending SPICE_MSG_MAIN_MIGRATE_BEGIN message.
 Once the client has completed its pre-migrate procedure it notifies the server
-by transmitting REDC_MAIN_MIGRATE_READY message. In case of pre-migrate
-procedure error, the client sends REDC_MAIN_MIGRATE_ERROR. Once the server
-receives REDC_MAIN_MIGRATE_READY he can commence the migration process. The
-server can send RED_MAIN_MIGRATE_CANCEL in order to instruct the client to
+by transmitting SPICE_MSGC_MAIN_MIGRATE_CONNECTED message. In case of pre-migrate
+procedure error, the client sends SPICE_MSGC_MAIN_MIGRATE_CONNECT_ERROR. Once the server
+receives SPICE_MSGC_MAIN_MIGRATE_CONNECTED he can commence the migration process. The
+server can send SPICE_MSG_MAIN_MIGRATE_CANCEL in order to instruct the client to
 cancel the migration process.
 +
-.. RED_MAIN_MIGRATE_BEGIN, SpiceMsgMainMigrationBegin
+.. SPICE_MSG_MAIN_MIGRATE_BEGIN, SpiceMsgMainMigrationBegin
 +
 [cols="2*"]
 |===
@@ -648,15 +648,15 @@ cancel the migration process.
 |host name of destination server
 |===
 +
-.. RED_MAIN_MIGRATE_CANCEL, VOID
+.. SPICE_MSG_MAIN_MIGRATE_CANCEL, VOID
 +
 Instruct the client to cancel migration process
 +
-.. REDC_MAIN_MIGRATE_READY, VOID
+.. SPICE_MSGC_MAIN_MIGRATE_CONNECTED, VOID
 +
 Notify the server of successful completion of the pre-migrate stage
 +
-.. REDC_MAIN_MIGRATE_ERROR, VOID
+.. SPICE_MSGC_MAIN_MIGRATE_CONNECT_ERROR, VOID
 +
 Notify the server of pre-migrate stage error
 +
@@ -677,20 +677,20 @@ SPICE_MOUSE_MODE_SERVER = 1
 SPICE_MOUSE_MODE_CLIENT = 2
 ----
 +
-.. RED_MAIN_MOUSE_MODE, SpiceMsgMainMouseMode
+.. SPICE_MSG_MAIN_MOUSE_MODE, SpiceMsgMainMouseMode
 +
 Spice server sends this message on every mouse mode change
 +
 [cols="2*"]
 |===
 |UINT32 supported_modes
-|current supported mouse mode, this is any combination of RED_MOUSE_MODE_?
+|current supported mouse mode, this is any combination of SPICE_MOUSE_MODE_?
 
 |UINT32 current_mode
-|the current mouse mode. Can be one of RED_MOUSE_MODE_?
+|the current mouse mode. Can be one of SPICE_MOUSE_MODE_?
 |===
 +
-.. REDC_MAIN_MOUSE_MODE_REQUEST, UINT32
+.. SPICE_MSGC_MAIN_MOUSE_MODE_REQUEST, UINT32
 +
 Spice client sends this message to request specific mouse mode. It is not
 guarantied that the server will accept the request. Only on receiving
@@ -699,7 +699,7 @@ SPICE_MSG_MAIN_MOUSE_MODE message, the client can know of actual mouse mode chan
 [cols="2*"]
 |===
 |UINT32
-|requested mode, one of RED_MOUSE_MODE_?
+|requested mode, one of SPICE_MOUSE_MODE_?
 |===
 +
 . Main channel init message
@@ -707,7 +707,7 @@ SPICE_MSG_MAIN_MOUSE_MODE message, the client can know of actual mouse mode chan
 Spice server must send SpiceMsgMainInit as the first transmitted message t and is
 disallowed to send it at any other point.
 +
-.. RED_MAIN_INIT, SpiceMsgMainInit
+.. SPICE_MSG_MAIN_INIT, SpiceMsgMainInit
 +
 [cols="2*"]
 |===
@@ -720,10 +720,10 @@ channel connection within this session (i.e., in SpiceLinkMess.connection_id).
 invalid value
 
 |UINT32 supported_mouse_modes
-|supported mouse modes. This is any combination of RED_MOUSE_MODE_?
+|supported mouse modes. This is any combination of SPICE_MOUSE_MODE_?
 
 |UINT32 current_mouse_mode
-|the current mouse mode, one of RED_MOUSE_MODE_?
+|the current mouse mode, one of SPICE_MOUSE_MODE_?
 
 |UINT32 agent_connected
 |current state of Spice agent (see <<spice_agent,This Section>>), 0 and 1 stand
@@ -745,13 +745,13 @@ Channel”).
 . Server side channels notification
 +
 In order to have the ability to dynamically attach to the server side channels,
-Spice protocol includes RED_MAIN_CHANNELS_LIST message. This massage informs
+Spice protocol includes SPICE_MSG_MAIN_CHANNELS_LIST message. This massage informs
 the client of available channels in the server side. In response to this
 message the client can decide to link with the new available channel(s). The
-server must receive REDC_MAIN_ATTACH_CHANNELS before sending any
-RED_MAIN_CHANNELS_LIST message.
+server must receive SPICE_MSGC_MAIN_ATTACH_CHANNELS before sending any
+SPICE_MSG_MAIN_CHANNELS_LIST message.
 +
-.. RED_MAIN_CHANNELS_LIST, SpiceMsgChannels
+.. SPICE_MSG_MAIN_CHANNELS_LIST, SpiceMsgChannels
 +
 [cols="2*"]
 |===
@@ -767,7 +767,7 @@ RED_MAIN_CHANNELS_LIST message.
 [cols="2*"]
 |===
 |UINT8 type
-|channel type, one of RED_CHANNEL_? channel types, except for SPICE_CHANNEL_MAIN
+|channel type, one of SPICE_CHANNEL_? channel types, except for SPICE_CHANNEL_MAIN
 
 |UINT8 id
 |channel id
@@ -779,10 +779,10 @@ RED_MAIN_CHANNELS_LIST message.
 Spice defines messages for setting multimedia time for synchronization of video
 and audio streams. Two methods for updating multimedia time are supported. The
 first method uses the time stamp of data that arrives on the playback
-channel.The second method uses the  main channel RED_MAIN_MULTI_MEDIA_TIME
+channel.The second method uses the  main channel SPICE_MSG_MAIN_MULTI_MEDIA_TIME
 message. The latter method is used when  no active playback channel exist.
 +
-.. RED_MAIN_MULTI_MEDIA_TIME, UINT32
+.. SPICE_MSG_MAIN_MULTI_MEDIA_TIME, UINT32
 +
 [cols="2*"]
 |===
@@ -801,19 +801,19 @@ example, client-guest clipboard sharing, authentication and display
 configuration.
 +
 Spice client receives notifications of remote site agent connection as part of
-the RED_MAIN_INIT message or by a specific server RED_MAIN_AGENT_CONNECTED.
+the SPICE_MSG_MAIN_INIT message or by a specific server SPICE_MSG_MAIN_AGENT_CONNECTED.
 Remote agent disconnection notification is delivered by
-RED_MAIN_AGENT_DISCONNECTED message. A bidirectional tokens mechanism is used
+SPICE_MSG_MAIN_AGENT_DISCONNECTED message. A bidirectional tokens mechanism is used
 in order to prevent blocking of the main channel with agent messages (e.g., in
 case the agent stops consuming the data). Each side is not allowed to send more
 messages than the tokens allocated to it by the other side. The number of
-tokens that are allocated for the client is initialized from RED_MAIN_INIT
-message, and farther allocation of tokens is done using RED_MAIN_AGENT_TOKEN.
-Server tokens initial count is delivered in REDC_MAIN_AGENT_START message. This
+tokens that are allocated for the client is initialized from SPICE_MSG_MAIN_INIT
+message, and farther allocation of tokens is done using SPICE_MSG_MAIN_AGENT_TOKEN.
+Server tokens initial count is delivered in SPICE_MSGC_MAIN_AGENT_START message. This
 message must be the first agent related message that the client sends to the
 server. Farther tokens allocation for the server is done using
-REDC_MAIN_AGENT_TOKEN. Actual data packets are delivered using
-RED_MAIN_AGENT_DATA and REDC_MAIN_AGENT_DATA.
+SPICE_MSGC_MAIN_AGENT_TOKEN. Actual data packets are delivered using
+SPICE_MSG_MAIN_AGENT_DATA and SPICE_MSGC_MAIN_AGENT_DATA.
 +
 .. Although agent messages are opaque for the protocol, agent data stream is
 defined by Spice protocol in order to delineate messages. Still, the
@@ -843,8 +843,8 @@ to prevent conflicts.
 Client and server must continue processing unknown protocols messages or
 messages having unknown type (i.e., receive and dump).
 +
-.. RED_MAIN_AGENT_CONNECTED, VOID
-.. RED_MAIN_AGENT_DISCONNECTED, UINT32
+.. SPICE_MSG_MAIN_AGENT_CONNECTED, VOID
+.. SPICE_MSG_MAIN_AGENT_DISCONNECTED, UINT32
 +
 [cols="2*"]
 |===
@@ -853,12 +853,12 @@ messages having unknown type (i.e., receive and dump).
 |===
 +
 .. SPICE_AGENT_MAX_DATA_SIZE = 2048
-.. RED_MAIN_AGENT_DATA, UINT8[]
+.. SPICE_MSG_MAIN_AGENT_DATA, UINT8[]
 +
 Agent packet is the entire message body (i.e. SpiceDataHeader.size). The maximum
 packet size is SPICE_AGENT_MAX_DATA_SIZE.
 +
-.. RED_MAIN_AGENT_TOKEN, UINT32
+.. SPICE_MSG_MAIN_AGENT_TOKEN, UINT32
 +
 [cols="2*"]
 |===
@@ -866,7 +866,7 @@ packet size is SPICE_AGENT_MAX_DATA_SIZE.
 |allocated tokens count for the client
 |===
 +
-.. REDC_MAIN_AGENT_START, UINT32
+.. SPICE_MSGC_MAIN_AGENT_START, UINT32
 +
 [cols="2*"]
 |===
@@ -874,12 +874,12 @@ packet size is SPICE_AGENT_MAX_DATA_SIZE.
 |allocated tokens count for the server
 |===
 +
-.. REDC_MAIN_AGENT_DATA, UINT8[]
+.. SPICE_MSGC_MAIN_AGENT_DATA, UINT8[]
 +
 Agent packet is the entire message body (i.e. SpiceDataHeader.size). The maximum
 packet size is SPICE_AGENT_MAX_DATA_SIZE.
 +
-.. REDC_MAIN_AGENT_TOKEN, UINT32
+.. SPICE_MSGC_MAIN_AGENT_TOKEN, UINT32
 +
 [cols="2*"]
 |===
