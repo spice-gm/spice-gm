@@ -707,8 +707,8 @@ reset_channels(StreamDevice *dev)
 static void
 char_device_set_state(RedCharDevice *char_dev, int state)
 {
-    SpiceCharDeviceInstance *sin = NULL;
-    g_object_get(char_dev, "sin", &sin, NULL);
+    SpiceCharDeviceInstance *sin;
+    sin = red_char_device_get_device_instance(char_dev);
     spice_assert(sin != NULL);
 
     SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);

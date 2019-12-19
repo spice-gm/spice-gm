@@ -369,7 +369,7 @@ void smartcard_char_device_detach_client(RedCharDeviceSmartcard *smartcard,
     SpiceCharDeviceInterface *sif;
     SpiceCharDeviceInstance *sin;
 
-    g_object_get(smartcard, "sin", &sin, NULL);
+    sin = red_char_device_get_device_instance(RED_CHAR_DEVICE(smartcard));
     sif = spice_char_device_get_interface(sin);
 
     spice_assert(smartcard->priv->scc == scc);
