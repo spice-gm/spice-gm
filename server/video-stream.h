@@ -138,7 +138,6 @@ struct VideoStream {
 
 void display_channel_init_video_streams(DisplayChannel *display);
 void video_stream_stop(DisplayChannel *display, VideoStream *stream);
-void video_stream_unref(DisplayChannel *display, VideoStream *stream);
 void video_stream_trace_update(DisplayChannel *display, Drawable *drawable);
 void video_stream_maintenance(DisplayChannel *display, Drawable *candidate,
                               Drawable *prev);
@@ -149,7 +148,6 @@ void video_stream_detach_behind(DisplayChannel *display, QRegion *region,
                                 Drawable *drawable);
 GArray *video_stream_parse_preferred_codecs(SpiceMsgcDisplayPreferredVideoCodecType *msg);
 
-void video_stream_agent_unref(DisplayChannel *display, VideoStreamAgent *agent);
 void video_stream_agent_stop(VideoStreamAgent *agent);
 
 void video_stream_detach_drawable(VideoStream *stream);

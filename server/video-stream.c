@@ -25,6 +25,9 @@
 #define FOREACH_STREAMS(display, item)                  \
     RING_FOREACH(item, &(display)->priv->streams)
 
+static void video_stream_unref(DisplayChannel *display, VideoStream *stream);
+static void video_stream_agent_unref(DisplayChannel *display, VideoStreamAgent *agent);
+
 static void video_stream_agent_stats_print(VideoStreamAgent *agent)
 {
 #ifdef STREAM_STATS
