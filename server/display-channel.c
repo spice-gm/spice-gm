@@ -2372,7 +2372,7 @@ void display_channel_process_surface_cmd(DisplayChannel *display,
     };
 }
 
-void display_channel_update_compression(DisplayChannel *display, DisplayChannelClient *dcc)
+static void display_channel_update_compression(DisplayChannel *display, DisplayChannelClient *dcc)
 {
     if (dcc_get_jpeg_state(dcc) == SPICE_WAN_COMPRESSION_AUTO) {
         display->priv->enable_jpeg = dcc_is_low_bandwidth(dcc);

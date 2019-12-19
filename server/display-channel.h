@@ -140,8 +140,6 @@ void                       display_channel_process_draw              (DisplayCha
 void                       display_channel_process_surface_cmd       (DisplayChannel *display,
                                                                       RedSurfaceCmd *surface_cmd,
                                                                       int loadvm);
-void                       display_channel_update_compression        (DisplayChannel *display,
-                                                                      DisplayChannelClient *dcc);
 void                       display_channel_gl_scanout                (DisplayChannel *display);
 void                       display_channel_gl_draw                   (DisplayChannel *display,
                                                                       SpiceMsgDisplayGlDraw *draw);
