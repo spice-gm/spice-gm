@@ -96,8 +96,9 @@ def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, w
         "-spice", "disable-ticketing,port=%s" % spice_port]
         + incoming_args + extra_args)
     if os.path.exists(image):
-        args += ["-m", "512", "-drive",
+        args += ["-m", "512", "-enable-kvm", "-drive",
                  "file=%s,index=0,media=disk,cache=unsafe" % image, "-snapshot"]
+
     proc = Popen(args, executable=qemu_exec, stdin=PIPE, stdout=PIPE)
     while not os.path.exists(qmp_filename):
         time.sleep(0.1)
