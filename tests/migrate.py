@@ -36,7 +36,7 @@ except:
     try:
         import qmp
     except:
-        print "can't find qmp"
+        print("can't find qmp")
         raise SystemExit
 import sys
 from subprocess import Popen, PIPE
@@ -73,7 +73,7 @@ def get_args():
     else:
         args.qemu_exec = os.popen("which %s" % args.qemu).read().strip()
     if not os.path.exists(args.qemu_exec):
-        print "qemu not found (qemu = %r)" % args.qemu_exec
+        print("qemu not found (qemu = %r)" % args.qemu_exec)
         sys.exit(1)
     return args
 
@@ -141,7 +141,7 @@ def wait_for_event(q, event):
         time.sleep(0.5)
 
 def cleanup(migrator):
-    print "doing cleanup"
+    print("doing cleanup")
     migrator.close()
 
 class Migrator(object):
@@ -173,7 +173,7 @@ class Migrator(object):
 
     def kill_qemu(self):
         for p in [self.active, self.target]:
-            print "killing and waiting for qemu pid %s" % p.pid
+            print("killing and waiting for qemu pid %s" % p.pid)
             p.kill()
             p.wait()
 
@@ -190,7 +190,7 @@ class Migrator(object):
                 self.connected_client = start_client(client=self.client, spice_port=self.spice_ports[0])
 
             if wait_for_user_input:
-                print "waiting for Enter to start migrations"
+                print("waiting for Enter to start migrations")
                 raw_input()
 
         # Tester can launch its own client or we wait start_client() to connect
@@ -221,12 +221,12 @@ class Migrator(object):
                             qmp_filename=new_qmp_filename,
                             with_agent=self.vdagent,
                             incoming_port=self.migration_port)
-        print self.migration_count
+        print(self.migration_count)
         self.migration_count += 1
 
 def main():
     args = get_args()
-    print "log file %s" % args.log_filename
+    print("log file %s" % args.log_filename)
     log = open(args.log_filename, "a+")
     log.write("# "+str(datetime.datetime.now())+"\n")
     migrator = Migrator(client=args.client, qemu_exec=args.qemu_exec,
