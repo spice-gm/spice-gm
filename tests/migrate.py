@@ -103,7 +103,7 @@ def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, w
         try:
             proc.qmp.connect()
             break
-        except socket.error, err:
+        except socket.error:
             pass
     proc.spice_port = spice_port
     proc.incoming_port = incoming_port
