@@ -51,6 +51,9 @@ import argparse
 if sys.version_info[0] == 3:
     raw_input = input
 
+def run_shell_command(cmd):
+    return os.popen(cmd).read().strip()
+
 def get_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--qmp1', dest='qmp1', default='/tmp/migrate_test.1.qmp')
@@ -75,7 +78,7 @@ def get_args():
     if os.path.exists(args.qemu):
         args.qemu_exec = args.qemu
     else:
-        args.qemu_exec = os.popen("which %s" % args.qemu).read().strip()
+        args.qemu_exec = run_shell_command("which %s" % args.qemu)
     if not os.path.exists(args.qemu_exec):
         print("qemu not found (qemu = %r)" % args.qemu_exec)
         sys.exit(1)
