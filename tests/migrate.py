@@ -47,6 +47,10 @@ import datetime
 import atexit
 import argparse
 
+# python3 does not have raw_input
+if sys.version_info[0] == 3:
+    raw_input = input
+
 def get_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--qmp1', dest='qmp1', default='/tmp/migrate_test.1.qmp')
@@ -125,7 +129,7 @@ def wait_active(q, active):
             # ValueError
             time.sleep(0.1)
             continue
-        if ret and ret.has_key("return"):
+        if ret and "return" in ret.keys():
             if ret["return"]["running"] == active:
                 break
         for e in q.get_events():
@@ -213,7 +217,8 @@ class Migrator(object):
         new_spice_port = dead.spice_port
         new_qmp_filename = dead.qmp_filename
         self.log.write("# STDOUT dead %s\n" % dead.pid)
-        self.log.write(dead.stdout.read())
+        outstr = dead.stdout.read().decode(encoding='utf-8', errors='ignore')
+        self.log.write(outstr)
         del dead
         self.active = self.target
         self.target = start_qemu(spice_port=new_spice_port,
