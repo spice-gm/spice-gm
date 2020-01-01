@@ -99,6 +99,10 @@ def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, w
         args += ["-m", "512", "-enable-kvm", "-drive",
                  "file=%s,index=0,media=disk,cache=unsafe" % image, "-snapshot"]
 
+    # print qemu command line for the first run
+    if not incoming_port:
+        print('qemu command line: %s' % ' '.join(args))
+
     proc = Popen(args, executable=qemu_exec, stdin=PIPE, stdout=PIPE)
     while not os.path.exists(qmp_filename):
         time.sleep(0.1)
