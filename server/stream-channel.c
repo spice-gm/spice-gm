@@ -441,7 +441,9 @@ stream_channel_connect(RedChannel *red_channel, RedClient *red_client, RedStream
     spice_return_if_fail(stream != NULL);
 
     client = stream_channel_client_new(channel, red_client, stream, migration, caps);
-    spice_return_if_fail(client != NULL);
+    if (client == NULL) {
+        return;
+    }
 
     // request new stream
     start->num_codecs = stream_channel_get_supported_codecs(channel, start->codecs);
