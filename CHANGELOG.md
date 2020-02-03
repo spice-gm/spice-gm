@@ -1,3 +1,30 @@
+Major Changes in 0.14.3:
+========================
+
+Main changes are WebSocket and support for Windows.
+
+* Add support for WebSocket, this will allow to use spice-html5 without proxy
+* Support Windows, now Qemu Windows can be build enabling Spice
+* Fix some alignment problem
+* Converted some documentation to Asciidoc format to make easier to update,
+  updated some
+* Minor compatibility fix for PPC64EL and ARMHF
+* Minor fixes for big endian machines like MIPS
+* Avoid some crashes with some buggy guest drivers, simply ignore the invalid
+  request
+* Fix for old OpenSSL versions
+* Minor fix for Windows clients and brushes, fixed an issue with Photoshop
+  under Windows 7
+* Add ability to query video-codecs
+* Small use-after-free fix
+* Fix for debugging recording/replaying using QUIC images
+* Fix a regression where spice reported no monitors to the client
+* Fix DoS in spicevmc if WebDAV used
+* Updated and improved test migration script
+* Some minor fixes to smartcard support
+* Avoid possible disconnection using proxies using a in-flow keepalive
+  mechanism
+
 Major Changes in 0.14.2:
 ========================
 
