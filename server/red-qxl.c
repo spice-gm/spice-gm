@@ -88,8 +88,8 @@ int red_qxl_check_qxl_version(QXLInstance *qxl, int major, int minor)
 
 SPICE_GNUC_VISIBLE
 void spice_qxl_update_area(QXLInstance *instance, uint32_t surface_id,
-                    struct QXLRect *qxl_area, struct QXLRect *qxl_dirty_rects,
-                    uint32_t num_dirty_rects, uint32_t clear_dirty_region)
+                           struct QXLRect *qxl_area, struct QXLRect *qxl_dirty_rects,
+                           uint32_t num_dirty_rects, uint32_t clear_dirty_region)
 {
     RedWorkerMessageUpdate payload = {0,};
 
