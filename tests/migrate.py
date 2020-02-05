@@ -100,7 +100,7 @@ def start_qemu(qemu_exec, image, spice_port, qmp_filename, incoming_port=None, w
         + incoming_args + extra_args)
     if os.path.exists(image):
         args += ["-m", "512", "-enable-kvm", "-drive",
-                 "file=%s,index=0,media=disk,cache=unsafe" % image, "-snapshot"]
+                 "file=%s,index=0,media=disk,cache=writeback" % image]
 
     # print qemu command line for the first run
     if not incoming_port:
@@ -155,6 +155,9 @@ def wait_for_event(q, event):
 def cleanup(migrator):
     print("doing cleanup")
     migrator.close()
+
+def remove_image_file(filename):
+    run_shell_command('rm -f %s' % filename)
 
 class Migrator(object):
 
@@ -246,11 +249,16 @@ def main():
     print("log file %s" % args.log_filename)
     log = open(args.log_filename, "a+")
     log.write("# "+str(datetime.datetime.now())+"\n")
+    newimage = run_shell_command("mktemp --dry-run /tmp/migrate_XXXXXX.qcow2")
+    qemu_img = run_shell_command("dirname %s" % args.qemu_exec) + '/qemu-img'
+    run_shell_command('%s create -f qcow2 -b %s %s' % (qemu_img, args.image, newimage))
+    print('using new image %s' % newimage)
     migrator = Migrator(client=args.client, qemu_exec=args.qemu_exec,
-        image=args.image, log=log, monitor_files=[args.qmp1, args.qmp2],
+        image=newimage, log=log, monitor_files=[args.qmp1, args.qmp2],
         migration_port=args.migrate_port, spice_ports=[args.spice_port1,
         args.spice_port2], vdagent=args.vdagent)
     atexit.register(cleanup, migrator)
+    atexit.register(remove_image_file, newimage)
     counter = 0
     while args.counter == 0 or counter < args.counter:
         migrator.iterate(args.wait_user_input, args.wait_user_connect)
