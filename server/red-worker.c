@@ -637,7 +637,7 @@ static void handle_dev_monitors_config_async(void *opaque, void *payload)
     RedWorkerMessageMonitorsConfigAsync *msg = payload;
     RedWorker *worker = opaque;
     uint16_t count, max_allowed;
-    QXLMonitorsConfig *dev_monitors_config =
+    const QXLMonitorsConfig *dev_monitors_config =
         (QXLMonitorsConfig*)memslot_get_virt(&worker->mem_slots, msg->monitors_config,
                                              qxl_monitors_config_size(1),
                                              msg->group_id);

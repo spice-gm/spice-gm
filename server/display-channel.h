@@ -145,7 +145,7 @@ void                       display_channel_gl_draw                   (DisplayCha
                                                                       SpiceMsgDisplayGlDraw *draw);
 void                       display_channel_gl_draw_done              (DisplayChannel *display);
 
-void display_channel_update_monitors_config(DisplayChannel *display, QXLMonitorsConfig *config,
+void display_channel_update_monitors_config(DisplayChannel *display, const QXLMonitorsConfig *config,
                                             uint16_t count, uint16_t max_allowed);
 void display_channel_set_monitors_config_to_primary(DisplayChannel *display);
 void display_channel_push_monitors_config(DisplayChannel *display);

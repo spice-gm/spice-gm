@@ -189,7 +189,7 @@ static void monitors_config_debug(MonitorsConfig *mc)
     }
 }
 
-static MonitorsConfig* monitors_config_new(QXLHead *heads, ssize_t nheads, ssize_t max)
+static MonitorsConfig* monitors_config_new(const QXLHead *heads, ssize_t nheads, ssize_t max)
 {
     MonitorsConfig *mc;
 
@@ -2453,7 +2453,7 @@ void display_channel_push_monitors_config(DisplayChannel *display)
 }
 
 void display_channel_update_monitors_config(DisplayChannel *display,
-                                            QXLMonitorsConfig *config,
+                                            const QXLMonitorsConfig *config,
                                             uint16_t count, uint16_t max_allowed)
 {
 
