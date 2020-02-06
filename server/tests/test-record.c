@@ -62,7 +62,7 @@ test_record(bool compress)
     // check content of the output file
     FILE *f;
     if (!compress) {
-        f = fopen(fn, "r");
+        f = fopen(fn, "rb");
     } else {
         f = popen("gzip -dc < " OUTPUT_FILENAME, "r");
     }

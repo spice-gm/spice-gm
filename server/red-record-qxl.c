@@ -838,7 +838,7 @@ RedRecord *red_record_new(const char *filename)
     FILE *f;
     RedRecord *record;
 
-    f = fopen(filename, "w+");
+    f = fopen(filename, "wb+");
     if (!f) {
         spice_error("failed to open recording file %s", filename);
     }
