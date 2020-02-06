@@ -152,7 +152,7 @@ RedChannelClient *RedClient::get_channel(int type, int id)
     return NULL;
 }
 
-gboolean RedClient::add_channel(RedChannelClient *rcc, GError **error)
+gboolean RedClient::add_channel(RedChannelClient *rcc, char **error)
 {
     RedChannel *channel;
     gboolean result = TRUE;
@@ -165,21 +165,17 @@ gboolean RedClient::add_channel(RedChannelClient *rcc, GError **error)
     uint32_t type = channel->type();
     uint32_t id = channel->id();
     if (disconnecting) {
-        g_set_error(error,
-                    SPICE_SERVER_ERROR,
-                    SPICE_SERVER_ERROR_FAILED,
-                    "Client %p got disconnected while connecting channel type %d id %d",
-                    this, type, id);
+        *error =
+            g_strdup_printf("Client %p got disconnected while connecting channel type %d id %d",
+                            this, type, id);
         result = FALSE;
         goto cleanup;
     }
 
     if (get_channel(type, id)) {
-        g_set_error(error,
-                    SPICE_SERVER_ERROR,
-                    SPICE_SERVER_ERROR_FAILED,
-                    "Client %p: duplicate channel type %d id %d",
-                    this, type, id);
+        *error =
+            g_strdup_printf("Client %p: duplicate channel type %d id %d",
+                            this, type, id);
         result = FALSE;
         goto cleanup;
     }

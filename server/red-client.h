@@ -43,7 +43,7 @@ public:
      */
     void destroy();
 
-    gboolean add_channel(RedChannelClient *rcc, GError **error);
+    gboolean add_channel(RedChannelClient *rcc, char **error);
     static void remove_channel(RedChannelClient *rcc);
 
     MainChannelClient *get_main();

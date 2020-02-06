@@ -796,22 +796,18 @@ static void mini_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t
 
 bool RedChannelClient::init()
 {
-    GError *local_error = NULL;
+    char *local_error = NULL;
     SpiceCoreInterfaceInternal *core;
 
     if (!priv->stream) {
-        g_set_error_literal(&local_error,
-                            SPICE_SERVER_ERROR,
-                            SPICE_SERVER_ERROR_FAILED,
-                            "Socket not available");
+        local_error =
+            g_strdup_printf("Socket not available");
         goto cleanup;
     }
 
     if (!config_socket()) {
-        g_set_error_literal(&local_error,
-                            SPICE_SERVER_ERROR,
-                            SPICE_SERVER_ERROR_FAILED,
-                            "Unable to configure socket");
+        local_error =
+            g_strdup_printf("Unable to configure socket");
         goto cleanup;
     }
 
@@ -844,8 +840,8 @@ cleanup:
     if (local_error) {
         red_channel_warning(get_channel(),
                             "Failed to create channel client: %s",
-                            local_error->message);
-        g_error_free(local_error);
+                            local_error);
+        g_free(local_error);
     }
     return local_error == NULL;
 }
@@ -1688,9 +1684,4 @@ bool RedChannelClient::set_migration_seamless()
                       priv->wait_migrate_data);
 
     return ret;
-}
-
-GQuark spice_server_error_quark(void)
-{
-    return g_quark_from_static_string("spice-server-error-quark");
 }

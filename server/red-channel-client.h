@@ -203,14 +203,6 @@ private:
     red::unique_link<RedChannelClientPrivate> priv;
 };
 
-#define SPICE_SERVER_ERROR spice_server_error_quark()
-GQuark spice_server_error_quark(void);
-
-typedef enum
-{
-    SPICE_SERVER_ERROR_FAILED
-} SpiceServerError;
-
 /* Messages handled by RedChannel
  * SET_ACK - sent to client on channel connection
  * Note that the numbers don't have to correspond to spice message types,
