@@ -247,7 +247,6 @@ void red_client_destroy(RedClient *client)
 static RedChannelClient *red_client_get_channel(RedClient *client, int type, int id)
 {
     RedChannelClient *rcc;
-    RedChannelClient *ret = NULL;
 
     FOREACH_CHANNEL_CLIENT(client, rcc) {
         int channel_type, channel_id;
@@ -256,11 +255,10 @@ static RedChannelClient *red_client_get_channel(RedClient *client, int type, int
         channel = red_channel_client_get_channel(rcc);
         g_object_get(channel, "channel-type", &channel_type, "id", &channel_id, NULL);
         if (channel_type == type && channel_id == id) {
-            ret = rcc;
-            break;
+            return rcc;
         }
     }
-    return ret;
+    return NULL;
 }
 
 gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError **error)
