@@ -20,8 +20,6 @@
 
 #include <glib.h>
 
-#include "glib-compat.h"
-
 #if !GLIB_CHECK_VERSION(2, 34, 0)
 void g_test_assert_expected_messages_internal(const char *domain,
                                               const char *file, int line, const char *func);

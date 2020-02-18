@@ -24,7 +24,6 @@
 #include "red-client.h"
 #include "main-channel-client.h"
 #include <spice-server-enums.h>
-#include "glib-compat.h"
 
 G_DEFINE_TYPE(DisplayChannelClient, display_channel_client, TYPE_COMMON_GRAPHICS_CHANNEL_CLIENT)
 

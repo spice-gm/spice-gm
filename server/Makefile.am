@@ -97,7 +97,6 @@ libserver_la_SOURCES =				\
 	display-channel-private.h		\
 	display-limits.h			\
 	event-loop.c				\
-	glib-compat.h				\
 	glz-encoder.c				\
 	glz-encoder-dict.c			\
 	glz-encoder-dict.h			\

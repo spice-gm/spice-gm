@@ -29,7 +29,6 @@ typedef struct RedCharDeviceClientOpaque RedCharDeviceClientOpaque;
 
 #include "char-device.h"
 #include "reds.h"
-#include "glib-compat.h"
 
 #define CHAR_DEVICE_WRITE_TO_TIMEOUT 100
 #define RED_CHAR_DEVICE_WAIT_TOKENS_TIMEOUT 30000

@@ -75,7 +75,6 @@
 #include "red-channel-client.h"
 #include "main-channel-client.h"
 #include "red-client.h"
-#include "glib-compat.h"
 #include "net-utils.h"
 #include "red-stream-device.h"
 

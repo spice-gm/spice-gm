@@ -67,7 +67,6 @@ spice_server_sources = [
   'display-channel-private.h',
   'display-limits.h',
   'event-loop.c',
-  'glib-compat.h',
   'glz-encoder.c',
   'glz-encoder-dict.c',
   'glz-encoder-dict.h',

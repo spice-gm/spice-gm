@@ -35,7 +35,6 @@
 
 #include "red-channel-client.h"
 #include "red-client.h"
-#include "glib-compat.h"
 
 #define CLIENT_ACK_WINDOW 20
 

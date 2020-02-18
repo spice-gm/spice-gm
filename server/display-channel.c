@@ -19,7 +19,6 @@
 #include <common/sw_canvas.h>
 
 #include "display-channel-private.h"
-#include "glib-compat.h"
 #include "red-qxl.h"
 
 G_DEFINE_TYPE(DisplayChannel, display_channel, TYPE_COMMON_GRAPHICS_CHANNEL)
