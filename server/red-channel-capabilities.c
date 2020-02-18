@@ -58,10 +58,6 @@ static void red_channel_capabilities_free(RedChannelCapabilities *caps)
 
 SPICE_CONSTRUCTOR_FUNC(red_channel_capabilities_construct)
 {
-#if !GLIB_CHECK_VERSION(2,36,0)
-    g_type_init();
-#endif
-
     red_channel_capabilities_type =
         g_boxed_type_register_static("RedChannelCapabilities",
                                      (GBoxedCopyFunc) red_channel_capabilities_dup,
