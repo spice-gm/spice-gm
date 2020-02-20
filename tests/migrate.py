@@ -216,9 +216,13 @@ class Migrator(object):
         dead.wait()
         new_spice_port = dead.spice_port
         new_qmp_filename = dead.qmp_filename
-        self.log.write("# STDOUT dead %s\n" % dead.pid)
-        outstr = dead.stdout.read().decode(encoding='utf-8', errors='ignore')
-        self.log.write(outstr)
+
+        outstr = dead.stdout.read()
+        if outstr:
+            outstr = outstr.decode(encoding='utf-8', errors='ignore')
+            self.log.write("# STDOUT dead %s\n" % dead.pid)
+            self.log.write(outstr)
+
         del dead
         self.active = self.target
         self.target = start_qemu(spice_port=new_spice_port,
