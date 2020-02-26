@@ -34,7 +34,7 @@ m4_include([subprojects/spice-common/m4/spice-deps.m4])
 AM_CONFIG_HEADER([config.h])
 AC_CONFIG_AUX_DIR(.)
 
-AM_INIT_AUTOMAKE([dist-bzip2 no-dist-gzip subdir-objects])
+AM_INIT_AUTOMAKE([dist-bzip2 no-dist-gzip subdir-objects foreign])
 AM_MAINTAINER_MODE
 
 AC_PROG_CC

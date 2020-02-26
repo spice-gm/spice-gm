@@ -21,6 +21,7 @@ EXTRA_DIST =					\
 	meson_options.txt			\
 	build-aux/git-version-gen		\
 	build-aux/meson/check-spice-common	\
+	CHANGELOG.md				\
 	.version				\
 	$(NULL)
 
