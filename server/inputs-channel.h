@@ -36,7 +36,7 @@ struct InputsChannel final: public RedChannel
                     RedChannelCapabilities *caps) override;
 
     VDAgentMouseState mouse_state;
-    int src_during_migrate;
+    bool src_during_migrate;
     SpiceTimer *key_modifiers_timer;
 
     // actual ideal modifier states, that the guest should have
@@ -47,21 +47,24 @@ struct InputsChannel final: public RedChannel
     SpiceKbdInstance *keyboard;
     SpiceMouseInstance *mouse;
     SpiceTabletInstance *tablet;
+
+public:
+    const VDAgentMouseState *get_mouse_state();
+    void set_tablet_logical_size(int x_res, int y_res);
+
+    int set_keyboard(SpiceKbdInstance *keyboard);
+    int set_mouse(SpiceMouseInstance *mouse);
+    int set_tablet(SpiceTabletInstance *tablet);
+    bool has_tablet() const;
+    void detach_tablet(SpiceTabletInstance *tablet);
+
+    bool is_src_during_migrate() const;
+    void release_keys();
 };
 
 InputsChannel* inputs_channel_new(RedsState *reds);
 
-const VDAgentMouseState *inputs_channel_get_mouse_state(InputsChannel *inputs);
-void inputs_channel_set_tablet_logical_size(InputsChannel *inputs, int x_res, int y_res);
-
-int inputs_channel_set_keyboard(InputsChannel *inputs, SpiceKbdInstance *keyboard);
-int inputs_channel_set_mouse(InputsChannel *inputs, SpiceMouseInstance *mouse);
-int inputs_channel_set_tablet(InputsChannel *inputs, SpiceTabletInstance *tablet);
-int inputs_channel_has_tablet(InputsChannel *inputs);
-void inputs_channel_detach_tablet(InputsChannel *inputs, SpiceTabletInstance *tablet);
 RedsState* spice_tablet_state_get_server(SpiceTabletState *dev);
-gboolean inputs_channel_is_src_during_migrate(InputsChannel *inputs);
-void inputs_release_keys(InputsChannel *inputs);
 
 #include "pop-visibility.h"
 

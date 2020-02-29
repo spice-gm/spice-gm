@@ -108,17 +108,17 @@ typedef struct RedInputsInitPipeItem {
 #define NUM_LOCK_SCAN_CODE 0x45
 #define CAPS_LOCK_SCAN_CODE 0x3a
 
-void inputs_channel_set_tablet_logical_size(InputsChannel *inputs, int x_res, int y_res)
+void InputsChannel::set_tablet_logical_size(int x_res, int y_res)
 {
     SpiceTabletInterface *sif;
 
-    sif = SPICE_UPCAST(SpiceTabletInterface, inputs->tablet->base.sif);
-    sif->set_logical_size(inputs->tablet, x_res, y_res);
+    sif = SPICE_UPCAST(SpiceTabletInterface, tablet->base.sif);
+    sif->set_logical_size(tablet, x_res, y_res);
 }
 
-const VDAgentMouseState *inputs_channel_get_mouse_state(InputsChannel *inputs)
+const VDAgentMouseState *InputsChannel::get_mouse_state()
 {
-    return &inputs->mouse_state;
+    return &mouse_state;
 }
 
 #define RED_MOUSE_STATE_TO_LOCAL(state)     \
@@ -410,11 +410,11 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
     return TRUE;
 }
 
-void inputs_release_keys(InputsChannel *inputs)
+void InputsChannel::release_keys()
 {
     int i;
     SpiceKbdState *st;
-    SpiceKbdInstance *keyboard = inputs_channel_get_keyboard(inputs);
+    SpiceKbdInstance *keyboard = inputs_channel_get_keyboard(this);
 
     if (!keyboard) {
         return;
@@ -548,7 +548,7 @@ InputsChannel::InputsChannel(RedsState *reds):
 
 InputsChannel::~InputsChannel()
 {
-    inputs_channel_detach_tablet(this, tablet);
+    detach_tablet(tablet);
     red_timer_remove(key_modifiers_timer);
 }
 
@@ -557,14 +557,14 @@ static SpiceKbdInstance* inputs_channel_get_keyboard(InputsChannel *inputs)
     return inputs->keyboard;
 }
 
-int inputs_channel_set_keyboard(InputsChannel *inputs, SpiceKbdInstance *keyboard)
+int InputsChannel::set_keyboard(SpiceKbdInstance *new_keyboard)
 {
-    if (inputs->keyboard) {
-        red_channel_warning(inputs, "already have keyboard");
+    if (keyboard) {
+        red_channel_warning(this, "already have keyboard");
         return -1;
     }
-    inputs->keyboard = keyboard;
-    inputs->keyboard->st = spice_kbd_state_new(inputs);
+    keyboard = new_keyboard;
+    keyboard->st = spice_kbd_state_new(this);
     return 0;
 }
 
@@ -573,14 +573,14 @@ static SpiceMouseInstance* inputs_channel_get_mouse(InputsChannel *inputs)
     return inputs->mouse;
 }
 
-int inputs_channel_set_mouse(InputsChannel *inputs, SpiceMouseInstance *mouse)
+int InputsChannel::set_mouse(SpiceMouseInstance *new_mouse)
 {
-    if (inputs->mouse) {
-        red_channel_warning(inputs, "already have mouse");
+    if (mouse) {
+        red_channel_warning(this, "already have mouse");
         return -1;
     }
-    inputs->mouse = mouse;
-    inputs->mouse->st = spice_mouse_state_new();
+    mouse = new_mouse;
+    mouse->st = spice_mouse_state_new();
     return 0;
 }
 
@@ -589,32 +589,32 @@ static SpiceTabletInstance* inputs_channel_get_tablet(InputsChannel *inputs)
     return inputs->tablet;
 }
 
-int inputs_channel_set_tablet(InputsChannel *inputs, SpiceTabletInstance *tablet)
+int InputsChannel::set_tablet(SpiceTabletInstance *new_tablet)
 {
-    if (inputs->tablet) {
-        red_channel_warning(inputs, "already have tablet");
+    if (tablet) {
+        red_channel_warning(this, "already have tablet");
         return -1;
     }
-    inputs->tablet = tablet;
-    inputs->tablet->st = spice_tablet_state_new(inputs->get_server());
+    tablet = new_tablet;
+    tablet->st = spice_tablet_state_new(get_server());
     return 0;
 }
 
-int inputs_channel_has_tablet(InputsChannel *inputs)
+bool InputsChannel::has_tablet() const
 {
-    return inputs != NULL && inputs->tablet != NULL;
+    return tablet != NULL;
 }
 
-void inputs_channel_detach_tablet(InputsChannel *inputs, SpiceTabletInstance *tablet)
+void InputsChannel::detach_tablet(SpiceTabletInstance *tablet)
 {
-    if (tablet != NULL && tablet == inputs->tablet) {
+    if (tablet != NULL && tablet == this->tablet) {
         spice_tablet_state_free(tablet->st);
         tablet->st = NULL;
     }
-    inputs->tablet = NULL;
+    this->tablet = NULL;
 }
 
-gboolean inputs_channel_is_src_during_migrate(InputsChannel *inputs)
+bool InputsChannel::is_src_during_migrate() const
 {
-    return inputs->src_during_migrate;
+    return src_during_migrate;
 }

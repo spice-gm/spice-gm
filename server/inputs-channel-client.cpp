@@ -38,7 +38,7 @@ XXX_CAST(RedChannel, InputsChannel, INPUTS_CHANNEL);
 
 void InputsChannelClient::on_disconnect()
 {
-    inputs_release_keys(INPUTS_CHANNEL(get_channel()));
+    INPUTS_CHANNEL(get_channel())->release_keys();
 }
 
 RedChannelClient* inputs_channel_client_create(RedChannel *channel,
@@ -78,7 +78,7 @@ void InputsChannelClient::on_mouse_motion()
     InputsChannel *inputs_channel = INPUTS_CHANNEL(get_channel());
 
     if (++motion_count % SPICE_INPUT_MOTION_ACK_BUNCH == 0 &&
-        !inputs_channel_is_src_during_migrate(inputs_channel)) {
+        !inputs_channel->is_src_during_migrate()) {
         pipe_add_type(RED_PIPE_ITEM_MOUSE_MOTION_ACK);
         motion_count = 0;
     }
