@@ -290,7 +290,7 @@ void cursor_channel_reset(CursorChannel *cursor)
 
     if (red_channel_is_connected(cursor)) {
         red_channel_pipes_add_type(cursor, RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE);
-        if (!common_graphics_channel_get_during_target_migrate(COMMON_GRAPHICS_CHANNEL(cursor))) {
+        if (!common_graphics_channel_get_during_target_migrate(cursor)) {
             red_channel_pipes_add_empty_msg(cursor, SPICE_MSG_CURSOR_RESET);
         }
         red_channel_wait_all_sent(cursor, COMMON_CLIENT_TIMEOUT);
@@ -302,7 +302,7 @@ static void cursor_channel_init_client(CursorChannel *cursor, CursorChannelClien
     spice_return_if_fail(cursor);
 
     if (!red_channel_is_connected(cursor)
-        || common_graphics_channel_get_during_target_migrate(COMMON_GRAPHICS_CHANNEL(cursor))) {
+        || common_graphics_channel_get_during_target_migrate(cursor)) {
         spice_debug("during_target_migrate: skip init");
         return;
     }

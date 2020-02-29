@@ -436,7 +436,7 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
                                    line_0, surface.flags & QXL_SURF_FLAG_KEEP_DATA, TRUE);
     display_channel_set_monitors_config_to_primary(display);
 
-    CommonGraphicsChannel *common = COMMON_GRAPHICS_CHANNEL(display);
+    CommonGraphicsChannel *common = display;
     if (red_channel_is_connected(display) &&
         !common_graphics_channel_get_during_target_migrate(common)) {
         /* guest created primary, so it will (hopefully) send a monitors_config
@@ -543,7 +543,7 @@ static void handle_dev_start(void *opaque, void *payload)
         common_graphics_channel_set_during_target_migrate(common, FALSE);
     }
     if (worker->display_channel) {
-        CommonGraphicsChannel *common = COMMON_GRAPHICS_CHANNEL(worker->display_channel);
+        CommonGraphicsChannel *common = worker->display_channel;
         common_graphics_channel_set_during_target_migrate(common, FALSE);
         display_channel_wait_for_migrate_data(worker->display_channel);
     }
