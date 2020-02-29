@@ -34,6 +34,8 @@ void InputsChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t
 {
 }
 
+XXX_CAST(RedChannel, InputsChannel, INPUTS_CHANNEL);
+
 void InputsChannelClient::on_disconnect()
 {
     inputs_release_keys(INPUTS_CHANNEL(get_channel()));

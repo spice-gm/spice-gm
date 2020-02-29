@@ -78,6 +78,8 @@ struct _Drawable {
 
 struct DisplayChannelPrivate
 {
+    SPICE_CXX_GLIB_ALLOCATOR
+
     DisplayChannel *pub;
 
     QXLInstance *qxl;

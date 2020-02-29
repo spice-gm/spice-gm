@@ -30,23 +30,6 @@ typedef struct RedCursorPipeItem {
     RedCursorCmd *red_cursor;
 } RedCursorPipeItem;
 
-struct CursorChannel final: public CommonGraphicsChannel
-{
-    RedCursorPipeItem *item;
-    bool cursor_visible;
-    SpicePoint16 cursor_position;
-    uint16_t cursor_trail_length;
-    uint16_t cursor_trail_frequency;
-    uint32_t mouse_mode;
-};
-
-struct CursorChannelClass
-{
-    CommonGraphicsChannelClass parent_class;
-};
-
-G_DEFINE_TYPE(CursorChannel, cursor_channel, TYPE_COMMON_GRAPHICS_CHANNEL)
-
 static void cursor_pipe_item_free(RedPipeItem *pipe_item);
 
 static RedCursorPipeItem *cursor_pipe_item_new(RedCursorCmd *cmd)
@@ -221,19 +204,11 @@ void CursorChannelClient::send_item(RedPipeItem *pipe_item)
 }
 
 CursorChannel* cursor_channel_new(RedsState *server, int id,
-                                  const SpiceCoreInterfaceInternal *core,
+                                  SpiceCoreInterfaceInternal *core,
                                   Dispatcher *dispatcher)
 {
     spice_debug("create cursor channel");
-    return (CursorChannel*)
-        g_object_new(TYPE_CURSOR_CHANNEL,
-                     "spice-server", server,
-                     "core-interface", core,
-                     "channel-type", SPICE_CHANNEL_CURSOR,
-                     "id", id,
-                     "handle-acks", TRUE,
-                     "dispatcher", dispatcher,
-                     NULL);
+    return new CursorChannel(server, id, core, dispatcher);
 }
 
 void cursor_channel_process_cmd(CursorChannel *cursor, RedCursorCmd *cursor_cmd)
@@ -328,17 +303,14 @@ void cursor_channel_set_mouse_mode(CursorChannel *cursor, uint32_t mode)
 /**
  * Connect a new client to CursorChannel.
  */
-static void
-cursor_channel_connect(CursorChannel *cursor, RedClient *client, RedStream *stream,
-                       int migrate, RedChannelCapabilities *caps)
+void CursorChannel::on_connect(RedClient *client, RedStream *stream, int migration,
+                               RedChannelCapabilities *caps)
 {
     CursorChannelClient *ccc;
 
-    spice_return_if_fail(cursor != NULL);
-
     spice_debug("add cursor channel client");
-    ccc = cursor_channel_client_new(cursor, client, stream,
-                                    migrate,
+    ccc = cursor_channel_client_new(this, client, stream,
+                                    migration,
                                     caps);
     if (ccc == NULL) {
         return;
@@ -347,50 +319,19 @@ cursor_channel_connect(CursorChannel *cursor, RedClient *client, RedStream *stre
     ccc->ack_zero_messages_window();
     ccc->push_set_ack();
 
-    cursor_channel_init_client(cursor, ccc);
+    cursor_channel_init_client(this, ccc);
 }
 
-static void
-cursor_channel_finalize(GObject *object)
+CursorChannel::~CursorChannel()
 {
-    CursorChannel *self = CURSOR_CHANNEL(object);
-
-    if (self->item) {
-        red_pipe_item_unref(&self->item->base);
+    if (item) {
+        red_pipe_item_unref(&item->base);
     }
-
-    G_OBJECT_CLASS(cursor_channel_parent_class)->finalize(object);
 }
 
-static void
-cursor_channel_constructed(GObject *object)
+CursorChannel::CursorChannel(RedsState *reds, uint32_t id,
+                             SpiceCoreInterfaceInternal *core, Dispatcher *dispatcher):
+    CommonGraphicsChannel(reds, SPICE_CHANNEL_CURSOR, id, RedChannel::HandleAcks, core, dispatcher)
 {
-    RedChannel *red_channel = RED_CHANNEL(object);
-    RedsState *reds = red_channel->get_server();
-
-    G_OBJECT_CLASS(cursor_channel_parent_class)->constructed(object);
-
-    reds_register_channel(reds, red_channel);
-}
-
-static void
-cursor_channel_class_init(CursorChannelClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    object_class->constructed = cursor_channel_constructed;
-    object_class->finalize = cursor_channel_finalize;
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_CURSOR, NULL);
-
-    // client callbacks
-    channel_class->connect = (channel_client_connect_proc) cursor_channel_connect;
-}
-
-static void
-cursor_channel_init(CursorChannel *self)
-{
-    self->cursor_visible = true;
-    self->mouse_mode = SPICE_MOUSE_MODE_SERVER;
+    reds_register_channel(reds, this);
 }

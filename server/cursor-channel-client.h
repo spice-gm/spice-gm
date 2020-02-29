@@ -42,7 +42,7 @@ public:
     int cache_add(uint64_t id, size_t size);
     CursorChannel* get_channel()
     {
-        return CURSOR_CHANNEL(CommonGraphicsChannelClient::get_channel());
+        return static_cast<CursorChannel*>(CommonGraphicsChannelClient::get_channel());
     }
 
 protected:

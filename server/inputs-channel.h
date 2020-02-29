@@ -22,27 +22,32 @@
 // This include should only be used by reds.c and inputs-channel.c
 
 #include <stdint.h>
-#include <glib-object.h>
 #include <spice/vd_agent.h>
 
 #include "red-channel.h"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
-#define TYPE_INPUTS_CHANNEL inputs_channel_get_type()
+struct InputsChannel final: public RedChannel
+{
+    InputsChannel(RedsState *reds);
+    ~InputsChannel();
+    void on_connect(RedClient *client, RedStream *stream, int migration,
+                    RedChannelCapabilities *caps) override;
 
-#define INPUTS_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_INPUTS_CHANNEL, InputsChannel))
-#define INPUTS_CHANNEL_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_INPUTS_CHANNEL, InputsChannelClass))
-#define INPUTS_IS_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_INPUTS_CHANNEL))
-#define INPUTS_IS_CHANNEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_INPUTS_CHANNEL))
-#define INPUTS_CHANNEL_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_INPUTS_CHANNEL, InputsChannelClass))
+    VDAgentMouseState mouse_state;
+    int src_during_migrate;
+    SpiceTimer *key_modifiers_timer;
 
-struct InputsChannel;
-struct InputsChannelClass;
+    // actual ideal modifier states, that the guest should have
+    uint8_t modifiers;
+    // current pressed modifiers
+    uint8_t modifiers_pressed;
 
-GType inputs_channel_get_type(void) G_GNUC_CONST;
+    SpiceKbdInstance *keyboard;
+    SpiceMouseInstance *mouse;
+    SpiceTabletInstance *tablet;
+};
 
 InputsChannel* inputs_channel_new(RedsState *reds);
 
@@ -58,6 +63,6 @@ RedsState* spice_tablet_state_get_server(SpiceTabletState *dev);
 gboolean inputs_channel_is_src_during_migrate(InputsChannel *inputs);
 void inputs_release_keys(InputsChannel *inputs);
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* INPUTS_CHANNEL_H_ */

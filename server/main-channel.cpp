@@ -26,20 +26,6 @@
 #include "main-channel.h"
 #include "main-channel-client.h"
 
-struct MainChannel final: public RedChannel
-{
-    // TODO: add refs and release (afrer all clients completed migration in one way or the other?)
-    RedsMigSpice mig_target;
-    int num_clients_mig_wait;
-};
-
-struct MainChannelClass
-{
-    RedChannelClass parent_class;
-};
-
-G_DEFINE_TYPE(MainChannel, main_channel, RED_TYPE_CHANNEL)
-
 int main_channel_is_connected(MainChannel *main_chan)
 {
     return main_chan && main_chan->is_connected();
@@ -213,6 +199,8 @@ bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *messa
     return TRUE;
 }
 
+XXX_CAST(RedChannel, MainChannel, MAIN_CHANNEL);
+
 void MainChannelClient::handle_migrate_flush_mark()
 {
     RedChannel *channel = get_channel();
@@ -237,42 +225,14 @@ MainChannelClient *main_channel_link(MainChannel *channel, RedClient *client,
 
 MainChannel* main_channel_new(RedsState *reds)
 {
-    // TODO: set the migration flag of the channel
-    return (MainChannel*) g_object_new(TYPE_MAIN_CHANNEL,
-                        "spice-server", reds,
-                        "core-interface", reds_get_core_interface(reds),
-                        "channel-type", (gint)SPICE_CHANNEL_MAIN,
-                        "id", 0,
-                        "migration-flags",
-                        (SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
-                        NULL);
+    return new MainChannel(reds);
 }
 
-static void
-main_channel_constructed(GObject *object)
+MainChannel::MainChannel(RedsState *reds):
+    RedChannel(reds, SPICE_CHANNEL_MAIN, 0, RedChannel::MigrateAll)
 {
-    MainChannel *self = MAIN_CHANNEL(object);
-
-    G_OBJECT_CLASS(main_channel_parent_class)->constructed(object);
-
-    self->set_cap(SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE);
-    self->set_cap(SPICE_MAIN_CAP_SEAMLESS_MIGRATE);
-}
-
-static void
-main_channel_init(MainChannel *self)
-{
-}
-
-static void
-main_channel_class_init(MainChannelClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    object_class->constructed = main_channel_constructed;
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_MAIN, NULL);
+    set_cap(SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE);
+    set_cap(SPICE_MAIN_CAP_SEAMLESS_MIGRATE);
 }
 
 static int main_channel_connect_semi_seamless(MainChannel *main_channel)

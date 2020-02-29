@@ -34,19 +34,12 @@
 /*
  * Declare a RedTestChannel to be used for the test
  */
-SPICE_DECLARE_TYPE(RedTestChannel, red_test_channel, TEST_CHANNEL);
-#define RED_TYPE_TEST_CHANNEL red_test_channel_get_type()
-
 struct RedTestChannel final: public RedChannel
 {
+    using RedChannel::RedChannel;
+    void on_connect(RedClient *client, RedStream *stream,
+                    int migration, RedChannelCapabilities *caps) override;
 };
-
-struct RedTestChannelClass
-{
-    RedChannelClass parent_class;
-};
-
-G_DEFINE_TYPE(RedTestChannel, red_test_channel, RED_TYPE_CHANNEL)
 
 class RedTestChannelClient final: public RedChannelClient
 {
@@ -55,17 +48,12 @@ class RedTestChannelClient final: public RedChannelClient
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
 };
 
-static void
-red_test_channel_init(RedTestChannel *self)
-{
-}
-
-static void
-test_connect_client(RedChannel *channel, RedClient *client, RedStream *stream,
-                    int migration, RedChannelCapabilities *caps)
+void
+RedTestChannel::on_connect(RedClient *client, RedStream *stream,
+                           int migration, RedChannelCapabilities *caps)
 {
     RedChannelClient *rcc;
-    rcc = new RedTestChannelClient(channel, client, stream, caps);
+    rcc = new RedTestChannelClient(this, client, stream, caps);
     g_assert_nonnull(rcc);
     g_assert_true(rcc->init());
 
@@ -81,14 +69,6 @@ test_connect_client(RedChannel *channel, RedClient *client, RedStream *stream,
     for (int i = 0; i < 25; ++i) {
         rcc->pipe_add_empty_msg(SPICE_MSG_MIGRATE_DATA);
     }
-}
-
-static void
-red_test_channel_class_init(RedTestChannelClass *klass)
-{
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PORT, NULL);
-    channel_class->connect = test_connect_client;
 }
 
 uint8_t *
@@ -230,13 +210,10 @@ static void channel_loop(void)
 
     // create a channel and connect to it
     RedChannel *channel =
-        (RedChannel*) g_object_new(RED_TYPE_TEST_CHANNEL,
-                     "spice-server", server,
-                     "core-interface", reds_get_core_interface(server),
-                     "channel-type", SPICE_CHANNEL_PORT, // any other than main is fine
-                     "id", 0,
-                     "handle-acks", TRUE, // we want to test this
-                     NULL);
+        new RedTestChannel(server,
+                           SPICE_CHANNEL_PORT, // any other than main is fine
+                           0,
+                           RedChannel::HandleAcks); // we want to test this
 
     // create dummy RedClient and MainChannelClient
     RedChannelCapabilities caps;
@@ -283,8 +260,8 @@ static void channel_loop(void)
 
     // cleanup
     red_client_destroy(client);
-    g_object_unref(main_channel);
-    g_object_unref(channel);
+    main_channel->unref();
+    channel->unref();
 
     core->timer_remove(watch_timer);
 

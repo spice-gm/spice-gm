@@ -18,8 +18,6 @@
 #ifndef COMMON_GRAPHICS_CHANNEL_H_
 #define COMMON_GRAPHICS_CHANNEL_H_
 
-#include <glib-object.h>
-
 #include "red-channel.h"
 #include "red-channel-client.h"
 
@@ -27,32 +25,16 @@
 
 #define COMMON_CLIENT_TIMEOUT (NSEC_PER_SEC * 30)
 
-#define TYPE_COMMON_GRAPHICS_CHANNEL common_graphics_channel_get_type()
-
-#define COMMON_GRAPHICS_CHANNEL(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_COMMON_GRAPHICS_CHANNEL, CommonGraphicsChannel))
-#define COMMON_GRAPHICS_CHANNEL_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_COMMON_GRAPHICS_CHANNEL, CommonGraphicsChannelClass))
-#define COMMON_IS_GRAPHICS_CHANNEL(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_COMMON_GRAPHICS_CHANNEL))
-#define COMMON_IS_GRAPHICS_CHANNEL_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_COMMON_GRAPHICS_CHANNEL))
-#define COMMON_GRAPHICS_CHANNEL_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_COMMON_GRAPHICS_CHANNEL, CommonGraphicsChannelClass))
-
-struct CommonGraphicsChannelPrivate;
-
-struct CommonGraphicsChannel: public RedChannel
+class CommonGraphicsChannel: public RedChannel
 {
-    CommonGraphicsChannelPrivate *priv;
+public: // XXX
+    int during_target_migrate = 0; /* TRUE when the client that is associated with the channel
+                                  is during migration. Turned off when the vm is started.
+                                  The flag is used to avoid sending messages that are artifacts
+                                  of the transition from stopped vm to loaded vm (e.g., recreation
+                                  of the primary surface) */
+    using RedChannel::RedChannel;
 };
-
-struct CommonGraphicsChannelClass
-{
-    RedChannelClass parent_class;
-};
-
-GType common_graphics_channel_get_type(void) G_GNUC_CONST;
 
 void common_graphics_channel_set_during_target_migrate(CommonGraphicsChannel *self, gboolean value);
 gboolean common_graphics_channel_get_during_target_migrate(CommonGraphicsChannel *self);

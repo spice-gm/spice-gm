@@ -116,7 +116,7 @@ static int red_process_cursor(RedWorker *worker, int *ring_is_empty)
     }
 
     *ring_is_empty = FALSE;
-    while (RED_CHANNEL(worker->cursor_channel)->max_pipe_size() <= MAX_PIPE_SIZE) {
+    while (worker->cursor_channel->max_pipe_size() <= MAX_PIPE_SIZE) {
         if (!red_qxl_get_cursor_command(worker->qxl, &ext_cmd)) {
             *ring_is_empty = TRUE;
             if (worker->cursor_poll_tries < CMD_RING_POLL_RETRIES) {
@@ -262,8 +262,8 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
 
 static bool red_process_is_blocked(RedWorker *worker)
 {
-    return RED_CHANNEL(worker->cursor_channel)->max_pipe_size() > MAX_PIPE_SIZE ||
-                  worker->display_channel->max_pipe_size() > MAX_PIPE_SIZE;
+    return worker->cursor_channel->max_pipe_size() > MAX_PIPE_SIZE ||
+           worker->display_channel->max_pipe_size() > MAX_PIPE_SIZE;
 }
 
 typedef int (*red_process_t)(RedWorker *worker, int *ring_is_empty);
@@ -317,7 +317,7 @@ static void flush_display_commands(RedWorker *worker)
 
 static void flush_cursor_commands(RedWorker *worker)
 {
-    flush_commands(worker, RED_CHANNEL(worker->cursor_channel),
+    flush_commands(worker, worker->cursor_channel,
                    red_process_cursor);
 }
 
@@ -530,7 +530,7 @@ static void handle_dev_stop(void *opaque, void *payload)
      * to the client (there is no such message right now), and start
      * from scratch on the destination side */
     worker->display_channel->wait_all_sent(COMMON_CLIENT_TIMEOUT);
-    RED_CHANNEL(worker->cursor_channel)->wait_all_sent(COMMON_CLIENT_TIMEOUT);
+    worker->cursor_channel->wait_all_sent(COMMON_CLIENT_TIMEOUT);
 }
 
 static void handle_dev_start(void *opaque, void *payload)
@@ -539,7 +539,7 @@ static void handle_dev_start(void *opaque, void *payload)
 
     spice_assert(!red_qxl_is_running(worker->qxl));
     if (worker->cursor_channel) {
-        CommonGraphicsChannel *common = COMMON_GRAPHICS_CHANNEL(worker->cursor_channel);
+        CommonGraphicsChannel *common = worker->cursor_channel;
         common_graphics_channel_set_during_target_migrate(common, FALSE);
     }
     if (worker->display_channel) {
@@ -1096,7 +1096,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
 
     worker->cursor_channel = cursor_channel_new(reds, qxl->id,
                                                 &worker->core, dispatcher);
-    channel = RED_CHANNEL(worker->cursor_channel);
+    channel = worker->cursor_channel;
     channel->init_stat_node(&worker->stat, "cursor_channel");
 
     // TODO: handle seamless migration. Temp, setting migrate to FALSE
@@ -1121,7 +1121,7 @@ static void *red_worker_main(void *arg)
     SPICE_VERIFY(MAX_PIPE_SIZE > WIDE_CLIENT_ACK_WINDOW &&
            MAX_PIPE_SIZE > NARROW_CLIENT_ACK_WINDOW); //ensure wakeup by ack message
 
-    RED_CHANNEL(worker->cursor_channel)->reset_thread_id();
+    worker->cursor_channel->reset_thread_id();
     worker->display_channel->reset_thread_id();
 
     GMainLoop *loop = g_main_loop_new(worker->core.main_context, FALSE);
@@ -1177,7 +1177,7 @@ void red_worker_free(RedWorker *worker)
 {
     pthread_join(worker->thread, NULL);
 
-    red_worker_close_channel(RED_CHANNEL(worker->cursor_channel));
+    red_worker_close_channel(worker->cursor_channel);
     worker->cursor_channel = NULL;
     red_worker_close_channel(worker->display_channel);
     worker->display_channel = NULL;

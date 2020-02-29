@@ -105,27 +105,9 @@ check_vmc_error_message(void)
 static int num_send_data_calls = 0;
 static size_t send_data_bytes = 0;
 
-struct StreamChannel {
-    RedChannel parent;
-};
-
-struct StreamChannelClass {
-    RedChannelClass parent_class;
-};
-
-G_DEFINE_TYPE(StreamChannel, stream_channel, RED_TYPE_CHANNEL)
-
-static void
-stream_channel_init(StreamChannel *channel)
+StreamChannel::StreamChannel(RedsState *reds, uint32_t id):
+    RedChannel(reds, SPICE_CHANNEL_DISPLAY, id, RedChannel::HandleAcks)
 {
-}
-
-static void
-stream_channel_class_init(StreamChannelClass *klass)
-{
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
 }
 
 void stream_channel_change_format(StreamChannel *channel,
@@ -153,15 +135,15 @@ void stream_channel_register_queue_stat_cb(StreamChannel *channel,
 
 StreamChannel* stream_channel_new(RedsState *server, uint32_t id)
 {
-    return (StreamChannel*) g_object_new(TYPE_STREAM_CHANNEL,
-                        "spice-server", server,
-                        "core-interface", reds_get_core_interface(server),
-                        "channel-type", SPICE_CHANNEL_DISPLAY,
-                        "id", id,
-                        NULL);
+    return new StreamChannel(server, id);
 }
 
 void stream_channel_reset(StreamChannel *channel)
+{
+}
+
+void StreamChannel::on_connect(RedClient *red_client, RedStream *stream,
+                               int migration, RedChannelCapabilities *caps)
 {
 }
 

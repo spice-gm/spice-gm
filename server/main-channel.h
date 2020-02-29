@@ -19,28 +19,12 @@
 #define MAIN_CHANNEL_H_
 
 #include <stdint.h>
-#include <glib-object.h>
 #include <spice/vd_agent.h>
 #include <common/marshaller.h>
 
 #include "red-channel.h"
 
-G_BEGIN_DECLS
-
-#define TYPE_MAIN_CHANNEL main_channel_get_type()
-
-#define MAIN_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_MAIN_CHANNEL, MainChannel))
-#define MAIN_CHANNEL_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_MAIN_CHANNEL, MainChannelClass))
-#define IS_MAIN_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_MAIN_CHANNEL))
-#define IS_MAIN_CHANNEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_MAIN_CHANNEL))
-#define MAIN_CHANNEL_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_MAIN_CHANNEL, MainChannelClass))
-
-struct MainChannel;
-struct MainChannelClass;
-
-GType main_channel_get_type(void) G_GNUC_CONST;
+#include "push-visibility.h"
 
 // TODO: Defines used to calculate receive buffer size, and also by reds.c
 // other options: is to make a reds_main_consts.h, to duplicate defines.
@@ -52,6 +36,18 @@ struct RedsMigSpice {
     char *cert_subject;
     int port;
     int sport;
+};
+
+struct MainChannel final: public RedChannel
+{
+    MainChannel(RedsState *reds);
+
+    void on_connect(RedClient *client, RedStream *stream, int migration,
+                    RedChannelCapabilities *caps) override {};
+
+    // TODO: add refs and release (afrer all clients completed migration in one way or the other?)
+    RedsMigSpice mig_target;
+    int num_clients_mig_wait;
 };
 
 MainChannel *main_channel_new(RedsState *reds);
@@ -87,6 +83,6 @@ int main_channel_migrate_src_complete(MainChannel *main_chan, int success);
 void main_channel_on_migrate_connected(MainChannel *main_channel,
                                        gboolean success, gboolean seamless);
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* MAIN_CHANNEL_H_ */

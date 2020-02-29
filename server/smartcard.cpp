@@ -45,37 +45,12 @@
 // Maximal length of APDU
 #define APDUBufSize 270
 
-SPICE_DECLARE_TYPE(RedSmartcardChannel, red_smartcard_channel, SMARTCARD_CHANNEL);
-#define RED_TYPE_SMARTCARD_CHANNEL red_smartcard_channel_get_type()
-
 struct RedSmartcardChannel final: public RedChannel
 {
+    RedSmartcardChannel(RedsState *reds);
+    void on_connect(RedClient *client, RedStream *stream, int migration,
+                    RedChannelCapabilities *caps) override;
 };
-
-struct RedSmartcardChannelClass
-{
-    RedChannelClass parent_class;
-};
-
-G_DEFINE_TYPE(RedSmartcardChannel, red_smartcard_channel, RED_TYPE_CHANNEL)
-
-static void
-red_smartcard_channel_init(RedSmartcardChannel *self)
-{
-}
-
-static RedSmartcardChannel *
-red_smartcard_channel_new(RedsState *reds)
-{
-    return (RedSmartcardChannel*) g_object_new(RED_TYPE_SMARTCARD_CHANNEL,
-                        "spice-server", reds,
-                        "core-interface", reds_get_core_interface(reds),
-                        "channel-type", SPICE_CHANNEL_SMARTCARD,
-                        "id", 0,
-                        "migration-flags",
-                        (SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
-                        NULL);
-}
 
 struct RedCharDeviceSmartcardPrivate {
     uint32_t             reader_id;
@@ -512,16 +487,13 @@ int smartcard_char_device_handle_migrate_data(RedCharDeviceSmartcard *smartcard,
     return red_char_device_restore(RED_CHAR_DEVICE(smartcard), &mig_data->base);
 }
 
-static void smartcard_connect_client(RedChannel *channel, RedClient *client,
-                                     RedStream *stream, int migration,
+void RedSmartcardChannel::on_connect(RedClient *client, RedStream *stream, int migration,
                                      RedChannelCapabilities *caps)
 {
     SpiceCharDeviceInstance *char_device =
             smartcard_readers_get_unattached();
 
-    SmartCardChannelClient *scc;
-
-    scc = smartcard_channel_client_create(channel, client, stream, caps);
+    auto scc = smartcard_channel_client_create(this, client, stream, caps);
 
     if (!scc) {
         return;
@@ -531,40 +503,21 @@ static void smartcard_connect_client(RedChannel *channel, RedClient *client,
     if (char_device) {
         smartcard_char_device_attach_client(char_device, scc);
     } else {
-        red_channel_warning(channel, "char dev unavailable");
+        red_channel_warning(this, "char dev unavailable");
     }
 }
 
-static void
-red_smartcard_channel_constructed(GObject *object)
+RedSmartcardChannel::RedSmartcardChannel(RedsState *reds):
+    RedChannel(reds, SPICE_CHANNEL_SMARTCARD, 0, RedChannel::MigrateAll)
 {
-    RedSmartcardChannel *self = RED_SMARTCARD_CHANNEL(object);
-    RedsState *reds = self->get_server();
-
-    G_OBJECT_CLASS(red_smartcard_channel_parent_class)->constructed(object);
-
-    reds_register_channel(reds, self);
-}
-
-static void
-red_smartcard_channel_class_init(RedSmartcardChannelClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    object_class->constructed = red_smartcard_channel_constructed;
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_SMARTCARD, NULL);
-
-    // client callbacks
-    channel_class->connect = smartcard_connect_client;
+    reds_register_channel(reds, this);
 }
 
 static void smartcard_init(RedsState *reds)
 {
     spice_assert(!reds_find_channel(reds, SPICE_CHANNEL_SMARTCARD, 0));
 
-    red_smartcard_channel_new(reds);
+    new RedSmartcardChannel(reds);
 }
 
 

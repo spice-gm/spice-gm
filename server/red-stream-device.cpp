@@ -636,12 +636,12 @@ stream_device_dispose(GObject *object)
 
     if (dev->stream_channel) {
         // close all current connections and drop the reference
-        RED_CHANNEL(dev->stream_channel)->destroy();
+        dev->stream_channel->destroy();
         dev->stream_channel = NULL;
     }
     if (dev->cursor_channel) {
         // close all current connections and drop the reference
-        RED_CHANNEL(dev->cursor_channel)->destroy();
+        dev->cursor_channel->destroy();
         dev->cursor_channel = NULL;
     }
 
@@ -784,9 +784,7 @@ int32_t stream_device_get_stream_channel_id(StreamDevice *dev)
         return -1;
     }
 
-    int32_t channel_id;
-    g_object_get(dev->stream_channel, "id", &channel_id, NULL);
-    return channel_id;
+    return dev->stream_channel->id();
 }
 
 static StreamDevice *

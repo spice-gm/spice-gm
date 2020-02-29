@@ -21,74 +21,12 @@
 #include "display-channel-private.h"
 #include "red-qxl.h"
 
-G_DEFINE_TYPE(DisplayChannel, display_channel, TYPE_COMMON_GRAPHICS_CHANNEL)
+XXX_CAST(RedChannel, DisplayChannel, DISPLAY_CHANNEL);
 
-static void display_channel_connect(RedChannel *channel, RedClient *client,
-                                    RedStream *stream, int migration,
-                                    RedChannelCapabilities *caps);
-
-enum {
-    PROP0,
-    PROP_N_SURFACES,
-    PROP_VIDEO_CODECS,
-    PROP_QXL
-};
-
-static void
-display_channel_get_property(GObject *object,
-                             guint property_id,
-                             GValue *value,
-                             GParamSpec *pspec)
+DisplayChannel::~DisplayChannel()
 {
-    DisplayChannel *self = DISPLAY_CHANNEL(object);
-
-    switch (property_id)
-    {
-        case PROP_N_SURFACES:
-            g_value_set_uint(value, self->priv->n_surfaces);
-            break;
-        case PROP_VIDEO_CODECS:
-            g_value_set_static_boxed(value, self->priv->video_codecs);
-            break;
-        case PROP_QXL:
-            g_value_set_pointer(value, self->priv->qxl);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static void
-display_channel_set_property(GObject *object,
-                             guint property_id,
-                             const GValue *value,
-                             GParamSpec *pspec)
-{
-    DisplayChannel *self = DISPLAY_CHANNEL(object);
-
-    switch (property_id)
-    {
-        case PROP_N_SURFACES:
-            self->priv->n_surfaces = MIN(g_value_get_uint(value), NUM_SURFACES);
-            break;
-        case PROP_VIDEO_CODECS:
-            display_channel_set_video_codecs(self, (GArray*) g_value_get_boxed(value));
-            break;
-        case PROP_QXL:
-            self->priv->qxl = (QXLInstance*) g_value_get_pointer(value);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static void
-display_channel_finalize(GObject *object)
-{
-    DisplayChannel *self = DISPLAY_CHANNEL(object);
-
-    display_channel_destroy_surfaces(self);
-    image_cache_reset(&self->priv->image_cache);
+    display_channel_destroy_surfaces(this);
+    image_cache_reset(&priv->image_cache);
 
     if (spice_extra_checks) {
         unsigned int count;
@@ -96,28 +34,25 @@ display_channel_finalize(GObject *object)
         VideoStream *stream;
 
         count = 0;
-        for (drawable = self->priv->free_drawables; drawable; drawable = drawable->u.next) {
+        for (drawable = priv->free_drawables; drawable; drawable = drawable->u.next) {
             ++count;
         }
         spice_assert(count == NUM_DRAWABLES);
 
         count = 0;
-        for (stream = self->priv->free_streams; stream; stream = stream->next) {
+        for (stream = priv->free_streams; stream; stream = stream->next) {
             ++count;
         }
         spice_assert(count == NUM_STREAMS);
-        spice_assert(ring_is_empty(&self->priv->streams));
+        spice_assert(ring_is_empty(&priv->streams));
 
         for (count = 0; count < NUM_SURFACES; ++count) {
-            spice_assert(self->priv->surfaces[count].context.canvas == NULL);
+            spice_assert(priv->surfaces[count].context.canvas == NULL);
         }
     }
 
-    monitors_config_unref(self->priv->monitors_config);
-    g_array_unref(self->priv->video_codecs);
-    g_free(self->priv);
-
-    G_OBJECT_CLASS(display_channel_parent_class)->finalize(object);
+    monitors_config_unref(priv->monitors_config);
+    g_array_unref(priv->video_codecs);
 }
 
 static void drawable_draw(DisplayChannel *display, Drawable *drawable);
@@ -148,7 +83,7 @@ void display_channel_compress_stats_print(DisplayChannel *display_channel)
 
     spice_return_if_fail(display_channel);
 
-    g_object_get(display_channel, "id", &id, NULL);
+    id = display_channel->id();
 
     spice_info("==> Compression stats for display %u", id);
     image_encoder_shared_stat_print(&display_channel->priv->encoder_shared_data);
@@ -2234,7 +2169,7 @@ static SpiceCanvas *image_surfaces_get(SpiceImageSurfaces *surfaces, uint32_t su
 
 DisplayChannel* display_channel_new(RedsState *reds,
                                     QXLInstance *qxl,
-                                    const SpiceCoreInterfaceInternal *core,
+                                    SpiceCoreInterfaceInternal *core,
                                     Dispatcher *dispatcher,
                                     int migrate, int stream_video,
                                     GArray *video_codecs,
@@ -2244,78 +2179,68 @@ DisplayChannel* display_channel_new(RedsState *reds,
 
     /* FIXME: migrate is not used...? */
     spice_debug("create display channel");
-    display = (DisplayChannel*) g_object_new(TYPE_DISPLAY_CHANNEL,
-                           "spice-server", reds,
-                           "core-interface", core,
-                           "channel-type", SPICE_CHANNEL_DISPLAY,
-                           "id", qxl->id,
-                           "migration-flags",
-                           (SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
-                           "qxl", qxl,
-                           "n-surfaces", n_surfaces,
-                           "video-codecs", video_codecs,
-                           "handle-acks", TRUE,
-                           "dispatcher", dispatcher,
-                           NULL);
+    display = new DisplayChannel(reds, qxl, core, dispatcher, migrate, stream_video,
+                                 video_codecs, n_surfaces);
     if (display) {
         display_channel_set_stream_video(display, stream_video);
     }
     return display;
 }
 
-static void
-display_channel_init(DisplayChannel *self)
+DisplayChannel::DisplayChannel(RedsState *reds,
+                               QXLInstance *qxl,
+                               SpiceCoreInterfaceInternal *core,
+                               Dispatcher *dispatcher,
+                               int migrate, int stream_video,
+                               GArray *video_codecs,
+                               uint32_t n_surfaces):
+    CommonGraphicsChannel(reds, SPICE_CHANNEL_DISPLAY, qxl->id,
+                          RedChannel::MigrateAll|RedChannel::HandleAcks, core, dispatcher)
 {
     static const SpiceImageSurfacesOps image_surfaces_ops = {
         image_surfaces_get,
     };
 
+    priv->n_surfaces = MIN(n_surfaces, NUM_SURFACES);
+    priv->qxl = qxl;
+
     /* must be manually allocated here since g_type_class_add_private() only
      * supports structs smaller than 64k */
-    self->priv = g_new0(DisplayChannelPrivate, 1);
-    self->priv->image_compression = SPICE_IMAGE_COMPRESSION_AUTO_GLZ;
-    self->priv->pub = self;
-    self->priv->renderer = RED_RENDERER_INVALID;
-    self->priv->stream_video = SPICE_STREAM_VIDEO_OFF;
+    priv->image_compression = SPICE_IMAGE_COMPRESSION_AUTO_GLZ;
+    priv->pub = this;
+    priv->renderer = RED_RENDERER_INVALID;
+    priv->stream_video = SPICE_STREAM_VIDEO_OFF;
 
-    image_encoder_shared_init(&self->priv->encoder_shared_data);
+    image_encoder_shared_init(&priv->encoder_shared_data);
 
-    ring_init(&self->priv->current_list);
-    drawables_init(self);
-    self->priv->image_surfaces.ops = &image_surfaces_ops;
+    ring_init(&priv->current_list);
+    drawables_init(this);
+    priv->image_surfaces.ops = &image_surfaces_ops;
 
-    image_cache_init(&self->priv->image_cache);
-    display_channel_init_video_streams(self);
-}
+    image_cache_init(&priv->image_cache);
+    display_channel_init_video_streams(this);
 
-static void
-display_channel_constructed(GObject *object)
-{
-    DisplayChannel *self = DISPLAY_CHANNEL(object);
-    RedChannel *channel = self;
+    display_channel_set_video_codecs(this, video_codecs);
 
-    G_OBJECT_CLASS(display_channel_parent_class)->constructed(object);
+    spice_assert(priv->video_codecs);
 
-    spice_assert(self->priv->video_codecs);
-
-    stat_init(&self->priv->add_stat, "add", CLOCK_THREAD_CPUTIME_ID);
-    stat_init(&self->priv->exclude_stat, "exclude", CLOCK_THREAD_CPUTIME_ID);
-    stat_init(&self->priv->__exclude_stat, "__exclude", CLOCK_THREAD_CPUTIME_ID);
-    RedsState *reds = self->get_server();
-    const RedStatNode *stat = channel->get_stat_node();
-    stat_init_counter(&self->priv->cache_hits_counter, reds, stat,
+    stat_init(&priv->add_stat, "add", CLOCK_THREAD_CPUTIME_ID);
+    stat_init(&priv->exclude_stat, "exclude", CLOCK_THREAD_CPUTIME_ID);
+    stat_init(&priv->__exclude_stat, "__exclude", CLOCK_THREAD_CPUTIME_ID);
+    const RedStatNode *stat = get_stat_node();
+    stat_init_counter(&priv->cache_hits_counter, reds, stat,
                       "cache_hits", TRUE);
-    stat_init_counter(&self->priv->add_to_cache_counter, reds, stat,
+    stat_init_counter(&priv->add_to_cache_counter, reds, stat,
                       "add_to_cache", TRUE);
-    stat_init_counter(&self->priv->non_cache_counter, reds, stat,
+    stat_init_counter(&priv->non_cache_counter, reds, stat,
                       "non_cache", TRUE);
 
-    channel->set_cap(SPICE_DISPLAY_CAP_MONITORS_CONFIG);
-    channel->set_cap(SPICE_DISPLAY_CAP_PREF_COMPRESSION);
-    channel->set_cap(SPICE_DISPLAY_CAP_PREF_VIDEO_CODEC_TYPE);
-    channel->set_cap(SPICE_DISPLAY_CAP_STREAM_REPORT);
+    set_cap(SPICE_DISPLAY_CAP_MONITORS_CONFIG);
+    set_cap(SPICE_DISPLAY_CAP_PREF_COMPRESSION);
+    set_cap(SPICE_DISPLAY_CAP_PREF_VIDEO_CODEC_TYPE);
+    set_cap(SPICE_DISPLAY_CAP_STREAM_REPORT);
 
-    reds_register_channel(reds, channel);
+    reds_register_channel(reds, this);
 }
 
 void display_channel_process_surface_cmd(DisplayChannel *display,
@@ -2488,51 +2413,6 @@ void display_channel_reset_image_cache(DisplayChannel *self)
     image_cache_reset(&self->priv->image_cache);
 }
 
-static void
-display_channel_class_init(DisplayChannelClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    object_class->get_property = display_channel_get_property;
-    object_class->set_property = display_channel_set_property;
-    object_class->constructed = display_channel_constructed;
-    object_class->finalize = display_channel_finalize;
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
-
-    // client callbacks
-    channel_class->connect = display_channel_connect;
-
-    g_object_class_install_property(object_class,
-                                    PROP_N_SURFACES,
-                                    g_param_spec_uint("n-surfaces",
-                                                      "number of surfaces",
-                                                      "Number of surfaces for this channel",
-                                                      1, NUM_SURFACES,
-                                                      1,
-                                                      G_PARAM_CONSTRUCT_ONLY |
-                                                      G_PARAM_READWRITE |
-                                                      G_PARAM_STATIC_STRINGS));
-    g_object_class_install_property(object_class,
-                                    PROP_VIDEO_CODECS,
-                                    g_param_spec_boxed("video-codecs",
-                                                       "video codecs",
-                                                       "Video Codecs",
-                                                       G_TYPE_ARRAY,
-                                                       G_PARAM_CONSTRUCT_ONLY |
-                                                       G_PARAM_READWRITE |
-                                                       G_PARAM_STATIC_STRINGS));
-    g_object_class_install_property(object_class,
-                                    PROP_QXL,
-                                    g_param_spec_pointer("qxl",
-                                                         "qxl",
-                                                         "QXLInstance for this channel",
-                                                         G_PARAM_READWRITE |
-                                                         G_PARAM_CONSTRUCT_ONLY |
-                                                         G_PARAM_STATIC_STRINGS));
-}
-
 void display_channel_debug_oom(DisplayChannel *display, const char *msg)
 {
     spice_debug("%s #draw=%u, #glz_draw=%u current %u pipes %u",
@@ -2592,25 +2472,23 @@ void display_channel_update_qxl_running(DisplayChannel *display, bool running)
     }
 }
 
-static void
-display_channel_connect(RedChannel *channel, RedClient *client,
-                        RedStream *stream, int migration,
-                        RedChannelCapabilities *caps)
+void DisplayChannel::on_connect(RedClient *client,
+                                RedStream *stream, int migration,
+                                RedChannelCapabilities *caps)
 {
-    DisplayChannel *display = DISPLAY_CHANNEL(channel);
     DisplayChannelClient *dcc;
 
     spice_debug("connect new client");
 
-    SpiceServer *reds = channel->get_server();
-    dcc = dcc_new(display, client, stream, migration, caps,
-                  display->priv->image_compression, reds_get_jpeg_state(reds),
+    SpiceServer *reds = get_server();
+    dcc = dcc_new(this, client, stream, migration, caps,
+                  priv->image_compression, reds_get_jpeg_state(reds),
                   reds_get_zlib_glz_state(reds));
     if (!dcc) {
         return;
     }
-    display_channel_update_compression(display, dcc);
-    guest_set_client_capabilities(display);
+    display_channel_update_compression(this, dcc);
+    guest_set_client_capabilities(this);
     dcc_start(dcc);
 }
 

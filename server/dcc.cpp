@@ -37,7 +37,7 @@ DisplayChannelClient::DisplayChannelClient(DisplayChannel *display,
                          SpiceImageCompression image_compression,
                          spice_wan_compression_t jpeg_state,
                          spice_wan_compression_t zlib_glz_state):
-    CommonGraphicsChannelClient(RED_CHANNEL(display), client, stream, caps, true),
+    CommonGraphicsChannelClient(display, client, stream, caps, true),
     priv(new DisplayChannelClientPrivate)
 {
 

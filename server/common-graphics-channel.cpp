@@ -22,18 +22,6 @@
 #include "dcc.h"
 #include "red-client.h"
 
-struct CommonGraphicsChannelPrivate
-{
-    int during_target_migrate; /* TRUE when the client that is associated with the channel
-                                  is during migration. Turned off when the vm is started.
-                                  The flag is used to avoid sending messages that are artifacts
-                                  of the transition from stopped vm to loaded vm (e.g., recreation
-                                  of the primary surface) */
-};
-
-G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(CommonGraphicsChannel, common_graphics_channel,
-                                    RED_TYPE_CHANNEL)
-
 uint8_t *CommonGraphicsChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 {
     /* SPICE_MSGC_MIGRATE_DATA is the only client message whose size is dynamic */
@@ -79,23 +67,12 @@ bool CommonGraphicsChannelClient::config_socket()
 }
 
 
-static void
-common_graphics_channel_class_init(CommonGraphicsChannelClass *klass)
-{
-}
-
-static void
-common_graphics_channel_init(CommonGraphicsChannel *self)
-{
-    self->priv = (CommonGraphicsChannelPrivate*) common_graphics_channel_get_instance_private(self);
-}
-
 void common_graphics_channel_set_during_target_migrate(CommonGraphicsChannel *self, gboolean value)
 {
-    self->priv->during_target_migrate = value;
+    self->during_target_migrate = value;
 }
 
 gboolean common_graphics_channel_get_during_target_migrate(CommonGraphicsChannel *self)
 {
-    return self->priv->during_target_migrate;
+    return self->during_target_migrate;
 }

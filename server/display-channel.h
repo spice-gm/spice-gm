@@ -32,34 +32,26 @@
 #include "dcc.h"
 #include "image-encoders.h"
 #include "common-graphics-channel.h"
+#include "utils.hpp"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
-#define TYPE_DISPLAY_CHANNEL display_channel_get_type()
-
-#define DISPLAY_CHANNEL(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_DISPLAY_CHANNEL, DisplayChannel))
-#define DISPLAY_CHANNEL_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_DISPLAY_CHANNEL, DisplayChannelClass))
-#define IS_DISPLAY_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_DISPLAY_CHANNEL))
-#define IS_DISPLAY_CHANNEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_DISPLAY_CHANNEL))
-#define DISPLAY_CHANNEL_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_DISPLAY_CHANNEL, DisplayChannelClass))
-
-struct DisplayChannelClass;
 struct DisplayChannelPrivate;
 
 struct DisplayChannel final: public CommonGraphicsChannel
 {
-    DisplayChannelPrivate *priv;
+    DisplayChannel(RedsState *reds,
+                   QXLInstance *qxl,
+                   SpiceCoreInterfaceInternal *core,
+                   Dispatcher *dispatcher,
+                   int migrate, int stream_video,
+                   GArray *video_codecs,
+                   uint32_t n_surfaces);
+    ~DisplayChannel();
+    void on_connect(RedClient *client, RedStream *stream, int migration,
+                    RedChannelCapabilities *caps) override;
+    red::unique_link<DisplayChannelPrivate> priv;
 };
-
-struct DisplayChannelClass
-{
-    CommonGraphicsChannelClass parent_class;
-};
-
-GType display_channel_get_type(void) G_GNUC_CONST;
 
 typedef struct DependItem {
     Drawable *drawable;
@@ -95,7 +87,7 @@ struct Drawable {
 
 DisplayChannel*            display_channel_new                       (RedsState *reds,
                                                                       QXLInstance *qxl,
-                                                                      const SpiceCoreInterfaceInternal *core,
+                                                                      SpiceCoreInterfaceInternal *core,
                                                                       Dispatcher *dispatcher,
                                                                       int migrate,
                                                                       int stream_video,
@@ -157,6 +149,6 @@ void display_channel_update_qxl_running(DisplayChannel *display, bool running);
 void display_channel_set_image_compression(DisplayChannel *display,
                                            SpiceImageCompression image_compression);
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* DISPLAY_CHANNEL_H_ */

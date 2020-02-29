@@ -62,14 +62,36 @@
 */
 struct RedChannelPrivate
 {
-    uint32_t type;
-    uint32_t id;
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    RedChannelPrivate(RedsState *reds, uint32_t type, uint32_t id, RedChannel::CreationFlags flags,
+                      SpiceCoreInterfaceInternal *core, Dispatcher *dispatcher):
+        type(type), id(id),
+        core(core ? core : reds_get_core_interface(reds)),
+        handle_acks(!!(flags & RedChannel::HandleAcks)),
+        parser(spice_get_client_channel_parser(type, nullptr)),
+        migration_flags(flags & RedChannel::MigrateAll),
+        dispatcher(dispatcher ? (Dispatcher*) g_object_ref(dispatcher) : dispatcher),
+        reds(reds)
+    {
+        thread_id = pthread_self();
+    }
+
+    ~RedChannelPrivate() {
+        g_clear_object(&dispatcher);
+        red_channel_capabilities_reset(&local_caps);
+    }
+
+    const uint32_t type;
+    const uint32_t id;
 
     /* "core" interface to register events.
      * Can be thread specific.
      */
-    SpiceCoreInterfaceInternal *core;
-    gboolean handle_acks;
+    SpiceCoreInterfaceInternal *const core;
+    const bool handle_acks;
+
+    const spice_parse_channel_func_t parser;
 
     // RedChannel will hold only connected channel clients
     // (logic - when pushing pipe item to all channel clients, there
@@ -82,7 +104,7 @@ struct RedChannelPrivate
     GList *clients;
 
     RedChannelCapabilities local_caps;
-    uint32_t migration_flags;
+    const uint32_t migration_flags;
 
     // TODO: when different channel_clients are in different threads
     // from Channel -> need to protect!
@@ -92,219 +114,51 @@ struct RedChannelPrivate
      * thread_id will be used to check the channel thread and automatically
      * use the dispatcher if the thread is different.
      */
-    Dispatcher *dispatcher;
-    RedsState *reds;
+    Dispatcher *const dispatcher;
+    RedsState *const reds;
     RedStatNode stat;
 };
 
-G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(RedChannel, red_channel, G_TYPE_OBJECT)
-
-enum {
-    PROP0,
-    PROP_SPICE_SERVER,
-    PROP_CORE_INTERFACE,
-    PROP_TYPE,
-    PROP_ID,
-    PROP_HANDLE_ACKS,
-    PROP_MIGRATION_FLAGS,
-    PROP_DISPATCHER,
-};
-
-static void
-red_channel_get_property(GObject *object,
-                         guint property_id,
-                         GValue *value,
-                         GParamSpec *pspec)
+RedChannel::RedChannel(RedsState *reds, uint32_t type, uint32_t id, CreationFlags flags,
+                       SpiceCoreInterfaceInternal *core, Dispatcher *dispatcher):
+    priv(new RedChannelPrivate(reds, type, id, flags, core, dispatcher))
 {
-    RedChannel *self = RED_CHANNEL(object);
+    red_channel_debug(this, "thread_id %p", (void*) priv->thread_id);
 
-    switch (property_id)
-    {
-        case PROP_SPICE_SERVER:
-            g_value_set_pointer(value, self->priv->reds);
-            break;
-        case PROP_CORE_INTERFACE:
-            g_value_set_pointer(value, self->priv->core);
-            break;
-        case PROP_TYPE:
-            g_value_set_int(value, self->priv->type);
-            break;
-        case PROP_ID:
-            g_value_set_uint(value, self->priv->id);
-            break;
-        case PROP_HANDLE_ACKS:
-            g_value_set_boolean(value, self->priv->handle_acks);
-            break;
-        case PROP_MIGRATION_FLAGS:
-            g_value_set_uint(value, self->priv->migration_flags);
-            break;
-        case PROP_DISPATCHER:
-            g_value_set_object(value, self->priv->dispatcher);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
+    set_common_cap(SPICE_COMMON_CAP_MINI_HEADER);
+    set_common_cap(SPICE_COMMON_CAP_PROTOCOL_AUTH_SELECTION);
 }
 
-static void
-red_channel_set_property(GObject *object,
-                         guint property_id,
-                         const GValue *value,
-                         GParamSpec *pspec)
+RedChannel::~RedChannel()
 {
-    RedChannel *self = RED_CHANNEL(object);
-
-    switch (property_id)
-    {
-        case PROP_SPICE_SERVER:
-            self->priv->reds = (RedsState*) g_value_get_pointer(value);
-            break;
-        case PROP_CORE_INTERFACE:
-            self->priv->core = (SpiceCoreInterfaceInternal*) g_value_get_pointer(value);
-            break;
-        case PROP_TYPE:
-            self->priv->type = g_value_get_int(value);
-            break;
-        case PROP_ID:
-            self->priv->id = g_value_get_uint(value);
-            break;
-        case PROP_HANDLE_ACKS:
-            self->priv->handle_acks = g_value_get_boolean(value);
-            break;
-        case PROP_MIGRATION_FLAGS:
-            self->priv->migration_flags = g_value_get_uint(value);
-            break;
-        case PROP_DISPATCHER:
-            g_clear_object(&self->priv->dispatcher);
-            self->priv->dispatcher = (Dispatcher*) g_value_dup_object(value);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
 }
 
-static void
-red_channel_finalize(GObject *object)
+uint32_t RedChannel::id() const
 {
-    RedChannel *self = RED_CHANNEL(object);
-
-    g_clear_object(&self->priv->dispatcher);
-    red_channel_capabilities_reset(&self->priv->local_caps);
-
-    G_OBJECT_CLASS(red_channel_parent_class)->finalize(object);
+    return priv->id;
 }
 
-static void
-red_channel_constructed(GObject *object)
+uint32_t RedChannel::type() const
 {
-    RedChannel *self = RED_CHANNEL(object);
-
-    red_channel_debug(self, "thread_id %p", (void*) self->priv->thread_id);
-
-    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(self);
-
-    G_OBJECT_CLASS(red_channel_parent_class)->constructed(object);
-
-    spice_assert(klass->parser != NULL);
+    return priv->type;
 }
 
-static void red_channel_client_default_connect(RedChannel *channel, RedClient *client,
-                                               RedStream *stream,
-                                               int migration,
-                                               RedChannelCapabilities *caps)
+uint32_t RedChannel::migration_flags() const
 {
-    spice_error("not implemented");
+    return priv->migration_flags;
 }
 
-static void
-red_channel_class_init(RedChannelClass *klass)
+bool RedChannel::handle_acks() const
 {
-    GParamSpec *spec;
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-
-    object_class->get_property = red_channel_get_property;
-    object_class->set_property = red_channel_set_property;
-    object_class->finalize = red_channel_finalize;
-    object_class->constructed = red_channel_constructed;
-
-    spec = g_param_spec_pointer("spice-server",
-                                "spice-server",
-                                "The spice server associated with this channel",
-                                G_PARAM_READWRITE |
-                                G_PARAM_CONSTRUCT_ONLY |
-                                G_PARAM_STATIC_STRINGS);
-    g_object_class_install_property(object_class, PROP_SPICE_SERVER, spec);
-
-    spec = g_param_spec_pointer("core-interface",
-                                "core-interface",
-                                "The SpiceCoreInterface server associated with this channel",
-                                G_PARAM_READWRITE |
-                                G_PARAM_CONSTRUCT_ONLY |
-                                G_PARAM_STATIC_STRINGS);
-    g_object_class_install_property(object_class, PROP_CORE_INTERFACE, spec);
-
-    /* FIXME: generate enums for this in spice-common? */
-    spec = g_param_spec_int("channel-type",
-                            "channel type",
-                            "Type of this channel",
-                            0,
-                            SPICE_END_CHANNEL,
-                            0,
-                            G_PARAM_READWRITE |
-                            G_PARAM_CONSTRUCT_ONLY |
-                            G_PARAM_STATIC_STRINGS);
-    g_object_class_install_property(object_class, PROP_TYPE, spec);
-
-    spec = g_param_spec_uint("id",
-                             "id",
-                             "ID of this channel",
-                             0,
-                             G_MAXUINT,
-                             0,
-                             G_PARAM_READWRITE |
-                             G_PARAM_CONSTRUCT_ONLY |
-                             G_PARAM_STATIC_STRINGS);
-    g_object_class_install_property(object_class, PROP_ID, spec);
-
-    spec = g_param_spec_boolean("handle-acks",
-                                "Handle ACKs",
-                                "Whether this channel handles ACKs",
-                                FALSE,
-                                G_PARAM_READWRITE |
-                                G_PARAM_CONSTRUCT_ONLY |
-                                G_PARAM_STATIC_STRINGS);
-    g_object_class_install_property(object_class, PROP_HANDLE_ACKS, spec);
-
-    spec = g_param_spec_uint("migration-flags",
-                             "migration flags",
-                             "Migration flags for this channel",
-                             0,
-                             G_MAXUINT,
-                             0,
-                             G_PARAM_READWRITE |
-                             G_PARAM_CONSTRUCT_ONLY |
-                             G_PARAM_STATIC_STRINGS);
-    g_object_class_install_property(object_class, PROP_MIGRATION_FLAGS, spec);
-
-    spec = g_param_spec_object("dispatcher", "dispatcher",
-                               "Dispatcher bound to channel thread",
-                               TYPE_DISPATCHER,
-                               G_PARAM_STATIC_STRINGS
-                               | G_PARAM_READWRITE
-                               | G_PARAM_CONSTRUCT_ONLY);
-    g_object_class_install_property(object_class, PROP_DISPATCHER, spec);
-
-    klass->connect = red_channel_client_default_connect;
+    return priv->handle_acks;
 }
 
-static void
-red_channel_init(RedChannel *self)
+uint8_t *RedChannel::parse(uint8_t *message, size_t message_size,
+                           uint16_t message_type,
+                           size_t *size_out, message_destructor_t *free_message) const
 {
-    self->priv = (RedChannelPrivate*) red_channel_get_instance_private(self);
-
-    self->set_common_cap(SPICE_COMMON_CAP_MINI_HEADER);
-    self->set_common_cap(SPICE_COMMON_CAP_PROTOCOL_AUTH_SELECTION);
-    self->priv->thread_id = pthread_self();
+    return priv->parser(message, message + message_size, message_type,
+                        SPICE_VERSION_MINOR, size_out, free_message);
 }
 
 // utility to avoid possible invalid function cast
@@ -397,7 +251,8 @@ void RedChannel::destroy()
     reds_unregister_channel(priv->reds, this);
 
     red_channel_foreach_client(this, &RedChannelClient::disconnect);
-    g_object_unref(this);
+    unref();
+    // WARNING, object maybe now deleted
 }
 
 void RedChannel::send()
@@ -483,9 +338,8 @@ static void handle_dispatcher_connect(void *opaque, void *payload)
 {
     RedMessageConnect *msg = (RedMessageConnect*) payload;
     RedChannel *channel = msg->channel;
-    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
-    klass->connect(channel, msg->client, msg->stream, msg->migration, &msg->caps);
+    channel->on_connect(msg->client, msg->stream, msg->migration, &msg->caps);
     g_object_unref(msg->client);
     red_channel_capabilities_reset(&msg->caps);
 }
@@ -495,8 +349,7 @@ void RedChannel::connect(RedClient *client, RedStream *stream, int migration,
 {
     if (priv->dispatcher == NULL ||
         pthread_equal(pthread_self(), priv->thread_id)) {
-        RedChannelClass *klass = RED_CHANNEL_GET_CLASS(this);
-        klass->connect(this, client, stream, migration, caps);
+        on_connect(client, stream, migration, caps);
         return;
     }
 

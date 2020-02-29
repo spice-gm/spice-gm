@@ -250,12 +250,10 @@ static RedChannelClient *red_client_get_channel(RedClient *client, int type, int
     RedChannelClient *rcc;
 
     FOREACH_CHANNEL_CLIENT(client, rcc) {
-        int channel_type, channel_id;
         RedChannel *channel;
 
         channel = rcc->get_channel();
-        g_object_get(channel, "channel-type", &channel_type, "id", &channel_id, NULL);
-        if (channel_type == type && channel_id == id) {
+        if (channel->type() == type && channel->id() == id) {
             return rcc;
         }
     }
@@ -264,7 +262,6 @@ static RedChannelClient *red_client_get_channel(RedClient *client, int type, int
 
 gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError **error)
 {
-    uint32_t type, id;
     RedChannel *channel;
     gboolean result = TRUE;
 
@@ -273,7 +270,8 @@ gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError
 
     pthread_mutex_lock(&client->lock);
 
-    g_object_get(channel, "channel-type", &type, "id", &id, NULL);
+    uint32_t type = channel->type();
+    uint32_t id = channel->id();
     if (client->disconnecting) {
         g_set_error(error,
                     SPICE_SERVER_ERROR,

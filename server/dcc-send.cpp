@@ -177,6 +177,8 @@ static GList *dcc_get_tail(DisplayChannelClient *dcc)
     return dcc->get_pipe()->tail;
 }
 
+XXX_CAST(RedChannel, DisplayChannel, DISPLAY_CHANNEL);
+
 static void red_display_add_image_to_pixmap_cache(DisplayChannelClient *dcc,
                                                   SpiceImage *image, SpiceImage *io_image,
                                                   int is_lossy)

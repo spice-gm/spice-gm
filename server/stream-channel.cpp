@@ -41,6 +41,10 @@ public:
      * we are not sending a stream */
     int stream_id = -1;
 private:
+    StreamChannel* get_channel()
+    {
+        return static_cast<StreamChannel*>(CommonGraphicsChannelClient::get_channel());
+    }
     /* Array with SPICE_VIDEO_CODEC_TYPE_ENUM_END elements, with the client
      * preference order (index) as value */
     GArray *client_preferred_video_codecs;
@@ -49,31 +53,6 @@ private:
     virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
     virtual void send_item(RedPipeItem *pipe_item) override;
 };
-
-struct StreamChannel final: public RedChannel
-{
-    /* current video stream id, <0 if not initialized or
-     * we are not sending a stream */
-    int stream_id;
-    /* size of the current video stream */
-    unsigned width, height;
-
-    StreamQueueStat queue_stat;
-
-    /* callback to notify when a stream should be started or stopped */
-    stream_channel_start_proc start_cb;
-    void *start_opaque;
-
-    /* callback to notify when queue statistics changes */
-    stream_channel_queue_stat_proc queue_cb;
-    void *queue_opaque;
-};
-
-struct StreamChannelClass {
-    RedChannelClass parent_class;
-};
-
-G_DEFINE_TYPE(StreamChannel, stream_channel, RED_TYPE_CHANNEL)
 
 enum {
     RED_PIPE_ITEM_TYPE_SURFACE_CREATE = RED_PIPE_ITEM_TYPE_COMMON_LAST,
@@ -118,7 +97,7 @@ request_new_stream(StreamChannel *channel, StreamMsgStartStop *start)
 void
 StreamChannelClient::on_disconnect()
 {
-    StreamChannel *channel = STREAM_CHANNEL(get_channel());
+    StreamChannel *channel = get_channel();
 
     // if there are still some client connected keep streaming
     // TODO, maybe would be worth sending new codecs if they are better
@@ -139,7 +118,7 @@ static StreamChannelClient*
 stream_channel_client_new(StreamChannel *channel, RedClient *client, RedStream *stream,
                           int mig_target, RedChannelCapabilities *caps)
 {
-    auto rcc = new StreamChannelClient(RED_CHANNEL(channel), client, stream, caps);
+    auto rcc = new StreamChannelClient(channel, client, stream, caps);
     if (!rcc->init()) {
         rcc->unref();
         rcc = nullptr;
@@ -184,7 +163,7 @@ marshall_monitors_config(RedChannelClient *rcc, StreamChannel *channel, SpiceMar
 void StreamChannelClient::send_item(RedPipeItem *pipe_item)
 {
     SpiceMarshaller *m = get_marshaller();
-    StreamChannel *channel = STREAM_CHANNEL(get_channel());
+    StreamChannel *channel = get_channel();
 
     switch (pipe_item->type) {
     case RED_PIPE_ITEM_TYPE_SURFACE_CREATE: {
@@ -302,14 +281,8 @@ bool StreamChannelClient::handle_message(uint16_t type, uint32_t size, void *msg
 StreamChannel*
 stream_channel_new(RedsState *server, uint32_t id)
 {
-    return (StreamChannel*) g_object_new(TYPE_STREAM_CHANNEL,
-                        "spice-server", server,
-                        "core-interface", reds_get_core_interface(server),
-                        "channel-type", SPICE_CHANNEL_DISPLAY,
-                        // TODO this id should be after all qxl devices
-                        "id", id,
-                        "handle-acks", TRUE, // TODO sure ??
-                        NULL);
+    // TODO this id should be after all qxl devices
+    return new StreamChannel(server, id);
 }
 
 #define MAX_SUPPORTED_CODECS SPICE_VIDEO_CODEC_TYPE_ENUM_END
@@ -371,11 +344,9 @@ StreamChannelClient::handle_preferred_video_codec_type(SpiceMsgcDisplayPreferred
     return true;
 }
 
-static void
-stream_channel_connect(RedChannel *red_channel, RedClient *red_client, RedStream *stream,
-                       int migration, RedChannelCapabilities *caps)
+void StreamChannel::on_connect(RedClient *red_client, RedStream *stream,
+                               int migration, RedChannelCapabilities *caps)
 {
-    StreamChannel *channel = STREAM_CHANNEL(red_channel);
     StreamChannelClient *client;
     struct {
         StreamMsgStartStop base;
@@ -385,16 +356,16 @@ stream_channel_connect(RedChannel *red_channel, RedClient *red_client, RedStream
 
     spice_return_if_fail(stream != NULL);
 
-    client = stream_channel_client_new(channel, red_client, stream, migration, caps);
+    client = stream_channel_client_new(this, red_client, stream, migration, caps);
     if (client == NULL) {
         return;
     }
 
     // request new stream
-    start->num_codecs = stream_channel_get_supported_codecs(channel, start->codecs);
+    start->num_codecs = stream_channel_get_supported_codecs(this, start->codecs);
     // send in any case, even if list is not changed
     // notify device about changes
-    request_new_stream(channel, start);
+    request_new_stream(this, start);
 
 
     // see guest_set_client_capabilities
@@ -408,7 +379,7 @@ stream_channel_connect(RedChannel *red_channel, RedClient *red_client, RedStream
     rcc->pipe_add_empty_msg(SPICE_MSG_DISPLAY_INVAL_ALL_PALETTES);
 
     // only if "surface"
-    if (channel->width == 0 || channel->height == 0) {
+    if (width == 0 || height == 0) {
         return;
     }
 
@@ -421,40 +392,14 @@ stream_channel_connect(RedChannel *red_channel, RedClient *red_client, RedStream
     rcc->pipe_add_empty_msg(SPICE_MSG_DISPLAY_MARK);
 }
 
-static void
-stream_channel_constructed(GObject *object)
+StreamChannel::StreamChannel(RedsState *reds, uint32_t id):
+    RedChannel(reds, SPICE_CHANNEL_DISPLAY, id, RedChannel::HandleAcks)
 {
-    RedChannel *red_channel = RED_CHANNEL(object);
-    RedsState *reds = red_channel->get_server();
+    set_cap(SPICE_DISPLAY_CAP_MONITORS_CONFIG);
+    set_cap(SPICE_DISPLAY_CAP_STREAM_REPORT);
+    set_cap(SPICE_DISPLAY_CAP_PREF_VIDEO_CODEC_TYPE);
 
-    G_OBJECT_CLASS(stream_channel_parent_class)->constructed(object);
-
-    red_channel->set_cap(SPICE_DISPLAY_CAP_MONITORS_CONFIG);
-    red_channel->set_cap(SPICE_DISPLAY_CAP_STREAM_REPORT);
-    red_channel->set_cap(SPICE_DISPLAY_CAP_PREF_VIDEO_CODEC_TYPE);
-
-    reds_register_channel(reds, red_channel);
-}
-
-static void
-stream_channel_class_init(StreamChannelClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    object_class->constructed = stream_channel_constructed;
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_DISPLAY, NULL);
-
-    channel_class->connect = stream_channel_connect;
-}
-
-static void
-stream_channel_init(StreamChannel *channel)
-{
-    channel->stream_id = -1;
-    channel->width = 0;
-    channel->height = 0;
+    reds_register_channel(reds, this);
 }
 
 void

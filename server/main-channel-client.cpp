@@ -367,12 +367,12 @@ RedPipeItem *registered_channel_item_new(RedChannel *channel)
     item = g_new0(RedRegisteredChannelPipeItem, 1);
     red_pipe_item_init(&item->base, RED_PIPE_ITEM_TYPE_MAIN_REGISTERED_CHANNEL);
 
-    uint32_t type, id;
-    g_object_get(channel, "channel-type", &type, "id", &id, NULL);
-    item->channel_type = type;
-    item->channel_id = id;
+    item->channel_type = channel->type();
+    item->channel_id = channel->id();
     return &item->base;
 }
+
+XXX_CAST(RedChannel, MainChannel, MAIN_CHANNEL);
 
 void main_channel_client_handle_migrate_connected(MainChannelClient *mcc,
                                                   int success,
@@ -532,7 +532,7 @@ MainChannelClient::MainChannelClient(MainChannel *channel,
                                      RedStream *stream,
                                      RedChannelCapabilities *caps,
                                      uint32_t connection_id):
-    RedChannelClient(RED_CHANNEL(channel), client, stream, caps)
+    RedChannelClient(channel, client, stream, caps)
 {
     priv->connection_id = connection_id;
 }

@@ -45,17 +45,7 @@
 SPICE_DECLARE_TYPE(RedCharDeviceSpiceVmc, red_char_device_spicevmc, CHAR_DEVICE_SPICEVMC);
 #define RED_TYPE_CHAR_DEVICE_SPICEVMC red_char_device_spicevmc_get_type()
 
-SPICE_DECLARE_TYPE(RedVmcChannel, red_vmc_channel, VMC_CHANNEL);
-#define RED_TYPE_VMC_CHANNEL red_vmc_channel_get_type()
-
-SPICE_DECLARE_TYPE(RedVmcChannelPort, red_vmc_channel_port, VMC_CHANNEL_PORT);
-#define RED_TYPE_VMC_CHANNEL_PORT red_vmc_channel_port_get_type()
-
-SPICE_DECLARE_TYPE(RedVmcChannelUsbredir, red_vmc_channel_usbredir, VMC_CHANNEL_USBREDIR);
-#define RED_TYPE_VMC_CHANNEL_USBREDIR red_vmc_channel_usbredir_get_type()
-
-SPICE_DECLARE_TYPE(RedVmcChannelWebdav, red_vmc_channel_webdav, VMC_CHANNEL_WEBDAV);
-#define RED_TYPE_VMC_CHANNEL_WEBDAV red_vmc_channel_webdav_get_type()
+struct RedVmcChannel;
 
 typedef struct RedVmcPipeItem {
     RedPipeItem base;
@@ -86,6 +76,12 @@ G_DEFINE_TYPE(RedCharDeviceSpiceVmc, red_char_device_spicevmc, RED_TYPE_CHAR_DEV
 
 struct RedVmcChannel: public RedChannel
 {
+    RedVmcChannel(RedsState *reds, uint32_t type, uint32_t id);
+    ~RedVmcChannel();
+
+    void on_connect(RedClient *client, RedStream *stream, int migration,
+                    RedChannelCapabilities *caps) override;
+
     RedChannelClient *rcc;
     RedCharDevice *chardev; /* weak */
     SpiceCharDeviceInstance *chardev_sin;
@@ -101,61 +97,32 @@ struct RedVmcChannel: public RedChannel
     RedStatCounter out_uncompressed;
 };
 
-struct RedVmcChannelClass
-{
-    RedChannelClass parent_class;
-};
-
-G_DEFINE_TYPE(RedVmcChannel, red_vmc_channel, RED_TYPE_CHANNEL)
-
 struct RedVmcChannelUsbredir final: public RedVmcChannel
 {
+    RedVmcChannelUsbredir();
 };
-
-struct RedVmcChannelUsbredirClass
-{
-    RedVmcChannelClass parent_class;
-};
-
-static void red_vmc_channel_usbredir_init(RedVmcChannelUsbredir *self)
-{
-}
-G_DEFINE_TYPE(RedVmcChannelUsbredir, red_vmc_channel_usbredir, RED_TYPE_VMC_CHANNEL)
 
 
 struct RedVmcChannelWebdav final: public RedVmcChannel
 {
+    RedVmcChannelWebdav();
 };
-
-struct RedVmcChannelWebdavClass
-{
-    RedVmcChannelClass parent_class;
-};
-
-static void red_vmc_channel_webdav_init(RedVmcChannelWebdav *self)
-{
-}
-G_DEFINE_TYPE(RedVmcChannelWebdav, red_vmc_channel_webdav, RED_TYPE_VMC_CHANNEL)
 
 
 struct RedVmcChannelPort final: public RedVmcChannel
 {
+    RedVmcChannelPort();
 };
-
-struct RedVmcChannelPortClass
-{
-    RedVmcChannelClass parent_class;
-};
-
-static void red_vmc_channel_port_init(RedVmcChannelPort *self)
-{
-}
-G_DEFINE_TYPE(RedVmcChannelPort, red_vmc_channel_port, RED_TYPE_VMC_CHANNEL)
 
 
 class VmcChannelClient final: public RedChannelClient
 {
     using RedChannelClient::RedChannelClient;
+public:
+    RedVmcChannel* get_channel()
+    {
+        return static_cast<RedVmcChannel*>(RedChannelClient::get_channel());
+    }
 protected:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
@@ -166,71 +133,45 @@ protected:
     virtual void handle_migrate_flush_mark() override;
 };
 
-static RedChannelClient *
+static VmcChannelClient *
 vmc_channel_client_create(RedChannel *channel, RedClient *client,
                           RedStream *stream,
                           RedChannelCapabilities *caps);
 
 
-static void spicevmc_connect(RedChannel *channel, RedClient *client,
-                             RedStream *stream, int migration,
-                             RedChannelCapabilities *caps);
-
-static void
-red_vmc_channel_constructed(GObject *object)
+RedVmcChannel::RedVmcChannel(RedsState *reds, uint32_t type, uint32_t id):
+    RedChannel(reds, type, id, RedChannel::MigrateAll)
 {
-    RedVmcChannel *self = RED_VMC_CHANNEL(object);
-    RedsState *reds = self->get_server();
-
-    G_OBJECT_CLASS(red_vmc_channel_parent_class)->constructed(object);
-
-    self->init_stat_node(NULL, "spicevmc");
-    const RedStatNode *stat = self->get_stat_node();
-    stat_init_counter(&self->in_data, reds, stat, "in_data", TRUE);
-    stat_init_counter(&self->in_compressed, reds, stat, "in_compressed", TRUE);
-    stat_init_counter(&self->in_decompressed, reds, stat, "in_decompressed", TRUE);
-    stat_init_counter(&self->out_data, reds, stat, "out_data", TRUE);
-    stat_init_counter(&self->out_compressed, reds, stat, "out_compressed", TRUE);
-    stat_init_counter(&self->out_uncompressed, reds, stat, "out_uncompressed", TRUE);
+    init_stat_node(NULL, "spicevmc");
+    const RedStatNode *stat = get_stat_node();
+    stat_init_counter(&in_data, reds, stat, "in_data", TRUE);
+    stat_init_counter(&in_compressed, reds, stat, "in_compressed", TRUE);
+    stat_init_counter(&in_decompressed, reds, stat, "in_decompressed", TRUE);
+    stat_init_counter(&out_data, reds, stat, "out_data", TRUE);
+    stat_init_counter(&out_compressed, reds, stat, "out_compressed", TRUE);
+    stat_init_counter(&out_uncompressed, reds, stat, "out_uncompressed", TRUE);
 
 #ifdef USE_LZ4
-    self->set_cap(SPICE_SPICEVMC_CAP_DATA_COMPRESS_LZ4);
+    set_cap(SPICE_SPICEVMC_CAP_DATA_COMPRESS_LZ4);
 #endif
 
-    reds_register_channel(reds, self);
+    reds_register_channel(reds, this);
 }
 
-static void
-red_vmc_channel_init(RedVmcChannel *self)
+RedVmcChannel::~RedVmcChannel()
 {
-}
-
-static void
-red_vmc_channel_finalize(GObject *object)
-{
-    RedVmcChannel *self = RED_VMC_CHANNEL(object);
-
-    red_char_device_write_buffer_release(self->chardev, &self->recv_from_client_buf);
-    if (self->pipe_item) {
-        red_pipe_item_unref(&self->pipe_item->base);
+    red_char_device_write_buffer_release(chardev, &recv_from_client_buf);
+    if (pipe_item) {
+        red_pipe_item_unref(&pipe_item->base);
     }
-
-    G_OBJECT_CLASS(red_vmc_channel_parent_class)->finalize(object);
 }
 
 static RedVmcChannel *red_vmc_channel_new(RedsState *reds, uint8_t channel_type)
 {
-    GType gtype = G_TYPE_NONE;
-
     switch (channel_type) {
         case SPICE_CHANNEL_USBREDIR:
-            gtype = RED_TYPE_VMC_CHANNEL_USBREDIR;
-            break;
         case SPICE_CHANNEL_WEBDAV:
-            gtype = RED_TYPE_VMC_CHANNEL_WEBDAV;
-            break;
         case SPICE_CHANNEL_PORT:
-            gtype = RED_TYPE_VMC_CHANNEL_PORT;
             break;
         default:
             g_error("Unsupported channel_type for red_vmc_channel_new(): %u", channel_type);
@@ -243,14 +184,7 @@ static RedVmcChannel *red_vmc_channel_new(RedsState *reds, uint8_t channel_type)
         return NULL;
     }
 
-    return (RedVmcChannel*) g_object_new(gtype,
-                        "spice-server", reds,
-                        "core-interface", reds_get_core_interface(reds),
-                        "channel-type", channel_type,
-                        "id", id,
-                        "migration-flags",
-                        (SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
-                        NULL);
+    return new RedVmcChannel(reds, channel_type, id);
 }
 
 typedef struct RedPortInitPipeItem {
@@ -322,7 +256,7 @@ static RedPipeItem *spicevmc_chardev_read_msg_from_dev(RedCharDevice *self,
                                                        SpiceCharDeviceInstance *sin)
 {
     RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
-    RedVmcChannel *channel = RED_VMC_CHANNEL(vmc->channel);
+    RedVmcChannel *channel = vmc->channel;
     SpiceCharDeviceInterface *sif;
     RedVmcPipeItem *msg_item;
     int n;
@@ -374,9 +308,9 @@ static void red_port_init_item_free(struct RedPipeItem *base)
     g_free(item);
 }
 
-static void spicevmc_port_send_init(RedChannelClient *rcc)
+static void spicevmc_port_send_init(VmcChannelClient *rcc)
 {
-    RedVmcChannel *channel = RED_VMC_CHANNEL(rcc->get_channel());
+    RedVmcChannel *channel = rcc->get_channel();
     SpiceCharDeviceInstance *sin = channel->chardev_sin;
     RedPortInitPipeItem *item = g_new(RedPortInitPipeItem, 1);
 
@@ -399,7 +333,7 @@ static void spicevmc_char_dev_remove_client(RedCharDevice *self,
                                             RedClient *client)
 {
     RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
-    RedVmcChannel *channel = RED_VMC_CHANNEL(vmc->channel);
+    RedVmcChannel *channel = vmc->channel;
 
     spice_assert(channel->rcc &&
                  channel->rcc->get_client() == client);
@@ -413,7 +347,7 @@ void VmcChannelClient::on_disconnect()
     SpiceCharDeviceInterface *sif;
     RedClient *client = get_client();
 
-    channel = RED_VMC_CHANNEL(get_channel());
+    channel = get_channel();
 
     /* partial message which wasn't pushed to device */
     red_char_device_write_buffer_release(channel->chardev, &channel->recv_from_client_buf);
@@ -446,7 +380,7 @@ bool VmcChannelClient::handle_migrate_data(uint32_t size, void *message)
     SpiceMigrateDataSpiceVmc *mig_data;
     RedVmcChannel *channel;
 
-    channel = RED_VMC_CHANNEL(get_channel());
+    channel = get_channel();
 
     header = (SpiceMigrateDataHeader *)message;
     mig_data = (SpiceMigrateDataSpiceVmc *)(header + 1);
@@ -510,7 +444,7 @@ bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
     RedVmcChannel *channel;
     SpiceCharDeviceInterface *sif;
 
-    channel = RED_VMC_CHANNEL(get_channel());
+    channel = get_channel();
     sif = spice_char_device_get_interface(channel->chardev_sin);
 
     switch (type) {
@@ -543,7 +477,7 @@ bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
 static void spicevmc_on_free_self_token(RedCharDevice *self)
 {
     RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
-    RedVmcChannel *channel = RED_VMC_CHANNEL(vmc->channel);
+    RedVmcChannel *channel = vmc->channel;
 
     channel->rcc->unblock_read();
 }
@@ -553,7 +487,7 @@ uint8_t *VmcChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 
     switch (type) {
     case SPICE_MSGC_SPICEVMC_DATA: {
-        RedVmcChannel *channel = RED_VMC_CHANNEL(get_channel());
+        RedVmcChannel *channel = get_channel();
 
         assert(!channel->recv_from_client_buf);
 
@@ -577,7 +511,7 @@ void VmcChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *m
 
     switch (type) {
     case SPICE_MSGC_SPICEVMC_DATA: {
-        RedVmcChannel *channel = RED_VMC_CHANNEL(get_channel());
+        RedVmcChannel *channel = get_channel();
         /* buffer wasn't pushed to device */
         red_char_device_write_buffer_release(channel->chardev, &channel->recv_from_client_buf);
         break;
@@ -594,12 +528,12 @@ spicevmc_red_channel_queue_data(RedVmcChannel *channel, RedVmcPipeItem *item)
     channel->rcc->pipe_add_push(&item->base);
 }
 
-static void spicevmc_red_channel_send_data(RedChannelClient *rcc,
+static void spicevmc_red_channel_send_data(VmcChannelClient *rcc,
                                            SpiceMarshaller *m,
                                            RedPipeItem *item)
 {
     RedVmcPipeItem *i = SPICE_UPCAST(RedVmcPipeItem, item);
-    RedVmcChannel *channel = RED_VMC_CHANNEL(rcc->get_channel());
+    RedVmcChannel *channel = rcc->get_channel();
 
     /* for compatibility send using not compressed data message */
     if (i->type == SPICE_DATA_COMPRESSION_TYPE_NONE) {
@@ -626,13 +560,13 @@ static void spicevmc_red_channel_send_data(RedChannelClient *rcc,
     }
 }
 
-static void spicevmc_red_channel_send_migrate_data(RedChannelClient *rcc,
+static void spicevmc_red_channel_send_migrate_data(VmcChannelClient *rcc,
                                                    SpiceMarshaller *m,
                                                    RedPipeItem *item)
 {
     RedVmcChannel *channel;
 
-    channel = RED_VMC_CHANNEL(rcc->get_channel());
+    channel = rcc->get_channel();
     rcc->init_send_data(SPICE_MSG_MIGRATE_DATA);
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_SPICEVMC_MAGIC);
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_SPICEVMC_VERSION);
@@ -691,57 +625,18 @@ void VmcChannelClient::send_item(RedPipeItem *item)
 }
 
 
-static void
-red_vmc_channel_class_init(RedVmcChannelClass *klass)
+void RedVmcChannel::on_connect(RedClient *client, RedStream *stream, int migration,
+                               RedChannelCapabilities *caps)
 {
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    object_class->constructed = red_vmc_channel_constructed;
-    object_class->finalize = red_vmc_channel_finalize;
-
-    // client callbacks
-    channel_class->connect = spicevmc_connect;
-}
-
-static void
-red_vmc_channel_usbredir_class_init(RedVmcChannelUsbredirClass *klass)
-{
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_USBREDIR, NULL);
-}
-
-static void
-red_vmc_channel_webdav_class_init(RedVmcChannelWebdavClass *klass)
-{
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_WEBDAV, NULL);
-}
-
-static void
-red_vmc_channel_port_class_init(RedVmcChannelPortClass *klass)
-{
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PORT, NULL);
-}
-
-static void spicevmc_connect(RedChannel *channel, RedClient *client,
-    RedStream *stream, int migration,
-    RedChannelCapabilities *caps)
-{
-    RedChannelClient *rcc;
     RedVmcChannel *vmc_channel;
     SpiceCharDeviceInstance *sin;
     SpiceCharDeviceInterface *sif;
 
-    vmc_channel = RED_VMC_CHANNEL(channel);
+    vmc_channel = this;
     sin = vmc_channel->chardev_sin;
 
     if (vmc_channel->rcc) {
-        red_channel_warning(channel,
+        red_channel_warning(this,
                             "channel client (%p) already connected, refusing second connection",
                             vmc_channel->rcc);
         // TODO: notify client in advance about the in use channel using
@@ -750,7 +645,7 @@ static void spicevmc_connect(RedChannel *channel, RedClient *client,
         return;
     }
 
-    rcc = vmc_channel_client_create(channel, client, stream, caps);
+    auto rcc = vmc_channel_client_create(this, client, stream, caps);
     if (!rcc) {
         return;
     }
@@ -789,7 +684,7 @@ RedCharDevice *spicevmc_device_connect(RedsState *reds,
     dev = red_char_device_spicevmc_new(sin, reds, channel);
 
     channel->chardev_sin = sin;
-    g_object_unref(channel);
+    channel->unref();
 
     return dev;
 }
@@ -806,7 +701,7 @@ static void spicevmc_port_event(RedCharDevice *char_dev, uint8_t event)
     RedVmcChannel *channel;
     RedCharDeviceSpiceVmc *device = RED_CHAR_DEVICE_SPICEVMC(char_dev);
 
-    channel = RED_VMC_CHANNEL(device->channel);
+    channel = device->channel;
 
     if (event == SPICE_PORT_EVENT_OPENED) {
         channel->port_opened = TRUE;
@@ -854,8 +749,9 @@ red_char_device_spicevmc_set_property(GObject *object,
     {
         case PROP_CHANNEL:
             spice_assert(self->channel == NULL);
-            self->channel = (RedVmcChannel*) g_value_dup_object(value);
+            self->channel = (RedVmcChannel*) g_value_get_pointer(value);
             spice_assert(self->channel != NULL);
+            self->channel->ref();
             self->channel->chardev = RED_CHAR_DEVICE(self);
 
             break;
@@ -880,10 +776,9 @@ red_char_device_spicevmc_class_init(RedCharDeviceSpiceVmcClass *klass)
 
     g_object_class_install_property(object_class,
                                     PROP_CHANNEL,
-                                    g_param_spec_object("channel",
+                                    g_param_spec_pointer("channel",
                                                         "Channel",
                                                         "Channel associated with this device",
-                                                        RED_TYPE_VMC_CHANNEL,
                                                         G_PARAM_STATIC_STRINGS |
                                                         G_PARAM_WRITABLE |
                                                         G_PARAM_CONSTRUCT));
@@ -908,7 +803,7 @@ red_char_device_spicevmc_new(SpiceCharDeviceInstance *sin,
                         NULL);
 }
 
-static RedChannelClient *
+static VmcChannelClient *
 vmc_channel_client_create(RedChannel *channel, RedClient *client,
                           RedStream *stream,
                           RedChannelCapabilities *caps)

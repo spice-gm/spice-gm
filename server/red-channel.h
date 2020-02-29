@@ -24,7 +24,6 @@
 
 #include <pthread.h>
 #include <limits.h>
-#include <glib-object.h>
 #include <common/marshaller.h>
 #include <common/demarshallers.h>
 
@@ -34,54 +33,55 @@
 #include "stat.h"
 #include "red-pipe-item.h"
 #include "red-channel-capabilities.h"
+#include "utils.hpp"
 
-G_BEGIN_DECLS
-
-SPICE_DECLARE_TYPE(RedChannel, red_channel, CHANNEL);
-#define RED_TYPE_CHANNEL red_channel_get_type()
+struct Dispatcher;
 
 #include "push-visibility.h"
+class RedChannel;
+struct RedChannelPrivate;
 struct RedChannelClient;
 struct RedClient;
 struct MainChannelClient;
-#include "pop-visibility.h"
-
-typedef void (*channel_client_connect_proc)(RedChannel *channel, RedClient *client, RedStream *stream,
-                                            int migration, RedChannelCapabilities *caps);
-
 
 static inline gboolean test_capability(const uint32_t *caps, int num_caps, uint32_t cap)
 {
     return VD_AGENT_HAS_CAPABILITY(caps, num_caps, cap);
 }
 
-struct RedChannelClass
-
-{
-    GObjectClass parent_class;
-
-    /* subclasses must implement handle_message() and optionally parser().
-     * If parser() is implemented, then handle_message() will get passed the
-     * parsed message as its 'msg' argument, otherwise it will be passed
-     * the raw data. In both cases, the 'size' argument is the length of 'msg'
-     * in bytes
-     */
-    spice_parse_channel_func_t parser;
-
-    /*
-     * callbacks that are triggered from client events.
-     * They should be called from the thread that handles the RedClient
-     */
-    channel_client_connect_proc connect;
-};
-
 #define FOREACH_CLIENT(_channel, _data) \
     GLIST_FOREACH(_channel->get_clients(), RedChannelClient, _data)
 
 /* Red Channel interface */
 
-struct RedChannel: public GObject
+struct RedChannel
 {
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    typedef enum {
+        FlagNone = 0,
+        MigrateNeedFlush = SPICE_MIGRATE_NEED_FLUSH,
+        MigrateNeedDataTransfer = SPICE_MIGRATE_NEED_DATA_TRANSFER,
+        HandleAcks = 8,
+        MigrateAll = MigrateNeedFlush|MigrateNeedDataTransfer,
+    } CreationFlags;
+
+    RedChannel(RedsState *reds, uint32_t type, uint32_t id, CreationFlags flags=FlagNone,
+               SpiceCoreInterfaceInternal *core=nullptr, Dispatcher *dispatcher=nullptr);
+    virtual ~RedChannel();
+
+    uint32_t id() const;
+    uint32_t type() const;
+    uint32_t migration_flags() const;
+    bool handle_acks() const;
+
+    virtual void on_connect(RedClient *client, RedStream *stream, int migration,
+                            RedChannelCapabilities *caps) = 0;
+
+    uint8_t *parse(uint8_t *message, size_t message_size,
+                   uint16_t message_type,
+                   size_t *size_out, message_destructor_t *free_message) const;
+
     const char *get_name() const;
 
     void add_client(RedChannelClient *rcc);
@@ -183,16 +183,26 @@ struct RedChannel: public GObject
     void migrate_client(RedChannelClient *rcc);
     void disconnect_client(RedChannelClient *rcc);
 
-    RedChannelPrivate *priv;
+    red::unique_link<RedChannelPrivate> priv;
+
+    void ref() { g_atomic_int_inc(&_ref); }
+    void unref() { if (g_atomic_int_dec_and_test(&_ref)) delete this; }
+
+private:
+    gint _ref = 1;
 };
+
+inline RedChannel::CreationFlags operator|(RedChannel::CreationFlags a, RedChannel::CreationFlags b)
+{
+    return (RedChannel::CreationFlags) ((int)a|(int)b);
+}
 
 #define CHANNEL_BLOCKED_SLEEP_DURATION 10000 //micro
 
 #define red_channel_log_generic(log_cb, channel, format, ...)                            \
     do {                                                                                 \
-        uint32_t id_;                                                                    \
         RedChannel *channel_ = (channel);                                                \
-        g_object_get(channel_, "id", &id_, NULL);                                        \
+        uint32_t id_ = channel_->id();                                                   \
         log_cb("%s:%u (%p): " format, channel_->get_name(),                              \
                         id_, channel_, ## __VA_ARGS__);                                  \
     } while (0)
@@ -206,6 +216,6 @@ struct RedChannel: public GObject
 #define red_channel_debug(channel, format, ...)                                          \
         red_channel_log_generic(g_debug, channel, format, ## __VA_ARGS__);
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* RED_CHANNEL_H_ */

@@ -296,7 +296,7 @@ RedChannelClientPrivate::RedChannelClientPrivate(RedChannel *channel,
                                                  RedStream *stream,
                                                  RedChannelCapabilities *caps,
                                                  bool monitor_latency):
-    channel((RedChannel*) g_object_ref(channel)),
+    channel(red::add_ref(channel)),
     client(client), stream(stream)
 {
     // blocks send message (maybe use send_data.blocked + block flags)
@@ -354,7 +354,7 @@ RedChannelClientPrivate::~RedChannelClientPrivate()
 
     red_channel_capabilities_reset(&remote_caps);
     if (channel) {
-        g_object_unref(channel);
+        channel->unref();
     }
 }
 
@@ -449,7 +449,7 @@ void RedChannelClient::send_migrate()
     SpiceMsgMigrate migrate;
 
     init_send_data(SPICE_MSG_MIGRATE);
-    g_object_get(priv->channel, "migration-flags", &migrate.flags, NULL);
+    migrate.flags = priv->channel->migration_flags();
     spice_marshall_msg_migrate(priv->send_data.marshaller, &migrate);
     if (migrate.flags & SPICE_MIGRATE_NEED_FLUSH) {
         priv->wait_migrate_flush_mark = TRUE;
@@ -619,10 +619,7 @@ void RedChannelClient::ping_timer(RedChannelClient *rcc)
 
 inline int RedChannelClientPrivate::waiting_for_ack()
 {
-    gboolean handle_acks;
-    g_object_get(channel,
-                 "handle-acks", &handle_acks,
-                 NULL);
+    gboolean handle_acks = channel->handle_acks();
 
     return (handle_acks && (ack_data.messages_window >
                             ack_data.client_window * 2));
@@ -1015,17 +1012,6 @@ static int red_peer_receive(RedStream *stream, uint8_t *buf, uint32_t size)
     return pos - buf;
 }
 
-uint8_t *RedChannelClient::parse(uint8_t *message, size_t message_size,
-                                 uint16_t message_type,
-                                 size_t *size_out, message_destructor_t *free_message)
-{
-    RedChannel *channel = get_channel();
-    RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
-
-    return klass->parser(message, message + message_size, message_type,
-                         SPICE_VERSION_MINOR, size_out, free_message);
-}
-
 // TODO: this implementation, as opposed to the old implementation in red_worker,
 // does many calls to red_peer_receive and through it cb_read, and thus avoids pointer
 // arithmetic for the case where a single cb_read could return multiple messages. But
@@ -1100,8 +1086,8 @@ void RedChannelClient::handle_incoming()
             }
         }
 
-        parsed = parse(buffer->msg, msg_size,
-                       msg_type, &parsed_size, &parsed_free);
+        parsed = get_channel()->parse(buffer->msg, msg_size,
+                                      msg_type, &parsed_size, &parsed_free);
         if (parsed == NULL) {
             red_channel_warning(channel, "failed to parse message type %d", msg_type);
             release_recv_buf(msg_type, msg_size, buffer->msg);
@@ -1269,8 +1255,7 @@ void RedChannelClient::handle_migrate_data_early(uint32_t size, void *message)
 
     red_channel_debug(channel, "rcc %p size %u", this, size);
 
-    uint32_t flags;
-    g_object_get(priv->channel, "migration-flags", &flags, NULL);
+    uint32_t flags = priv->channel->migration_flags();
     if (!(flags & SPICE_MIGRATE_NEED_DATA_TRANSFER)) {
         return;
     }
@@ -1694,9 +1679,7 @@ bool RedChannelClient::set_migration_seamless()
     gboolean ret = FALSE;
     uint32_t flags;
 
-    g_object_get(priv->channel,
-                 "migration-flags", &flags,
-                 NULL);
+    flags = priv->channel->migration_flags();
     if (flags & SPICE_MIGRATE_NEED_DATA_TRANSFER) {
         priv->wait_migrate_data = TRUE;
         ret = TRUE;

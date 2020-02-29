@@ -328,8 +328,8 @@ void reds_register_channel(RedsState *reds, RedChannel *channel)
 {
     spice_assert(reds);
 
-    uint32_t this_type, this_id;
-    g_object_get(channel, "channel-type", &this_type, "id", &this_id, NULL);
+    uint32_t this_type = channel->type();
+    uint32_t this_id = channel->id();
     if (spice_extra_checks) {
         g_assert(reds_find_channel(reds, this_type, this_id) == NULL);
     } else {
@@ -350,9 +350,7 @@ RedChannel *reds_find_channel(RedsState *reds, uint32_t type, uint32_t id)
     RedChannel *channel;
 
     GLIST_FOREACH(reds->channels, RedChannel, channel) {
-        uint32_t this_type, this_id;
-        g_object_get(channel, "channel-type", &this_type, "id", &this_id, NULL);
-        if (this_type == type && this_id == id) {
+        if (channel->type() == type && channel->id() == id) {
             return channel;
         }
     }
@@ -375,10 +373,8 @@ int reds_get_free_channel_id(RedsState *reds, uint32_t type)
     // mark id used for the specific channel type
     memset(used_ids, 0, sizeof(used_ids));
     GLIST_FOREACH(reds->channels, RedChannel, channel) {
-        uint32_t this_type, this_id;
-        g_object_get(channel, "channel-type", &this_type, "id", &this_id, NULL);
-        if (this_type == type && this_id < SPICE_N_ELEMENTS(used_ids)) {
-            used_ids[this_id] = true;
+        if (channel->type() == type && channel->id() < SPICE_N_ELEMENTS(used_ids)) {
+            used_ids[channel->id()] = true;
         }
     }
 
@@ -630,9 +626,7 @@ static void reds_update_mouse_mode(RedsState *reds)
     RedChannel *channel;
 
     GLIST_FOREACH(reds->channels, RedChannel, channel) {
-        uint32_t this_type;
-        g_object_get(channel, "channel-type", &this_type, NULL);
-        if (this_type == SPICE_CHANNEL_DISPLAY) {
+        if (channel->type() == SPICE_CHANNEL_DISPLAY) {
             ++display_channel_count;
         }
     }
@@ -678,7 +672,7 @@ static void reds_agent_remove(RedsState *reds)
     reds->vdagent = NULL;
     reds_update_mouse_mode(reds);
     if (reds_main_channel_connected(reds) &&
-        !RED_CHANNEL(reds->main_channel)->is_waiting_for_migrate_data()) {
+        !reds->main_channel->is_waiting_for_migrate_data()) {
         main_channel_push_agent_disconnected(reds->main_channel);
     }
 }
@@ -1028,9 +1022,7 @@ SPICE_GNUC_VISIBLE int spice_server_get_num_clients(SpiceServer *reds)
 
 static bool channel_supports_multiple_clients(RedChannel *channel)
 {
-    uint32_t type;
-    g_object_get(channel, "channel-type", &type, NULL);
-    switch (type) {
+    switch (channel->type()) {
     case SPICE_CHANNEL_MAIN:
     case SPICE_CHANNEL_DISPLAY:
     case SPICE_CHANNEL_CURSOR:
@@ -1046,14 +1038,12 @@ static void reds_fill_channels(RedsState *reds, SpiceMsgChannels *channels_info)
     int used_channels = 0;
 
     GLIST_FOREACH(reds->channels, RedChannel, channel) {
-        uint32_t type, id;
         if (g_list_length(reds->clients) > 1 &&
             !channel_supports_multiple_clients(channel)) {
             continue;
         }
-        g_object_get(channel, "channel-type", &type, "id", &id, NULL);
-        channels_info->channels[used_channels].type = type;
-        channels_info->channels[used_channels].id = id;
+        channels_info->channels[used_channels].type = channel->type();
+        channels_info->channels[used_channels].id = channel->id();
         used_channels++;
     }
 
@@ -1610,7 +1600,7 @@ static bool reds_send_link_ack(RedsState *reds, RedLinkInfo *link)
             return FALSE;
         }
         spice_assert(reds->main_channel);
-        channel = RED_CHANNEL(reds->main_channel);
+        channel = reds->main_channel;
     }
 
     reds_channel_init_auth_caps(link, channel); /* make sure common caps are set */
@@ -3138,7 +3128,7 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
     dev->priv->plug_generation++;
 
     if (dev->priv->mig_data ||
-        RED_CHANNEL(reds->main_channel)->is_waiting_for_migrate_data()) {
+        reds->main_channel->is_waiting_for_migrate_data()) {
         /* Migration in progress (code is running on the destination host):
          * 1.  Add the client to spice char device, if it was not already added.
          * 2.a If this (qemu-kvm state load side of migration) happens first
@@ -3835,10 +3825,10 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
     g_list_free_full(reds->qxl_instances, (GDestroyNotify)red_qxl_destroy);
 
     if (reds->inputs_channel) {
-        RED_CHANNEL(reds->inputs_channel)->destroy();
+        reds->inputs_channel->destroy();
     }
     if (reds->main_channel) {
-        RED_CHANNEL(reds->main_channel)->destroy();
+        reds->main_channel->destroy();
     }
     red_timer_remove(reds->mig_timer);
 
@@ -4272,7 +4262,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_connect(SpiceServer *reds, const cha
      * be valid (see reds_reset_vdp for more details).
      */
     try_seamless = reds->seamless_migration_enabled &&
-                   RED_CHANNEL(reds->main_channel)->test_remote_cap(SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS);
+                   reds->main_channel->test_remote_cap(SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS);
     /* main channel will take care of clients that are still during migration (at target)*/
     if (main_channel_migrate_connect(reds->main_channel, reds->config->mig_spice,
                                      try_seamless)) {

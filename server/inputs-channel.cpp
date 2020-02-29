@@ -40,29 +40,6 @@
 #include "migration-protocol.h"
 #include "utils.h"
 
-struct InputsChannel final: public RedChannel
-{
-    VDAgentMouseState mouse_state;
-    int src_during_migrate;
-    SpiceTimer *key_modifiers_timer;
-
-    // actual ideal modifier states, that the guest should have
-    uint8_t modifiers;
-    // current pressed modifiers
-    uint8_t modifiers_pressed;
-
-    SpiceKbdInstance *keyboard;
-    SpiceMouseInstance *mouse;
-    SpiceTabletInstance *tablet;
-};
-
-struct InputsChannelClass
-{
-    RedChannelClass parent_class;
-};
-
-G_DEFINE_TYPE(InputsChannel, inputs_channel, RED_TYPE_CHANNEL)
-
 struct SpiceKbdState {
     uint8_t push_ext_type;
 
@@ -229,6 +206,8 @@ static RedPipeItem *red_inputs_key_modifiers_item_new(uint8_t modifiers)
     item->modifiers = modifiers;
     return &item->base;
 }
+
+XXX_CAST(RedChannel, InputsChannel, INPUTS_CHANNEL);
 
 void InputsChannelClient::send_item(RedPipeItem *base)
 {
@@ -470,9 +449,8 @@ static void inputs_pipe_add_init(RedChannelClient *rcc)
     rcc->pipe_add_push(&item->base);
 }
 
-static void inputs_connect(RedChannel *channel, RedClient *client,
-                           RedStream *stream, int migration,
-                           RedChannelCapabilities *caps)
+void InputsChannel::on_connect(RedClient *client, RedStream *stream, int migration,
+                               RedChannelCapabilities *caps)
 {
     RedChannelClient *rcc;
 
@@ -481,7 +459,7 @@ static void inputs_connect(RedChannel *channel, RedClient *client,
                                         "keyboard channel is insecure");
     }
 
-    rcc = inputs_channel_client_create(channel, client, stream, caps);
+    rcc = inputs_channel_client_create(this, client, stream, caps);
     if (!rcc) {
         return;
     }
@@ -551,65 +529,27 @@ bool InputsChannelClient::handle_migrate_data(uint32_t size, void *message)
 
 InputsChannel* inputs_channel_new(RedsState *reds)
 {
-    return  (InputsChannel*)
-        g_object_new(TYPE_INPUTS_CHANNEL,
-                     "spice-server", reds,
-                     "core-interface", reds_get_core_interface(reds),
-                     "channel-type", (int)SPICE_CHANNEL_INPUTS,
-                     "id", 0,
-                     "migration-flags",
-                     (guint)(SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
-                     NULL);
+    return new InputsChannel(reds);
 }
 
-static void
-inputs_channel_constructed(GObject *object)
+InputsChannel::InputsChannel(RedsState *reds):
+    RedChannel(reds, SPICE_CHANNEL_INPUTS, 0, RedChannel::MigrateAll)
 {
-    InputsChannel *self = INPUTS_CHANNEL(object);
-    RedsState *reds = self->get_server();
-    SpiceCoreInterfaceInternal *core = self->get_core_interface();
+    SpiceCoreInterfaceInternal *core = get_core_interface();
 
-    G_OBJECT_CLASS(inputs_channel_parent_class)->constructed(object);
+    set_cap(SPICE_INPUTS_CAP_KEY_SCANCODE);
+    reds_register_channel(reds, this);
 
-    self->set_cap(SPICE_INPUTS_CAP_KEY_SCANCODE);
-    reds_register_channel(reds, self);
-
-    self->key_modifiers_timer = core->timer_new(key_modifiers_sender, self);
-    if (!self->key_modifiers_timer) {
+    key_modifiers_timer = core->timer_new(key_modifiers_sender, this);
+    if (!key_modifiers_timer) {
         spice_error("key modifiers timer create failed");
     }
 }
 
-static void
-inputs_channel_finalize(GObject *object)
+InputsChannel::~InputsChannel()
 {
-    InputsChannel *self = INPUTS_CHANNEL(object);
-
-    inputs_channel_detach_tablet(self, self->tablet);
-    red_timer_remove(self->key_modifiers_timer);
-
-    G_OBJECT_CLASS(inputs_channel_parent_class)->finalize(object);
-}
-
-static void
-inputs_channel_init(InputsChannel *self)
-{
-}
-
-
-static void
-inputs_channel_class_init(InputsChannelClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    object_class->constructed = inputs_channel_constructed;
-    object_class->finalize = inputs_channel_finalize;
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_INPUTS, NULL);
-
-    // client callbacks
-    channel_class->connect = inputs_connect;
+    inputs_channel_detach_tablet(this, tablet);
+    red_timer_remove(key_modifiers_timer);
 }
 
 static SpiceKbdInstance* inputs_channel_get_keyboard(InputsChannel *inputs)

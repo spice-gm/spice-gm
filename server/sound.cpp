@@ -67,14 +67,16 @@ enum PlaybackCommand {
 #define SND_PLAYBACK_PCM_MASK (1 << SND_PLAYBACK_PCM)
 #define SND_PLAYBACK_LATENCY_MASK ( 1 << SND_PLAYBACK_LATENCY)
 
-typedef struct SndChannelClient SndChannelClient;
-typedef struct SndChannel SndChannel;
-typedef struct PlaybackChannelClient PlaybackChannelClient;
-typedef struct RecordChannelClient RecordChannelClient;
-typedef struct AudioFrame AudioFrame;
-typedef struct AudioFrameContainer AudioFrameContainer;
+struct SndChannelClient;
+struct SndChannel;
+struct PlaybackChannelClient;
+struct RecordChannelClient;
+struct AudioFrame;
+struct AudioFrameContainer;
 typedef struct SpicePlaybackState PlaybackChannel;
+#define PlaybackChannel SpicePlaybackState
 typedef struct SpiceRecordState RecordChannel;
+#define RecordChannel SpiceRecordState
 
 typedef void (*snd_channel_on_message_done_proc)(SndChannelClient *client);
 
@@ -101,6 +103,8 @@ public:
     PersistentPipeItem persistent_pipe_item;
 
     snd_channel_on_message_done_proc on_message_done;
+
+    inline SndChannel* get_channel();
 
     virtual bool config_socket() override;
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
@@ -136,7 +140,7 @@ class PlaybackChannelClient final: public SndChannelClient
 protected:
     ~PlaybackChannelClient();
 public:
-    PlaybackChannelClient(RedChannel *channel,
+    PlaybackChannelClient(PlaybackChannel *channel,
                           RedClient *client,
                           RedStream *stream,
                           RedChannelCapabilities *caps);
@@ -160,54 +164,36 @@ typedef struct SpiceVolumeState {
     int mute;
 } SpiceVolumeState;
 
-#define TYPE_SND_CHANNEL snd_channel_get_type()
-#define SND_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_SND_CHANNEL, SndChannel))
-GType snd_channel_get_type(void) G_GNUC_CONST;
-
 /* Base class for SpicePlaybackState and SpiceRecordState */
 struct SndChannel: public RedChannel
 {
+    using RedChannel::RedChannel;
+    ~SndChannel();
+    void set_peer_common();
     bool active;
     SpiceVolumeState volume;
-    uint32_t frequency;
+    uint32_t frequency = SND_CODEC_OPUS_PLAYBACK_FREQ;
 };
 
-typedef struct SndChannelClass {
-    RedChannelClass parent_class;
-} SndChannelClass;
-
-G_DEFINE_TYPE(SndChannel, snd_channel, RED_TYPE_CHANNEL)
-
-
-#define TYPE_PLAYBACK_CHANNEL playback_channel_get_type()
-#define PLAYBACK_CHANNEL(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_PLAYBACK_CHANNEL, PlaybackChannel))
-GType playback_channel_get_type(void) G_GNUC_CONST;
-
-struct SpicePlaybackState final: public SndChannel
+inline SndChannel* SndChannelClient::get_channel()
 {
-};
+    return static_cast<SndChannel*>(RedChannelClient::get_channel());
+}
 
-typedef struct PlaybackChannelClass {
-    SndChannelClass parent_class;
-} PlaybackChannelClass;
-
-G_DEFINE_TYPE(PlaybackChannel, playback_channel, TYPE_SND_CHANNEL)
-
-
-#define TYPE_RECORD_CHANNEL record_channel_get_type()
-#define RECORD_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_RECORD_CHANNEL, RecordChannel))
-GType record_channel_get_type(void) G_GNUC_CONST;
-
-struct SpiceRecordState final: public SndChannel
+struct PlaybackChannel final: public SndChannel
 {
+    PlaybackChannel(RedsState *reds);
+    void on_connect(RedClient *client, RedStream *stream,
+                    int migration, RedChannelCapabilities *caps) override;
 };
 
-typedef struct RecordChannelClass {
-    SndChannelClass parent_class;
-} RecordChannelClass;
 
-G_DEFINE_TYPE(RecordChannel, record_channel, TYPE_SND_CHANNEL)
+struct RecordChannel final: public SndChannel
+{
+    RecordChannel(RedsState *reds);
+    void on_connect(RedClient *client, RedStream *stream,
+                    int migration, RedChannelCapabilities *caps) override;
+};
 
 
 class RecordChannelClient final: public SndChannelClient
@@ -346,7 +332,7 @@ bool RecordChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         return snd_record_handle_write(this, size, message);
     case SPICE_MSGC_RECORD_MODE: {
         SpiceMsgcRecordMode *msg_mode = (SpiceMsgcRecordMode *)message;
-        SndChannel *channel = SND_CHANNEL(get_channel());
+        SndChannel *channel = get_channel();
         mode_time = msg_mode->time;
         if (msg_mode->mode != SPICE_AUDIO_DATA_MODE_RAW) {
             if (snd_codec_is_capable((SpiceAudioDataMode) msg_mode->mode, channel->frequency)) {
@@ -354,15 +340,12 @@ bool RecordChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
                                      SND_CODEC_DECODE) == SND_CODEC_OK) {
                     mode = msg_mode->mode;
                 } else {
-                    red_channel_warning(get_channel(),
-                                        "create decoder failed");
+                    red_channel_warning(channel, "create decoder failed");
                     return false;
                 }
             }
             else {
-                red_channel_warning(get_channel(),
-                                    "unsupported mode %d",
-                                    mode);
+                red_channel_warning(channel, "unsupported mode %d", mode);
                 return false;
             }
         }
@@ -410,7 +393,7 @@ static bool snd_send_volume(SndChannelClient *client, uint32_t cap, int msg)
     uint8_t c;
     RedChannelClient *rcc = client;
     SpiceMarshaller *m = rcc->get_marshaller();
-    SndChannel *channel = SND_CHANNEL(rcc->get_channel());
+    SndChannel *channel = client->get_channel();
     SpiceVolumeState *st = &channel->volume;
 
     if (!rcc->test_remote_cap(cap)) {
@@ -441,7 +424,7 @@ static bool snd_send_mute(SndChannelClient *client, uint32_t cap, int msg)
     SpiceMsgAudioMute mute;
     RedChannelClient *rcc = client;
     SpiceMarshaller *m = rcc->get_marshaller();
-    SndChannel *channel = SND_CHANNEL(rcc->get_channel());
+    SndChannel *channel = client->get_channel();
     SpiceVolumeState *st = &channel->volume;
 
     if (!rcc->test_remote_cap(cap)) {
@@ -479,19 +462,18 @@ static bool snd_playback_send_latency(PlaybackChannelClient *playback_client)
 
 static bool snd_playback_send_start(PlaybackChannelClient *playback_client)
 {
-    RedChannelClient *rcc = playback_client;
-    SpiceMarshaller *m = rcc->get_marshaller();
+    SpiceMarshaller *m = playback_client->get_marshaller();
     SpiceMsgPlaybackStart start;
 
-    rcc->init_send_data(SPICE_MSG_PLAYBACK_START);
+    playback_client->init_send_data(SPICE_MSG_PLAYBACK_START);
     start.channels = SPICE_INTERFACE_PLAYBACK_CHAN;
-    start.frequency = SND_CHANNEL(rcc->get_channel())->frequency;
+    start.frequency = playback_client->get_channel()->frequency;
     spice_assert(SPICE_INTERFACE_PLAYBACK_FMT == SPICE_INTERFACE_AUDIO_FMT_S16);
     start.format = SPICE_AUDIO_FMT_S16;
     start.time = reds_get_mm_time();
     spice_marshall_msg_playback_start(m, &start);
 
-    rcc->begin_send_message();
+    playback_client->begin_send_message();
     return true;
 }
 
@@ -525,7 +507,7 @@ static bool snd_record_send_start(RecordChannelClient *record_client)
     rcc->init_send_data(SPICE_MSG_RECORD_START);
 
     start.channels = SPICE_INTERFACE_RECORD_CHAN;
-    start.frequency = SND_CHANNEL(rcc->get_channel())->frequency;
+    start.frequency = record_client->get_channel()->frequency;
     spice_assert(SPICE_INTERFACE_RECORD_FMT == SPICE_INTERFACE_AUDIO_FMT_S16);
     start.format = SPICE_AUDIO_FMT_S16;
     spice_marshall_msg_record_start(m, &start);
@@ -973,9 +955,7 @@ void snd_set_playback_latency(RedClient *client, uint32_t latency)
     for (l = snd_channels; l != NULL; l = l->next) {
         SndChannel *now = (SndChannel*) l->data;
         SndChannelClient *scc = snd_channel_get_client(now);
-        uint32_t type;
-        g_object_get(now, "channel-type", &type, NULL);
-        if (type == SPICE_CHANNEL_PLAYBACK && scc &&
+        if (now->type() == SPICE_CHANNEL_PLAYBACK && scc &&
             scc->get_client() == client) {
 
             if (scc->test_remote_cap(SPICE_PLAYBACK_CAP_LATENCY)) {
@@ -1023,7 +1003,7 @@ PlaybackChannelClient::~PlaybackChannelClient()
 }
 
 
-PlaybackChannelClient::PlaybackChannelClient(RedChannel *channel,
+PlaybackChannelClient::PlaybackChannelClient(PlaybackChannel *channel,
                                              RedClient *client,
                                              RedStream *stream,
                                              RedChannelCapabilities *caps):
@@ -1031,21 +1011,18 @@ PlaybackChannelClient::PlaybackChannelClient(RedChannel *channel,
 {
     snd_playback_alloc_frames(this);
 
-    RedChannel *red_channel = get_channel();
-    SndChannel *snd_channel = SND_CHANNEL(red_channel);
-
     on_message_done = snd_playback_on_message_done;
 
     bool client_can_opus = test_remote_cap(SPICE_PLAYBACK_CAP_OPUS);
     bool playback_compression =
-        reds_config_get_playback_compression(red_channel->get_server());
-    int desired_mode = snd_desired_audio_mode(playback_compression, snd_channel->frequency, client_can_opus);
+        reds_config_get_playback_compression(channel->get_server());
+    int desired_mode = snd_desired_audio_mode(playback_compression, channel->frequency, client_can_opus);
     if (desired_mode != SPICE_AUDIO_DATA_MODE_RAW) {
-        if (snd_codec_create(&codec, desired_mode, snd_channel->frequency,
+        if (snd_codec_create(&codec, desired_mode, channel->frequency,
                              SND_CODEC_ENCODE) == SND_CODEC_OK) {
             mode = desired_mode;
         } else {
-            red_channel_warning(red_channel, "create encoder failed");
+            red_channel_warning(channel, "create encoder failed");
         }
     }
 
@@ -1057,8 +1034,7 @@ bool PlaybackChannelClient::init()
 {
     RedClient *red_client = get_client();
     SndChannelClient *scc = this;
-    RedChannel *red_channel = get_channel();
-    SndChannel *channel = SND_CHANNEL(red_channel);
+    SndChannel *channel = get_channel();
 
     if (!SndChannelClient::init()) {
         return false;
@@ -1079,10 +1055,9 @@ bool PlaybackChannelClient::init()
     return true;
 }
 
-static void snd_set_peer_common(RedChannel *red_channel)
+void SndChannel::set_peer_common()
 {
-    SndChannel *channel = SND_CHANNEL(red_channel);
-    SndChannelClient *snd_client = snd_channel_get_client(channel);
+    SndChannelClient *snd_client = snd_channel_get_client(this);
 
     /* sound channels currently only support a single client */
     if (snd_client) {
@@ -1090,13 +1065,12 @@ static void snd_set_peer_common(RedChannel *red_channel)
     }
 }
 
-static void snd_set_playback_peer(RedChannel *red_channel, RedClient *client, RedStream *stream,
-                                  G_GNUC_UNUSED int migration,
-                                  RedChannelCapabilities *caps)
+void PlaybackChannel::on_connect(RedClient *client, RedStream *stream,
+                                 int migration, RedChannelCapabilities *caps)
 {
-    snd_set_peer_common(red_channel);
+    set_peer_common();
 
-    auto peer = new PlaybackChannelClient(red_channel, client, stream, caps);
+    auto peer = new PlaybackChannelClient(this, client, stream, caps);
     if (!peer->init()) {
         peer->unref();
     }
@@ -1220,8 +1194,7 @@ RecordChannelClient::~RecordChannelClient()
 
 bool RecordChannelClient::init()
 {
-    RedChannel *red_channel = get_channel();
-    SndChannel *channel = SND_CHANNEL(red_channel);
+    SndChannel *channel = get_channel();
 
     if (!SndChannelClient::init()) {
         return FALSE;
@@ -1239,13 +1212,12 @@ bool RecordChannelClient::init()
     return TRUE;
 }
 
-static void snd_set_record_peer(RedChannel *red_channel, RedClient *client, RedStream *stream,
-                                G_GNUC_UNUSED int migration,
-                                RedChannelCapabilities *caps)
+void RecordChannel::on_connect(RedClient *client, RedStream *stream,
+                               int migration, RedChannelCapabilities *caps)
 {
-    snd_set_peer_common(red_channel);
+    set_peer_common();
 
-    auto peer = new RecordChannelClient(red_channel, client, stream, caps);
+    auto peer = new RecordChannelClient(this, client, stream, caps);
     if (!peer->init()) {
         peer->unref();
     }
@@ -1261,117 +1233,40 @@ static void remove_channel(SndChannel *channel)
     snd_channels = g_list_remove(snd_channels, channel);
 }
 
-static void
-snd_channel_init(SndChannel *self)
+SndChannel::~SndChannel()
 {
-    self->frequency = SND_CODEC_OPUS_PLAYBACK_FREQ;
+    remove_channel(this);
+
+    g_free(volume.volume);
+    volume.volume = NULL;
 }
 
-static void
-snd_channel_finalize(GObject *object)
+PlaybackChannel::PlaybackChannel(RedsState *reds):
+    SndChannel(reds, SPICE_CHANNEL_PLAYBACK, 0)
 {
-    SndChannel *channel = SND_CHANNEL(object);
+    set_cap(SPICE_PLAYBACK_CAP_VOLUME);
 
-    remove_channel(channel);
-
-    g_free(channel->volume.volume);
-    channel->volume.volume = NULL;
-
-    G_OBJECT_CLASS(snd_channel_parent_class)->finalize(object);
-}
-
-static void
-snd_channel_class_init(SndChannelClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-
-    object_class->finalize = snd_channel_finalize;
-}
-
-static void
-playback_channel_init(PlaybackChannel *self)
-{
-}
-
-static void
-playback_channel_constructed(GObject *object)
-{
-    SndChannel *self = SND_CHANNEL(object);
-    RedsState *reds = self->get_server();
-
-    G_OBJECT_CLASS(playback_channel_parent_class)->constructed(object);
-
-    self->set_cap(SPICE_PLAYBACK_CAP_VOLUME);
-
-    add_channel(self);
-    reds_register_channel(reds, self);
-}
-
-static void
-playback_channel_class_init(PlaybackChannelClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    object_class->constructed = playback_channel_constructed;
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_PLAYBACK, NULL);
-
-    // client callbacks
-    channel_class->connect = snd_set_playback_peer;
+    add_channel(this);
+    reds_register_channel(reds, this);
 }
 
 void snd_attach_playback(RedsState *reds, SpicePlaybackInstance *sin)
 {
-    sin->st = (SpicePlaybackState*) g_object_new(TYPE_PLAYBACK_CHANNEL,
-                           "spice-server", reds,
-                           "core-interface", reds_get_core_interface(reds),
-                           "channel-type", SPICE_CHANNEL_PLAYBACK,
-                           "id", 0,
-                           NULL);
+    sin->st = new PlaybackChannel(reds);
 }
 
-static void
-record_channel_init(RecordChannel *self)
+RecordChannel::RecordChannel(RedsState *reds):
+    SndChannel(reds, SPICE_CHANNEL_RECORD, 0)
 {
-}
+    set_cap(SPICE_RECORD_CAP_VOLUME);
 
-static void
-record_channel_constructed(GObject *object)
-{
-    SndChannel *self = SND_CHANNEL(object);
-    RedsState *reds = self->get_server();
-
-    G_OBJECT_CLASS(record_channel_parent_class)->constructed(object);
-
-    self->set_cap(SPICE_RECORD_CAP_VOLUME);
-
-    add_channel(self);
-    reds_register_channel(reds, self);
-}
-
-static void
-record_channel_class_init(RecordChannelClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedChannelClass *channel_class = RED_CHANNEL_CLASS(klass);
-
-    object_class->constructed = record_channel_constructed;
-
-    channel_class->parser = spice_get_client_channel_parser(SPICE_CHANNEL_RECORD, NULL);
-
-    // client callbacks
-    channel_class->connect = snd_set_record_peer;
+    add_channel(this);
+    reds_register_channel(reds, this);
 }
 
 void snd_attach_record(RedsState *reds, SpiceRecordInstance *sin)
 {
-    sin->st = (SpiceRecordState*) g_object_new(TYPE_RECORD_CHANNEL,
-                           "spice-server", reds,
-                           "core-interface", reds_get_core_interface(reds),
-                           "channel-type", SPICE_CHANNEL_RECORD,
-                           "id", 0,
-                           NULL);
+    sin->st = new RecordChannel(reds);
 }
 
 static void snd_detach_common(SndChannel *channel)
@@ -1400,9 +1295,7 @@ void snd_set_playback_compression(bool on)
     for (l = snd_channels; l != NULL; l = l->next) {
         SndChannel *now = (SndChannel*) l->data;
         SndChannelClient *client = snd_channel_get_client(now);
-        uint32_t type;
-        g_object_get(now, "channel-type", &type, NULL);
-        if (type == SPICE_CHANNEL_PLAYBACK && client) {
+        if (now->type() == SPICE_CHANNEL_PLAYBACK && client) {
             PlaybackChannelClient* playback = PLAYBACK_CHANNEL_CLIENT(client);
             RedChannelClient *rcc = playback;
             bool client_can_opus = rcc->test_remote_cap(SPICE_PLAYBACK_CAP_OPUS);

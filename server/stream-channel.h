@@ -23,7 +23,7 @@
 
 #include "red-channel.h"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
 /**
  * This type it's a RedChannel class which implement display
@@ -31,19 +31,6 @@ G_BEGIN_DECLS
  * A pointer to StreamChannel can be converted to a RedChannel.
  */
 struct StreamChannel;
-struct StreamChannelClass;
-
-#define TYPE_STREAM_CHANNEL stream_channel_get_type()
-
-#define STREAM_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_STREAM_CHANNEL, StreamChannel))
-#define STREAM_CHANNEL_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_STREAM_CHANNEL, StreamChannelClass))
-#define IS_STREAM_CHANNEL(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_STREAM_CHANNEL))
-#define IS_STREAM_CHANNEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_STREAM_CHANNEL))
-#define STREAM_CHANNEL_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_STREAM_CHANNEL, StreamChannelClass))
-
-GType stream_channel_get_type(void) G_GNUC_CONST;
 
 /**
  * Create StreamChannel.
@@ -79,6 +66,30 @@ typedef void (*stream_channel_queue_stat_proc)(void *opaque, const StreamQueueSt
 void stream_channel_register_queue_stat_cb(StreamChannel *channel,
                                            stream_channel_queue_stat_proc cb, void *opaque);
 
-G_END_DECLS
+struct StreamChannel final: public RedChannel
+{
+    StreamChannel(RedsState *reds, uint32_t id);
+
+    void on_connect(RedClient *red_client, RedStream *stream,
+                    int migration, RedChannelCapabilities *caps) override;
+
+    /* current video stream id, <0 if not initialized or
+     * we are not sending a stream */
+    int stream_id = -1;
+    /* size of the current video stream */
+    unsigned width = 0, height = 0;
+
+    StreamQueueStat queue_stat;
+
+    /* callback to notify when a stream should be started or stopped */
+    stream_channel_start_proc start_cb;
+    void *start_opaque;
+
+    /* callback to notify when queue statistics changes */
+    stream_channel_queue_stat_proc queue_cb;
+    void *queue_opaque;
+};
+
+#include "pop-visibility.h"
 
 #endif /* STREAM_CHANNEL_H_ */

@@ -383,8 +383,8 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
         core->watch_remove(watch);
     }
     red_client_destroy(client);
-    g_object_unref(main_channel);
-    g_object_unref(channel);
+    main_channel->unref();
+    channel->unref();
 }
 
 int main(int argc, char *argv[])

@@ -80,13 +80,13 @@ CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor, RedClient 
                                                int mig_target,
                                                RedChannelCapabilities *caps)
 {
-    auto rcc = new CursorChannelClient(RED_CHANNEL(cursor), client, stream, caps);
+    auto rcc = new CursorChannelClient(cursor, client, stream, caps);
 
     if (!rcc->init()) {
         rcc->unref();
         rcc = nullptr;
     }
-    common_graphics_channel_set_during_target_migrate(COMMON_GRAPHICS_CHANNEL(cursor), mig_target);
+    common_graphics_channel_set_during_target_migrate(cursor, mig_target);
 
     return rcc;
 }
