@@ -214,6 +214,9 @@ endif
 
 libspice_server_la_LIBADD = libserver.la
 libspice_server_la_SOURCES =
+## see https://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html
+## ("Libtool Convenience Libraries")
+nodist_EXTRA_libspice_server_la_SOURCES = dummy.cpp
 
 spice-server-enums.c: spice-server.h spice-server-enums.c.tmpl
 	$(AM_V_GEN)glib-mkenums --template $(srcdir)/spice-server-enums.c.tmpl $< > $@

@@ -74,6 +74,8 @@ check_PROGRAMS =				\
 	test-record				\
 	$(NULL)
 
+LINK = $(CXXLINK)
+
 if HAVE_SMARTCARD
 check_PROGRAMS += test-smartcard
 test_smartcard_SOURCES = test-smartcard.cpp
