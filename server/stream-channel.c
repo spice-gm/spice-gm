@@ -359,7 +359,6 @@ stream_channel_new(RedsState *server, uint32_t id)
                         "channel-type", SPICE_CHANNEL_DISPLAY,
                         // TODO this id should be after all qxl devices
                         "id", id,
-                        "migration-flags", 0,
                         "handle-acks", TRUE, // TODO sure ??
                         NULL);
 }

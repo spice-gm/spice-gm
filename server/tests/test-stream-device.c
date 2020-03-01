@@ -157,7 +157,6 @@ StreamChannel* stream_channel_new(RedsState *server, uint32_t id)
                         "core-interface", reds_get_core_interface(server),
                         "channel-type", SPICE_CHANNEL_DISPLAY,
                         "id", id,
-                        "migration-flags", 0,
                         NULL);
 }
 

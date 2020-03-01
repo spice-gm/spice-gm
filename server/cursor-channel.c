@@ -234,7 +234,6 @@ CursorChannel* cursor_channel_new(RedsState *server, int id,
                         "core-interface", core,
                         "channel-type", SPICE_CHANNEL_CURSOR,
                         "id", id,
-                        "migration-flags", 0,
                         "handle-acks", TRUE,
                         "dispatcher", dispatcher,
                         NULL);
