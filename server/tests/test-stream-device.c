@@ -158,7 +158,6 @@ StreamChannel* stream_channel_new(RedsState *server, uint32_t id)
                         "channel-type", SPICE_CHANNEL_DISPLAY,
                         "id", id,
                         "migration-flags", 0,
-                        "handle-acks", FALSE,
                         NULL);
 }
 

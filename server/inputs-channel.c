@@ -570,7 +570,6 @@ InputsChannel* inputs_channel_new(RedsState *reds)
                          "core-interface", reds_get_core_interface(reds),
                          "channel-type", (int)SPICE_CHANNEL_INPUTS,
                          "id", 0,
-                         "handle-acks", FALSE,
                          "migration-flags",
                          (guint)(SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
                          NULL);

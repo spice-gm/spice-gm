@@ -252,7 +252,6 @@ MainChannel* main_channel_new(RedsState *reds)
                         "core-interface", reds_get_core_interface(reds),
                         "channel-type", (gint)SPICE_CHANNEL_MAIN,
                         "id", 0,
-                        "handle-acks", FALSE, /* handle_acks */
                         "migration-flags",
                         (SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
                         NULL);

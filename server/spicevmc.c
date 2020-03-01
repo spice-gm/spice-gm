@@ -253,7 +253,6 @@ static RedVmcChannel *red_vmc_channel_new(RedsState *reds, uint8_t channel_type)
                         "core-interface", reds_get_core_interface(reds),
                         "channel-type", channel_type,
                         "id", id,
-                        "handle-acks", FALSE,
                         "migration-flags",
                         (SPICE_MIGRATE_NEED_FLUSH | SPICE_MIGRATE_NEED_DATA_TRANSFER),
                         NULL);
