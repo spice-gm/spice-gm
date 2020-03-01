@@ -1732,7 +1732,6 @@ static void reds_mig_target_client_add(RedsState *reds, RedClient *client)
     spice_debug("trace");
     mig_client = g_new0(RedsMigTargetClient, 1);
     mig_client->client = client;
-    mig_client->reds = reds;
     reds->mig_target_clients = g_list_append(reds->mig_target_clients, mig_client);
 }
 

@@ -54,7 +54,6 @@ typedef struct RedsMigPendingLink {
 } RedsMigPendingLink;
 
 typedef struct RedsMigTargetClient {
-    RedsState *reds;
     RedClient *client;
     GList *pending_links;
 } RedsMigTargetClient;
