@@ -272,7 +272,7 @@ handle_msg_format(StreamDevice *dev, SpiceCharDeviceInstance *sin)
 
     dev->msg->format.width = GUINT32_FROM_LE(dev->msg->format.width);
     dev->msg->format.height = GUINT32_FROM_LE(dev->msg->format.height);
-    stream_channel_change_format(dev->stream_channel, &dev->msg->format);
+    dev->stream_channel->change_format(&dev->msg->format);
     return true;
 }
 
@@ -411,8 +411,7 @@ handle_msg_data(StreamDevice *dev, SpiceCharDeviceInstance *sin)
     }
 
     /* The whole frame was read from the device, send it */
-    stream_channel_send_data(dev->stream_channel, dev->msg->buf, dev->hdr.size,
-                             dev->frame_mmtime);
+    dev->stream_channel->send_data(dev->msg->buf, dev->hdr.size, dev->frame_mmtime);
 
     return true;
 }
@@ -680,15 +679,15 @@ stream_device_create_channel(StreamDevice *dev)
     dev->stream_channel = stream_channel;
     dev->cursor_channel = cursor_channel;
 
-    stream_channel_register_start_cb(stream_channel, stream_device_stream_start, dev);
-    stream_channel_register_queue_stat_cb(stream_channel, stream_device_stream_queue_stat, dev);
+    stream_channel->register_start_cb(stream_device_stream_start, dev);
+    stream_channel->register_queue_stat_cb(stream_device_stream_queue_stat, dev);
 }
 
 static void
 reset_channels(StreamDevice *dev)
 {
     if (dev->stream_channel) {
-        stream_channel_reset(dev->stream_channel);
+        dev->stream_channel->reset();
     }
 }
 

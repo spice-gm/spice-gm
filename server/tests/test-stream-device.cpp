@@ -110,26 +110,25 @@ StreamChannel::StreamChannel(RedsState *reds, uint32_t id):
 {
 }
 
-void stream_channel_change_format(StreamChannel *channel,
-                                  const struct StreamMsgFormat *fmt)
+void
+StreamChannel::change_format(const StreamMsgFormat *fmt)
 {
 }
 
-void stream_channel_send_data(StreamChannel *channel,
-                              const void *data, size_t size,
-                              uint32_t mm_time)
+void
+StreamChannel::send_data(const void *data, size_t size, uint32_t mm_time)
 {
     ++num_send_data_calls;
     send_data_bytes += size;
 }
 
-void stream_channel_register_start_cb(StreamChannel *channel,
-                                      stream_channel_start_proc cb, void *opaque)
+void
+StreamChannel::register_start_cb(stream_channel_start_proc cb, void *opaque)
 {
 }
 
-void stream_channel_register_queue_stat_cb(StreamChannel *channel,
-                                           stream_channel_queue_stat_proc cb, void *opaque)
+void
+StreamChannel::register_queue_stat_cb(stream_channel_queue_stat_proc cb, void *opaque)
 {
 }
 
@@ -138,7 +137,8 @@ StreamChannel* stream_channel_new(RedsState *server, uint32_t id)
     return new StreamChannel(server, id);
 }
 
-void stream_channel_reset(StreamChannel *channel)
+void
+StreamChannel::reset()
 {
 }
 

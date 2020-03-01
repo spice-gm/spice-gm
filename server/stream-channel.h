@@ -37,24 +37,10 @@ struct StreamChannel;
  */
 StreamChannel* stream_channel_new(RedsState *server, uint32_t id);
 
-/**
- * Reset channel at initial state
- */
-void stream_channel_reset(StreamChannel *channel);
-
-struct StreamMsgStreamFormat;
 struct StreamMsgStartStop;
-
-void stream_channel_change_format(StreamChannel *channel,
-                                  const struct StreamMsgFormat *fmt);
-void stream_channel_send_data(StreamChannel *channel,
-                              const void *data, size_t size,
-                              uint32_t mm_time);
 
 typedef void (*stream_channel_start_proc)(void *opaque, struct StreamMsgStartStop *start,
                                           StreamChannel *channel);
-void stream_channel_register_start_cb(StreamChannel *channel,
-                                      stream_channel_start_proc cb, void *opaque);
 
 struct StreamQueueStat {
     uint32_t num_items;
@@ -63,15 +49,31 @@ struct StreamQueueStat {
 
 typedef void (*stream_channel_queue_stat_proc)(void *opaque, const StreamQueueStat *stats,
                                                StreamChannel *channel);
-void stream_channel_register_queue_stat_cb(StreamChannel *channel,
-                                           stream_channel_queue_stat_proc cb, void *opaque);
 
+struct StreamChannelClient;
 struct StreamChannel final: public RedChannel
 {
+    friend struct StreamChannelClient;
     StreamChannel(RedsState *reds, uint32_t id);
 
+    /**
+     * Reset channel at initial state
+     */
+    void reset();
+
+    void change_format(const struct StreamMsgFormat *fmt);
+    void send_data(const void *data, size_t size, uint32_t mm_time);
+
+    void register_start_cb(stream_channel_start_proc cb, void *opaque);
+    void register_queue_stat_cb(stream_channel_queue_stat_proc cb, void *opaque);
+
+private:
     void on_connect(RedClient *red_client, RedStream *stream,
                     int migration, RedChannelCapabilities *caps) override;
+
+    inline void update_queue_stat(int32_t num_diff, int32_t size_diff);
+    void request_new_stream(StreamMsgStartStop *start);
+    static void data_item_free(RedPipeItem *base);
 
     /* current video stream id, <0 if not initialized or
      * we are not sending a stream */

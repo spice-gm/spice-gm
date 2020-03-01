@@ -49,6 +49,8 @@ private:
      * preference order (index) as value */
     GArray *client_preferred_video_codecs;
     bool handle_preferred_video_codec_type(SpiceMsgcDisplayPreferredVideoCodecType *msg);
+    void marshall_monitors_config(StreamChannel *channel, SpiceMarshaller *m);
+    void fill_base(SpiceMarshaller *m, const StreamChannel *channel);
     virtual void on_disconnect() override;
     virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
     virtual void send_item(RedPipeItem *pipe_item) override;
@@ -86,11 +88,10 @@ StreamChannelClient::~StreamChannelClient()
     g_clear_pointer(&client_preferred_video_codecs, g_array_unref);
 }
 
-static void
-request_new_stream(StreamChannel *channel, StreamMsgStartStop *start)
+void StreamChannel::request_new_stream(StreamMsgStartStop *start)
 {
-    if (channel->start_cb) {
-        channel->start_cb(channel->start_opaque, start, channel);
+    if (start_cb) {
+        start_cb(start_opaque, start, this);
     }
 }
 
@@ -111,7 +112,7 @@ StreamChannelClient::on_disconnect()
 
     // send stream stop to device
     StreamMsgStartStop stop = { 0, };
-    request_new_stream(channel, &stop);
+    get_channel()->request_new_stream(&stop);
 }
 
 static StreamChannelClient*
@@ -126,8 +127,8 @@ stream_channel_client_new(StreamChannel *channel, RedClient *client, RedStream *
     return rcc;
 }
 
-static void
-fill_base(SpiceMarshaller *m, const StreamChannel *channel)
+void
+StreamChannelClient::fill_base(SpiceMarshaller *m, const StreamChannel *channel)
 {
     SpiceMsgDisplayBase base;
 
@@ -138,8 +139,8 @@ fill_base(SpiceMarshaller *m, const StreamChannel *channel)
     spice_marshall_DisplayBase(m, &base);
 }
 
-static void
-marshall_monitors_config(RedChannelClient *rcc, StreamChannel *channel, SpiceMarshaller *m)
+void
+StreamChannelClient::marshall_monitors_config(StreamChannel *channel, SpiceMarshaller *m)
 {
     struct {
         SpiceMsgDisplayMonitorsConfig config;
@@ -156,7 +157,7 @@ marshall_monitors_config(RedChannelClient *rcc, StreamChannel *channel, SpiceMar
         }
     };
 
-    rcc->init_send_data(SPICE_MSG_DISPLAY_MONITORS_CONFIG);
+    init_send_data(SPICE_MSG_DISPLAY_MONITORS_CONFIG);
     spice_marshall_msg_display_monitors_config(m, &msg.config);
 }
 
@@ -187,7 +188,7 @@ void StreamChannelClient::send_item(RedPipeItem *pipe_item)
         if (!test_remote_cap(SPICE_DISPLAY_CAP_MONITORS_CONFIG)) {
             return;
         }
-        marshall_monitors_config(this, channel, m);
+        marshall_monitors_config(channel, m);
         break;
     case RED_PIPE_ITEM_TYPE_SURFACE_DESTROY: {
         init_send_data(SPICE_MSG_DISPLAY_SURFACE_DESTROY);
@@ -365,7 +366,7 @@ void StreamChannel::on_connect(RedClient *red_client, RedStream *stream,
     start->num_codecs = stream_channel_get_supported_codecs(this, start->codecs);
     // send in any case, even if list is not changed
     // notify device about changes
-    request_new_stream(this, start);
+    request_new_stream(start);
 
 
     // see guest_set_client_capabilities
@@ -403,31 +404,31 @@ StreamChannel::StreamChannel(RedsState *reds, uint32_t id):
 }
 
 void
-stream_channel_change_format(StreamChannel *channel, const StreamMsgFormat *fmt)
+StreamChannel::change_format(const StreamMsgFormat *fmt)
 {
     // send destroy old stream
-    channel->pipes_add_type(RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
+    pipes_add_type(RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
 
     // send new create surface if required
-    if (channel->width != fmt->width || channel->height != fmt->height) {
-        if (channel->width != 0 && channel->height != 0) {
-            channel->pipes_add_type(RED_PIPE_ITEM_TYPE_SURFACE_DESTROY);
+    if (width != fmt->width || height != fmt->height) {
+        if (width != 0 && height != 0) {
+            pipes_add_type(RED_PIPE_ITEM_TYPE_SURFACE_DESTROY);
         }
-        channel->width = fmt->width;
-        channel->height = fmt->height;
-        channel->pipes_add_type(RED_PIPE_ITEM_TYPE_SURFACE_CREATE);
-        channel->pipes_add_type(RED_PIPE_ITEM_TYPE_MONITORS_CONFIG);
+        width = fmt->width;
+        height = fmt->height;
+        pipes_add_type(RED_PIPE_ITEM_TYPE_SURFACE_CREATE);
+        pipes_add_type(RED_PIPE_ITEM_TYPE_MONITORS_CONFIG);
         // TODO monitors config ??
-        channel->pipes_add_empty_msg(SPICE_MSG_DISPLAY_MARK);
+        pipes_add_empty_msg(SPICE_MSG_DISPLAY_MARK);
     }
 
     // allocate a new stream id
-    channel->stream_id = (channel->stream_id + 1) % NUM_STREAMS;
+    stream_id = (stream_id + 1) % NUM_STREAMS;
 
     // send create stream
     StreamCreateItem *item = g_new0(StreamCreateItem, 1);
     red_pipe_item_init(&item->base, RED_PIPE_ITEM_TYPE_STREAM_CREATE);
-    item->stream_create.id = channel->stream_id;
+    item->stream_create.id = stream_id;
     item->stream_create.flags = SPICE_STREAM_FLAGS_TOP_DOWN;
     item->stream_create.codec_type = fmt->codec;
     item->stream_create.stream_width = fmt->width;
@@ -436,37 +437,36 @@ stream_channel_change_format(StreamChannel *channel, const StreamMsgFormat *fmt)
     item->stream_create.src_height = fmt->height;
     item->stream_create.dest = (SpiceRect) { 0, 0, fmt->width, fmt->height };
     item->stream_create.clip = (SpiceClip) { SPICE_CLIP_TYPE_NONE, NULL };
-    channel->pipes_add(&item->base);
+    pipes_add(&item->base);
 
     // activate stream report if possible
-    channel->pipes_add_type(RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
+    pipes_add_type(RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
 }
 
-static inline void
-stream_channel_update_queue_stat(StreamChannel *channel,
-                                 int32_t num_diff, int32_t size_diff)
+inline void
+StreamChannel::update_queue_stat(int32_t num_diff, int32_t size_diff)
 {
-    channel->queue_stat.num_items += num_diff;
-    channel->queue_stat.size += size_diff;
-    if (channel->queue_cb) {
-        channel->queue_cb(channel->queue_opaque, &channel->queue_stat, channel);
+    queue_stat.num_items += num_diff;
+    queue_stat.size += size_diff;
+    if (queue_cb) {
+        queue_cb(queue_opaque, &queue_stat, this);
     }
 }
 
-static void
-data_item_free(RedPipeItem *base)
+void
+StreamChannel::data_item_free(RedPipeItem *base)
 {
     StreamDataItem *pipe_item = SPICE_UPCAST(StreamDataItem, base);
 
-    stream_channel_update_queue_stat(pipe_item->channel, -1, -pipe_item->data.data_size);
+    pipe_item->channel->update_queue_stat(-1, -pipe_item->data.data_size);
 
     g_free(pipe_item);
 }
 
 void
-stream_channel_send_data(StreamChannel *channel, const void *data, size_t size, uint32_t mm_time)
+StreamChannel::send_data(const void *data, size_t size, uint32_t mm_time)
 {
-    if (channel->stream_id < 0) {
+    if (stream_id < 0) {
         // this condition can happen if the guest didn't handle
         // the format stop that we send so think the stream is still
         // started
@@ -476,34 +476,32 @@ stream_channel_send_data(StreamChannel *channel, const void *data, size_t size, 
     StreamDataItem *item = (StreamDataItem*) g_malloc(sizeof(*item) + size);
     red_pipe_item_init_full(&item->base, RED_PIPE_ITEM_TYPE_STREAM_DATA,
                             data_item_free);
-    item->data.base.id = channel->stream_id;
+    item->data.base.id = stream_id;
     item->data.base.multi_media_time = mm_time;
     item->data.data_size = size;
-    item->channel = channel;
-    stream_channel_update_queue_stat(channel, 1, size);
+    item->channel = this;
+    update_queue_stat(1, size);
     // TODO try to optimize avoiding the copy
     memcpy(item->data.data, data, size);
-    channel->pipes_add(&item->base);
+    pipes_add(&item->base);
 }
 
 void
-stream_channel_register_start_cb(StreamChannel *channel,
-                                 stream_channel_start_proc cb, void *opaque)
+StreamChannel::register_start_cb(stream_channel_start_proc cb, void *opaque)
 {
-    channel->start_cb = cb;
-    channel->start_opaque = opaque;
+    start_cb = cb;
+    start_opaque = opaque;
 }
 
 void
-stream_channel_register_queue_stat_cb(StreamChannel *channel,
-                                      stream_channel_queue_stat_proc cb, void *opaque)
+StreamChannel::register_queue_stat_cb(stream_channel_queue_stat_proc cb, void *opaque)
 {
-    channel->queue_cb = cb;
-    channel->queue_opaque = opaque;
+    queue_cb = cb;
+    queue_opaque = opaque;
 }
 
 void
-stream_channel_reset(StreamChannel *channel)
+StreamChannel::reset()
 {
     struct {
         StreamMsgStartStop base;
@@ -512,25 +510,25 @@ stream_channel_reset(StreamChannel *channel)
     StreamMsgStartStop *const start = &start_msg.base;
 
     // send destroy old stream
-    channel->pipes_add_type(RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
+    pipes_add_type(RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
 
     // destroy display surface
-    if (channel->width != 0 && channel->height != 0) {
-        channel->pipes_add_type(RED_PIPE_ITEM_TYPE_SURFACE_DESTROY);
+    if (width != 0 && height != 0) {
+        pipes_add_type(RED_PIPE_ITEM_TYPE_SURFACE_DESTROY);
     }
 
-    channel->stream_id = -1;
-    channel->width = 0;
-    channel->height = 0;
+    stream_id = -1;
+    width = 0;
+    height = 0;
 
-    if (!channel->is_connected()) {
+    if (!is_connected()) {
         return;
     }
 
     // try to request a new stream, this should start a new stream
     // if the guest is connected to the device and a client is already connected
-    start->num_codecs = stream_channel_get_supported_codecs(channel, start->codecs);
+    start->num_codecs = stream_channel_get_supported_codecs(this, start->codecs);
     // send in any case, even if list is not changed
     // notify device about changes
-    request_new_stream(channel, start);
+    request_new_stream(start);
 }
