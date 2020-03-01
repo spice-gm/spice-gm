@@ -49,8 +49,13 @@ public:
     void send_migrate_data(SpiceMarshaller *m, RedPipeItem *item);
     void on_mouse_motion();
     void handle_migrate_data(uint16_t motion_count);
+    void pipe_add_init();
 
 protected:
+    InputsChannel* get_channel()
+    {
+        return static_cast<InputsChannel*>(RedChannelClient::get_channel());
+    }
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
     virtual void on_disconnect() override;
@@ -60,7 +65,7 @@ protected:
     virtual void handle_migrate_flush_mark() override;
 };
 
-RedChannelClient* inputs_channel_client_create(RedChannel *channel,
+InputsChannelClient* inputs_channel_client_create(RedChannel *channel,
                                                RedClient *client,
                                                RedStream *stream,
                                                RedChannelCapabilities *caps);

@@ -28,13 +28,31 @@
 
 #include "push-visibility.h"
 
+class InputsChannelClient;
+
 struct InputsChannel final: public RedChannel
 {
+    friend class InputsChannelClient;
+    friend int spice_server_kbd_leds(SpiceKbdInstance *sin, int leds);
+
     InputsChannel(RedsState *reds);
     ~InputsChannel();
     void on_connect(RedClient *client, RedStream *stream, int migration,
                     RedChannelCapabilities *caps) override;
 
+    const VDAgentMouseState *get_mouse_state();
+    void set_tablet_logical_size(int x_res, int y_res);
+
+    int set_keyboard(SpiceKbdInstance *keyboard);
+    int set_mouse(SpiceMouseInstance *mouse);
+    int set_tablet(SpiceTabletInstance *tablet);
+    bool has_tablet() const;
+    void detach_tablet(SpiceTabletInstance *tablet);
+
+    bool is_src_during_migrate() const;
+    void release_keys();
+
+private:
     VDAgentMouseState mouse_state;
     bool src_during_migrate;
     SpiceTimer *key_modifiers_timer;
@@ -48,18 +66,11 @@ struct InputsChannel final: public RedChannel
     SpiceMouseInstance *mouse;
     SpiceTabletInstance *tablet;
 
-public:
-    const VDAgentMouseState *get_mouse_state();
-    void set_tablet_logical_size(int x_res, int y_res);
-
-    int set_keyboard(SpiceKbdInstance *keyboard);
-    int set_mouse(SpiceMouseInstance *mouse);
-    int set_tablet(SpiceTabletInstance *tablet);
-    bool has_tablet() const;
-    void detach_tablet(SpiceTabletInstance *tablet);
-
-    bool is_src_during_migrate() const;
-    void release_keys();
+private:
+    void sync_locks(uint8_t scan);
+    void activate_modifiers_watch();
+    void push_keyboard_modifiers(uint8_t modifiers);
+    static void key_modifiers_sender(InputsChannel *inputs);
 };
 
 InputsChannel* inputs_channel_new(RedsState *reds);

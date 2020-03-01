@@ -34,17 +34,15 @@ void InputsChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t
 {
 }
 
-XXX_CAST(RedChannel, InputsChannel, INPUTS_CHANNEL);
-
 void InputsChannelClient::on_disconnect()
 {
-    INPUTS_CHANNEL(get_channel())->release_keys();
+    get_channel()->release_keys();
 }
 
-RedChannelClient* inputs_channel_client_create(RedChannel *channel,
-                                               RedClient *client,
-                                               RedStream *stream,
-                                               RedChannelCapabilities *caps)
+InputsChannelClient* inputs_channel_client_create(RedChannel *channel,
+                                                  RedClient *client,
+                                                  RedStream *stream,
+                                                  RedChannelCapabilities *caps)
 {
     auto rcc = new InputsChannelClient(channel, client, stream, caps);
     if (!rcc->init()) {
@@ -75,7 +73,7 @@ void InputsChannelClient::handle_migrate_data(uint16_t motion_count)
 
 void InputsChannelClient::on_mouse_motion()
 {
-    InputsChannel *inputs_channel = INPUTS_CHANNEL(get_channel());
+    InputsChannel *inputs_channel = get_channel();
 
     if (++motion_count % SPICE_INPUT_MOTION_ACK_BUNCH == 0 &&
         !inputs_channel->is_src_during_migrate()) {
