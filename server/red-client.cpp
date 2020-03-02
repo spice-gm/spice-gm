@@ -106,7 +106,10 @@ red_client_finalize (GObject *object)
 {
     RedClient *self = RED_CLIENT(object);
 
-    g_clear_object(&self->mcc);
+    if (self->mcc) {
+        self->mcc->unref();
+        self->mcc = nullptr;
+    }
     spice_debug("release client=%p", self);
     pthread_mutex_destroy(&self->lock);
 
@@ -233,7 +236,7 @@ void red_client_destroy(RedClient *client)
         spice_assert(rcc->pipe_is_empty());
         spice_assert(rcc->no_item_being_sent());
 
-        g_object_unref(rcc);
+        rcc->unref();
         pthread_mutex_lock(&client->lock);
     }
     pthread_mutex_unlock(&client->lock);
@@ -293,8 +296,10 @@ gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError
 
     // first must be the main one
     if (!client->mcc) {
-        spice_assert(MAIN_CHANNEL_CLIENT(rcc) != NULL);
-        client->mcc = (MainChannelClient *) g_object_ref(rcc);
+        // FIXME use dynamic_cast to check type
+        // spice_assert(MAIN_CHANNEL_CLIENT(rcc) != NULL);
+        rcc->ref();
+        client->mcc = (MainChannelClient *) rcc;
     }
     client->channels = g_list_prepend(client->channels, rcc);
     if (client->during_target_migrate && client->seamless_migrate) {
@@ -351,7 +356,7 @@ void red_client_remove_channel(RedChannelClient *rcc)
     }
     pthread_mutex_unlock(&client->lock);
     if (link) {
-        g_object_unref(rcc);
+        rcc->unref();
     }
 }
 

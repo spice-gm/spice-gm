@@ -28,6 +28,7 @@
 #include "red-stream.h"
 #include "main-dispatcher.h"
 #include "utils.h"
+#include "utils.hpp"
 
 /*
  * Lifetime of RedChannel, RedChannelClient and RedClient:
@@ -721,7 +722,7 @@ static void handle_dispatcher_migrate(void *opaque, void *payload)
     RedChannelClass *klass = RED_CHANNEL_GET_CLASS(channel);
 
     klass->migrate(msg->rcc);
-    g_object_unref(msg->rcc);
+    msg->rcc->unref();
 }
 
 void RedChannel::migrate_client(RedChannelClient *rcc)
@@ -733,7 +734,7 @@ void RedChannel::migrate_client(RedChannelClient *rcc)
         return;
     }
 
-    RedMessageMigrate payload = { .rcc = (RedChannelClient *) g_object_ref(rcc) };
+    RedMessageMigrate payload = { .rcc = red::add_ref(rcc) };
     dispatcher_send_message_custom(priv->dispatcher, handle_dispatcher_migrate,
                                    &payload, sizeof(payload), false);
 }

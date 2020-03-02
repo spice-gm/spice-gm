@@ -704,7 +704,7 @@ static void red_channel_client_ping_timer(void *opaque)
 {
     RedChannelClient *rcc = (RedChannelClient *) opaque;
 
-    g_object_ref(rcc);
+    rcc->ref();
 
     spice_assert(rcc->priv->latency_monitor.state == PING_STATE_TIMER);
     red_channel_client_cancel_ping_timer(rcc);
@@ -720,13 +720,13 @@ static void red_channel_client_ping_timer(void *opaque)
     if (so_unsent_size > 0) {
         /* tcp send buffer is still occupied. rescheduling ping */
         red_channel_client_start_ping_timer(rcc, PING_TEST_IDLE_NET_TIMEOUT_MS);
-        g_object_unref(rcc);
+        rcc->unref();
         return;
     }
 #endif /* ifdef HAVE_LINUX_SOCKIOS_H */
     /* More portable alternative code path (less accurate but avoids bogus ioctls)*/
     red_channel_client_push_ping(rcc);
-    g_object_unref(rcc);
+    rcc->unref();
 }
 
 static inline int red_channel_client_waiting_for_ack(RedChannelClient *rcc)
@@ -758,7 +758,7 @@ static void red_channel_client_connectivity_timer(void *opaque)
     RedChannelClientConnectivityMonitor *monitor = &rcc->priv->connectivity_monitor;
     int is_alive = TRUE;
 
-    g_object_ref(rcc);
+    rcc->ref();
 
     if (monitor->state == CONNECTIVITY_STATE_BLOCKED) {
         if (!monitor->received_bytes && !monitor->sent_bytes) {
@@ -798,7 +798,7 @@ static void red_channel_client_connectivity_timer(void *opaque)
                             rcc, monitor->timeout);
         rcc->disconnect();
     }
-    g_object_unref(rcc);
+    rcc->unref();
 }
 
 void RedChannelClient::start_connectivity_monitoring(uint32_t timeout_ms)
@@ -842,14 +842,14 @@ static void red_channel_client_event(int fd, int event, void *data)
 {
     RedChannelClient *rcc = (RedChannelClient *) data;
 
-    g_object_ref(rcc);
+    rcc->ref();
     if (event & SPICE_WATCH_EVENT_READ) {
         rcc->receive();
     }
     if (event & SPICE_WATCH_EVENT_WRITE) {
         rcc->push();
     }
-    g_object_unref(rcc);
+    rcc->unref();
 }
 
 static uint32_t full_header_get_msg_size(SpiceDataHeaderOpaque *header)
@@ -1285,16 +1285,16 @@ static void red_channel_client_handle_incoming(RedChannelClient *rcc)
 
 void RedChannelClient::receive()
 {
-    g_object_ref(this);
+    ref();
     red_channel_client_handle_incoming(this);
-    g_object_unref(this);
+    unref();
 }
 
 void RedChannelClient::send()
 {
-    g_object_ref(this);
+    ref();
     red_channel_client_handle_outgoing(this);
-    g_object_unref(this);
+    unref();
 }
 
 static inline RedPipeItem *red_channel_client_pipe_item_get(RedChannelClient *rcc)
@@ -1315,7 +1315,7 @@ void RedChannelClient::push()
     }
 
     priv->during_send = TRUE;
-    g_object_ref(this);
+    ref();
     if (is_blocked()) {
         send();
     }
@@ -1349,7 +1349,7 @@ void RedChannelClient::push()
         red_stream_flush(priv->stream);
     }
     priv->during_send = FALSE;
-    g_object_unref(this);
+    unref();
 }
 
 int RedChannelClient::get_roundtrip_ms() const

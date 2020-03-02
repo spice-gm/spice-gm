@@ -137,6 +137,9 @@ struct RedChannelClient: public GObject
     void block_read();
     void unblock_read();
 
+    void ref() { g_object_ref(this); }
+    void unref() { g_object_unref(this); }
+
     RedChannelClientPrivate *priv;
 };
 

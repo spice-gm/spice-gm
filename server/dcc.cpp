@@ -571,7 +571,7 @@ void dcc_start(DisplayChannelClient *dcc)
     if (!display_channel_client_wait_for_init(dcc))
         return;
 
-    g_object_ref(dcc);
+    dcc->ref();
     dcc->ack_zero_messages_window();
     if (display->priv->surfaces[0].context.canvas) {
         display_channel_current_flush(display, 0);
@@ -588,7 +588,7 @@ void dcc_start(DisplayChannelClient *dcc)
         dcc->pipe_add(dcc_gl_scanout_item_new(dcc, NULL, 0));
         dcc_push_monitors_config(dcc);
     }
-    g_object_unref(dcc);
+    dcc->unref();
 }
 
 static void dcc_destroy_stream_agents(DisplayChannelClient *dcc)
