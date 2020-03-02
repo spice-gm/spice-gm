@@ -437,11 +437,6 @@ static void spicevmc_red_channel_client_on_disconnect(RedChannelClient *rcc)
         }
     }
 
-    /* Don't destroy the rcc if it is already being destroyed, as then
-       red_client_destroy/red_channel_client_destroy will already do this! */
-    if (!red_channel_client_is_destroying(rcc))
-        red_channel_client_destroy(rcc);
-
     channel->rcc = NULL;
     sif = spice_char_device_get_interface(channel->chardev_sin);
     if (sif->state) {
