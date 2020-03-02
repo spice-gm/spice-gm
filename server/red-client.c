@@ -222,7 +222,6 @@ void red_client_destroy(RedClient *client)
         // some channels may be in other threads, so disconnection
         // is not synchronous.
         channel = red_channel_client_get_channel(rcc);
-        red_channel_client_set_destroying(rcc);
 
         // some channels may be in other threads. However we currently
         // assume disconnect is synchronous (we changed the dispatcher

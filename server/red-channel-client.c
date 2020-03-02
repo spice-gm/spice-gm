@@ -151,7 +151,6 @@ struct RedChannelClientPrivate
 
     RedChannelCapabilities remote_caps;
     bool is_mini_header;
-    bool destroying;
 
     bool wait_migrate_data;
     bool wait_migrate_flush_mark;
@@ -1030,7 +1029,6 @@ void red_channel_client_default_migrate(RedChannelClient *rcc)
 
 void red_channel_client_destroy(RedChannelClient *rcc)
 {
-    rcc->priv->destroying = TRUE;
     red_channel_client_disconnect(rcc);
 }
 
@@ -1890,11 +1888,6 @@ gboolean red_channel_client_set_migration_seamless(RedChannelClient *rcc)
                       rcc->priv->wait_migrate_data);
 
     return ret;
-}
-
-void red_channel_client_set_destroying(RedChannelClient *rcc)
-{
-    rcc->priv->destroying = TRUE;
 }
 
 GQuark spice_server_error_quark(void)
