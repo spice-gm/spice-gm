@@ -4606,9 +4606,7 @@ red_char_device_vdi_port_finalize(GObject *object)
         dev->priv->current_read_buf = NULL;
     }
     g_free(dev->priv->mig_data);
-    if (spice_extra_checks) {
-        spice_assert(dev->priv->num_read_buf == 0);
-    }
+    spice_extra_assert(dev->priv->num_read_buf == 0);
 
     G_OBJECT_CLASS(red_char_device_vdi_port_parent_class)->finalize(object);
 }

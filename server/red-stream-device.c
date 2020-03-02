@@ -224,9 +224,7 @@ handle_msg_invalid(StreamDevice *dev, SpiceCharDeviceInstance *sin, const char *
 {
     static const char default_error_msg[] = "Protocol error";
 
-    if (spice_extra_checks) {
-        spice_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
-    }
+    spice_extra_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
 
     if (!error_msg) {
         error_msg = default_error_msg;
@@ -260,10 +258,8 @@ handle_msg_format(StreamDevice *dev, SpiceCharDeviceInstance *sin)
 {
     SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
 
-    if (spice_extra_checks) {
-        spice_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
-        spice_assert(dev->hdr.type == STREAM_TYPE_FORMAT);
-    }
+    spice_extra_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
+    spice_extra_assert(dev->hdr.type == STREAM_TYPE_FORMAT);
 
     int n = sif->read(sin, dev->msg->buf + dev->msg_pos, sizeof(StreamMsgFormat) - dev->msg_pos);
     if (n < 0) {
@@ -287,10 +283,8 @@ handle_msg_device_display_info(StreamDevice *dev, SpiceCharDeviceInstance *sin)
 {
     SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
 
-    if (spice_extra_checks) {
-        spice_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
-        spice_assert(dev->hdr.type == STREAM_TYPE_DEVICE_DISPLAY_INFO);
-    }
+    spice_extra_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
+    spice_extra_assert(dev->hdr.type == STREAM_TYPE_DEVICE_DISPLAY_INFO);
 
     if (dev->msg_len < dev->hdr.size) {
         dev->msg = g_realloc(dev->msg, dev->hdr.size);
@@ -354,10 +348,8 @@ handle_msg_capabilities(StreamDevice *dev, SpiceCharDeviceInstance *sin)
 {
     SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
 
-    if (spice_extra_checks) {
-        spice_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
-        spice_assert(dev->hdr.type == STREAM_TYPE_CAPABILITIES);
-    }
+    spice_extra_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
+    spice_extra_assert(dev->hdr.type == STREAM_TYPE_CAPABILITIES);
 
     if (dev->hdr.size > STREAM_MSG_CAPABILITIES_MAX_BYTES) {
         return handle_msg_invalid(dev, sin, "Wrong size for StreamMsgCapabilities");
@@ -388,10 +380,8 @@ handle_msg_data(StreamDevice *dev, SpiceCharDeviceInstance *sin)
     SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
     int n;
 
-    if (spice_extra_checks) {
-        spice_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
-        spice_assert(dev->hdr.type == STREAM_TYPE_DATA);
-    }
+    spice_extra_assert(dev->hdr_pos >= sizeof(StreamDevHeader));
+    spice_extra_assert(dev->hdr.type == STREAM_TYPE_DATA);
 
     /* make sure we have a large enough buffer for the whole frame */
     /* ---

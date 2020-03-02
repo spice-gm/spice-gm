@@ -537,7 +537,7 @@ red_char_device_write_buffer_get(RedCharDevice *dev, RedCharDeviceClientOpaque *
     if (ret) {
         dev->priv->cur_pool_size -= ret->buf_size;
         if (ret->buf_size < size) {
-            spice_assert(!spice_extra_checks || ret->priv->refs == 1);
+            spice_extra_assert(ret->priv->refs == 1);
             red_char_device_write_buffer_free(ret);
             ret = NULL;
         }
