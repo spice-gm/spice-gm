@@ -233,7 +233,6 @@ void red_client_destroy(RedClient *client)
         spice_assert(red_channel_client_pipe_is_empty(rcc));
         spice_assert(red_channel_client_no_item_being_sent(rcc));
 
-        red_channel_client_destroy(rcc);
         g_object_unref(rcc);
         pthread_mutex_lock(&client->lock);
     }
