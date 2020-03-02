@@ -135,7 +135,6 @@ void red_channel_client_init_outgoing_messages_window(RedChannelClient *rcc);
 
 gboolean red_channel_client_set_migration_seamless(RedChannelClient *rcc);
 void red_channel_client_set_destroying(RedChannelClient *rcc);
-bool red_channel_client_is_destroying(RedChannelClient *rcc);
 
 /* allow to block or unblock reading */
 void red_channel_client_block_read(RedChannelClient *rcc);

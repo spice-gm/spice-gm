@@ -1897,11 +1897,6 @@ void red_channel_client_set_destroying(RedChannelClient *rcc)
     rcc->priv->destroying = TRUE;
 }
 
-bool red_channel_client_is_destroying(RedChannelClient *rcc)
-{
-    return rcc->priv->destroying;
-}
-
 GQuark spice_server_error_quark(void)
 {
     return g_quark_from_static_string("spice-server-error-quark");
