@@ -52,6 +52,15 @@ InputsChannelClient* inputs_channel_client_create(RedChannel *channel,
     return rcc;
 }
 
+bool InputsChannelClient::init()
+{
+    if (!RedChannelClient::init()) {
+        return false;
+    }
+    pipe_add_init();
+    return true;
+}
+
 void InputsChannelClient::send_migrate_data(SpiceMarshaller *m, RedPipeItem *item)
 {
     init_send_data(SPICE_MSG_MIGRATE_DATA);

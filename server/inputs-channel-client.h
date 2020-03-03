@@ -49,7 +49,7 @@ public:
     void send_migrate_data(SpiceMarshaller *m, RedPipeItem *item);
     void on_mouse_motion();
     void handle_migrate_data(uint16_t motion_count);
-    void pipe_add_init();
+    virtual bool init() override;
 
 protected:
     InputsChannel* get_channel()
@@ -63,6 +63,8 @@ protected:
     virtual bool handle_migrate_data(uint32_t size, void *message) override;
     virtual void migrate() override;
     virtual void handle_migrate_flush_mark() override;
+private:
+    void pipe_add_init();
 };
 
 InputsChannelClient* inputs_channel_client_create(RedChannel *channel,
