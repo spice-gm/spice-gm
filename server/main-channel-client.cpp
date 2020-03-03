@@ -372,19 +372,16 @@ RedPipeItem *registered_channel_item_new(RedChannel *channel)
     return &item->base;
 }
 
-XXX_CAST(RedChannel, MainChannel, MAIN_CHANNEL);
-
 void main_channel_client_handle_migrate_connected(MainChannelClient *mcc,
                                                   int success,
                                                   int seamless)
 {
     if (mcc->priv->mig_wait_connect) {
-        RedChannel *channel = mcc->get_channel();
-        MainChannel *main_channel = MAIN_CHANNEL(channel);
+        MainChannel *channel = mcc->get_channel();
 
         mcc->priv->mig_wait_connect = FALSE;
         mcc->priv->mig_connect_ok = success;
-        main_channel_on_migrate_connected(main_channel, success, seamless);
+        main_channel_on_migrate_connected(channel, success, seamless);
     } else {
         if (success) {
             mcc->pipe_add_empty_msg(SPICE_MSG_MAIN_MIGRATE_CANCEL);
@@ -761,26 +758,26 @@ static void main_channel_fill_migrate_dst_info(MainChannel *main_channel,
     }
 }
 
-static void main_channel_marshall_migrate_begin(SpiceMarshaller *m, RedChannelClient *rcc,
+static void main_channel_marshall_migrate_begin(SpiceMarshaller *m, MainChannelClient *rcc,
                                                 RedPipeItem *item)
 {
-    RedChannel *channel = rcc->get_channel();
+    MainChannel *channel = rcc->get_channel();
     SpiceMsgMainMigrationBegin migrate;
 
     rcc->init_send_data(SPICE_MSG_MAIN_MIGRATE_BEGIN);
-    main_channel_fill_migrate_dst_info(MAIN_CHANNEL(channel), &migrate.dst_info);
+    main_channel_fill_migrate_dst_info(channel, &migrate.dst_info);
     spice_marshall_msg_main_migrate_begin(m, &migrate);
 }
 
 static void main_channel_marshall_migrate_begin_seamless(SpiceMarshaller *m,
-                                                         RedChannelClient *rcc,
+                                                         MainChannelClient *rcc,
                                                          RedPipeItem *item)
 {
-    RedChannel *channel = rcc->get_channel();
+    MainChannel *channel = rcc->get_channel();
     SpiceMsgMainMigrateBeginSeamless migrate_seamless;
 
     rcc->init_send_data(SPICE_MSG_MAIN_MIGRATE_BEGIN_SEAMLESS);
-    main_channel_fill_migrate_dst_info(MAIN_CHANNEL(channel), &migrate_seamless.dst_info);
+    main_channel_fill_migrate_dst_info(channel, &migrate_seamless.dst_info);
     migrate_seamless.src_mig_version = SPICE_MIGRATION_PROTOCOL_VERSION;
     spice_marshall_msg_main_migrate_begin_seamless(m, &migrate_seamless);
 }
@@ -796,17 +793,15 @@ static void main_channel_marshall_multi_media_time(RedChannelClient *rcc,
     spice_marshall_msg_main_multi_media_time(m, &time_mes);
 }
 
-static void main_channel_marshall_migrate_switch(SpiceMarshaller *m, RedChannelClient *rcc,
+static void main_channel_marshall_migrate_switch(SpiceMarshaller *m, MainChannelClient *rcc,
                                                  RedPipeItem *item)
 {
-    RedChannel *channel = rcc->get_channel();
+    MainChannel *channel = rcc->get_channel();
     SpiceMsgMainMigrationSwitchHost migrate;
-    MainChannel *main_ch;
     const RedsMigSpice *mig_target;
 
     rcc->init_send_data(SPICE_MSG_MAIN_MIGRATE_SWITCH_HOST);
-    main_ch = MAIN_CHANNEL(channel);
-    mig_target = main_channel_get_migration_target(main_ch);
+    mig_target = main_channel_get_migration_target(channel);
     migrate.port = mig_target->port;
     migrate.sport = mig_target->sport;
     migrate.host_size = strlen(mig_target->host) + 1;

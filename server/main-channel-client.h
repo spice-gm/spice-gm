@@ -39,6 +39,10 @@ public:
 
     void handle_pong(SpiceMsgPing *ping, uint32_t size);
     void start_net_test(int test_rate);
+    MainChannel* get_channel()
+    {
+        return static_cast<MainChannel*>(RedChannelClient::get_channel());
+    }
 
 protected:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;

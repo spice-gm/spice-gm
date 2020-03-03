@@ -199,13 +199,11 @@ bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *messa
     return TRUE;
 }
 
-XXX_CAST(RedChannel, MainChannel, MAIN_CHANNEL);
-
 void MainChannelClient::handle_migrate_flush_mark()
 {
-    RedChannel *channel = get_channel();
+    MainChannel *channel = get_channel();
     spice_debug("trace");
-    main_channel_push_migrate_data_item(MAIN_CHANNEL(channel));
+    main_channel_push_migrate_data_item(channel);
 }
 
 MainChannelClient *main_channel_link(MainChannel *channel, RedClient *client,
