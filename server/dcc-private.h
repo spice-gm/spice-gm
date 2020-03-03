@@ -25,6 +25,8 @@
 #include "video-stream.h"
 #include "red-channel-client.h"
 
+#include "push-visibility.h"
+
 struct DisplayChannelClientPrivate
 {
     SPICE_CXX_GLIB_ALLOCATOR
@@ -66,5 +68,7 @@ struct DisplayChannelClientPrivate
     uint64_t streams_max_bit_rate;
     bool gl_draw_ongoing;
 };
+
+#include "pop-visibility.h"
 
 #endif /* DCC_PRIVATE_H_ */

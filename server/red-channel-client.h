@@ -25,7 +25,7 @@
 #include "red-channel.h"
 #include "utils.hpp"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
 struct RedChannelClientPrivate;
 
@@ -224,6 +224,6 @@ enum {
     RED_PIPE_ITEM_TYPE_CHANNEL_BASE=101,
 };
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* RED_CHANNEL_CLIENT_H_ */

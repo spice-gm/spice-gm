@@ -137,6 +137,8 @@ libserver_la_SOURCES =				\
 	net-utils.h				\
 	pixmap-cache.cpp			\
 	pixmap-cache.h				\
+	pop-visibility.h			\
+	push-visibility.h			\
 	red-channel.cpp				\
 	red-channel-capabilities.c		\
 	red-channel-capabilities.h		\

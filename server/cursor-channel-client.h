@@ -26,7 +26,7 @@
 #include "cursor-channel.h"
 #include "utils.hpp"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
 struct CursorChannelClientPrivate;
 
@@ -66,6 +66,6 @@ enum {
     RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE,
 };
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* CURSOR_CHANNEL_CLIENT_H_ */

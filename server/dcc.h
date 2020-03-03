@@ -26,7 +26,7 @@
 #include "common-graphics-channel.h"
 #include "utils.hpp"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
 struct DisplayChannel;
 struct DisplayChannelClientPrivate;
@@ -197,6 +197,6 @@ gboolean dcc_is_low_bandwidth(DisplayChannelClient *dcc);
 GArray *dcc_get_preferred_video_codecs_for_encoding(DisplayChannelClient *dcc);
 void dcc_video_codecs_update(DisplayChannelClient *dcc);
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* DCC_H_ */

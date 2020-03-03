@@ -29,6 +29,7 @@
 #include "cursor-channel.h"
 #include "net-utils.h"
 #include "win-alarm.h"
+#include "push-visibility.h"
 
 /*
  * Declare a RedTestChannel to be used for the test

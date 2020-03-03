@@ -21,7 +21,7 @@
 #include "smartcard.h"
 #include "utils.hpp"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
 struct SmartCardChannelClientPrivate;
 
@@ -64,6 +64,6 @@ void smartcard_channel_client_set_char_device(SmartCardChannelClient *scc,
 
 RedCharDeviceSmartcard* smartcard_channel_client_get_char_device(SmartCardChannelClient *scc);
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* SMARTCARD_CHANNEL_CLIENT_H_ */

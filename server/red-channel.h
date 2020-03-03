@@ -40,9 +40,11 @@ G_BEGIN_DECLS
 SPICE_DECLARE_TYPE(RedChannel, red_channel, CHANNEL);
 #define RED_TYPE_CHANNEL red_channel_get_type()
 
+#include "push-visibility.h"
 struct RedChannelClient;
 struct RedClient;
 struct MainChannelClient;
+#include "pop-visibility.h"
 
 typedef void (*channel_client_connect_proc)(RedChannel *channel, RedClient *client, RedStream *stream,
                                             int migration, RedChannelCapabilities *caps);

@@ -23,7 +23,7 @@
 #include "red-channel.h"
 #include "red-channel-client.h"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
 #define COMMON_CLIENT_TIMEOUT (NSEC_PER_SEC * 30)
 
@@ -77,6 +77,6 @@ protected:
     virtual bool config_socket() override;
 };
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* COMMON_GRAPHICS_CHANNEL_H_ */

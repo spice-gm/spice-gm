@@ -21,7 +21,7 @@
 #include "red-channel-client.h"
 #include "inputs-channel.h"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
 class InputsChannelClient final: public RedChannelClient
 {
@@ -65,7 +65,7 @@ RedChannelClient* inputs_channel_client_create(RedChannel *channel,
                                                RedStream *stream,
                                                RedChannelCapabilities *caps);
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 enum {
     RED_PIPE_ITEM_INPUTS_INIT = RED_PIPE_ITEM_TYPE_CHANNEL_BASE,

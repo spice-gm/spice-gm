@@ -24,7 +24,7 @@
 #include "main-channel.h"
 #include "utils.hpp"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
 struct MainChannelClientPrivate;
 
@@ -123,6 +123,6 @@ RedPipeItem *main_multi_media_time_item_new(uint32_t mm_time);
 
 RedPipeItem *registered_channel_item_new(RedChannel *channel);
 
-G_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* MAIN_CHANNEL_CLIENT_H_ */

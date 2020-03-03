@@ -21,6 +21,8 @@
 
 #include <memory>
 
+#include "push-visibility.h"
+
 namespace red {
 
 
@@ -93,3 +95,5 @@ constexpr size_t size(const T (&array)[N]) noexcept
 
 
 } // namespace red
+
+#include "pop-visibility.h"
