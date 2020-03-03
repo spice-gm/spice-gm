@@ -25,7 +25,6 @@
 #include <pthread.h>
 #include <limits.h>
 #include <glib-object.h>
-#include <common/ring.h>
 #include <common/marshaller.h>
 #include <common/demarshallers.h>
 
