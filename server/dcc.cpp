@@ -38,7 +38,6 @@ enum
     PROP_ZLIB_GLZ_STATE
 };
 
-static void on_display_video_codecs_update(GObject *gobject, GParamSpec *pspec, gpointer user_data);
 static bool dcc_config_socket(RedChannelClient *rcc);
 static void dcc_on_disconnect(RedChannelClient *rcc);
 
@@ -102,9 +101,6 @@ display_channel_client_constructed(GObject *object)
     dcc_init_stream_agents(self);
 
     image_encoders_init(&self->priv->encoders, &DCC_TO_DC(self)->priv->encoder_shared_data);
-
-    g_signal_connect(DCC_TO_DC(self), "notify::video-codecs",
-                     G_CALLBACK(on_display_video_codecs_update), self);
 }
 
 static void
@@ -112,7 +108,6 @@ display_channel_client_finalize(GObject *object)
 {
     DisplayChannelClient *self = DISPLAY_CHANNEL_CLIENT(object);
 
-    g_signal_handlers_disconnect_by_func(DCC_TO_DC(self), (void*) on_display_video_codecs_update, self);
     g_clear_pointer(&self->priv->preferred_video_codecs, g_array_unref);
     g_clear_pointer(&self->priv->client_preferred_video_codecs, g_array_unref);
     g_free(self->priv);
@@ -1136,10 +1131,8 @@ static void dcc_update_preferred_video_codecs(DisplayChannelClient *dcc)
     g_free(codecs_str);
 }
 
-static void on_display_video_codecs_update(GObject *gobject, GParamSpec *pspec, gpointer user_data)
+void dcc_video_codecs_update(DisplayChannelClient *dcc)
 {
-    DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(user_data);
-
     /* Only worry about video-codecs update if client has sent
      * SPICE_MSGC_DISPLAY_PREFERRED_VIDEO_CODEC_TYPE */
     if (dcc->priv->client_preferred_video_codecs == NULL) {
