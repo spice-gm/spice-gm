@@ -79,9 +79,11 @@ public:
     /* returns -1 if we don't have an estimation */
     int get_roundtrip_ms() const;
 
+protected:
     /* Checks periodically if the connection is still alive */
     void start_connectivity_monitoring(uint32_t timeout_ms);
 
+public:
     void pipe_add_push(RedPipeItem *item);
     void pipe_add(RedPipeItem *item);
     void pipe_add_after(RedPipeItem *item, RedPipeItem *pos);

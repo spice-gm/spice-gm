@@ -38,6 +38,7 @@ public:
                       uint32_t connection_id);
 
     void handle_pong(SpiceMsgPing *ping, uint32_t size);
+    void start_net_test(int test_rate);
 
 protected:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
@@ -60,7 +61,6 @@ MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient 
 void main_channel_client_push_agent_tokens(MainChannelClient *mcc, uint32_t num_tokens);
 void main_channel_client_push_agent_data(MainChannelClient *mcc, uint8_t* data, size_t len,
                                          spice_marshaller_item_free_func free_data, void *opaque);
-void main_channel_client_start_net_test(MainChannelClient *mcc, int test_rate);
 // TODO: huge. Consider making a reds_* interface for these functions
 // and calling from main.
 void main_channel_client_push_init(MainChannelClient *mcc,
