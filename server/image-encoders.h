@@ -23,6 +23,7 @@
 #include <pthread.h>
 #include <common/quic.h>
 #include <common/lz.h>
+#include <common/ring.h>
 
 #include "stat.h"
 #include "red-parse-qxl.h"

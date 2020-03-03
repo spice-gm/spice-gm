@@ -19,6 +19,8 @@
 #ifndef PIXMAP_CACHE_H_
 #define PIXMAP_CACHE_H_
 
+#include <common/ring.h>
+
 #include "red-channel.h"
 
 #define MAX_CACHE_CLIENTS 4

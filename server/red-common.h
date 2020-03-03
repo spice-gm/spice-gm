@@ -29,7 +29,6 @@
 #include <common/lz_common.h>
 #include <common/marshaller.h>
 #include <common/messages.h>
-#include <common/ring.h>
 #include <common/draw.h>
 #include <common/verify.h>
 
