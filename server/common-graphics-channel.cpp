@@ -65,14 +65,3 @@ bool CommonGraphicsChannelClient::config_socket()
     ack_set_client_window(is_low_bandwidth ? WIDE_CLIENT_ACK_WINDOW : NARROW_CLIENT_ACK_WINDOW);
     return true;
 }
-
-
-void common_graphics_channel_set_during_target_migrate(CommonGraphicsChannel *self, gboolean value)
-{
-    self->during_target_migrate = value;
-}
-
-gboolean common_graphics_channel_get_during_target_migrate(CommonGraphicsChannel *self)
-{
-    return self->during_target_migrate;
-}

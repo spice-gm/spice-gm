@@ -438,7 +438,7 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
 
     CommonGraphicsChannel *common = display;
     if (display->is_connected() &&
-        !common_graphics_channel_get_during_target_migrate(common)) {
+        !common->get_during_target_migrate()) {
         /* guest created primary, so it will (hopefully) send a monitors_config
          * now, don't send our own temporary one */
         if (!worker->driver_cap_monitors_config) {
@@ -539,12 +539,10 @@ static void handle_dev_start(void *opaque, void *payload)
 
     spice_assert(!red_qxl_is_running(worker->qxl));
     if (worker->cursor_channel) {
-        CommonGraphicsChannel *common = worker->cursor_channel;
-        common_graphics_channel_set_during_target_migrate(common, FALSE);
+        worker->cursor_channel->set_during_target_migrate(FALSE);
     }
     if (worker->display_channel) {
-        CommonGraphicsChannel *common = worker->display_channel;
-        common_graphics_channel_set_during_target_migrate(common, FALSE);
+        worker->display_channel->set_during_target_migrate(FALSE);
         display_channel_wait_for_migrate_data(worker->display_channel);
     }
     red_qxl_set_running(worker->qxl, true);

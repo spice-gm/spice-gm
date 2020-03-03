@@ -27,17 +27,26 @@
 
 class CommonGraphicsChannel: public RedChannel
 {
-public: // XXX
-    int during_target_migrate = 0; /* TRUE when the client that is associated with the channel
+public:
+    bool get_during_target_migrate() const
+    {
+        return during_target_migrate;
+    }
+
+    void set_during_target_migrate(bool value)
+    {
+        during_target_migrate = value;
+    }
+protected:
+    using RedChannel::RedChannel;
+
+private:
+    bool during_target_migrate = false; /* TRUE when the client that is associated with the channel
                                   is during migration. Turned off when the vm is started.
                                   The flag is used to avoid sending messages that are artifacts
                                   of the transition from stopped vm to loaded vm (e.g., recreation
                                   of the primary surface) */
-    using RedChannel::RedChannel;
 };
-
-void common_graphics_channel_set_during_target_migrate(CommonGraphicsChannel *self, gboolean value);
-gboolean common_graphics_channel_get_during_target_migrate(CommonGraphicsChannel *self);
 
 enum {
     RED_PIPE_ITEM_TYPE_INVAL_ONE = RED_PIPE_ITEM_TYPE_CHANNEL_BASE,

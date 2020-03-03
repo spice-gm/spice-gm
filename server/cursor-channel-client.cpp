@@ -86,7 +86,7 @@ CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor, RedClient 
         rcc->unref();
         rcc = nullptr;
     }
-    common_graphics_channel_set_during_target_migrate(cursor, mig_target);
+    cursor->set_during_target_migrate(mig_target);
 
     return rcc;
 }

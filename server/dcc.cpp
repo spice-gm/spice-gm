@@ -184,7 +184,7 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
     flags = is_primary_surface(display, surface_id) ? SPICE_SURFACE_FLAGS_PRIMARY : 0;
 
     /* don't send redundant create surface commands to client */
-    if (common_graphics_channel_get_during_target_migrate(display) ||
+    if (display->get_during_target_migrate() ||
         dcc->priv->surface_client_created[surface_id]) {
         return;
     }
@@ -391,7 +391,7 @@ DisplayChannelClient *dcc_new(DisplayChannel *display,
         dcc = nullptr;
     }
     spice_debug("New display (client %p) dcc %p stream %p", client, dcc, stream);
-    common_graphics_channel_set_during_target_migrate(display, mig_target);
+    display->set_during_target_migrate(mig_target);
 
     return dcc;
 }
@@ -612,7 +612,7 @@ void dcc_destroy_surface(DisplayChannelClient *dcc, uint32_t surface_id)
 
     display = DCC_TO_DC(dcc);
 
-    if (common_graphics_channel_get_during_target_migrate(display) ||
+    if (display->get_during_target_migrate() ||
         !dcc->priv->surface_client_created[surface_id]) {
         return;
     }
