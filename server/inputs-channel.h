@@ -30,15 +30,13 @@
 
 class InputsChannelClient;
 
-struct InputsChannel final: public RedChannel
+class InputsChannel final: public RedChannel
 {
     friend class InputsChannelClient;
     friend int spice_server_kbd_leds(SpiceKbdInstance *sin, int leds);
 
+public:
     InputsChannel(RedsState *reds);
-    ~InputsChannel();
-    void on_connect(RedClient *client, RedStream *stream, int migration,
-                    RedChannelCapabilities *caps) override;
 
     const VDAgentMouseState *get_mouse_state();
     void set_tablet_logical_size(int x_res, int y_res);
@@ -67,6 +65,10 @@ private:
     SpiceTabletInstance *tablet;
 
 private:
+    ~InputsChannel();
+
+    void on_connect(RedClient *client, RedStream *stream, int migration,
+                    RedChannelCapabilities *caps) override;
     void sync_locks(uint8_t scan);
     void activate_modifiers_watch();
     void push_keyboard_modifiers(uint8_t modifiers);
