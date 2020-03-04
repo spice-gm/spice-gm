@@ -35,7 +35,6 @@ SPICE_DECLARE_TYPE(RedChannelClient, red_channel_client, CHANNEL_CLIENT);
 gboolean red_channel_client_is_connected(RedChannelClient *rcc);
 void red_channel_client_default_migrate(RedChannelClient *rcc);
 bool red_channel_client_is_waiting_for_migrate_data(RedChannelClient *rcc);
-void red_channel_client_destroy(RedChannelClient *rcc);
 bool red_channel_client_test_remote_common_cap(RedChannelClient *rcc, uint32_t cap);
 bool red_channel_client_test_remote_cap(RedChannelClient *rcc, uint32_t cap);
 /* shutdown is the only safe thing to do out of the client/channel

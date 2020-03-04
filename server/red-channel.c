@@ -36,14 +36,14 @@
  * are deallocated only after red_channel_destroy is called and no RedChannelClient
  * refers to the channel.
  * RedChannelClient is created and destroyed by the calls to xxx_channel_client_new
- * and red_channel_client_destroy. RedChannelClient resources are deallocated only when
+ * and red_channel_client_disconnect. RedChannelClient resources are deallocated only when
  * its refs == 0. The reference count of RedChannelClient can be increased by routines
  * that include calls that might destroy the red_channel_client. For example,
  * red_peer_handle_incoming calls the handle_message proc of the channel, which
  * might lead to destroying the client. However, after the call to handle_message,
  * there is a call to the channel's release_msg_buf proc.
  *
- * Once red_channel_client_destroy is called, the RedChannelClient is disconnected and
+ * Once red_channel_client_disconnect is called, the RedChannelClient is disconnected and
  * removed from the RedChannel clients list, but if rcc->refs != 0, it will still hold
  * a reference to the Channel. The reason for this is that on the one hand RedChannel holds
  * callbacks that may be still in use by RedChannel, and on the other hand,
@@ -55,12 +55,8 @@
  * are associated with it. However, since part of these channel clients may still have
  * other references, they will not be completely released, until they are dereferenced.
  *
- * Note: red_channel_client_destroy is not thread safe, and still it is called from
- * red_client_destroy (from the client's thread). However, since before this call,
- * red_client_destroy calls rcc->channel->client_cbs.disconnect(rcc), which is synchronous,
- * we assume that if the channel is in another thread, it does no longer have references to
- * this channel client.
- * If a call to red_channel_client_destroy is made from another location, it must be called
+ * Note: red_channel_client_disconnect is not thread safe.
+ * If a call to red_channel_client_disconnect is made from another location, it must be called
  * from the channel's thread.
 */
 struct RedChannelPrivate
@@ -413,7 +409,7 @@ void red_channel_destroy(RedChannel *channel)
     // prevent future connection
     reds_unregister_channel(channel->priv->reds, channel);
 
-    red_channel_foreach_client(channel, red_channel_client_destroy);
+    red_channel_foreach_client(channel, red_channel_client_disconnect);
     g_object_unref(channel);
 }
 

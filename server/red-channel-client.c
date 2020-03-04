@@ -1027,11 +1027,6 @@ void red_channel_client_default_migrate(RedChannelClient *rcc)
     red_channel_client_pipe_add_type(rcc, RED_PIPE_ITEM_TYPE_MIGRATE);
 }
 
-void red_channel_client_destroy(RedChannelClient *rcc)
-{
-    red_channel_client_disconnect(rcc);
-}
-
 void red_channel_client_shutdown(RedChannelClient *rcc)
 {
     if (rcc->priv->stream && rcc->priv->stream->watch) {
