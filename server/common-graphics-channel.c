@@ -52,8 +52,9 @@ static uint8_t *common_alloc_recv_buf(RedChannelClient *rcc, uint16_t type, uint
         return g_malloc(size);
     }
 
-    if (size > CHANNEL_RECEIVE_BUF_SIZE) {
-        spice_warning("unexpected message size %u (max is %d)", size, CHANNEL_RECEIVE_BUF_SIZE);
+    if (size > sizeof(common->priv->recv_buf)) {
+        spice_warning("unexpected message size %u (max is %zd)", size,
+                      sizeof(common->priv->recv_buf));
         return NULL;
     }
     return common->priv->recv_buf;
