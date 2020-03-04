@@ -311,6 +311,7 @@ red_channel_init(RedChannel *self)
     self->priv = red_channel_get_instance_private(self);
 
     red_channel_set_common_cap(self, SPICE_COMMON_CAP_MINI_HEADER);
+    red_channel_set_common_cap(self, SPICE_COMMON_CAP_PROTOCOL_AUTH_SELECTION);
     self->priv->thread_id = pthread_self();
 }
 

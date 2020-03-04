@@ -1564,7 +1564,6 @@ static void reds_channel_init_auth_caps(RedLinkInfo *link, RedChannel *channel)
     } else {
         red_channel_set_common_cap(channel, SPICE_COMMON_CAP_AUTH_SPICE);
     }
-    red_channel_set_common_cap(channel, SPICE_COMMON_CAP_PROTOCOL_AUTH_SELECTION);
 }
 
 
