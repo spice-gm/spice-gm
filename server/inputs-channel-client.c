@@ -43,13 +43,14 @@ static uint8_t *
 inputs_channel_client_alloc_msg_rcv_buf(RedChannelClient *rcc,
                                         uint16_t type, uint32_t size)
 {
-    if (size > RECEIVE_BUF_SIZE) {
+    InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
+
+    if (size > sizeof(icc->priv->recv_buf)) {
         red_channel_warning(red_channel_client_get_channel(rcc),
                             "error: too large incoming message");
         return NULL;
     }
 
-    InputsChannelClient *icc = INPUTS_CHANNEL_CLIENT(rcc);
     return icc->priv->recv_buf;
 }
 
