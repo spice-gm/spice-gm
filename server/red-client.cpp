@@ -24,113 +24,27 @@
 #define FOREACH_CHANNEL_CLIENT(_client, _data) \
     GLIST_FOREACH(_client->channels, RedChannelClient, _data)
 
-struct RedClientClass
+RedClient::~RedClient()
 {
-    GObjectClass parent_class;
-};
-
-G_DEFINE_TYPE(RedClient, red_client, G_TYPE_OBJECT)
-
-enum {
-    PROP0,
-    PROP_SPICE_SERVER,
-    PROP_MIGRATED
-};
-
-static void
-red_client_get_property (GObject    *object,
-                         guint       property_id,
-                         GValue     *value,
-                         GParamSpec *pspec)
-{
-    RedClient *self = RED_CLIENT(object);
-
-    switch (property_id)
-    {
-        case PROP_SPICE_SERVER:
-            g_value_set_pointer(value, self->reds);
-            break;
-        case PROP_MIGRATED:
-            g_value_set_boolean(value, self->during_target_migrate);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    if (mcc) {
+        mcc->unref();
+        mcc = nullptr;
     }
+    spice_debug("release client=%p", this);
+    pthread_mutex_destroy(&lock);
 }
 
-static void
-red_client_set_property (GObject      *object,
-                         guint         property_id,
-                         const GValue *value,
-                         GParamSpec   *pspec)
+RedClient::RedClient(RedsState *reds, bool migrated):
+    reds(reds),
+    during_target_migrate(migrated)
 {
-    RedClient *self = RED_CLIENT(object);
-
-    switch (property_id)
-    {
-        case PROP_SPICE_SERVER:
-            self->reds = (RedsState*) g_value_get_pointer(value);
-            break;
-        case PROP_MIGRATED:
-            self->during_target_migrate = g_value_get_boolean(value);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-    }
-}
-
-static void
-red_client_finalize (GObject *object)
-{
-    RedClient *self = RED_CLIENT(object);
-
-    if (self->mcc) {
-        self->mcc->unref();
-        self->mcc = nullptr;
-    }
-    spice_debug("release client=%p", self);
-    pthread_mutex_destroy(&self->lock);
-
-    G_OBJECT_CLASS (red_client_parent_class)->finalize (object);
-}
-
-static void
-red_client_class_init (RedClientClass *klass)
-{
-  GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-  object_class->get_property = red_client_get_property;
-  object_class->set_property = red_client_set_property;
-  object_class->finalize = red_client_finalize;
-
-  g_object_class_install_property(object_class,
-                                  PROP_SPICE_SERVER,
-                                  g_param_spec_pointer("spice-server",
-                                                       "Spice server",
-                                                       "The Spice Server",
-                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-  g_object_class_install_property(object_class,
-                                  PROP_MIGRATED,
-                                  g_param_spec_boolean("migrated",
-                                                       "migrated",
-                                                       "Whether this client was migrated",
-                                                       FALSE,
-                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-}
-
-static void
-red_client_init(RedClient *self)
-{
-    pthread_mutex_init(&self->lock, NULL);
-    self->thread_id = pthread_self();
+    pthread_mutex_init(&lock, NULL);
+    thread_id = pthread_self();
 }
 
 RedClient *red_client_new(RedsState *reds, int migrated)
 {
-    return (RedClient*) g_object_new(RED_TYPE_CLIENT,
-                        "spice-server", reds,
-                        "migrated", migrated,
-                        NULL);
+    return new RedClient(reds, migrated);
 }
 
 void RedClient::set_migration_seamless() // dest
@@ -223,11 +137,11 @@ void RedClient::destroy()
 
 
 /* client->lock should be locked */
-static RedChannelClient *red_client_get_channel(RedClient *client, int type, int id)
+RedChannelClient *RedClient::get_channel(int type, int id)
 {
     RedChannelClient *rcc;
 
-    FOREACH_CHANNEL_CLIENT(client, rcc) {
+    FOREACH_CHANNEL_CLIENT(this, rcc) {
         RedChannel *channel;
 
         channel = rcc->get_channel();
@@ -260,7 +174,7 @@ gboolean RedClient::add_channel(RedChannelClient *rcc, GError **error)
         goto cleanup;
     }
 
-    if (red_client_get_channel(this, type, id)) {
+    if (get_channel(type, id)) {
         g_set_error(error,
                     SPICE_SERVER_ERROR,
                     SPICE_SERVER_ERROR_FAILED,

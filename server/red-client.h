@@ -19,19 +19,25 @@
 #ifndef RED_CLIENT_H_
 #define RED_CLIENT_H_
 
-#include <glib-object.h>
-
 #include "main-channel-client.h"
 
 #include "push-visibility.h"
 
-SPICE_DECLARE_TYPE(RedClient, red_client, CLIENT);
-#define RED_TYPE_CLIENT red_client_get_type()
-
 RedClient *red_client_new(RedsState *reds, int migrated);
 
-struct RedClient: public GObject
+class RedClient final
 {
+public:
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    RedClient(RedsState *reds, bool migrated);
+protected:
+    ~RedClient();
+
+public:
+    void ref() { g_atomic_int_inc(&_ref); }
+    void unref() { if (g_atomic_int_dec_and_test(&_ref)) delete this; }
+
     /*
      * disconnects all the client's channels (should be called from the client's thread)
      */
@@ -59,7 +65,10 @@ struct RedClient: public GObject
     void set_disconnecting();
     RedsState* get_server();
 
-    RedsState *reds;
+private:
+    RedChannelClient *get_channel(int type, int id);
+
+    RedsState *const reds;
     GList *channels;
     MainChannelClient *mcc;
     pthread_mutex_t lock; // different channels can be in different threads
@@ -77,8 +86,8 @@ struct RedClient: public GObject
     int during_target_migrate;
     int seamless_migrate;
     int num_migrated_channels; /* for seamless - number of channels that wait for migrate data*/
-    void ref() { g_object_ref(this); }
-    void unref() { g_object_unref(this); }
+
+    gint _ref = 1;
 };
 
 #include "pop-visibility.h"
