@@ -242,13 +242,6 @@ static RedCharDeviceSmartcard *smartcard_device_new(RedsState *reds, SpiceCharDe
     return dev;
 }
 
-void smartcard_device_disconnect(SpiceCharDeviceInstance *char_device)
-{
-    g_return_if_fail(RED_IS_CHAR_DEVICE_SMARTCARD(char_device->st));
-
-    char_device->st->unref();
-}
-
 RedCharDevice *smartcard_device_connect(RedsState *reds, SpiceCharDeviceInstance *char_device)
 {
     RedCharDeviceSmartcard *dev;

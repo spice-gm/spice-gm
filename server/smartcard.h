@@ -44,7 +44,6 @@ struct RedCharDeviceSmartcardClass: public RedCharDeviceClass
  * connect to smartcard interface, used by smartcard channel
  */
 RedCharDevice *smartcard_device_connect(RedsState *reds, SpiceCharDeviceInstance *char_device);
-void smartcard_device_disconnect(SpiceCharDeviceInstance *char_device);
 void smartcard_channel_write_to_reader(RedCharDeviceWriteBuffer *write_buf);
 SpiceCharDeviceInstance* smartcard_readers_get(uint32_t reader_id);
 SpiceCharDeviceInstance *smartcard_readers_get_unattached(void);

@@ -3201,8 +3201,7 @@ static void reds_add_char_device(RedsState *reds, RedCharDevice *dev)
     reds->char_devices = g_list_append(reds->char_devices, dev);
 }
 
-static void reds_on_char_device_destroy(RedsState *reds,
-                                        RedCharDevice *dev)
+static void reds_remove_char_device(RedsState *reds, RedCharDevice *dev)
 {
     g_return_if_fail(reds != NULL);
     g_warn_if_fail(g_list_find(reds->char_devices, dev) != NULL);
@@ -3252,9 +3251,6 @@ spice_server_char_device_add_interface(SpiceServer *reds, SpiceBaseInstance *sin
          * just a sanity check to ensure that assumption is correct */
         spice_assert(dev_state == char_device->st);
 
-        g_object_weak_ref(G_OBJECT(dev_state),
-                          (GWeakNotify)reds_on_char_device_destroy,
-                          reds);
         /* setting the char_device state to "started" for backward compatibily with
          * qemu releases that don't call spice api for start/stop (not implemented yet) */
         if (reds->vm_running) {
@@ -3281,19 +3277,12 @@ static int spice_server_char_device_remove_interface(RedsState *reds, SpiceBaseI
             red_char_device_reset_dev_instance(reds->agent_dev, NULL);
         }
     }
-#ifdef USE_SMARTCARD
-    else if (strcmp(char_device->subtype, SUBTYPE_SMARTCARD) == 0) {
-        smartcard_device_disconnect(char_device);
-    }
-#endif
-    else if (strcmp(char_device->subtype, SUBTYPE_USBREDIR) == 0 ||
-             strcmp(char_device->subtype, SUBTYPE_PORT) == 0) {
-        spicevmc_device_disconnect(char_device);
-    } else {
-        spice_warning("failed to remove char device %s", char_device->subtype);
-    }
 
-    char_device->st = NULL;
+    if (char_device->st) {
+        reds_remove_char_device(reds, char_device->st);
+        char_device->st->unref();
+        char_device->st = NULL;
+    }
     return 0;
 }
 

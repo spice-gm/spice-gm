@@ -688,13 +688,6 @@ RedCharDevice *spicevmc_device_connect(RedsState *reds,
     return dev;
 }
 
-/* Must be called from RedClient handling thread. */
-void spicevmc_device_disconnect(SpiceCharDeviceInstance *sin)
-{
-    sin->st->unref();
-    sin->st = NULL;
-}
-
 static void spicevmc_port_event(RedCharDevice *char_dev, uint8_t event)
 {
     RedVmcChannel *channel;
