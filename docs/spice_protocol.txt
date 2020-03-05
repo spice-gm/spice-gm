@@ -214,7 +214,7 @@ send it via the SpiceLinkReply message. In case of all other channel types, this
 field will be equal to the allocated session id.
 
 |UINT8 channel_type
-|one of RED_CHANNEL_?
+|one of SPICE_CHANNEL_?
 
 |UINT8 channel_id
 |channel id to connect to. This enables having multiple channels of the same
@@ -333,8 +333,8 @@ or specific to a channel type (e.g., SPICE_MSG_DISPLAY_MODE for display channel)
 +
 Messages types and message body structures  are prefixed according to the
 source of the message. The prefixes for messages sent from the server to the
-client are RED for types and Red for structures. For messages sent from the
-client the prefixes are REDC and Redc.
+client are SPICE_MSG for types and SpiceMsg for structures. For messages sent from the
+client the prefixes are SPICE_MSGC and SpiceMsgc.
 +
 . Server messages that are common to all channels
 +
@@ -427,7 +427,7 @@ SPICE_MSGC_PONG message.
 |time stamp of this message
 |===
 +
-.. SPICE_MSGC_PONG, RedPong
+.. SPICE_MSGC_PONG, SpiceMsgPing
 +
 [cols="2*"]
 |===
@@ -477,7 +477,7 @@ SPICE_MIGRATE_NEED_DATA_TRANSFER 		= 2
 [cols="2*"]
 |===
 |UINT32 flags
-|combination of red migration flags.
+|combination of SPICE migration flags.
 |===
 +
 ... SPICE_MSG_MIGRATE_DATA, UINT8[]
@@ -544,7 +544,7 @@ of the server or client.
 |disconnect reason, SPICE_LINK_ERR_?
 |===
 +
-.. SPICE_MSGC_DISCONNECTING, RedcDisconnect
+.. SPICE_MSGC_DISCONNECTING, SpiceMsgDisconnect
 +
 [cols="2*"]
 |===
@@ -571,13 +571,13 @@ visibility notifications will be directed to the log.
 |server side time stamp of this message.
 
 |UINT32 severity
-|one of RED_NOTIFY_SEVERITY_?
+|one of SPICE_NOTIFY_SEVERITY_?
 
 |UINT32 visibility
-|one of  RED_NOTIFY_VISIBILITY_?
+|one of  SPICE_NOTIFY_VISIBILITY_?
 
 |UINT32 what
-|one of SPICE_LINK_ERR_?, RED_WARN_? Or RED_INFO_?, depending on severity.
+|one of SPICE_LINK_ERR_?, SPICE_WARN_? Or SPICE_INFO_?, depending on severity.
 
 |UINT32 message_len
 |size of message
@@ -758,11 +758,11 @@ SPICE_MSG_MAIN_CHANNELS_LIST message.
 |UINT32 num_of_channels
 |number of channels in this list
 
-|RedChanneID[] channels
+|SpiceChannelId[] channels
 |vector of “num_of_channels” channel ids
 |===
 +
-.. RedChanneID
+.. SpiceChannelId
 +
 [cols="2*"]
 |===
@@ -986,18 +986,18 @@ KeyCode – client sends this message to notify of key release event.
 +
 spice support two modes of mouse operation: client mouse and server mouse (for
 more information see <<mouse_modes,mouse modes>>). in  server mouse mode the
-client sends mouse motion message (i.e., redc_inputs_mouse_motion), and in
-client mouse mode it sends position message (i.e., redc_inputs_mouse_position).
+client sends mouse motion message (i.e., msgc_inputs_mouse_motion), and in
+client mouse mode it sends position message (i.e., msgc_inputs_mouse_position).
 position message holds the position of the client mouse on the display and the
-id of the display channel, which is derived from redlinkmess.channel_id. in
+id of the display channel, which is derived from SpiceLinkMess.channel_id. in
 order to prevent flood of mouse motion/position events, the server sends
 red_inputs_mouse_motion_ack message on every red_motion_ack_bunch messages it
 receive. this mechanism allows the client to keep track on  the server's
 messages consumption rate  and to change the event pushing policy according to
-it. mouse button events are sent to the server using redc_inputs_mouse_press
-and redc_inputs_mouse_release messages.
+it. mouse button events are sent to the server using msgc_inputs_mouse_press
+and msgc_inputs_mouse_release messages.
 +
-.. Red Button ID
+.. Spice Button ID
 +
 [source,c]
 ----
@@ -1062,8 +1062,8 @@ describe unpressed button.
 +
 [cols="2*"]
 |===
-|UINT32 button_id
-|one of REDC_MOUSE_?BUTTON
+|UINT32 button
+|one of SPICE_MOUSE_?BUTTON
 
 |UINT32  buttons_state
 |any combination of buttons masks. Set bit describes pressed button, and clear
@@ -1074,8 +1074,8 @@ bit describes unpressed button.
 +
 [cols="2*"]
 |===
-|UINT32 button_id
-|one of REDC_MOUSE_?BUTTON
+|UINT32 button
+|one of SPICE_MOUSE_?BUTTON
 
 |UINT32  buttons_state
 |any combination of buttons mask. Set bit describes pressed button and clear
@@ -2213,36 +2213,36 @@ Destroy all active streams
 +
 [source,c]
 ----
-RED_RES_TYPE_IMAGE = 1
+SPICE_RES_TYPE_PIXMAP = 1
 ----
 +
-..  RedResourceID
+..  SpiceResourceID
 +
 [cols="2*"]
 |===
 |UINT8 type
-|type of the resource, one of RED_RES_TYPE_?
+|type of the resource, one of SPICE_RES_TYPE_?
 
 |UINT64 id
 |id of the resource
 |===
 +
-.. RedResourceList
+.. SpiceResourceList
 +
 [cols="2*"]
 |===
 |UINT16 count
 |number of items in resources
 
-|RedResourceID[] resources
+|SpiceResourceID[] resources
 |list of  resources id
 |===
 +
-.. SPICE_MSG_DISPLAY_INVAL_LIST, RedResourceList
+.. SPICE_MSG_DISPLAY_INVAL_LIST, SpiceResourceList
 +
 [cols="2*"]
 |===
-|RedResourceList
+|SpiceResourceList
 |list of resources to remove from cache
 |===
 +
@@ -2362,7 +2362,7 @@ for 'unique' are invalid.
 [cols="2*"]
 |===
 |UINT32 flags
-|any valid combination of  RED_CURSOR_?
+|any valid combination of  SPICE_CURSOR_FLAGS_?
 
 |SpiceCursorHeader header
 |
@@ -2535,7 +2535,7 @@ SPICE_MSG_PLAYBACK_STOP			= 104
 +
 [source,c]
 ----
-RED_PLAYBACK_FMT_S16 			= 1 /* each channel sample is a 16 bit
+SPICE_AUDIO_FMT_S16 			= 1 /* each channel sample is a 16 bit
 signed integer */
 ----
 +
@@ -2546,8 +2546,9 @@ in CELT 0_5_1 format.
 +
 [source,c]
 ----
-RED_PLAYBACK_DATA_MODE_RAW 		= 1
-RED_PLAYBACK_DATA_MODE_CELT_0_5_1	= 2
+SPICE_AUDIO_DATA_MODE_RAW 		= 1
+SPICE_AUDIO_DATA_MODE_CELT_0_5_1	= 2
+SPICE_AUDIO_DATA_MODE_OPUS		= 3
 ----
 +
 . Playback channel capabilities
@@ -2555,6 +2556,9 @@ RED_PLAYBACK_DATA_MODE_CELT_0_5_1	= 2
 [source,c]
 ----
 SPICE_PLAYBACK_CAP_CELT_0_5_1 		= 0
+SPICE_PLAYBACK_CAP_VOLUME		= 1
+SPICE_PLAYBACK_CAP_LATENCY		= 2
+SPICE_PLAYBACK_CAP_OPUS			= 3
 ----
 +
 Spice client needs to declare support of CELT_5_1 in channel capabilities in
@@ -2568,7 +2572,7 @@ order to allow the server to send playback packets in CELT_0_5_1 format.
 |server time stamp
 
 |UINT32 mode
-|one of RED_PLAYBACK_DATA_MODE_?
+|one of SPICE_AUDIO_DATA_MODE_?
 
 |UINT8[] data
 |specific data, content depend on mode
@@ -2582,7 +2586,7 @@ order to allow the server to send playback packets in CELT_0_5_1 format.
 |number of audio channels
 
 |UINT32 format
-|one of RED_PLAYBACK_FMT_?
+|one of SPICE_AUDIO_FMT_?
 
 |UINT32 frequency
 |channel samples per second
@@ -2641,8 +2645,7 @@ SPICE_MSGC_RECORD_START_MARK		= 103
 +
 [source,c]
 ----
-RED_RECORD_FMT_S16 			= 1 /* each channel sample is a 16 bit
-signed integer */
+SPICE_AUDIO_FMT_S16 			= 1 /* each channel sample is a 16 bit signed integer */
 ----
 +
 . Record data mode
@@ -2652,15 +2655,18 @@ CELT 0.5.1 format.
 +
 [source,c]
 ----
-RED_RECORD_DATA_MODE_RAW 		= 1
-RED_RECORD_DATA_MODE_CELT_0_5_1		= 2
+SPICE_AUDIO_DATA_MODE_RAW 		= 1
+SPICE_AUDIO_DATA_MODE_CELT_0_5_1	= 2
+SPICE_AUDIO_DATA_MODE_OPUS		= 3
 ----
 +
 . Record channel capabilities
 +
 [source,c]
 ----
-SPICE_PLAYBACK_CAP_CELT_0_5_1 		= 0
+SPICE_RECORD_CAP_CELT_0_5_1		= 0
+SPICE_RECORD_CAP_VOLUME			= 1
+SPICE_RECORD_CAP_OPUS			= 2
 ----
 +
 Spice server needs to declare support of CELT_5_1 in channel capabilities in
@@ -2674,7 +2680,7 @@ order to allow the client to send recorded packets in CELT_0_5_1 format.
 |client time stamp
 
 |UINT32 mode
-|one of RED_RECORD_DATA_MODE_?
+|one of SPICE_AUDIO_DATA_MODE_?
 
 |UINT8[] data
 |specific data, content depend on mode
