@@ -96,6 +96,7 @@ enum {
 
 static void red_char_device_write_buffer_unref(RedCharDeviceWriteBuffer *write_buf);
 static void red_char_device_write_retry(RedCharDevice *dev);
+static void red_char_device_init_device_instance(RedCharDevice *self);
 
 static RedPipeItem *
 red_char_device_read_one_msg_from_device(RedCharDevice *dev)
@@ -654,7 +655,9 @@ void red_char_device_reset_dev_instance(RedCharDevice *dev,
     dev->priv->sin = sin;
     if (sin)
         sin->st = dev;
-    g_object_notify(G_OBJECT(dev), "sin");
+    if (dev->priv->reds) {
+        red_char_device_init_device_instance(dev);
+    }
 }
 
 static RedCharDeviceClient *
@@ -1014,6 +1017,9 @@ red_char_device_set_property(GObject      *object,
             break;
         case PROP_SPICE_SERVER:
             self->priv->reds = (SpiceServer *) g_value_get_pointer(value);
+            if (self->priv->sin) {
+                red_char_device_init_device_instance(self);
+            }
             break;
         case PROP_CLIENT_TOKENS_INTERVAL:
             self->priv->client_tokens_interval = g_value_get_uint64(value);
@@ -1024,16 +1030,6 @@ red_char_device_set_property(GObject      *object,
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
     }
-}
-
-static void
-red_char_device_on_sin_changed(GObject *object,
-                               GParamSpec *pspec G_GNUC_UNUSED,
-                               gpointer user_data G_GNUC_UNUSED)
-{
-    RedCharDevice *self = RED_CHAR_DEVICE(object);
-
-    red_char_device_init_device_instance(self);
 }
 
 static void
@@ -1134,6 +1130,4 @@ red_char_device_init(RedCharDevice *self)
     self->priv = (RedCharDevicePrivate*) red_char_device_get_instance_private(self);
 
     g_queue_init(&self->priv->write_queue);
-
-    g_signal_connect(self, "notify::sin", G_CALLBACK(red_char_device_on_sin_changed), NULL);
 }
