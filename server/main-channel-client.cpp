@@ -462,7 +462,7 @@ void MainChannelClient::handle_pong(SpiceMsgPing *ping, uint32_t size)
 void main_channel_client_handle_migrate_end(MainChannelClient *mcc)
 {
     RedClient *client = mcc->get_client();
-    if (!red_client_during_migrate_at_target(client)) {
+    if (!client->during_migrate_at_target()) {
         red_channel_warning(mcc->get_channel(),
                             "unexpected SPICE_MSGC_MIGRATE_END");
         return;
@@ -473,7 +473,7 @@ void main_channel_client_handle_migrate_end(MainChannelClient *mcc)
                             "client does not support semi-seamless migration");
         return;
     }
-    red_client_semi_seamless_migrate_complete(client);
+    client->semi_seamless_migrate_complete();
 }
 
 void main_channel_client_migrate_cancel_wait(MainChannelClient *mcc)
@@ -578,7 +578,7 @@ gboolean main_channel_client_connect_semi_seamless(MainChannelClient *mcc)
 {
     if (mcc->test_remote_cap(SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE)) {
         RedClient *client = mcc->get_client();
-        if (red_client_during_migrate_at_target(client)) {
+        if (client->during_migrate_at_target()) {
             mcc->priv->mig_wait_prev_complete = TRUE;
             mcc->priv->mig_wait_prev_try_seamless = FALSE;
         } else {
@@ -595,7 +595,7 @@ void main_channel_client_connect_seamless(MainChannelClient *mcc)
 {
     RedClient *client = mcc->get_client();
     spice_assert(mcc->test_remote_cap(SPICE_MAIN_CAP_SEAMLESS_MIGRATE));
-    if (red_client_during_migrate_at_target(client)) {
+    if (client->during_migrate_at_target()) {
         mcc->priv->mig_wait_prev_complete = TRUE;
         mcc->priv->mig_wait_prev_try_seamless = TRUE;
     } else {

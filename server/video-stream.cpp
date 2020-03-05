@@ -640,7 +640,7 @@ static uint64_t get_initial_bit_rate(DisplayChannelClient *dcc, VideoStream *str
         MainChannelClient *mcc;
         uint64_t net_test_bit_rate;
 
-        mcc = red_client_get_main(dcc->get_client());
+        mcc = dcc->get_client()->get_main();
         net_test_bit_rate = main_channel_client_is_network_info_initialized(mcc) ?
                                 main_channel_client_get_bitrate_per_sec(mcc) :
                                 0;
@@ -673,7 +673,7 @@ static uint32_t get_roundtrip_ms(void *opaque)
 
     roundtrip = rcc->get_roundtrip_ms();
     if (roundtrip < 0) {
-        MainChannelClient *mcc = red_client_get_main(rcc->get_client());
+        MainChannelClient *mcc = rcc->get_client()->get_main();
 
         /*
          * the main channel client roundtrip might not have been
@@ -698,7 +698,7 @@ static void update_client_playback_delay(void *opaque, uint32_t delay_ms)
     VideoStreamAgent *agent = (VideoStreamAgent*) opaque;
     DisplayChannelClient *dcc = agent->dcc;
     RedClient *client = dcc->get_client();
-    RedsState *reds = red_client_get_server(client);
+    RedsState *reds = client->get_server();
 
     dcc_update_streams_max_latency(dcc, agent);
 

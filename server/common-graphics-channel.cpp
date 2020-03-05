@@ -46,7 +46,7 @@ void CommonGraphicsChannelClient::release_recv_buf(uint16_t type, uint32_t size,
 bool CommonGraphicsChannelClient::config_socket()
 {
     RedClient *client = get_client();
-    MainChannelClient *mcc = red_client_get_main(client);
+    MainChannelClient *mcc = client->get_main();
     RedStream *stream = get_stream();
     gboolean is_low_bandwidth;
 

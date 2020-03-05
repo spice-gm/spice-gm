@@ -48,7 +48,7 @@ RedClient *main_channel_get_client_by_link_id(MainChannel *main_chan, uint32_t c
 
 static void main_channel_push_channels(MainChannelClient *mcc)
 {
-    if (red_client_during_migrate_at_target(mcc->get_client())) {
+    if (mcc->get_client()->during_migrate_at_target()) {
         red_channel_warning(mcc->get_channel(),
                             "warning: ignoring unexpected SPICE_MSGC_MAIN_ATTACH_CHANNELS"
                             "during migration");

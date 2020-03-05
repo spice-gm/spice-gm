@@ -159,7 +159,7 @@ void MainDispatcher::client_disconnect(RedClient *client)
 {
     MainDispatcherClientDisconnectMessage msg;
 
-    if (!red_client_is_disconnecting(client)) {
+    if (!client->is_disconnecting()) {
         spice_debug("client %p", client);
         msg.client = red::add_ref(client);
         send_message(MAIN_DISPATCHER_CLIENT_DISCONNECT, &msg);

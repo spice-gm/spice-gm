@@ -22,7 +22,7 @@
 #include "reds.h"
 
 #define FOREACH_CHANNEL_CLIENT(_client, _data) \
-    GLIST_FOREACH((_client ? (_client)->channels : NULL), RedChannelClient, _data)
+    GLIST_FOREACH(_client->channels, RedChannelClient, _data)
 
 struct RedClientClass
 {
@@ -133,36 +133,36 @@ RedClient *red_client_new(RedsState *reds, int migrated)
                         NULL);
 }
 
-void red_client_set_migration_seamless(RedClient *client) // dest
+void RedClient::set_migration_seamless() // dest
 {
     RedChannelClient *rcc;
 
-    spice_assert(client->during_target_migrate);
-    pthread_mutex_lock(&client->lock);
-    client->seamless_migrate = TRUE;
+    spice_assert(during_target_migrate);
+    pthread_mutex_lock(&lock);
+    seamless_migrate = TRUE;
     /* update channel clients that got connected before the migration
      * type was set. red_client_add_channel will handle newer channel clients */
-    FOREACH_CHANNEL_CLIENT(client, rcc) {
+    FOREACH_CHANNEL_CLIENT(this, rcc) {
         if (rcc->set_migration_seamless()) {
-            client->num_migrated_channels++;
+            num_migrated_channels++;
         }
     }
-    pthread_mutex_unlock(&client->lock);
+    pthread_mutex_unlock(&lock);
 }
 
-void red_client_migrate(RedClient *client)
+void RedClient::migrate()
 {
     RedChannelClient *rcc;
     RedChannel *channel;
 
-    if (!pthread_equal(pthread_self(), client->thread_id)) {
+    if (!pthread_equal(pthread_self(), thread_id)) {
         spice_warning("client->thread_id (%p) != "
                       "pthread_self (%p)."
                       "If one of the threads is != io-thread && != vcpu-thread,"
                       " this might be a BUG",
-                      (void*) client->thread_id, (void*) pthread_self());
+                      (void*) thread_id, (void*) pthread_self());
     }
-    FOREACH_CHANNEL_CLIENT(client, rcc) {
+    FOREACH_CHANNEL_CLIENT(this, rcc) {
         if (rcc->is_connected()) {
             channel = rcc->get_channel();
             channel->migrate_client(rcc);
@@ -170,35 +170,35 @@ void red_client_migrate(RedClient *client)
     }
 }
 
-void red_client_destroy(RedClient *client)
+void RedClient::destroy()
 {
-    if (!pthread_equal(pthread_self(), client->thread_id)) {
+    if (!pthread_equal(pthread_self(), thread_id)) {
         spice_warning("client->thread_id (%p) != "
                       "pthread_self (%p)."
                       "If one of the threads is != io-thread && != vcpu-thread,"
                       " this might be a BUG",
-                      (void*) client->thread_id,
+                      (void*) thread_id,
                       (void*) pthread_self());
     }
 
-    pthread_mutex_lock(&client->lock);
-    spice_debug("destroy client %p with #channels=%d", client, g_list_length(client->channels));
+    pthread_mutex_lock(&lock);
+    spice_debug("destroy this %p with #channels=%d", this, g_list_length(channels));
     // This makes sure that we won't try to add new RedChannelClient instances
     // to the RedClient::channels list while iterating it
-    client->disconnecting = TRUE;
-    while (client->channels) {
+    disconnecting = TRUE;
+    while (channels) {
         RedChannel *channel;
-        RedChannelClient *rcc = (RedChannelClient *) client->channels->data;
+        RedChannelClient *rcc = (RedChannelClient *) channels->data;
 
         // Remove the RedChannelClient we are processing from the list
         // Note that we own the object so it is safe to do some operations on it.
         // This manual scan of the list is done to have a thread safe
         // iteration of the list
-        client->channels = g_list_delete_link(client->channels, client->channels);
+        channels = g_list_delete_link(channels, channels);
 
         // prevent dead lock disconnecting rcc (which can happen
         // in the same thread or synchronously on another one)
-        pthread_mutex_unlock(&client->lock);
+        pthread_mutex_unlock(&lock);
 
         // some channels may be in other threads, so disconnection
         // is not synchronous.
@@ -215,10 +215,10 @@ void red_client_destroy(RedClient *client)
         spice_assert(rcc->no_item_being_sent());
 
         rcc->unref();
-        pthread_mutex_lock(&client->lock);
+        pthread_mutex_lock(&lock);
     }
-    pthread_mutex_unlock(&client->lock);
-    client->unref();
+    pthread_mutex_unlock(&lock);
+    unref();
 }
 
 
@@ -238,91 +238,91 @@ static RedChannelClient *red_client_get_channel(RedClient *client, int type, int
     return NULL;
 }
 
-gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError **error)
+gboolean RedClient::add_channel(RedChannelClient *rcc, GError **error)
 {
     RedChannel *channel;
     gboolean result = TRUE;
 
-    spice_assert(rcc && client);
+    spice_assert(rcc);
     channel = rcc->get_channel();
 
-    pthread_mutex_lock(&client->lock);
+    pthread_mutex_lock(&lock);
 
     uint32_t type = channel->type();
     uint32_t id = channel->id();
-    if (client->disconnecting) {
+    if (disconnecting) {
         g_set_error(error,
                     SPICE_SERVER_ERROR,
                     SPICE_SERVER_ERROR_FAILED,
                     "Client %p got disconnected while connecting channel type %d id %d",
-                    client, type, id);
+                    this, type, id);
         result = FALSE;
         goto cleanup;
     }
 
-    if (red_client_get_channel(client, type, id)) {
+    if (red_client_get_channel(this, type, id)) {
         g_set_error(error,
                     SPICE_SERVER_ERROR,
                     SPICE_SERVER_ERROR_FAILED,
                     "Client %p: duplicate channel type %d id %d",
-                    client, type, id);
+                    this, type, id);
         result = FALSE;
         goto cleanup;
     }
 
     // first must be the main one
-    if (!client->mcc) {
+    if (!mcc) {
         // FIXME use dynamic_cast to check type
         // spice_assert(MAIN_CHANNEL_CLIENT(rcc) != NULL);
         rcc->ref();
-        client->mcc = (MainChannelClient *) rcc;
+        mcc = (MainChannelClient *) rcc;
     }
-    client->channels = g_list_prepend(client->channels, rcc);
-    if (client->during_target_migrate && client->seamless_migrate) {
+    channels = g_list_prepend(channels, rcc);
+    if (during_target_migrate && seamless_migrate) {
         if (rcc->set_migration_seamless()) {
-            client->num_migrated_channels++;
+            num_migrated_channels++;
         }
     }
 
 cleanup:
-    pthread_mutex_unlock(&client->lock);
+    pthread_mutex_unlock(&lock);
     return result;
 }
 
-MainChannelClient *red_client_get_main(RedClient *client)
+MainChannelClient *RedClient::get_main()
 {
-    return client->mcc;
+    return mcc;
 }
 
-void red_client_semi_seamless_migrate_complete(RedClient *client)
+void RedClient::semi_seamless_migrate_complete()
 {
     RedChannelClient *rcc;
 
-    pthread_mutex_lock(&client->lock);
-    if (!client->during_target_migrate || client->seamless_migrate) {
+    pthread_mutex_lock(&lock);
+    if (!during_target_migrate || seamless_migrate) {
         spice_error("unexpected");
-        pthread_mutex_unlock(&client->lock);
+        pthread_mutex_unlock(&lock);
         return;
     }
-    client->during_target_migrate = FALSE;
-    FOREACH_CHANNEL_CLIENT(client, rcc) {
+    during_target_migrate = FALSE;
+    FOREACH_CHANNEL_CLIENT(this, rcc) {
         rcc->semi_seamless_migration_complete();
     }
-    pthread_mutex_unlock(&client->lock);
-    reds_on_client_semi_seamless_migrate_complete(client->reds, client);
+    pthread_mutex_unlock(&lock);
+    reds_on_client_semi_seamless_migrate_complete(reds, this);
 }
 
 /* should be called only from the main thread */
-int red_client_during_migrate_at_target(RedClient *client)
+int RedClient::during_migrate_at_target()
 {
     int ret;
-    pthread_mutex_lock(&client->lock);
-    ret = client->during_target_migrate;
-    pthread_mutex_unlock(&client->lock);
+    pthread_mutex_lock(&lock);
+    ret = during_target_migrate;
+    pthread_mutex_unlock(&lock);
     return ret;
 }
 
-void red_client_remove_channel(RedChannelClient *rcc)
+void RedClient::remove_channel(RedChannelClient *rcc)
 {
     RedClient *client = rcc->get_client();
     pthread_mutex_lock(&client->lock);
@@ -337,44 +337,44 @@ void red_client_remove_channel(RedChannelClient *rcc)
 }
 
 /* returns TRUE If all channels are finished migrating, FALSE otherwise */
-gboolean red_client_seamless_migration_done_for_channel(RedClient *client)
+gboolean RedClient::seamless_migration_done_for_channel()
 {
     gboolean ret = FALSE;
 
-    pthread_mutex_lock(&client->lock);
-    client->num_migrated_channels--;
+    pthread_mutex_lock(&lock);
+    num_migrated_channels--;
     /* we assume we always have at least one channel who has migration data transfer,
      * otherwise, this flag will never be set back to FALSE*/
-    if (!client->num_migrated_channels) {
-        client->during_target_migrate = FALSE;
-        client->seamless_migrate = FALSE;
+    if (!num_migrated_channels) {
+        during_target_migrate = FALSE;
+        seamless_migrate = FALSE;
         /* migration completion might have been triggered from a different thread
          * than the main thread */
-        reds_get_main_dispatcher(client->reds)->seamless_migrate_dst_complete(client);
+        reds_get_main_dispatcher(reds)->seamless_migrate_dst_complete(this);
         ret = TRUE;
     }
-    pthread_mutex_unlock(&client->lock);
+    pthread_mutex_unlock(&lock);
 
     return ret;
 }
 
-gboolean red_client_is_disconnecting(RedClient *client)
+gboolean RedClient::is_disconnecting()
 {
     gboolean ret;
-    pthread_mutex_lock(&client->lock);
-    ret =  client->disconnecting;
-    pthread_mutex_unlock(&client->lock);
+    pthread_mutex_lock(&lock);
+    ret =  disconnecting;
+    pthread_mutex_unlock(&lock);
     return ret;
 }
 
-void red_client_set_disconnecting(RedClient *client)
+void RedClient::set_disconnecting()
 {
-    pthread_mutex_lock(&client->lock);
-    client->disconnecting = TRUE;
-    pthread_mutex_unlock(&client->lock);
+    pthread_mutex_lock(&lock);
+    disconnecting = TRUE;
+    pthread_mutex_unlock(&lock);
 }
 
-RedsState *red_client_get_server(RedClient *client)
+RedsState *RedClient::get_server()
 {
-    return client->reds;
+    return reds;
 }

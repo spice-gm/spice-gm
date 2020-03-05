@@ -382,7 +382,7 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
     if (watch) {
         core->watch_remove(watch);
     }
-    red_client_destroy(client);
+    client->destroy();
     main_channel->unref();
     channel->unref();
 }

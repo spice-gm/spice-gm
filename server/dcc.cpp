@@ -1260,7 +1260,7 @@ void dcc_set_max_stream_bit_rate(DisplayChannelClient *dcc, uint64_t rate)
 bool DisplayChannelClient::config_socket()
 {
     RedClient *client = get_client();
-    MainChannelClient *mcc = red_client_get_main(client);
+    MainChannelClient *mcc = client->get_main();
 
     is_low_bandwidth = main_channel_client_is_low_bandwidth(mcc);
 

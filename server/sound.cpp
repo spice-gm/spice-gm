@@ -734,7 +734,7 @@ bool SndChannelClient::config_socket()
 {
     RedStream *stream = get_stream();
     RedClient *red_client = get_client();
-    MainChannelClient *mcc = red_client_get_main(red_client);
+    MainChannelClient *mcc = red_client->get_main();
 
 #ifdef SO_PRIORITY
     int priority = 6;
@@ -1033,7 +1033,7 @@ bool PlaybackChannelClient::init()
         return false;
     }
 
-    if (!red_client_during_migrate_at_target(red_client)) {
+    if (!red_client->during_migrate_at_target()) {
         snd_set_command(scc, SND_PLAYBACK_MODE_MASK);
         if (channel->volume.volume_nchannels) {
             snd_set_command(scc, SND_VOLUME_MUTE_MASK);

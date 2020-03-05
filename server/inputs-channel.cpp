@@ -445,8 +445,8 @@ void InputsChannelClient::pipe_add_init()
 void InputsChannel::on_connect(RedClient *client, RedStream *stream, int migration,
                                RedChannelCapabilities *caps)
 {
-    if (!red_stream_is_ssl(stream) && !red_client_during_migrate_at_target(client)) {
-        main_channel_client_push_notify(red_client_get_main(client),
+    if (!red_stream_is_ssl(stream) && !client->during_migrate_at_target()) {
+        main_channel_client_push_notify(client->get_main(),
                                         "keyboard channel is insecure");
     }
 

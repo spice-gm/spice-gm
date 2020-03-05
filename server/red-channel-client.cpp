@@ -707,7 +707,7 @@ void RedChannelClient::start_connectivity_monitoring(uint32_t timeout_ms)
         priv->cancel_ping_timer();
     }
     priv->latency_monitor.timeout = PING_TEST_TIMEOUT_MS;
-    if (!red_client_during_migrate_at_target(priv->client)) {
+    if (!priv->client->during_migrate_at_target()) {
         priv->start_ping_timer(PING_TEST_IDLE_NET_TIMEOUT_MS);
     }
     if (priv->connectivity_monitor.timer == NULL) {
@@ -715,7 +715,7 @@ void RedChannelClient::start_connectivity_monitoring(uint32_t timeout_ms)
         priv->connectivity_monitor.timer =
             core->timer_new(connectivity_timer, this);
         priv->connectivity_monitor.timeout = timeout_ms;
-        if (!red_client_during_migrate_at_target(priv->client)) {
+        if (!priv->client->during_migrate_at_target()) {
             red_timer_start(priv->connectivity_monitor.timer,
                             priv->connectivity_monitor.timeout);
         }
@@ -827,7 +827,7 @@ bool RedChannelClient::init()
         priv->latency_monitor.timer =
             core->timer_new(ping_timer, this);
 
-        if (!red_client_during_migrate_at_target(priv->client)) {
+        if (!priv->client->during_migrate_at_target()) {
             priv->start_ping_timer(PING_TEST_IDLE_NET_TIMEOUT_MS);
         }
         priv->latency_monitor.roundtrip = -1;
@@ -836,7 +836,7 @@ bool RedChannelClient::init()
     }
 
     priv->channel->add_client(this);
-    if (!red_client_add_channel(priv->client, this, &local_error)) {
+    if (!priv->client->add_channel(this, &local_error)) {
         priv->channel->remove_client(this);
     }
 
@@ -885,7 +885,7 @@ void RedChannelClientPrivate::seamless_migration_done()
 {
     wait_migrate_data = FALSE;
 
-    if (red_client_seamless_migration_done_for_channel(client)) {
+    if (client->seamless_migration_done_for_channel()) {
         start_ping_timer(PING_TEST_IDLE_NET_TIMEOUT_MS);
         if (connectivity_monitor.timer) {
             red_timer_start(connectivity_monitor.timer,
@@ -1547,7 +1547,7 @@ void RedChannelClient::disconnect()
     // remove client from RedClient
     // NOTE this may trigger the free of the object, if we are in a watch/timer
     // we should make sure we keep a reference
-    red_client_remove_channel(this);
+    get_client()->remove_channel(this);
 }
 
 bool RedChannelClient::is_blocked() const

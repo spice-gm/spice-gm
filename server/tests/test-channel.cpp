@@ -259,7 +259,7 @@ static void channel_loop(void)
     basic_event_loop_mainloop();
 
     // cleanup
-    red_client_destroy(client);
+    client->destroy();
     main_channel->unref();
     channel->unref();
 

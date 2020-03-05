@@ -497,7 +497,7 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
         exit(0);
     }
 
-    if (!client || red_client_is_disconnecting(client)) {
+    if (!client || client->is_disconnecting()) {
         spice_debug("client %p already during disconnection", client);
         return;
     }
@@ -507,7 +507,7 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
      * main_channel_client_on_disconnect->
      *  reds_client_disconnect->red_client_destroy->main_channel...
      */
-    red_client_set_disconnecting(client);
+    client->set_disconnecting();
 
     // TODO: we need to handle agent properly for all clients!!!! (e.g., cut and paste, how?)
     // We shouldn't initialize the agent when there are still clients connected
@@ -528,7 +528,7 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
     }
 
     reds->clients = g_list_remove(reds->clients, client);
-    red_client_destroy(client);
+    client->destroy();
 
    // TODO: we need to handle agent properly for all clients!!!! (e.g., cut and paste, how? Maybe throw away messages
    // if we are in the middle of one from another client)
@@ -943,7 +943,7 @@ static void vdi_port_send_msg_to_client(RedCharDevice *self,
     RedVDIReadBuf *agent_data_buf = (RedVDIReadBuf *)msg;
 
     red_pipe_item_ref(msg);
-    main_channel_client_push_agent_data(red_client_get_main(client),
+    main_channel_client_push_agent_data(client->get_main(),
                                         agent_data_buf->data,
                                         agent_data_buf->len,
                                         vdi_port_read_buf_release,
@@ -954,7 +954,7 @@ static void vdi_port_send_tokens_to_client(RedCharDevice *self,
                                            RedClient *client,
                                            uint32_t tokens)
 {
-    main_channel_client_push_agent_tokens(red_client_get_main(client),
+    main_channel_client_push_agent_tokens(client->get_main(),
                                           tokens);
 }
 
@@ -976,7 +976,7 @@ static void vdi_port_on_free_self_token(RedCharDevice *self)
 static void vdi_port_remove_client(RedCharDevice *self,
                                    RedClient *client)
 {
-    red_client_get_main(client)->shutdown();
+    client->get_main()->shutdown();
 }
 
 /****************************************************************************/
@@ -1942,7 +1942,7 @@ static void reds_channel_do_link(RedChannel *channel, RedClient *client,
 
     red_channel_capabilities_init_from_link_message(&caps, link_msg);
     channel->connect(client, stream,
-                     red_client_during_migrate_at_target(client), &caps);
+                     client->during_migrate_at_target(), &caps);
     red_channel_capabilities_reset(&caps);
 }
 
@@ -1997,7 +1997,7 @@ int reds_on_migrate_dst_set_seamless(RedsState *reds, MainChannelClient *mcc, ui
     } else {
         RedClient *client = mcc->get_client();
 
-        red_client_set_migration_seamless(client);
+        client->set_migration_seamless();
         /* linking all the channels that have been connected before migration handshake */
         reds->dst_do_seamless_migrate = reds_link_mig_target_channels(reds, client);
     }
@@ -2011,7 +2011,7 @@ void reds_on_client_seamless_migrate_complete(RedsState *reds, RedClient *client
         spice_debug("client no longer exists");
         return;
     }
-    main_channel_client_migrate_dst_complete(red_client_get_main(client));
+    main_channel_client_migrate_dst_complete(client->get_main());
 }
 
 void reds_on_client_semi_seamless_migrate_complete(RedsState *reds, RedClient *client)
@@ -2019,7 +2019,7 @@ void reds_on_client_semi_seamless_migrate_complete(RedsState *reds, RedClient *c
     MainChannelClient *mcc;
 
     spice_debug("%p", client);
-    mcc = red_client_get_main(client);
+    mcc = client->get_main();
 
     // TODO: not doing net test. consider doing it on client_migrate_info
     main_channel_client_push_init(mcc, g_list_length(reds->qxl_instances),
@@ -2073,7 +2073,7 @@ static void reds_handle_other_links(RedsState *reds, RedLinkInfo *link)
      * migration completes, as soon as we receive SPICE_MSGC_MAIN_MIGRATE_DST_DO_SEAMLESS.
      * If a channel connects before receiving SPICE_MSGC_MAIN_MIGRATE_DST_DO_SEAMLESS,
      * reds_on_migrate_dst_set_seamless will take care of activating it */
-    if (red_client_during_migrate_at_target(client) && !reds->dst_do_seamless_migrate) {
+    if (client->during_migrate_at_target() && !reds->dst_do_seamless_migrate) {
         spice_assert(mig_client);
         reds_mig_target_client_add_pending_link(mig_client, link_mess, link->stream);
         link->link_mess = NULL;
@@ -3045,7 +3045,7 @@ static void reds_migrate_channels_seamless(RedsState *reds)
 
     /* seamless migration is supported for only one client for now */
     client = reds_get_client(reds);
-    red_client_migrate(client);
+    client->migrate();
 }
 
 static void reds_mig_finished(RedsState *reds, int completed)
