@@ -31,16 +31,13 @@ SPICE_DECLARE_TYPE(RedCharDeviceSmartcard, red_char_device_smartcard, CHAR_DEVIC
 
 struct SmartCardChannelClient;
 
-struct RedCharDeviceSmartcard
+struct RedCharDeviceSmartcard: public RedCharDevice
 {
-    RedCharDevice parent;
-
     RedCharDeviceSmartcardPrivate *priv;
 };
 
-struct RedCharDeviceSmartcardClass
+struct RedCharDeviceSmartcardClass: public RedCharDeviceClass
 {
-    RedCharDeviceClass parent_class;
 };
 
 /*

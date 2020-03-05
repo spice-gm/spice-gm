@@ -57,14 +57,13 @@ typedef struct RedVmcPipeItem {
     uint32_t buf_used;
 } RedVmcPipeItem;
 
-struct RedCharDeviceSpiceVmc {
-    RedCharDevice parent;
+struct RedCharDeviceSpiceVmc: public RedCharDevice
+{
     RedVmcChannel *channel;
 };
 
-struct RedCharDeviceSpiceVmcClass
+struct RedCharDeviceSpiceVmcClass: public RedCharDeviceClass
 {
-    RedCharDeviceClass parent_class;
 };
 
 static RedCharDevice *red_char_device_spicevmc_new(SpiceCharDeviceInstance *sin,
@@ -692,7 +691,7 @@ RedCharDevice *spicevmc_device_connect(RedsState *reds,
 /* Must be called from RedClient handling thread. */
 void spicevmc_device_disconnect(SpiceCharDeviceInstance *sin)
 {
-    g_object_unref(RED_CHAR_DEVICE(sin->st));
+    sin->st->unref();
     sin->st = NULL;
 }
 
@@ -752,7 +751,7 @@ red_char_device_spicevmc_set_property(GObject *object,
             self->channel = (RedVmcChannel*) g_value_get_pointer(value);
             spice_assert(self->channel != NULL);
             self->channel->ref();
-            self->channel->chardev = RED_CHAR_DEVICE(self);
+            self->channel->chardev = self;
 
             break;
         default:

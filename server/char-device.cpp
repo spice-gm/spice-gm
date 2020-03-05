@@ -307,7 +307,7 @@ static bool red_char_device_read_from_device(RedCharDevice *dev)
     }
 
     max_send_tokens = red_char_device_max_send_tokens(dev);
-    g_object_ref(dev);
+    dev->ref();
     /*
      * Reading from the device only in case at least one of the clients have a free token.
      * All messages will be discarded if no client is attached to the device
@@ -333,7 +333,7 @@ static bool red_char_device_read_from_device(RedCharDevice *dev)
     if (dev->priv->running) {
         dev->priv->active = dev->priv->active || did_read;
     }
-    g_object_unref(dev);
+    dev->unref();
     return did_read;
 }
 
@@ -439,7 +439,7 @@ static int red_char_device_write_to_device(RedCharDevice *dev)
         return 0;
     }
 
-    g_object_ref(dev);
+    dev->ref();
 
     if (dev->priv->write_to_dev_timer) {
         red_timer_cancel(dev->priv->write_to_dev_timer);
@@ -488,7 +488,7 @@ static int red_char_device_write_to_device(RedCharDevice *dev)
         dev->priv->active = dev->priv->active || total;
     }
     dev->priv->during_write_to_device = 0;
-    g_object_unref(dev);
+    dev->unref();
     return total;
 }
 
@@ -757,10 +757,10 @@ void red_char_device_start(RedCharDevice *dev)
 {
     spice_debug("char device %p", dev);
     dev->priv->running = TRUE;
-    g_object_ref(dev);
+    dev->ref();
     while (red_char_device_write_to_device(dev) ||
            red_char_device_read_from_device(dev));
-    g_object_unref(dev);
+    dev->unref();
 }
 
 void red_char_device_stop(RedCharDevice *dev)

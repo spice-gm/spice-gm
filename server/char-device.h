@@ -45,17 +45,15 @@ struct RedCharDevicePrivate;
 #endif
 
 /* 'SpiceCharDeviceState' name is used for consistency with what spice-char.h exports */
-struct SpiceCharDeviceState
+struct SpiceCharDeviceState: public GObject
 {
-    GObject parent;
-
     RedCharDevicePrivate *priv;
+    void ref() { g_object_ref(this); }
+    void unref() { g_object_unref(this); }
 };
 
-struct RedCharDeviceClass
+struct RedCharDeviceClass: public GObjectClass
 {
-    GObjectClass parent_class;
-
     /*
      * Messages that are addressed to the client can be queued in case we have
      * multiple clients and some of them don't have enough tokens.

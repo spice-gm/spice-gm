@@ -27,9 +27,8 @@
 
 #define MAX_GUEST_CAPABILITIES_BYTES ((STREAM_CAP_END+7)/8)
 
-struct StreamDevice {
-    RedCharDevice parent;
-
+struct StreamDevice: public RedCharDevice
+{
     StreamDevHeader hdr;
     uint8_t hdr_pos;
     union AllMessages {
@@ -78,7 +77,7 @@ static void
 close_timer_func(StreamDevice *dev)
 {
     if (dev->opened && dev->has_error) {
-        char_device_set_state(RED_CHAR_DEVICE(dev), 0);
+        char_device_set_state(dev, 0);
     }
 }
 
@@ -114,7 +113,7 @@ stream_device_partial_read(StreamDevice *dev, SpiceCharDeviceInstance *sin)
         // As calling sif->state here can cause a crash, schedule
         // a timer and do the call in it. Remove this code when
         // we are sure all Qemu versions have been patched.
-        RedsState *reds = red_char_device_get_server(RED_CHAR_DEVICE(dev));
+        RedsState *reds = red_char_device_get_server(dev);
         if (!dev->close_timer) {
             dev->close_timer = reds_core_timer_add(reds, close_timer_func, dev);
         }
@@ -233,7 +232,7 @@ handle_msg_invalid(StreamDevice *dev, SpiceCharDeviceInstance *sin, const char *
     int msg_size = sizeof(StreamMsgNotifyError) + strlen(error_msg) + 1;
     int total_size = sizeof(StreamDevHeader) + msg_size;
 
-    RedCharDevice *char_dev = RED_CHAR_DEVICE(dev);
+    RedCharDevice *char_dev = dev;
     RedCharDeviceWriteBuffer *buf =
         red_char_device_write_buffer_get_server(char_dev, total_size, false);
     buf->buf_used = total_size;
@@ -336,7 +335,7 @@ handle_msg_device_display_info(StreamDevice *dev, SpiceCharDeviceInstance *sin)
             dev->device_display_info.device_address,
             dev->device_display_info.device_display_id);
 
-    reds_send_device_display_info(red_char_device_get_server(RED_CHAR_DEVICE(dev)));
+    reds_send_device_display_info(red_char_device_get_server(dev));
 
     return true;
 }
@@ -571,9 +570,8 @@ stream_device_stream_start(void *opaque, StreamMsgStartStop *start,
     int msg_size = sizeof(*start) + sizeof(start->codecs[0]) * start->num_codecs;
     int total_size = sizeof(StreamDevHeader) + msg_size;
 
-    RedCharDevice *char_dev = RED_CHAR_DEVICE(dev);
     RedCharDeviceWriteBuffer *buf =
-        red_char_device_write_buffer_get_server(char_dev, total_size, false);
+        red_char_device_write_buffer_get_server(dev, total_size, false);
     buf->buf_used = total_size;
 
     StreamDevHeader *hdr = (StreamDevHeader *)buf->buf;
@@ -581,7 +579,7 @@ stream_device_stream_start(void *opaque, StreamMsgStartStop *start,
 
     memcpy(&hdr[1], start, msg_size);
 
-    red_char_device_write_buffer_add(char_dev, buf);
+    red_char_device_write_buffer_add(dev, buf);
 }
 
 static void
@@ -607,7 +605,7 @@ stream_device_stream_queue_stat(void *opaque, const StreamQueueStat *stats G_GNU
         // TODO resume flow...
         // avoid recursion if we need to call get data from data handling from
         // data handling
-        red_char_device_wakeup(&dev->parent);
+        red_char_device_wakeup(dev);
     }
 }
 
@@ -667,7 +665,7 @@ stream_device_create_channel(StreamDevice *dev)
         return;
     }
 
-    SpiceServer* reds = red_char_device_get_server(RED_CHAR_DEVICE(dev));
+    SpiceServer* reds = red_char_device_get_server(dev);
     SpiceCoreInterfaceInternal* core = reds_get_core_interface(reds);
 
     int id = reds_get_free_channel_id(reds, SPICE_CHANNEL_DISPLAY);

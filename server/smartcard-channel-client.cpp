@@ -85,7 +85,7 @@ SmartCardChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
         spice_assert(smartcard_char_device_get_client(smartcard) || priv->smartcard);
         spice_assert(!priv->write_buf);
         priv->write_buf =
-            red_char_device_write_buffer_get_client(RED_CHAR_DEVICE(smartcard), this, size);
+            red_char_device_write_buffer_get_client(smartcard, this, size);
 
         if (!priv->write_buf) {
             spice_error("failed to allocate write buffer");
@@ -109,7 +109,7 @@ SmartCardChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *
     } else {
         if (priv->write_buf) { /* msg hasn't been pushed to the guest */
             spice_assert(priv->write_buf->buf == msg);
-            red_char_device_write_buffer_release(RED_CHAR_DEVICE(priv->smartcard),
+            red_char_device_write_buffer_release(priv->smartcard,
                                                  &priv->write_buf);
         }
     }
