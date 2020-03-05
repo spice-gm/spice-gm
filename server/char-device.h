@@ -44,14 +44,6 @@ struct RedCharDevicePrivate;
 #define RedCharDeviceClientOpaque RedClient
 #endif
 
-/* 'SpiceCharDeviceState' name is used for consistency with what spice-char.h exports */
-struct SpiceCharDeviceState: public GObject
-{
-    RedCharDevicePrivate *priv;
-    void ref() { g_object_ref(this); }
-    void unref() { g_object_unref(this); }
-};
-
 struct RedCharDeviceClass: public GObjectClass
 {
     /*
@@ -246,6 +238,14 @@ RedCharDevice *spicevmc_device_connect(RedsState *reds,
 SpiceCharDeviceInstance *red_char_device_get_device_instance(RedCharDevice *dev);
 
 SpiceCharDeviceInterface *spice_char_device_get_interface(SpiceCharDeviceInstance *instance);
+
+/* 'SpiceCharDeviceState' name is used for consistency with what spice-char.h exports */
+struct SpiceCharDeviceState: public GObject
+{
+    RedCharDevicePrivate *priv;
+    void ref() { g_object_ref(this); }
+    void unref() { g_object_unref(this); }
+};
 
 SPICE_END_DECLS
 
