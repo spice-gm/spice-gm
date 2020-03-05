@@ -707,9 +707,7 @@ static void update_client_playback_delay(void *opaque, uint32_t delay_ms)
         dcc_set_max_stream_latency(dcc, delay_ms);
     }
     spice_debug("resetting client latency: %u", dcc_get_max_stream_latency(dcc));
-    main_dispatcher_set_mm_time_latency(reds_get_main_dispatcher(reds),
-                                        client,
-                                        dcc_get_max_stream_latency(dcc));
+    reds_get_main_dispatcher(reds)->set_mm_time_latency(client, dcc_get_max_stream_latency(dcc));
 }
 
 static void bitmap_ref(gpointer data)

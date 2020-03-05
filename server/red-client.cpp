@@ -350,8 +350,7 @@ gboolean red_client_seamless_migration_done_for_channel(RedClient *client)
         client->seamless_migrate = FALSE;
         /* migration completion might have been triggered from a different thread
          * than the main thread */
-        main_dispatcher_seamless_migrate_dst_complete(reds_get_main_dispatcher(client->reds),
-                                                      client);
+        reds_get_main_dispatcher(client->reds)->seamless_migrate_dst_complete(client);
         ret = TRUE;
     }
     pthread_mutex_unlock(&client->lock);

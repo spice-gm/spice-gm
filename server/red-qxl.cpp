@@ -98,9 +98,7 @@ void spice_qxl_update_area(QXLInstance *instance, uint32_t surface_id,
     payload.qxl_dirty_rects = qxl_dirty_rects;
     payload.num_dirty_rects = num_dirty_rects;
     payload.clear_dirty_region = clear_dirty_region;
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_UPDATE,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_UPDATE, &payload);
 }
 
 gboolean red_qxl_client_monitors_config(QXLInstance *qxl,
@@ -122,9 +120,7 @@ void spice_qxl_update_area_async(QXLInstance *instance, uint32_t surface_id, QXL
     payload.surface_id = surface_id;
     payload.qxl_area = *qxl_area;
     payload.clear_dirty_region = clear_dirty_region;
-    dispatcher_send_message(instance->st->dispatcher,
-                            message,
-                            &payload);
+    instance->st->dispatcher->send_message(message, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -133,9 +129,7 @@ void spice_qxl_add_memslot(QXLInstance *instance, QXLDevMemSlot *mem_slot)
     RedWorkerMessageAddMemslot payload;
 
     payload.mem_slot = *mem_slot;
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_ADD_MEMSLOT,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_ADD_MEMSLOT, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -146,7 +140,7 @@ void spice_qxl_add_memslot_async(QXLInstance *instance, QXLDevMemSlot *mem_slot,
 
     payload.base.cookie = cookie;
     payload.mem_slot = *mem_slot;
-    dispatcher_send_message(instance->st->dispatcher, message, &payload);
+    instance->st->dispatcher->send_message(message, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -157,7 +151,7 @@ void spice_qxl_del_memslot(QXLInstance *instance, uint32_t slot_group_id, uint32
 
     payload.slot_group_id = slot_group_id;
     payload.slot_id = slot_id;
-    dispatcher_send_message(instance->st->dispatcher, message, &payload);
+    instance->st->dispatcher->send_message(message, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -165,9 +159,7 @@ void spice_qxl_destroy_surfaces(QXLInstance *instance)
 {
     RedWorkerMessageDestroySurfaces payload;
 
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_DESTROY_SURFACES,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_DESTROY_SURFACES, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -177,7 +169,7 @@ void spice_qxl_destroy_surfaces_async(QXLInstance *instance, uint64_t cookie)
     RedWorkerMessage message = RED_WORKER_MESSAGE_DESTROY_SURFACES_ASYNC;
 
     payload.base.cookie = cookie;
-    dispatcher_send_message(instance->st->dispatcher, message, &payload);
+    instance->st->dispatcher->send_message(message, &payload);
 }
 
 /* used by RedWorker */
@@ -196,9 +188,7 @@ void spice_qxl_destroy_primary_surface(QXLInstance *instance, uint32_t surface_i
 {
     RedWorkerMessageDestroyPrimarySurface payload;
     payload.surface_id = surface_id;
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_DESTROY_PRIMARY_SURFACE,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_DESTROY_PRIMARY_SURFACE, &payload);
     red_qxl_destroy_primary_surface_complete(instance->st);
 }
 
@@ -211,7 +201,7 @@ void spice_qxl_destroy_primary_surface_async(QXLInstance *instance,
 
     payload.base.cookie = cookie;
     payload.surface_id = surface_id;
-    dispatcher_send_message(instance->st->dispatcher, message, &payload);
+    instance->st->dispatcher->send_message(message, &payload);
 }
 
 /* used by RedWorker */
@@ -236,7 +226,7 @@ void spice_qxl_create_primary_surface_async(QXLInstance *instance, uint32_t surf
     payload.base.cookie = cookie;
     payload.surface_id = surface_id;
     payload.surface = *surface;
-    dispatcher_send_message(instance->st->dispatcher, message, &payload);
+    instance->st->dispatcher->send_message(message, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -247,9 +237,7 @@ void spice_qxl_create_primary_surface(QXLInstance *instance, uint32_t surface_id
 
     payload.surface_id = surface_id;
     payload.surface = *surface;
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_CREATE_PRIMARY_SURFACE,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_CREATE_PRIMARY_SURFACE, &payload);
     red_qxl_create_primary_surface_complete(instance->st, surface);
 }
 
@@ -258,9 +246,7 @@ void spice_qxl_reset_image_cache(QXLInstance *instance)
 {
     RedWorkerMessageResetImageCache payload;
 
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_RESET_IMAGE_CACHE,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_RESET_IMAGE_CACHE, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -268,9 +254,7 @@ void spice_qxl_reset_cursor(QXLInstance *instance)
 {
     RedWorkerMessageResetCursor payload;
 
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_RESET_CURSOR,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_RESET_CURSOR, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -279,9 +263,7 @@ void spice_qxl_destroy_surface_wait(QXLInstance *instance, uint32_t surface_id)
     RedWorkerMessageDestroySurfaceWait payload;
 
     payload.surface_id = surface_id;
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_DESTROY_SURFACE_WAIT,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_DESTROY_SURFACE_WAIT, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -292,7 +274,7 @@ void spice_qxl_destroy_surface_async(QXLInstance *instance, uint32_t surface_id,
 
     payload.base.cookie = cookie;
     payload.surface_id = surface_id;
-    dispatcher_send_message(instance->st->dispatcher, message, &payload);
+    instance->st->dispatcher->send_message(message, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -300,9 +282,7 @@ void spice_qxl_reset_memslots(QXLInstance *instance)
 {
     RedWorkerMessageResetMemslots payload;
 
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_RESET_MEMSLOTS,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_RESET_MEMSLOTS, &payload);
 }
 
 static bool red_qxl_set_pending(QXLState *qxl_state, int pending)
@@ -324,9 +304,7 @@ void spice_qxl_wakeup(QXLInstance *instance)
     if (red_qxl_set_pending(instance->st, RED_DISPATCHER_PENDING_WAKEUP))
         return;
 
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_WAKEUP,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_WAKEUP, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -337,18 +315,14 @@ void spice_qxl_oom(QXLInstance *instance)
     if (red_qxl_set_pending(instance->st, RED_DISPATCHER_PENDING_OOM))
         return;
 
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_OOM,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_OOM, &payload);
 }
 
 void red_qxl_start(QXLInstance *qxl)
 {
     RedWorkerMessageStart payload;
 
-    dispatcher_send_message(qxl->st->dispatcher,
-                            RED_WORKER_MESSAGE_START,
-                            &payload);
+    qxl->st->dispatcher->send_message(RED_WORKER_MESSAGE_START, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -358,7 +332,7 @@ void spice_qxl_flush_surfaces_async(QXLInstance *instance, uint64_t cookie)
     RedWorkerMessage message = RED_WORKER_MESSAGE_FLUSH_SURFACES_ASYNC;
 
     payload.base.cookie = cookie;
-    dispatcher_send_message(instance->st->dispatcher, message, &payload);
+    instance->st->dispatcher->send_message(message, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -373,7 +347,7 @@ void spice_qxl_monitors_config_async(QXLInstance *instance, QXLPHYSICAL monitors
     payload.group_id = group_id;
     payload.max_monitors = instance->st->max_monitors;
 
-    dispatcher_send_message(instance->st->dispatcher, message, &payload);
+    instance->st->dispatcher->send_message(message, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -381,18 +355,14 @@ void spice_qxl_driver_unload(QXLInstance *instance)
 {
     RedWorkerMessageDriverUnload payload;
 
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_DRIVER_UNLOAD,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_DRIVER_UNLOAD, &payload);
 }
 
 void red_qxl_stop(QXLInstance *qxl)
 {
     RedWorkerMessageStop payload;
 
-    dispatcher_send_message(qxl->st->dispatcher,
-                            RED_WORKER_MESSAGE_STOP,
-                            &payload);
+    qxl->st->dispatcher->send_message(RED_WORKER_MESSAGE_STOP, &payload);
 }
 
 SPICE_GNUC_VISIBLE
@@ -402,9 +372,7 @@ void spice_qxl_loadvm_commands(QXLInstance *instance, struct QXLCommandExt *ext,
 
     payload.count = count;
     payload.ext = ext;
-    dispatcher_send_message(instance->st->dispatcher,
-                            RED_WORKER_MESSAGE_LOADVM_COMMANDS,
-                            &payload);
+    instance->st->dispatcher->send_message(RED_WORKER_MESSAGE_LOADVM_COMMANDS, &payload);
 }
 
 uint32_t red_qxl_get_ram_size(QXLInstance *qxl)
@@ -482,9 +450,7 @@ void spice_qxl_gl_scanout(QXLInstance *qxl,
     pthread_mutex_unlock(&qxl_state->scanout_mutex);
 
     /* FIXME: find a way to coallesce all pending SCANOUTs */
-    dispatcher_send_message(qxl_state->dispatcher,
-                            RED_WORKER_MESSAGE_GL_SCANOUT, &payload);
-
+    qxl_state->dispatcher->send_message(RED_WORKER_MESSAGE_GL_SCANOUT, &payload);
     reds_update_client_mouse_allowed(qxl_state->reds);
 }
 
@@ -515,7 +481,7 @@ void spice_qxl_gl_draw_async(QXLInstance *qxl,
     spice_return_if_fail(qxl_state->gl_draw_cookie == GL_DRAW_COOKIE_INVALID);
 
     qxl_state->gl_draw_cookie = cookie;
-    dispatcher_send_message(qxl_state->dispatcher, message, &draw);
+    qxl_state->dispatcher->send_message(message, &draw);
 }
 
 void red_qxl_gl_draw_async_complete(QXLInstance *qxl)
@@ -606,7 +572,7 @@ void red_qxl_init(RedsState *reds, QXLInstance *qxl)
     pthread_mutex_init(&qxl_state->scanout_mutex, NULL);
     qxl_state->scanout.drm_dma_buf_fd = -1;
     qxl_state->gl_draw_cookie = GL_DRAW_COOKIE_INVALID;
-    qxl_state->dispatcher = dispatcher_new(RED_WORKER_MESSAGE_COUNT);
+    qxl_state->dispatcher = new Dispatcher(RED_WORKER_MESSAGE_COUNT);
 
     qxl_state->max_monitors = UINT_MAX;
     qxl->st = qxl_state;
@@ -624,9 +590,7 @@ void red_qxl_destroy(QXLInstance *qxl)
 
     /* send message to close thread */
     RedWorkerMessageClose message;
-    dispatcher_send_message(qxl_state->dispatcher,
-                            RED_WORKER_MESSAGE_CLOSE_WORKER,
-                            &message);
+    qxl_state->dispatcher->send_message(RED_WORKER_MESSAGE_CLOSE_WORKER, &message);
     red_worker_free(qxl_state->worker);
     qxl_state->dispatcher->unref();
     /* this must be done after calling red_worker_free */
@@ -676,36 +640,28 @@ void red_qxl_on_ic_change(QXLInstance *qxl, SpiceImageCompression ic)
 {
     RedWorkerMessageSetCompression payload;
     payload.image_compression = ic;
-    dispatcher_send_message(qxl->st->dispatcher,
-                            RED_WORKER_MESSAGE_SET_COMPRESSION,
-                            &payload);
+    qxl->st->dispatcher->send_message(RED_WORKER_MESSAGE_SET_COMPRESSION, &payload);
 }
 
 void red_qxl_on_sv_change(QXLInstance *qxl, int sv)
 {
     RedWorkerMessageSetStreamingVideo payload;
     payload.streaming_video = sv;
-    dispatcher_send_message(qxl->st->dispatcher,
-                            RED_WORKER_MESSAGE_SET_STREAMING_VIDEO,
-                            &payload);
+    qxl->st->dispatcher->send_message(RED_WORKER_MESSAGE_SET_STREAMING_VIDEO, &payload);
 }
 
 void red_qxl_on_vc_change(QXLInstance *qxl, GArray *video_codecs)
 {
     RedWorkerMessageSetVideoCodecs payload;
     payload.video_codecs = g_array_ref(video_codecs);
-    dispatcher_send_message(qxl->st->dispatcher,
-                            RED_WORKER_MESSAGE_SET_VIDEO_CODECS,
-                            &payload);
+    qxl->st->dispatcher->send_message(RED_WORKER_MESSAGE_SET_VIDEO_CODECS, &payload);
 }
 
 void red_qxl_set_mouse_mode(QXLInstance *qxl, uint32_t mode)
 {
     RedWorkerMessageSetMouseMode payload;
     payload.mode = mode;
-    dispatcher_send_message(qxl->st->dispatcher,
-                            RED_WORKER_MESSAGE_SET_MOUSE_MODE,
-                            &payload);
+    qxl->st->dispatcher->send_message(RED_WORKER_MESSAGE_SET_MOUSE_MODE, &payload);
 }
 
 RedsState* red_qxl_get_server(QXLState *qxl_state)

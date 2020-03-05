@@ -20,61 +20,15 @@
 #define DISPATCHER_H_
 
 #include <pthread.h>
-#include <glib-object.h>
 
 #include "red-common.h"
+#include "utils.hpp"
 
-SPICE_BEGIN_DECLS
+#include "push-visibility.h"
 
-#define TYPE_DISPATCHER dispatcher_get_type()
-
-#define DISPATCHER(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_DISPATCHER, Dispatcher))
-#define DISPATCHER_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_DISPATCHER, DispatcherClass))
-#define IS_DISPATCHER(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_DISPATCHER))
-#define IS_DISPATCHER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_DISPATCHER))
-#define DISPATCHER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_DISPATCHER, DispatcherClass))
-
-typedef struct Dispatcher Dispatcher;
-typedef struct DispatcherClass DispatcherClass;
-typedef struct DispatcherPrivate DispatcherPrivate;
-
-/* A Dispatcher provides inter-thread communication by serializing messages.
- * Currently the Dispatcher uses a unix socket (socketpair) for dispatching the
- * messages.
- *
- * Message types are identified by a unique integer value and must first be
- * registered with the class (see dispatcher_register_handler()) before they
- * can be sent. Sending threads can send a message using the
- * dispatcher_send_message() function. The receiving thread can monitor the
- * dispatcher's 'receive' file descriptor (see dispatcher_get_recv_fd()) for
- * activity and should call dispatcher_handle_recv_read() to process incoming
- * messages.
- */
-struct Dispatcher: public GObject
-{
-    DispatcherPrivate *priv;
-    void ref() { g_object_ref(this); }
-    void unref() { g_object_unref(this); }
-};
-
-struct DispatcherClass
-{
-    GObjectClass parent_class;
-};
-
-GType dispatcher_get_type(void) G_GNUC_CONST;
-
-/* dispatcher_new
- *
- * Create a new Dispatcher object
- *
- * @max_message_type:   indicates the number of unique message types that can
- *                      be handled by this dispatcher. Each message type is
- *                      identified by an integer value between 0 and
- *                      max_message_type-1.
- */
-Dispatcher *dispatcher_new(size_t max_message_type);
-
+struct Dispatcher;
+struct DispatcherPrivate;
+struct DispatcherMessage;
 
 /* The function signature for handlers of a specific message type */
 typedef void (*dispatcher_handle_message)(void *opaque,
@@ -86,100 +40,130 @@ typedef void (*dispatcher_handle_any_message)(void *opaque,
                                               uint32_t message_type,
                                               void *payload);
 
-/* dispatcher_send_message
+/* A Dispatcher provides inter-thread communication by serializing messages.
+ * Currently the Dispatcher uses a unix socket (socketpair) for dispatching the
+ * messages.
  *
- * Sends a message to the receiving thread. The message type must have been
- * registered first (see dispatcher_register_handler()).  @payload must be a
- * buffer of the same size as the size registered for @message_type
- *
- * If the sent message is a message type requires an ACK, this function will
- * block until it receives an ACK from the receiving thread.
- *
- * @message_type: message type
- * @payload:      payload
+ * Message types are identified by a unique integer value and must first be
+ * registered with the class (see register_handler()) before they
+ * can be sent. Sending threads can send a message using the
+ * send_message() function. The receiving thread can monitor the
+ * dispatcher's 'receive' file descriptor (see dispatcher_get_recv_fd()) for
+ * activity and should call dispatcher_handle_recv_read() to process incoming
+ * messages.
  */
-void dispatcher_send_message(Dispatcher *dispatcher, uint32_t message_type,
-                             void *payload);
-
-/* dispatcher_send_message_custom
- *
- * Sends a message to the receiving thread.
- *
- * If the sent message requires an ACK, this function will block until it
- * receives an ACK from the receiving thread.
- *
- * @handler:      callback to handle message
- * @payload:      payload
- * @payload_size: size of payload
- * @ack:          acknowledge required. Make message synchronous
- */
-void dispatcher_send_message_custom(Dispatcher *dispatcher, dispatcher_handle_message handler,
-                                    void *payload, uint32_t payload_size, bool ack);
-
-/* dispatcher_register_handler
- *
- * This function registers a message type with the dispatcher, and registers
- * @handler as the function that will handle incoming messages of this type.
- * If @ack is true, the dispatcher will also send an ACK in response to the
- * message after the message has been passed to the handler. You can only
- * register a given message type once. For example, you cannot register two
- * different handlers for the same message type with different @ack values.
- *
- * @dispatcher:     dispatcher
- * @messsage_type:  message type
- * @handler:        message handler
- * @size:           message size. Each type has a fixed associated size.
- * @ack:            whether the dispatcher should send an ACK to the sender
- */
-void dispatcher_register_handler(Dispatcher *dispatcher, uint32_t message_type,
-                                 dispatcher_handle_message handler, size_t size,
-                                 bool ack);
-
-/* dispatcher_register_universal_handler
- *
- * Register a universal handler that will be called when *any* message is
- * received by the dispatcher. When a message is received, this handler will be
- * called first. If the received message type was registered via
- * dispatcher_register_handler(), the message-specific handler will then be
- * called. Only one universal handler can be registered. This feature can be
- * used to record all messages to a file for replay and debugging.
- *
- * @dispatcher:     dispatcher
- * @handler:        a handler function
- */
-void dispatcher_register_universal_handler(Dispatcher *dispatcher,
-                                    dispatcher_handle_any_message handler);
-
-/* dispatcher_create_watch
- *
- * Create a new watch to handle events for the dispatcher.
- * You should release it before releasing the dispatcher.
- *
- * @return: newly created watch
- */
-SpiceWatch *dispatcher_create_watch(Dispatcher *dispatcher, SpiceCoreInterfaceInternal *core);
-
-/* dispatcher_set_opaque
- *
- * This @opaque pointer is user-defined data that will be passed as the first
- * argument to all handler functions.
- *
- * @dispatcher: Dispatcher instance
- * @opaque: opaque to use for callbacks
- */
-void dispatcher_set_opaque(Dispatcher *dispatcher, void *opaque);
-
-SPICE_END_DECLS
-
-#ifdef __cplusplus
-template <typename T>
-inline void
-dispatcher_send_message_custom(Dispatcher *dispatcher, void (*handler)(void *, T*),
-                               T *payload, bool ack)
+class Dispatcher
 {
-    dispatcher_send_message_custom(dispatcher, (dispatcher_handle_message) handler,
-                                   payload, sizeof(*payload), ack);
-}
-#endif
+public:
+    SPICE_CXX_GLIB_ALLOCATOR
+    /* Create a new Dispatcher object
+     *
+     * @max_message_type:   indicates the number of unique message types that can
+     *                      be handled by this dispatcher. Each message type is
+     *                      identified by an integer value between 0 and
+     *                      max_message_type-1.
+     */
+    Dispatcher(uint32_t max_message_type);
+
+    /* send_message
+     *
+     * Sends a message to the receiving thread. The message type must have been
+     * registered first (see register_handler()).  @payload must be a
+     * buffer of the same size as the size registered for @message_type
+     *
+     * If the sent message is a message type requires an ACK, this function will
+     * block until it receives an ACK from the receiving thread.
+     *
+     * @message_type: message type
+     * @payload:      payload
+     */
+    void send_message(uint32_t message_type, void *payload);
+
+    /* send_message_custom
+     *
+     * Sends a message to the receiving thread.
+     *
+     * If the sent message requires an ACK, this function will block until it
+     * receives an ACK from the receiving thread.
+     *
+     * @handler:      callback to handle message
+     * @payload:      payload
+     * @payload_size: size of payload
+     * @ack:          acknowledge required. Make message synchronous
+     */
+    void send_message_custom(dispatcher_handle_message handler,
+                             void *payload, uint32_t payload_size, bool ack);
+
+    template <typename T> inline void
+    send_message_custom(void (*handler)(void *, T*), T *payload, bool ack)
+    {
+        send_message_custom((dispatcher_handle_message) handler,
+                            payload, sizeof(*payload), ack);
+    }
+
+    /* register_handler
+     *
+     * This function registers a message type with the dispatcher, and registers
+     * @handler as the function that will handle incoming messages of this type.
+     * If @ack is true, the dispatcher will also send an ACK in response to the
+     * message after the message has been passed to the handler. You can only
+     * register a given message type once. For example, you cannot register two
+     * different handlers for the same message type with different @ack values.
+     *
+     * @messsage_type:  message type
+     * @handler:        message handler
+     * @size:           message size. Each type has a fixed associated size.
+     * @ack:            whether the dispatcher should send an ACK to the sender
+     */
+    void register_handler(uint32_t message_type,
+                          dispatcher_handle_message handler, size_t size,
+                          bool ack);
+
+    /* register_universal_handler
+     *
+     * Register a universal handler that will be called when *any* message is
+     * received by the dispatcher. When a message is received, this handler will be
+     * called first. If the received message type was registered via
+     * register_handler(), the message-specific handler will then be
+     * called. Only one universal handler can be registered. This feature can be
+     * used to record all messages to a file for replay and debugging.
+     *
+     * @handler:        a handler function
+     */
+    void register_universal_handler(dispatcher_handle_any_message handler);
+
+    /* create_watch
+     *
+     * Create a new watch to handle events for the dispatcher.
+     * You should release it before releasing the dispatcher.
+     *
+     * @return: newly created watch
+     */
+    SpiceWatch *create_watch(SpiceCoreInterfaceInternal *core);
+
+    /* set_opaque
+     *
+     * This @opaque pointer is user-defined data that will be passed as the first
+     * argument to all handler functions.
+     *
+     * @opaque: opaque to use for callbacks
+     */
+    void set_opaque(void *opaque);
+
+    void ref() { g_atomic_int_inc(&_ref); }
+    void unref() { if (g_atomic_int_dec_and_test(&_ref)) delete this; }
+
+protected:
+    virtual ~Dispatcher();
+
+private:
+    static int handle_single_read(Dispatcher *dispatcher);
+    static void handle_event(int fd, int event, Dispatcher* dispatcher);
+    void send_message_internal(const DispatcherMessage*msg, void *payload);
+    gint _ref = 1;
+    red::unique_link<DispatcherPrivate> priv;
+};
+
+#include "pop-visibility.h"
 
 #endif /* DISPATCHER_H_ */

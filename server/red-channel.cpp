@@ -78,8 +78,11 @@ struct RedChannelPrivate
         thread_id = pthread_self();
     }
 
-    ~RedChannelPrivate() {
-        g_clear_object(&dispatcher);
+    ~RedChannelPrivate()
+    {
+        if (dispatcher) {
+            dispatcher->unref();
+        }
         red_channel_capabilities_reset(&local_caps);
     }
 
@@ -365,8 +368,7 @@ void RedChannel::connect(RedClient *client, RedStream *stream, int migration,
     };
     red_channel_capabilities_init(&payload.caps, caps);
 
-    dispatcher_send_message_custom(dispatcher, handle_dispatcher_connect,
-                                   &payload, false);
+    dispatcher->send_message_custom(handle_dispatcher_connect, &payload, false);
 }
 
 GList *RedChannel::get_clients()
@@ -551,10 +553,8 @@ typedef struct RedMessageMigrate {
     RedChannelClient *rcc;
 } RedMessageMigrate;
 
-static void handle_dispatcher_migrate(void *opaque, void *payload)
+static void handle_dispatcher_migrate(void *opaque, RedMessageMigrate *msg)
 {
-    RedMessageMigrate *msg = (RedMessageMigrate*) payload;
-
     msg->rcc->migrate();
     msg->rcc->unref();
 }
@@ -568,19 +568,18 @@ void RedChannel::migrate_client(RedChannelClient *rcc)
     }
 
     RedMessageMigrate payload = { .rcc = red::add_ref(rcc) };
-    dispatcher_send_message_custom(priv->dispatcher, handle_dispatcher_migrate,
-                                   &payload, sizeof(payload), false);
+    priv->dispatcher->send_message_custom(handle_dispatcher_migrate,
+                                          &payload, false);
 }
 
 typedef struct RedMessageDisconnect {
     RedChannelClient *rcc;
 } RedMessageDisconnect;
 
-static void handle_dispatcher_disconnect(void *opaque, void *payload)
+static void handle_dispatcher_disconnect(void *opaque, RedMessageDisconnect *msg)
 {
-    RedMessageDisconnect *msg = (RedMessageDisconnect*) payload;
-
     msg->rcc->disconnect();
+    msg->rcc->unref();
 }
 
 void RedChannel::disconnect_client(RedChannelClient *rcc)
@@ -593,7 +592,7 @@ void RedChannel::disconnect_client(RedChannelClient *rcc)
 
     // TODO: we turned it to be sync, due to client_destroy . Should we support async? - for this we will need ref count
     // for channels
-    RedMessageDisconnect payload = { .rcc = rcc };
-    dispatcher_send_message_custom(priv->dispatcher, handle_dispatcher_disconnect,
-                                   &payload, sizeof(payload), true);
+    RedMessageDisconnect payload = { .rcc = red::add_ref(rcc) };
+    priv->dispatcher->send_message_custom(handle_dispatcher_disconnect,
+                                          &payload, true);
 }

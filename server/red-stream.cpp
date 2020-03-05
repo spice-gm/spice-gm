@@ -446,7 +446,7 @@ void red_stream_push_channel_event(RedStream *s, int event)
 {
     RedsState *reds = s->priv->reds;
     MainDispatcher *md = reds_get_main_dispatcher(reds);
-    main_dispatcher_channel_event(md, event, s->priv->info);
+    md->channel_event(event, s->priv->info);
 }
 
 static void red_stream_set_socket(RedStream *stream, int socket)

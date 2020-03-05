@@ -46,82 +46,6 @@
  * main_dispatcher_handle_<event_name> - handler for callback from main thread
  *   seperate from self because it may send an ack or do other work in the future.
  */
-struct MainDispatcherPrivate
-{
-    RedsState *reds; /* weak */
-    SpiceWatch *watch;
-    pthread_t thread_id;
-};
-
-G_DEFINE_TYPE_WITH_PRIVATE(MainDispatcher, main_dispatcher, TYPE_DISPATCHER)
-
-enum {
-    PROP0,
-    PROP_SPICE_SERVER,
-};
-
-static void
-main_dispatcher_get_property(GObject    *object,
-                                  guint       property_id,
-                                  GValue     *value,
-                                  GParamSpec *pspec)
-{
-    MainDispatcher *self = MAIN_DISPATCHER(object);
-
-    switch (property_id) {
-        case PROP_SPICE_SERVER:
-             g_value_set_pointer(value, self->priv->reds);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static void
-main_dispatcher_set_property(GObject      *object,
-                                  guint         property_id,
-                                  const GValue *value,
-                                  GParamSpec   *pspec)
-{
-    MainDispatcher *self = MAIN_DISPATCHER(object);
-
-    switch (property_id) {
-        case PROP_SPICE_SERVER:
-            self->priv->reds = (RedsState*) g_value_get_pointer(value);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static void main_dispatcher_constructed(GObject *object);
-static void main_dispatcher_finalize(GObject *object);
-
-static void
-main_dispatcher_class_init(MainDispatcherClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-
-    object_class->constructed = main_dispatcher_constructed;
-    object_class->finalize = main_dispatcher_finalize;
-    object_class->get_property = main_dispatcher_get_property;
-    object_class->set_property = main_dispatcher_set_property;
-
-    g_object_class_install_property(object_class,
-                                    PROP_SPICE_SERVER,
-                                    g_param_spec_pointer("spice-server",
-                                                         "spice-server",
-                                                         "The spice server associated with this dispatcher",
-                                                         G_PARAM_READWRITE |
-                                                         G_PARAM_CONSTRUCT_ONLY));
-}
-
-static void
-main_dispatcher_init(MainDispatcher *self)
-{
-    self->priv = (MainDispatcherPrivate*) main_dispatcher_get_instance_private(self);
-    self->priv->thread_id = pthread_self();
-}
 
 enum {
     MAIN_DISPATCHER_CHANNEL_EVENT = 0,
@@ -160,18 +84,17 @@ static void main_dispatcher_handle_channel_event(void *opaque,
     reds_handle_channel_event(reds, channel_event->event, channel_event->info);
 }
 
-void main_dispatcher_channel_event(MainDispatcher *self, int event, SpiceChannelEventInfo *info)
+void MainDispatcher::channel_event(int event, SpiceChannelEventInfo *info)
 {
     MainDispatcherChannelEventMessage msg = {0,};
 
-    if (pthread_self() == self->priv->thread_id) {
-        reds_handle_channel_event(self->priv->reds, event, info);
+    if (pthread_self() == thread_id) {
+        reds_handle_channel_event(reds, event, info);
         return;
     }
     msg.event = event;
     msg.info = info;
-    dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_CHANNEL_EVENT,
-                            &msg);
+    send_message(MAIN_DISPATCHER_CHANNEL_EVENT, &msg);
 }
 
 
@@ -205,45 +128,41 @@ static void main_dispatcher_handle_client_disconnect(void *opaque,
     msg->client->unref();
 }
 
-void main_dispatcher_seamless_migrate_dst_complete(MainDispatcher *self,
-                                                   RedClient *client)
+void MainDispatcher::seamless_migrate_dst_complete(RedClient *client)
 {
     MainDispatcherMigrateSeamlessDstCompleteMessage msg;
 
-    if (pthread_self() == self->priv->thread_id) {
-        reds_on_client_seamless_migrate_complete(self->priv->reds, client);
+    if (pthread_self() == thread_id) {
+        reds_on_client_seamless_migrate_complete(reds, client);
         return;
     }
 
     msg.client = red::add_ref(client);
-    dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_MIGRATE_SEAMLESS_DST_COMPLETE,
-                            &msg);
+    send_message(MAIN_DISPATCHER_MIGRATE_SEAMLESS_DST_COMPLETE, &msg);
 }
 
-void main_dispatcher_set_mm_time_latency(MainDispatcher *self, RedClient *client, uint32_t latency)
+void MainDispatcher::set_mm_time_latency(RedClient *client, uint32_t latency)
 {
     MainDispatcherMmTimeLatencyMessage msg;
 
-    if (pthread_self() == self->priv->thread_id) {
-        reds_set_client_mm_time_latency(self->priv->reds, client, latency);
+    if (pthread_self() == thread_id) {
+        reds_set_client_mm_time_latency(reds, client, latency);
         return;
     }
 
     msg.client = red::add_ref(client);
     msg.latency = latency;
-    dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_SET_MM_TIME_LATENCY,
-                            &msg);
+    send_message(MAIN_DISPATCHER_SET_MM_TIME_LATENCY, &msg);
 }
 
-void main_dispatcher_client_disconnect(MainDispatcher *self, RedClient *client)
+void MainDispatcher::client_disconnect(RedClient *client)
 {
     MainDispatcherClientDisconnectMessage msg;
 
     if (!red_client_is_disconnecting(client)) {
         spice_debug("client %p", client);
         msg.client = red::add_ref(client);
-        dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_CLIENT_DISCONNECT,
-                                &msg);
+        send_message(MAIN_DISPATCHER_CLIENT_DISCONNECT, &msg);
     } else {
         spice_debug("client %p already during disconnection", client);
     }
@@ -254,43 +173,29 @@ void main_dispatcher_client_disconnect(MainDispatcher *self, RedClient *client)
  * Reds routines shouldn't be exposed. Instead reds.c should register the callbacks,
  * and the corresponding operations should be made only via main_dispatcher.
  */
-MainDispatcher* main_dispatcher_new(RedsState *reds)
+MainDispatcher::MainDispatcher(RedsState *reds):
+    Dispatcher(MAIN_DISPATCHER_NUM_MESSAGES),
+    reds(reds),
+    thread_id(pthread_self())
 {
-    MainDispatcher *self = (MainDispatcher*) g_object_new(TYPE_MAIN_DISPATCHER,
-                                        "spice-server", reds,
-                                        "max-message-type", MAIN_DISPATCHER_NUM_MESSAGES,
-                                        NULL);
-    return self;
+    set_opaque(reds);
+
+    watch = create_watch(reds_get_core_interface(reds));
+    register_handler(MAIN_DISPATCHER_CHANNEL_EVENT,
+                     main_dispatcher_handle_channel_event,
+                     sizeof(MainDispatcherChannelEventMessage), false);
+    register_handler(MAIN_DISPATCHER_MIGRATE_SEAMLESS_DST_COMPLETE,
+                     main_dispatcher_handle_migrate_complete,
+                     sizeof(MainDispatcherMigrateSeamlessDstCompleteMessage), false);
+    register_handler(MAIN_DISPATCHER_SET_MM_TIME_LATENCY,
+                     main_dispatcher_handle_mm_time_latency,
+                     sizeof(MainDispatcherMmTimeLatencyMessage), false);
+    register_handler(MAIN_DISPATCHER_CLIENT_DISCONNECT,
+                     main_dispatcher_handle_client_disconnect,
+                     sizeof(MainDispatcherClientDisconnectMessage), false);
 }
 
-void main_dispatcher_constructed(GObject *object)
+MainDispatcher::~MainDispatcher()
 {
-    MainDispatcher *self = MAIN_DISPATCHER(object);
-
-    G_OBJECT_CLASS(main_dispatcher_parent_class)->constructed(object);
-    dispatcher_set_opaque(DISPATCHER(self), self->priv->reds);
-
-    self->priv->watch =
-        dispatcher_create_watch(DISPATCHER(self), reds_get_core_interface(self->priv->reds));
-    dispatcher_register_handler(DISPATCHER(self), MAIN_DISPATCHER_CHANNEL_EVENT,
-                                main_dispatcher_handle_channel_event,
-                                sizeof(MainDispatcherChannelEventMessage), false);
-    dispatcher_register_handler(DISPATCHER(self), MAIN_DISPATCHER_MIGRATE_SEAMLESS_DST_COMPLETE,
-                                main_dispatcher_handle_migrate_complete,
-                                sizeof(MainDispatcherMigrateSeamlessDstCompleteMessage), false);
-    dispatcher_register_handler(DISPATCHER(self), MAIN_DISPATCHER_SET_MM_TIME_LATENCY,
-                                main_dispatcher_handle_mm_time_latency,
-                                sizeof(MainDispatcherMmTimeLatencyMessage), false);
-    dispatcher_register_handler(DISPATCHER(self), MAIN_DISPATCHER_CLIENT_DISCONNECT,
-                                main_dispatcher_handle_client_disconnect,
-                                sizeof(MainDispatcherClientDisconnectMessage), false);
-}
-
-static void main_dispatcher_finalize(GObject *object)
-{
-    MainDispatcher *self = MAIN_DISPATCHER(object);
-
-    red_watch_remove(self->priv->watch);
-    self->priv->watch = NULL;
-    G_OBJECT_CLASS(main_dispatcher_parent_class)->finalize(object);
+    red_watch_remove(watch);
 }

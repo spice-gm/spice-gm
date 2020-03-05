@@ -152,8 +152,7 @@ void MainChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *
 void MainChannelClient::on_disconnect()
 {
     RedsState *reds = get_channel()->get_server();
-    main_dispatcher_client_disconnect(reds_get_main_dispatcher(reds),
-                                      get_client());
+    reds_get_main_dispatcher(reds)->client_disconnect(get_client());
 }
 
 static void main_channel_client_push_ping(MainChannelClient *mcc, int size);

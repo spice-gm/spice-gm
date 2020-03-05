@@ -35,14 +35,13 @@
 #include "red-channel-capabilities.h"
 #include "utils.hpp"
 
-struct Dispatcher;
-
 #include "push-visibility.h"
 class RedChannel;
 struct RedChannelPrivate;
 struct RedChannelClient;
 struct RedClient;
 struct MainChannelClient;
+struct Dispatcher;
 
 static inline gboolean test_capability(const uint32_t *caps, int num_caps, uint32_t cap)
 {

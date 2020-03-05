@@ -23,44 +23,30 @@
 #include "dispatcher.h"
 #include "red-channel.h"
 
-SPICE_BEGIN_DECLS
+#include "push-visibility.h"
 
-#define TYPE_MAIN_DISPATCHER main_dispatcher_get_type()
-
-#define MAIN_DISPATCHER(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_MAIN_DISPATCHER, MainDispatcher))
-#define MAIN_DISPATCHER_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_MAIN_DISPATCHER, MainDispatcherClass))
-#define IS_MAIN_DISPATCHER(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_MAIN_DISPATCHER))
-#define IS_MAIN_DISPATCHER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), TYPE_MAIN_DISPATCHER))
-#define MAIN_DISPATCHER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_MAIN_DISPATCHER, MainDispatcherClass))
-
-typedef struct MainDispatcher MainDispatcher;
-typedef struct MainDispatcherClass MainDispatcherClass;
-typedef struct MainDispatcherPrivate MainDispatcherPrivate;
-
-struct MainDispatcher: public Dispatcher
+class MainDispatcher final: public Dispatcher
 {
-    MainDispatcherPrivate *priv;
+public:
+    MainDispatcher(RedsState *reds);
+
+    void channel_event(int event, SpiceChannelEventInfo *info);
+    void seamless_migrate_dst_complete(RedClient *client);
+    void set_mm_time_latency(RedClient *client, uint32_t latency);
+    /*
+     * Disconnecting the client is always executed asynchronously,
+     * in order to protect from expired references in the routines
+     * that triggered the client destruction.
+     */
+    void client_disconnect(RedClient *client);
+protected:
+    ~MainDispatcher();
+private:
+    RedsState *const reds;
+    SpiceWatch *watch = nullptr;
+    pthread_t thread_id;
 };
 
-struct MainDispatcherClass
-{
-    DispatcherClass parent_class;
-};
-
-GType main_dispatcher_get_type(void) G_GNUC_CONST;
-
-void main_dispatcher_channel_event(MainDispatcher *self, int event, SpiceChannelEventInfo *info);
-void main_dispatcher_seamless_migrate_dst_complete(MainDispatcher *self, RedClient *client);
-void main_dispatcher_set_mm_time_latency(MainDispatcher *self, RedClient *client, uint32_t latency);
-/*
- * Disconnecting the client is always executed asynchronously,
- * in order to protect from expired references in the routines
- * that triggered the client destruction.
- */
-void main_dispatcher_client_disconnect(MainDispatcher *self, RedClient *client);
-
-MainDispatcher* main_dispatcher_new(RedsState *reds);
-
-SPICE_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* MAIN_DISPATCHER_H_ */

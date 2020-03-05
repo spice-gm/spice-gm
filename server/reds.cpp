@@ -3467,7 +3467,7 @@ static int do_spice_init(RedsState *reds, SpiceCoreInterface *core_interface)
     reds->agent_dev = red_char_device_vdi_port_new(reds);
     reds_update_agent_properties(reds);
     reds->clients = NULL;
-    reds->main_dispatcher = main_dispatcher_new(reds);
+    reds->main_dispatcher = new MainDispatcher(reds);
     reds->channels = NULL;
     reds->mig_target_clients = NULL;
     reds->char_devices = NULL;

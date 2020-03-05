@@ -36,135 +36,59 @@
  * Is also packaged to not leave holes in both 32 and 64 environments
  * so memory instrumentation tools should not find uninitialised bytes.
  */
-typedef struct DispatcherMessage {
+struct DispatcherMessage {
     dispatcher_handle_message handler;
     uint32_t size;
     uint32_t type:31;
     uint32_t ack:1;
-} DispatcherMessage;
+};
 
 struct DispatcherPrivate {
+    SPICE_CXX_GLIB_ALLOCATOR
+    DispatcherPrivate(uint32_t max_message_type):
+        max_message_type(max_message_type)
+    {
+    }
+    ~DispatcherPrivate();
     int recv_fd;
     int send_fd;
     pthread_mutex_t lock;
     DispatcherMessage *messages;
-    guint max_message_type;
+    const guint max_message_type;
     void *payload; /* allocated as max of message sizes */
     size_t payload_size; /* used to track realloc calls */
     void *opaque;
     dispatcher_handle_any_message any_handler;
 };
 
-G_DEFINE_TYPE_WITH_PRIVATE(Dispatcher, dispatcher, G_TYPE_OBJECT)
-
-enum {
-    PROP_0,
-    PROP_MAX_MESSAGE_TYPE
-};
-
-static void
-dispatcher_get_property(GObject    *object,
-                        guint       property_id,
-                        GValue     *value,
-                        GParamSpec *pspec)
+DispatcherPrivate::~DispatcherPrivate()
 {
-    Dispatcher *self = DISPATCHER(object);
-
-    switch (property_id)
-    {
-        case PROP_MAX_MESSAGE_TYPE:
-            g_value_set_uint(value, self->priv->max_message_type);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
+    g_free(messages);
+    socket_close(send_fd);
+    socket_close(recv_fd);
+    pthread_mutex_destroy(&lock);
+    g_free(payload);
 }
 
-static void
-dispatcher_set_property(GObject      *object,
-                        guint         property_id,
-                        const GValue *value,
-                        GParamSpec   *pspec)
+Dispatcher::~Dispatcher()
 {
-    Dispatcher *self = DISPATCHER(object);
-
-    switch (property_id)
-    {
-        case PROP_MAX_MESSAGE_TYPE:
-            self->priv->max_message_type = g_value_get_uint(value);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
 }
 
-static void
-dispatcher_finalize(GObject *object)
+Dispatcher::Dispatcher(uint32_t max_message_type):
+    priv(new DispatcherPrivate(max_message_type))
 {
-    Dispatcher *self = DISPATCHER(object);
-    g_free(self->priv->messages);
-    socket_close(self->priv->send_fd);
-    socket_close(self->priv->recv_fd);
-    pthread_mutex_destroy(&self->priv->lock);
-    g_free(self->priv->payload);
-    G_OBJECT_CLASS(dispatcher_parent_class)->finalize(object);
-}
-
-static void dispatcher_constructed(GObject *object)
-{
-    Dispatcher *self = DISPATCHER(object);
     int channels[2];
-
-    G_OBJECT_CLASS(dispatcher_parent_class)->constructed(object);
 
     if (socketpair(AF_LOCAL, SOCK_STREAM, 0, channels) == -1) {
         spice_error("socketpair failed %s", strerror(errno));
         return;
     }
-    pthread_mutex_init(&self->priv->lock, NULL);
-    self->priv->recv_fd = channels[0];
-    self->priv->send_fd = channels[1];
+    pthread_mutex_init(&priv->lock, NULL);
+    priv->recv_fd = channels[0];
+    priv->send_fd = channels[1];
 
-    self->priv->messages = g_new0(DispatcherMessage,
-                                  self->priv->max_message_type);
+    priv->messages = g_new0(DispatcherMessage, priv->max_message_type);
 }
-
-static void
-dispatcher_class_init(DispatcherClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-
-    object_class->get_property = dispatcher_get_property;
-    object_class->set_property = dispatcher_set_property;
-    object_class->constructed = dispatcher_constructed;
-    object_class->finalize = dispatcher_finalize;
-
-    g_object_class_install_property(object_class,
-                                    PROP_MAX_MESSAGE_TYPE,
-                                    g_param_spec_uint("max-message-type",
-                                                      "max-message-type",
-                                                      "Maximum message type",
-                                                      0, G_MAXUINT, 0,
-                                                      G_PARAM_STATIC_STRINGS |
-                                                      G_PARAM_READWRITE |
-                                                      G_PARAM_CONSTRUCT_ONLY));
-}
-
-static void
-dispatcher_init(Dispatcher *self)
-{
-    self->priv = (DispatcherPrivate*) dispatcher_get_instance_private(self);
-}
-
-Dispatcher *
-dispatcher_new(size_t max_message_type)
-{
-    return (Dispatcher*)
-        g_object_new(TYPE_DISPATCHER,
-                     "max-message-type", (guint) max_message_type,
-                     NULL);
-}
-
 
 #define ACK 0xffffffff
 
@@ -260,7 +184,7 @@ static int write_safe(int fd, uint8_t *buf, size_t size)
     return written_size;
 }
 
-static int dispatcher_handle_single_read(Dispatcher *dispatcher)
+int Dispatcher::handle_single_read(Dispatcher *dispatcher)
 {
     int ret;
     DispatcherMessage msg[1];
@@ -304,25 +228,21 @@ static int dispatcher_handle_single_read(Dispatcher *dispatcher)
 }
 
 /*
- * dispatcher_handle_event
+ * handle_event
  * doesn't handle being in the middle of a message. all reads are blocking.
  */
-static void dispatcher_handle_event(int fd, int event, void *opaque)
+void Dispatcher::handle_event(int fd, int event, Dispatcher* dispatcher)
 {
-    Dispatcher *dispatcher = (Dispatcher *) opaque;
-
-    while (dispatcher_handle_single_read(dispatcher)) {
+    while (dispatcher->handle_single_read(dispatcher)) {
     }
 }
 
-static void
-dispatcher_send_message_internal(Dispatcher *dispatcher, const DispatcherMessage*msg,
-                                 void *payload)
+void Dispatcher::send_message_internal(const DispatcherMessage* msg, void *payload)
 {
     uint32_t ack;
-    int send_fd = dispatcher->priv->send_fd;
+    int send_fd = priv->send_fd;
 
-    pthread_mutex_lock(&dispatcher->priv->lock);
+    pthread_mutex_lock(&priv->lock);
     if (write_safe(send_fd, (uint8_t*)msg, sizeof(*msg)) == -1) {
         g_warning("error: failed to send message header for message %d",
                   msg->type);
@@ -343,22 +263,21 @@ dispatcher_send_message_internal(Dispatcher *dispatcher, const DispatcherMessage
         }
     }
 unlock:
-    pthread_mutex_unlock(&dispatcher->priv->lock);
+    pthread_mutex_unlock(&priv->lock);
 }
 
-void dispatcher_send_message(Dispatcher *dispatcher, uint32_t message_type,
-                             void *payload)
+void Dispatcher::send_message(uint32_t message_type, void *payload)
 {
     DispatcherMessage *msg;
 
-    assert(dispatcher->priv->max_message_type > message_type);
-    assert(dispatcher->priv->messages[message_type].handler);
-    msg = &dispatcher->priv->messages[message_type];
-    dispatcher_send_message_internal(dispatcher, msg, payload);
+    assert(priv->max_message_type > message_type);
+    assert(priv->messages[message_type].handler);
+    msg = &priv->messages[message_type];
+    send_message_internal(msg, payload);
 }
 
-void dispatcher_send_message_custom(Dispatcher *dispatcher, dispatcher_handle_message handler,
-                                    void *payload, uint32_t payload_size, bool ack)
+void Dispatcher::send_message_custom(dispatcher_handle_message handler,
+                                     void *payload, uint32_t payload_size, bool ack)
 {
     DispatcherMessage msg = {
         .handler = handler,
@@ -366,42 +285,40 @@ void dispatcher_send_message_custom(Dispatcher *dispatcher, dispatcher_handle_me
         .type = DISPATCHER_MESSAGE_TYPE_CUSTOM,
         .ack = ack,
     };
-    dispatcher_send_message_internal(dispatcher, &msg, payload);
+    send_message_internal(&msg, payload);
 }
 
-void dispatcher_register_handler(Dispatcher *dispatcher, uint32_t message_type,
-                                 dispatcher_handle_message handler,
-                                 size_t size, bool ack)
+void Dispatcher::register_handler(uint32_t message_type,
+                                  dispatcher_handle_message handler,
+                                  size_t size, bool ack)
 {
     DispatcherMessage *msg;
 
-    assert(message_type < dispatcher->priv->max_message_type);
-    assert(dispatcher->priv->messages[message_type].handler == NULL);
-    msg = &dispatcher->priv->messages[message_type];
+    assert(message_type < priv->max_message_type);
+    assert(priv->messages[message_type].handler == NULL);
+    msg = &priv->messages[message_type];
     msg->handler = handler;
     msg->size = size;
     msg->type = message_type;
     msg->ack = ack;
-    if (msg->size > dispatcher->priv->payload_size) {
-        dispatcher->priv->payload = g_realloc(dispatcher->priv->payload, msg->size);
-        dispatcher->priv->payload_size = msg->size;
+    if (msg->size > priv->payload_size) {
+        priv->payload = g_realloc(priv->payload, msg->size);
+        priv->payload_size = msg->size;
     }
 }
 
-void dispatcher_register_universal_handler(
-                               Dispatcher *dispatcher,
-                               dispatcher_handle_any_message any_handler)
+void Dispatcher::register_universal_handler(dispatcher_handle_any_message any_handler)
 {
-    dispatcher->priv->any_handler = any_handler;
+    priv->any_handler = any_handler;
 }
 
-SpiceWatch *dispatcher_create_watch(Dispatcher *dispatcher, SpiceCoreInterfaceInternal *core)
+SpiceWatch *Dispatcher::create_watch(SpiceCoreInterfaceInternal *core)
 {
-    return core->watch_add(core, dispatcher->priv->recv_fd,
-                           SPICE_WATCH_EVENT_READ, dispatcher_handle_event, dispatcher);
+    return core->watch_new(priv->recv_fd,
+                           SPICE_WATCH_EVENT_READ, handle_event, this);
 }
 
-void dispatcher_set_opaque(Dispatcher *self, void *opaque)
+void Dispatcher::set_opaque(void *opaque)
 {
-    self->priv->opaque = opaque;
+    priv->opaque = opaque;
 }
