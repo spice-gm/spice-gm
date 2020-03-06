@@ -23,10 +23,6 @@
 #include <config.h>
 #include <inttypes.h>
 
-
-typedef struct RedCharDeviceClientOpaque RedCharDeviceClientOpaque;
-#define RedCharDeviceClientOpaque RedCharDeviceClientOpaque
-
 #include "char-device.h"
 #include "reds.h"
 

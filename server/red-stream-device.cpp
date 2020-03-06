@@ -553,7 +553,7 @@ handle_msg_cursor_move(StreamDevice *dev, SpiceCharDeviceInstance *sin)
 }
 
 static void
-stream_device_remove_client(RedCharDevice *self, RedClient *client)
+stream_device_remove_client(RedCharDevice *self, RedCharDeviceClientOpaque *client)
 {
 }
 

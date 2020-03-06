@@ -39,10 +39,7 @@ SPICE_BEGIN_DECLS
 typedef struct SpiceCharDeviceState RedCharDevice;
 struct RedCharDeviceClass;
 struct RedCharDevicePrivate;
-
-#ifndef RedCharDeviceClientOpaque
-#define RedCharDeviceClientOpaque RedClient
-#endif
+struct RedCharDeviceClientOpaque;
 
 struct RedCharDeviceClass: public GObjectClass
 {

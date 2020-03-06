@@ -519,8 +519,9 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
 
     /* note that client might be NULL, if the vdagent was once
      * up and than was removed */
-    if (red_char_device_client_exists(reds->agent_dev, client)) {
-        red_char_device_client_remove(reds->agent_dev, client);
+    RedCharDeviceClientOpaque *client_opaque = (RedCharDeviceClientOpaque *) client;
+    if (red_char_device_client_exists(reds->agent_dev, client_opaque)) {
+        red_char_device_client_remove(reds->agent_dev, client_opaque);
     }
 
     reds->clients.remove(client);
@@ -931,8 +932,9 @@ void reds_send_device_display_info(RedsState *reds)
 /* after calling this, we unref the message, and the ref is in the instance side */
 static void vdi_port_send_msg_to_client(RedCharDevice *self,
                                         RedPipeItem *msg,
-                                        RedClient *client)
+                                        RedCharDeviceClientOpaque *opaque)
 {
+    RedClient *client = (RedClient *) opaque;
     RedVDIReadBuf *agent_data_buf = (RedVDIReadBuf *)msg;
 
     red_pipe_item_ref(msg);
@@ -943,9 +945,10 @@ static void vdi_port_send_msg_to_client(RedCharDevice *self,
 }
 
 static void vdi_port_send_tokens_to_client(RedCharDevice *self,
-                                           RedClient *client,
+                                           RedCharDeviceClientOpaque *opaque,
                                            uint32_t tokens)
 {
+    RedClient *client = (RedClient *) opaque;
     client->get_main()->push_agent_tokens(tokens);
 }
 
@@ -965,8 +968,9 @@ static void vdi_port_on_free_self_token(RedCharDevice *self)
 }
 
 static void vdi_port_remove_client(RedCharDevice *self,
-                                   RedClient *client)
+                                   RedCharDeviceClientOpaque *opaque)
 {
+    RedClient *client = (RedClient *) opaque;
     client->get_main()->shutdown();
 }
 
@@ -1070,11 +1074,12 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
      * and vice versa, the sending from the server to the client won't have
      * flow control, but will have no other problem.
      */
-    if (!red_char_device_client_exists(dev_state, client)) {
+    RedCharDeviceClientOpaque *client_opaque = (RedCharDeviceClientOpaque *) client;
+    if (!red_char_device_client_exists(dev_state, client_opaque)) {
         int client_added;
 
         client_added = red_char_device_client_add(dev_state,
-                                                  client,
+                                                  client_opaque,
                                                   TRUE, /* flow control */
                                                   REDS_VDI_PORT_NUM_RECEIVE_BUFFS,
                                                   REDS_AGENT_WINDOW_SIZE,
@@ -1088,7 +1093,7 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
         }
     } else {
         red_char_device_send_to_client_tokens_set(dev_state,
-                                                  client,
+                                                  client_opaque,
                                                   num_tokens);
     }
 
@@ -1108,8 +1113,8 @@ void reds_on_main_agent_tokens(RedsState *reds, MainChannelClient *mcc, uint32_t
     }
     spice_assert(reds->vdagent->st);
     red_char_device_send_to_client_tokens_add(reds->vdagent->st,
-                                                client,
-                                                num_tokens);
+                                              (RedCharDeviceClientOpaque *) client,
+                                              num_tokens);
 }
 
 uint8_t *reds_get_agent_data_buffer(RedsState *reds, MainChannelClient *mcc, size_t size)
@@ -1132,7 +1137,7 @@ uint8_t *reds_get_agent_data_buffer(RedsState *reds, MainChannelClient *mcc, siz
     client = mcc->get_client();
     dev->priv->recv_from_client_buf =
         red_char_device_write_buffer_get_client(dev,
-                                                client,
+                                                (RedCharDeviceClientOpaque *) client,
                                                 size + sizeof(VDIChunkHeader));
     /* check if buffer was allocated, as flow control is enabled for
      * this device this is a normal condition */
@@ -1516,9 +1521,10 @@ bool reds_handle_migrate_data(RedsState *reds, MainChannelClient *mcc,
     } else {
         spice_debug("agent was not attached on the source host");
         if (reds->vdagent) {
-            RedClient *client = mcc->get_client();
+            RedCharDeviceClientOpaque *client_opaque =
+                (RedCharDeviceClientOpaque *) mcc->get_client();
             /* red_char_device_client_remove disables waiting for migration data */
-            red_char_device_client_remove(agent_dev, client);
+            red_char_device_client_remove(agent_dev, client_opaque);
             reds->main_channel->push_agent_connected();
         }
     }
@@ -3109,11 +3115,13 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
          * 2.b If this happens second ==> we already have spice migrate data
          *     then restore state
          */
-        if (!red_char_device_client_exists(dev, reds_get_client(reds))) {
+        RedCharDeviceClientOpaque *client_opaque =
+            (RedCharDeviceClientOpaque *) reds_get_client(reds);
+        if (!red_char_device_client_exists(dev, client_opaque)) {
             int client_added;
 
             client_added = red_char_device_client_add(dev,
-                                                      reds_get_client(reds),
+                                                      client_opaque,
                                                       TRUE, /* flow control */
                                                       REDS_VDI_PORT_NUM_RECEIVE_BUFFS,
                                                       REDS_AGENT_WINDOW_SIZE,

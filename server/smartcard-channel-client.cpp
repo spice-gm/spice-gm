@@ -16,8 +16,6 @@
 */
 #include <config.h>
 
-#define RedCharDeviceClientOpaque RedChannelClient
-
 #include "smartcard-channel-client.h"
 
 struct SmartCardChannelClientPrivate
@@ -85,7 +83,8 @@ SmartCardChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
         spice_assert(smartcard_char_device_get_client(smartcard) || priv->smartcard);
         spice_assert(!priv->write_buf);
         priv->write_buf =
-            red_char_device_write_buffer_get_client(smartcard, this, size);
+            red_char_device_write_buffer_get_client(smartcard,
+                                                    (RedCharDeviceClientOpaque *) this, size);
 
         if (!priv->write_buf) {
             spice_error("failed to allocate write buffer");

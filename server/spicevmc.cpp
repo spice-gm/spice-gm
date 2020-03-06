@@ -329,8 +329,9 @@ static void spicevmc_port_send_event(RedChannelClient *rcc, uint8_t event)
 }
 
 static void spicevmc_char_dev_remove_client(RedCharDevice *self,
-                                            RedClient *client)
+                                            RedCharDeviceClientOpaque *opaque)
 {
+    RedClient *client = (RedClient *) opaque;
     RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
     RedVmcChannel *channel = vmc->channel;
 
@@ -352,8 +353,8 @@ void VmcChannelClient::on_disconnect()
     red_char_device_write_buffer_release(channel->chardev, &channel->recv_from_client_buf);
 
     if (channel->chardev) {
-        if (red_char_device_client_exists(channel->chardev, client)) {
-            red_char_device_client_remove(channel->chardev, client);
+        if (red_char_device_client_exists(channel->chardev, (RedCharDeviceClientOpaque *) client)) {
+            red_char_device_client_remove(channel->chardev, (RedCharDeviceClientOpaque *) client);
         } else {
             red_channel_warning(channel,
                                 "client %p have already been removed from char dev %p",
@@ -656,7 +657,8 @@ void RedVmcChannel::on_connect(RedClient *client, RedStream *stream, int migrati
         spicevmc_port_send_init(rcc);
     }
 
-    if (!red_char_device_client_add(vmc_channel->chardev, client, FALSE, 0, ~0, ~0,
+    if (!red_char_device_client_add(vmc_channel->chardev, (RedCharDeviceClientOpaque *) client,
+                                    FALSE, 0, ~0, ~0,
                                     rcc->is_waiting_for_migrate_data())) {
         spice_warning("failed to add client to spicevmc");
         rcc->disconnect();
