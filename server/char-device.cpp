@@ -91,7 +91,6 @@ enum {
 };
 
 static void red_char_device_write_buffer_unref(RedCharDeviceWriteBuffer *write_buf);
-static void red_char_device_write_retry(RedCharDevice *dev);
 static void red_char_device_init_device_instance(RedCharDevice *self);
 
 static RedPipeItem *
@@ -418,44 +417,44 @@ static void red_char_device_client_tokens_add(RedCharDevice *dev,
     }
 }
 
-static int red_char_device_write_to_device(RedCharDevice *dev)
+int RedCharDevice::write_to_device()
 {
     SpiceCharDeviceInterface *sif;
     int total = 0;
     int n;
 
-    if (!dev->priv->running || dev->priv->wait_for_migrate_data || !dev->priv->sin) {
+    if (!priv->running || priv->wait_for_migrate_data || !priv->sin) {
         return 0;
     }
 
     /* protect against recursion with red_char_device_wakeup */
-    if (dev->priv->during_write_to_device++ > 0) {
+    if (priv->during_write_to_device++ > 0) {
         return 0;
     }
 
-    dev->ref();
+    ref();
 
-    if (dev->priv->write_to_dev_timer) {
-        red_timer_cancel(dev->priv->write_to_dev_timer);
+    if (priv->write_to_dev_timer) {
+        red_timer_cancel(priv->write_to_dev_timer);
     }
 
-    sif = spice_char_device_get_interface(dev->priv->sin);
-    while (dev->priv->running) {
+    sif = spice_char_device_get_interface(priv->sin);
+    while (priv->running) {
         uint32_t write_len;
 
-        if (!dev->priv->cur_write_buf) {
-            dev->priv->cur_write_buf = (RedCharDeviceWriteBuffer *) g_queue_pop_tail(&dev->priv->write_queue);
-            if (!dev->priv->cur_write_buf)
+        if (!priv->cur_write_buf) {
+            priv->cur_write_buf = (RedCharDeviceWriteBuffer *) g_queue_pop_tail(&priv->write_queue);
+            if (!priv->cur_write_buf)
                 break;
-            dev->priv->cur_write_buf_pos = dev->priv->cur_write_buf->buf;
+            priv->cur_write_buf_pos = priv->cur_write_buf->buf;
         }
 
-        write_len = dev->priv->cur_write_buf->buf + dev->priv->cur_write_buf->buf_used -
-                    dev->priv->cur_write_buf_pos;
-        n = sif->write(dev->priv->sin, dev->priv->cur_write_buf_pos, write_len);
+        write_len = priv->cur_write_buf->buf + priv->cur_write_buf->buf_used -
+                    priv->cur_write_buf_pos;
+        n = sif->write(priv->sin, priv->cur_write_buf_pos, write_len);
         if (n <= 0) {
-            if (dev->priv->during_write_to_device > 1) {
-                dev->priv->during_write_to_device = 1;
+            if (priv->during_write_to_device > 1) {
+                priv->during_write_to_device = 1;
                 continue; /* a wakeup might have been called during the write -
                              make sure it doesn't get lost */
             }
@@ -464,35 +463,34 @@ static int red_char_device_write_to_device(RedCharDevice *dev)
         total += n;
         write_len -= n;
         if (!write_len) {
-            RedCharDevice::write_buffer_release(dev,
-                                                &dev->priv->cur_write_buf);
+            write_buffer_release(&priv->cur_write_buf);
             continue;
         }
-        dev->priv->cur_write_buf_pos += n;
+        priv->cur_write_buf_pos += n;
     }
     /* retry writing as long as the write queue is not empty */
-    if (dev->priv->running) {
-        if (dev->priv->cur_write_buf) {
-            if (dev->priv->write_to_dev_timer) {
-                red_timer_start(dev->priv->write_to_dev_timer,
+    if (priv->running) {
+        if (priv->cur_write_buf) {
+            if (priv->write_to_dev_timer) {
+                red_timer_start(priv->write_to_dev_timer,
                                 CHAR_DEVICE_WRITE_TO_TIMEOUT);
             }
         } else {
-            spice_assert(g_queue_is_empty(&dev->priv->write_queue));
+            spice_assert(g_queue_is_empty(&priv->write_queue));
         }
-        dev->priv->active = dev->priv->active || total;
+        priv->active = priv->active || total;
     }
-    dev->priv->during_write_to_device = 0;
-    dev->unref();
+    priv->during_write_to_device = 0;
+    unref();
     return total;
 }
 
-static void red_char_device_write_retry(RedCharDevice *dev)
+void RedCharDevice::write_retry(RedCharDevice *dev)
 {
     if (dev->priv->write_to_dev_timer) {
         red_timer_cancel(dev->priv->write_to_dev_timer);
     }
-    red_char_device_write_to_device(dev);
+    dev->write_to_device();
 }
 
 static RedCharDeviceWriteBuffer *
@@ -597,7 +595,7 @@ void RedCharDevice::write_buffer_add(RedCharDeviceWriteBuffer *write_buf)
     }
 
     g_queue_push_head(&priv->write_queue, write_buf);
-    red_char_device_write_to_device(this);
+    write_to_device();
 }
 
 void RedCharDevice::write_buffer_release(RedCharDevice *dev,
@@ -746,7 +744,7 @@ void RedCharDevice::start()
     spice_debug("char device %p", this);
     priv->running = TRUE;
     ref();
-    while (red_char_device_write_to_device(this) ||
+    while (write_to_device() ||
            red_char_device_read_from_device(this));
     unref();
 }
@@ -769,9 +767,9 @@ void RedCharDevice::reset()
     priv->wait_for_migrate_data = FALSE;
     spice_debug("char device %p", this);
     while ((buf = (RedCharDeviceWriteBuffer *) g_queue_pop_tail(&priv->write_queue))) {
-        RedCharDevice::write_buffer_release(this, &buf);
+        write_buffer_release(&buf);
     }
-    RedCharDevice::write_buffer_release(this, &priv->cur_write_buf);
+    write_buffer_release(&priv->cur_write_buf);
 
     GLIST_FOREACH(priv->clients, RedCharDeviceClient, dev_client) {
         spice_debug("send_queue_empty %d", g_queue_is_empty(dev_client->send_queue));
@@ -789,7 +787,7 @@ void RedCharDevice::reset()
 
 void RedCharDevice::wakeup()
 {
-    red_char_device_write_to_device(this);
+    write_to_device();
     red_char_device_read_from_device(this);
 }
 
@@ -918,7 +916,7 @@ bool RedCharDevice::restore(SpiceMigrateDataCharDevice *mig_data)
         priv->cur_write_buf_pos = priv->cur_write_buf->buf;
     }
     priv->wait_for_migrate_data = FALSE;
-    red_char_device_write_to_device(this);
+    write_to_device();
     red_char_device_read_from_device(this);
     return TRUE;
 }
@@ -951,7 +949,7 @@ static void red_char_device_init_device_instance(RedCharDevice *self)
     if (sif->base.minor_version <= 2 ||
         !(sif->flags & SPICE_CHAR_DEVICE_NOTIFY_WRITABLE)) {
         self->priv->write_to_dev_timer = reds_core_timer_add(self->priv->reds,
-                                                             red_char_device_write_retry,
+                                                             RedCharDevice::write_retry,
                                                              self);
         if (!self->priv->write_to_dev_timer) {
             spice_error("failed creating char dev write timer");

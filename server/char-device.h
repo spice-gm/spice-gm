@@ -212,6 +212,9 @@ struct SpiceCharDeviceState: public GObject
 
     /* Either add the buffer to the write queue or release it */
     void write_buffer_add(RedCharDeviceWriteBuffer *write_buf);
+
+    /* Release a buffer allocated.
+     * This is static as potentially you can pass a null pointer for the object */
     static void write_buffer_release(RedCharDevice *dev,
                                      RedCharDeviceWriteBuffer **p_write_buf);
 
@@ -220,6 +223,14 @@ struct SpiceCharDeviceState: public GObject
     RedCharDevicePrivate *priv;
     void ref() { g_object_ref(this); }
     void unref() { g_object_unref(this); }
+    // XXX private
+    static void write_retry(RedCharDevice *dev);
+private:
+    inline void write_buffer_release(RedCharDeviceWriteBuffer **p_write_buf)
+    {
+        write_buffer_release(this, p_write_buf);
+    }
+    int write_to_device();
 };
 
 /* api for specific char devices */
