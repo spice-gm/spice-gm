@@ -350,11 +350,11 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
     RedClient *client = red_client_new(server, FALSE);
     g_assert_nonnull(client);
 
-    MainChannel *main_channel = main_channel_new(server);
-    g_assert_nonnull(main_channel);
+    red::shared_ptr<MainChannel> main_channel(main_channel_new(server));
+    g_assert(main_channel);
 
     MainChannelClient *mcc;
-    mcc = main_channel_link(main_channel, client, create_dummy_stream(server, NULL),
+    mcc = main_channel_link(main_channel.get(), client, create_dummy_stream(server, NULL),
                             0, FALSE, &caps);
     g_assert_nonnull(mcc);
 
@@ -383,8 +383,6 @@ static void test_smartcard(TestFixture *fixture, gconstpointer user_data)
         core->watch_remove(watch);
     }
     client->destroy();
-    main_channel->unref();
-    channel->unref();
 }
 
 int main(int argc, char *argv[])

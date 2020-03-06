@@ -85,8 +85,8 @@ struct RedsState {
     int pending_mouse_event;
     bool pending_device_display_info_message;
     red::safe_list<RedClient*> clients;
-    MainChannel *main_channel;
-    InputsChannel *inputs_channel;
+    red::shared_ptr<MainChannel> main_channel;
+    red::shared_ptr<InputsChannel> inputs_channel;
 
     int mig_wait_connect; /* src waits for clients to establish connection to dest
                              (before migration starts) */
@@ -104,7 +104,7 @@ struct RedsState {
                                     between the 2 servers */
     GList *mig_target_clients;
 
-    red::safe_list<RedChannel*> channels;
+    red::safe_list<red::shared_ptr<RedChannel>> channels;
     SpiceMouseMode mouse_mode;
     int is_client_mouse_allowed;
     int dispatcher_allows_client_mouse;

@@ -124,7 +124,7 @@ struct RedChannelClientPrivate
                             bool monitor_latency);
     ~RedChannelClientPrivate();
 
-    RedChannel *const channel;
+    red::shared_ptr<RedChannel> channel;
     RedClient *const client;
     RedStream *const stream;
     gboolean monitor_latency;
@@ -296,7 +296,7 @@ RedChannelClientPrivate::RedChannelClientPrivate(RedChannel *channel,
                                                  RedStream *stream,
                                                  RedChannelCapabilities *caps,
                                                  bool monitor_latency):
-    channel(red::add_ref(channel)),
+    channel(channel),
     client(client), stream(stream)
 {
     // blocks send message (maybe use send_data.blocked + block flags)
@@ -353,9 +353,6 @@ RedChannelClientPrivate::~RedChannelClientPrivate()
     }
 
     red_channel_capabilities_reset(&remote_caps);
-    if (channel) {
-        channel->unref();
-    }
 }
 
 /* This even empty is better to by declared here to make sure
@@ -376,7 +373,7 @@ RedChannelClient::RedChannelClient(RedChannel *channel,
 
 RedChannel* RedChannelClient::get_channel()
 {
-    return priv->channel;
+    return priv->channel.get();
 }
 
 void RedChannelClientPrivate::data_sent(int n)
@@ -677,7 +674,7 @@ void RedChannelClient::connectivity_timer(RedChannelClient *rcc)
         red_timer_start(monitor->timer, monitor->timeout);
     } else {
         monitor->state = CONNECTIVITY_STATE_DISCONNECTED;
-        red_channel_warning(rcc->priv->channel,
+        red_channel_warning(rcc->priv->channel.get(),
                             "rcc %p has been unresponsive for more than %u ms, disconnecting",
                             rcc, monitor->timeout);
         rcc->disconnect();
@@ -1247,9 +1244,7 @@ void RedChannelClient::handle_migrate_flush_mark()
 // So need to make all the handlers work with per channel/client data (what data exactly?)
 void RedChannelClient::handle_migrate_data_early(uint32_t size, void *message)
 {
-    RedChannel *channel = get_channel();
-
-    red_channel_debug(channel, "rcc %p size %u", this, size);
+    red_channel_debug(priv->channel, "rcc %p size %u", this, size);
 
     uint32_t flags = priv->channel->migration_flags();
     if (!(flags & SPICE_MIGRATE_NEED_DATA_TRANSFER)) {
@@ -1481,8 +1476,7 @@ bool RedChannelClient::is_mini_header() const
 
 bool RedChannelClient::is_connected() const
 {
-    return priv->channel
-        && (g_list_find(priv->channel->get_clients(), this) != NULL);
+    return g_list_find(priv->channel->get_clients(), this) != NULL;
 }
 
 void RedChannelClientPrivate::clear_sent_item()
@@ -1523,7 +1517,7 @@ void RedChannelClient::push_set_ack()
 
 void RedChannelClient::disconnect()
 {
-    RedChannel *channel = priv->channel;
+    auto channel = priv->channel;
 
     if (!is_connected()) {
         return;

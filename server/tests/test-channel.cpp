@@ -209,11 +209,11 @@ static void channel_loop(void)
     g_assert_cmpint(spice_server_init(server, core), ==, 0);
 
     // create a channel and connect to it
-    RedChannel *channel =
+    red::shared_ptr<RedChannel> channel(
         new RedTestChannel(server,
                            SPICE_CHANNEL_PORT, // any other than main is fine
                            0,
-                           RedChannel::HandleAcks); // we want to test this
+                           RedChannel::HandleAcks)); // we want to test this
 
     // create dummy RedClient and MainChannelClient
     RedChannelCapabilities caps;
@@ -225,11 +225,11 @@ static void channel_loop(void)
     RedClient *client = red_client_new(server, FALSE);
     g_assert_nonnull(client);
 
-    MainChannel *main_channel = main_channel_new(server);
-    g_assert_nonnull(main_channel);
+    red::shared_ptr<MainChannel> main_channel(main_channel_new(server));
+    g_assert(main_channel);
 
     MainChannelClient *mcc;
-    mcc = main_channel_link(main_channel, client, create_dummy_stream(server, NULL),
+    mcc = main_channel_link(main_channel.get(), client, create_dummy_stream(server, NULL),
                             0, FALSE, &caps);
     g_assert_nonnull(mcc);
 
@@ -260,8 +260,8 @@ static void channel_loop(void)
 
     // cleanup
     client->destroy();
-    main_channel->unref();
-    channel->unref();
+    main_channel.reset();
+    channel.reset();
 
     core->timer_remove(watch_timer);
 

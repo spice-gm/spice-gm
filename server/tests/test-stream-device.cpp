@@ -108,6 +108,7 @@ static size_t send_data_bytes = 0;
 StreamChannel::StreamChannel(RedsState *reds, uint32_t id):
     RedChannel(reds, SPICE_CHANNEL_DISPLAY, id, RedChannel::HandleAcks)
 {
+    reds_register_channel(reds, this);
 }
 
 void

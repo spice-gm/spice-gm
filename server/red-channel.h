@@ -53,10 +53,8 @@ static inline gboolean test_capability(const uint32_t *caps, int num_caps, uint3
 
 /* Red Channel interface */
 
-struct RedChannel
+struct RedChannel: public red::shared_ptr_counted
 {
-    SPICE_CXX_GLIB_ALLOCATOR
-
     typedef enum {
         FlagNone = 0,
         MigrateNeedFlush = SPICE_MIGRATE_NEED_FLUSH,
@@ -183,12 +181,6 @@ struct RedChannel
     void disconnect_client(RedChannelClient *rcc);
 
     red::unique_link<RedChannelPrivate> priv;
-
-    void ref() { g_atomic_int_inc(&_ref); }
-    void unref() { if (g_atomic_int_dec_and_test(&_ref)) delete this; }
-
-private:
-    gint _ref = 1;
 };
 
 inline RedChannel::CreationFlags operator|(RedChannel::CreationFlags a, RedChannel::CreationFlags b)
@@ -200,10 +192,10 @@ inline RedChannel::CreationFlags operator|(RedChannel::CreationFlags a, RedChann
 
 #define red_channel_log_generic(log_cb, channel, format, ...)                            \
     do {                                                                                 \
-        RedChannel *channel_ = (channel);                                                \
+        auto channel_ = (channel);                                                       \
         uint32_t id_ = channel_->id();                                                   \
         log_cb("%s:%u (%p): " format, channel_->get_name(),                              \
-                        id_, channel_, ## __VA_ARGS__);                                  \
+                        id_, &*channel_, ## __VA_ARGS__);                                \
     } while (0)
 
 #define red_channel_warning(channel, format, ...)                                        \

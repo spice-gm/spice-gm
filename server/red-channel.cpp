@@ -251,11 +251,12 @@ void RedChannel::set_cap(uint32_t cap)
 
 void RedChannel::destroy()
 {
-    // prevent future connection
+    red::shared_ptr<RedChannel> hold(this);
+
+    // prevent future connection, and remove a reference (possibly the only one)
     reds_unregister_channel(priv->reds, this);
 
     red_channel_foreach_client(this, &RedChannelClient::disconnect);
-    unref();
     // WARNING, object maybe now deleted
 }
 

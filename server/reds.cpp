@@ -332,21 +332,21 @@ void reds_register_channel(RedsState *reds, RedChannel *channel)
     } else {
         g_warn_if_fail(reds_find_channel(reds, this_type, this_id) == NULL);
     }
-    reds->channels.push_front(channel);
+    reds->channels.push_front(red::shared_ptr<RedChannel>(channel));
     // create new channel in the client if possible
     reds->main_channel->registered_new_channel(channel);
 }
 
 void reds_unregister_channel(RedsState *reds, RedChannel *channel)
 {
-    reds->channels.remove(channel);
+    reds->channels.remove(red::shared_ptr<RedChannel>(channel));
 }
 
 RedChannel *reds_find_channel(RedsState *reds, uint32_t type, uint32_t id)
 {
     for (auto channel: reds->channels) {
         if (channel->type() == type && channel->id() == id) {
-            return channel;
+            return channel.get();
         }
     }
     return NULL;
@@ -1005,7 +1005,7 @@ SPICE_GNUC_VISIBLE int spice_server_get_num_clients(SpiceServer *reds)
     return reds ? reds->clients.size() : 0;
 }
 
-static bool channel_supports_multiple_clients(RedChannel *channel)
+static bool channel_supports_multiple_clients(const RedChannel *channel)
 {
     switch (channel->type()) {
     case SPICE_CHANNEL_MAIN:
@@ -1023,7 +1023,7 @@ static void reds_fill_channels(RedsState *reds, SpiceMsgChannels *channels_info)
 
     for (const auto channel: reds->channels) {
         if (reds->clients.size() > 1 &&
-            !channel_supports_multiple_clients(channel)) {
+            !channel_supports_multiple_clients(channel.get())) {
             continue;
         }
         channels_info->channels[used_channels].type = channel->type();
@@ -1577,7 +1577,7 @@ static bool reds_send_link_ack(RedsState *reds, RedLinkInfo *link)
             return FALSE;
         }
         spice_assert(reds->main_channel);
-        channel = reds->main_channel;
+        channel = reds->main_channel.get();
     }
 
     reds_channel_init_auth_caps(link, channel); /* make sure common caps are set */
@@ -1848,7 +1848,7 @@ static void reds_handle_main_link(RedsState *reds, RedLinkInfo *link)
     reds->clients.push_front(client);
 
     red_channel_capabilities_init_from_link_message(&caps, link_mess);
-    mcc = main_channel_link(reds->main_channel, client,
+    mcc = main_channel_link(reds->main_channel.get(), client,
                             stream, connection_id, mig_target,
                             &caps);
     red_channel_capabilities_reset(&caps);
@@ -3252,8 +3252,9 @@ static int spice_server_char_device_remove_interface(RedsState *reds, SpiceBaseI
 
     if (char_device->st) {
         reds_remove_char_device(reds, char_device->st);
-        char_device->st->unref();
+        auto st = char_device->st;
         char_device->st = NULL;
+        st->unref();
     }
     return 0;
 }
@@ -3459,8 +3460,8 @@ static int do_spice_init(RedsState *reds, SpiceCoreInterface *core_interface)
     }
 #endif
 
-    reds->main_channel = main_channel_new(reds);
-    reds->inputs_channel = inputs_channel_new(reds);
+    reds->main_channel.reset(main_channel_new(reds));
+    reds->inputs_channel.reset(inputs_channel_new(reds));
 
     reds->mouse_mode = SPICE_MOUSE_MODE_SERVER;
 
@@ -3780,6 +3781,11 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
     if (reds->inputs_channel) {
         reds->inputs_channel->destroy();
     }
+    /* This requires a bit of explanation on how reference counting is
+     * not enough. The full reply is in docs/spice_threading_model.txt,
+     * mainly the RedChannels are owned by both RedsState and
+     * RedChannelClient so we need both to get destroyed. This call
+     * remove RedChannelClients */
     if (reds->main_channel) {
         reds->main_channel->destroy();
     }
