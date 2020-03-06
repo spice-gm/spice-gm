@@ -57,6 +57,7 @@ spice_server_sources = [
   'cursor-channel-client.h',
   'cursor-channel.h',
   'utils.hpp',
+  'safe-list.hpp',
   'dcc.cpp',
   'dcc.h',
   'dcc-private.h',
