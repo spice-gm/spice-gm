@@ -588,8 +588,6 @@ SpiceMouseMode reds_get_mouse_mode(RedsState *reds)
 
 static void reds_set_mouse_mode(RedsState *reds, SpiceMouseMode mode)
 {
-    QXLInstance *qxl;
-
     if (reds->mouse_mode == mode) {
         return;
     }
@@ -611,7 +609,7 @@ gboolean reds_config_get_agent_mouse(const RedsState *reds)
 static void reds_update_mouse_mode(RedsState *reds)
 {
     int allowed = 0;
-    int qxl_count = g_list_length(reds->qxl_instances);
+    int qxl_count = reds->qxl_instances.size();
     int display_channel_count = 0;
 
     for (const auto channel: reds->channels) {
@@ -843,8 +841,6 @@ static RedPipeItem *vdi_port_read_one_msg_from_device(RedCharDevice *self,
 
 void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
 {
-    QXLInstance *qxl;
-
     uint32_t device_count = 0;
     void *device_count_ptr = spice_marshaller_add_uint32(m, device_count);
 
@@ -1871,7 +1867,7 @@ static void reds_handle_main_link(RedsState *reds, RedLinkInfo *link)
     }
 
     if (!mig_target) {
-        mcc->push_init(g_list_length(reds->qxl_instances), reds->mouse_mode,
+        mcc->push_init(reds->qxl_instances.size(), reds->mouse_mode,
                        reds->is_client_mouse_allowed,
                        reds_get_mm_time() - MM_TIME_DELTA,
                        reds_qxl_ram_size(reds));
@@ -2003,7 +1999,7 @@ void reds_on_client_semi_seamless_migrate_complete(RedsState *reds, RedClient *c
     mcc = client->get_main();
 
     // TODO: not doing net test. consider doing it on client_migrate_info
-    mcc->push_init(g_list_length(reds->qxl_instances), reds->mouse_mode,
+    mcc->push_init(reds->qxl_instances.size(), reds->mouse_mode,
                    reds->is_client_mouse_allowed,
                    reds_get_mm_time() - MM_TIME_DELTA,
                    reds_qxl_ram_size(reds));
@@ -3306,7 +3302,7 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
             return -1;
         }
         red_qxl_init(reds, qxl);
-        reds->qxl_instances = g_list_prepend(reds->qxl_instances, qxl);
+        reds->qxl_instances.push_front(qxl);
 
         /* this function has to be called after the qxl is on the list
          * as QXLInstance clients expect the qxl to be on the list when
@@ -3408,7 +3404,7 @@ SPICE_GNUC_VISIBLE int spice_server_remove_interface(SpiceBaseInstance *sin)
         qxl = SPICE_UPCAST(QXLInstance, sin);
         g_return_val_if_fail(qxl->st != NULL, -1);
         reds = red_qxl_get_server(qxl->st);
-        reds->qxl_instances = g_list_remove(reds->qxl_instances, qxl);
+        reds->qxl_instances.remove(qxl); // XXX owning
         red_qxl_destroy(qxl);
     } else {
         spice_warning("VD_INTERFACE_REMOVING unsupported");
@@ -3777,7 +3773,9 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
     servers = g_list_remove(servers, reds);
     pthread_mutex_unlock(&global_reds_lock);
 
-    g_list_free_full(reds->qxl_instances, (GDestroyNotify)red_qxl_destroy);
+    for (auto qxl: reds->qxl_instances) {
+        red_qxl_destroy(qxl);
+    }
 
     if (reds->inputs_channel) {
         reds->inputs_channel->destroy();
@@ -4372,10 +4370,9 @@ void reds_update_client_mouse_allowed(RedsState *reds)
     int allow_now = FALSE;
     int x_res = 0;
     int y_res = 0;
-    int num_active_workers = g_list_length(reds->qxl_instances);
+    int num_active_workers = reds->qxl_instances.size();
 
     if (num_active_workers > 0) {
-        QXLInstance *qxl;
 
         allow_now = TRUE;
         FOREACH_QXL_INSTANCE(reds, qxl) {
@@ -4399,9 +4396,7 @@ void reds_update_client_mouse_allowed(RedsState *reds)
 
 static gboolean reds_use_client_monitors_config(RedsState *reds)
 {
-    QXLInstance *qxl;
-
-    if (reds->qxl_instances == NULL) {
+    if (reds->qxl_instances.empty()) {
         return FALSE;
     }
 
@@ -4414,8 +4409,6 @@ static gboolean reds_use_client_monitors_config(RedsState *reds)
 
 static void reds_client_monitors_config(RedsState *reds, VDAgentMonitorsConfig *monitors_config)
 {
-    QXLInstance *qxl;
-
     FOREACH_QXL_INSTANCE(reds, qxl) {
         if (!red_qxl_client_monitors_config(qxl, monitors_config)) {
             /* this is a normal condition, some qemu devices might not implement it */
@@ -4439,7 +4432,6 @@ static int calc_compression_level(RedsState *reds)
 void reds_on_ic_change(RedsState *reds)
 {
     int compression_level = calc_compression_level(reds);
-    QXLInstance *qxl;
 
     FOREACH_QXL_INSTANCE(reds, qxl) {
         red_qxl_set_compression_level(qxl, compression_level);
@@ -4450,7 +4442,6 @@ void reds_on_ic_change(RedsState *reds)
 void reds_on_sv_change(RedsState *reds)
 {
     int compression_level = calc_compression_level(reds);
-    QXLInstance *qxl;
 
     FOREACH_QXL_INSTANCE(reds, qxl) {
         red_qxl_set_compression_level(qxl, compression_level);
@@ -4460,8 +4451,6 @@ void reds_on_sv_change(RedsState *reds)
 
 void reds_on_vc_change(RedsState *reds)
 {
-    QXLInstance *qxl;
-
     FOREACH_QXL_INSTANCE(reds, qxl) {
         red_qxl_on_vc_change(qxl, reds_get_video_codecs(reds));
     }
@@ -4469,8 +4458,6 @@ void reds_on_vc_change(RedsState *reds)
 
 void reds_on_vm_stop(RedsState *reds)
 {
-    QXLInstance *qxl;
-
     FOREACH_QXL_INSTANCE(reds, qxl) {
         red_qxl_stop(qxl);
     }
@@ -4478,8 +4465,6 @@ void reds_on_vm_stop(RedsState *reds)
 
 void reds_on_vm_start(RedsState *reds)
 {
-    QXLInstance *qxl;
-
     FOREACH_QXL_INSTANCE(reds, qxl) {
         red_qxl_start(qxl);
     }
@@ -4488,11 +4473,11 @@ void reds_on_vm_start(RedsState *reds)
 uint32_t reds_qxl_ram_size(RedsState *reds)
 {
     QXLInstance *first;
-    if (!reds->qxl_instances) {
+    if (reds->qxl_instances.empty()) {
         return 0;
     }
 
-    first = (QXLInstance*) reds->qxl_instances->data;
+    first = *reds->qxl_instances.begin();
     return red_qxl_get_ram_size(first);
 }
 

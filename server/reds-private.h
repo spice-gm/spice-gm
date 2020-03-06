@@ -133,12 +133,12 @@ struct RedsState {
     SpiceMigrateInstance *migration_interface;
 
     SpiceCoreInterfaceInternal core;
-    GList *qxl_instances;
+    red::safe_list<QXLInstance*> qxl_instances; // XXX owning
     MainDispatcher *main_dispatcher;
     RedRecord *record;
 };
 
 #define FOREACH_QXL_INSTANCE(_reds, _qxl) \
-    GLIST_FOREACH(_reds->qxl_instances, QXLInstance, _qxl)
+    for (auto _qxl: _reds->qxl_instances)
 
 #endif /* REDS_PRIVATE_H_ */
