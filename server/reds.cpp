@@ -523,12 +523,12 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
         red_char_device_client_remove(reds->agent_dev, client);
     }
 
-    reds->clients = g_list_remove(reds->clients, client);
+    reds->clients.remove(client);
     client->destroy();
 
    // TODO: we need to handle agent properly for all clients!!!! (e.g., cut and paste, how? Maybe throw away messages
    // if we are in the middle of one from another client)
-    if (g_list_length(reds->clients) == 0) {
+    if (reds->clients.empty()) {
         /* Let the agent know the client is disconnected */
         if (reds->agent_dev->priv->agent_attached) {
             RedCharDeviceWriteBuffer *char_dev_buf =
@@ -560,10 +560,8 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
 // reds_client_disconnect
 static void reds_disconnect(RedsState *reds)
 {
-    RedClient *client;
-
     spice_debug("trace");
-    GLIST_FOREACH(reds->clients, RedClient, client) {
+    for (auto client: reds->clients) {
         reds_client_disconnect(reds, client);
     }
     reds_mig_cleanup(reds);
@@ -1005,7 +1003,7 @@ void reds_handle_agent_mouse_event(RedsState *reds, const VDAgentMouseState *mou
 
 SPICE_GNUC_VISIBLE int spice_server_get_num_clients(SpiceServer *reds)
 {
-    return reds ? g_list_length(reds->clients) : 0;
+    return reds ? reds->clients.size() : 0;
 }
 
 static bool channel_supports_multiple_clients(RedChannel *channel)
@@ -1025,7 +1023,7 @@ static void reds_fill_channels(RedsState *reds, SpiceMsgChannels *channels_info)
     int used_channels = 0;
 
     for (const auto channel: reds->channels) {
-        if (g_list_length(reds->clients) > 1 &&
+        if (reds->clients.size() > 1 &&
             !channel_supports_multiple_clients(channel)) {
             continue;
         }
@@ -1284,7 +1282,7 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
     RedCharDeviceVDIPort *agent_dev = reds->agent_dev;
     uint32_t read_data_len;
 
-    spice_assert(g_list_length(reds->clients) == 1);
+    spice_assert(reds->clients.size() == 1);
 
     if (agent_dev->priv->read_state != VDI_PORT_READ_STATE_READ_DATA) {
         return;
@@ -1752,9 +1750,7 @@ static void reds_mig_target_client_disconnect_all(RedsState *reds)
 
 static bool reds_find_client(RedsState *reds, RedClient *client)
 {
-    RedClient *list_client;
-
-    GLIST_FOREACH(reds->clients, RedClient, list_client) {
+    for (auto list_client: reds->clients) {
         if (list_client == client) {
             return TRUE;
         }
@@ -1765,14 +1761,13 @@ static bool reds_find_client(RedsState *reds, RedClient *client)
 /* should be used only when there is one client */
 static RedClient *reds_get_client(RedsState *reds)
 {
-    gint n = g_list_length(reds->clients);
-    spice_assert(n <= 1);
+    spice_assert(reds->clients.size() <= 1);
 
-    if (n == 0) {
+    if (reds->clients.empty()) {
         return NULL;
     }
 
-    return (RedClient*) reds->clients->data;
+    return *reds->clients.begin();
 }
 
 /* Performs late initializations steps.
@@ -1855,7 +1850,7 @@ static void reds_handle_main_link(RedsState *reds, RedLinkInfo *link)
     stream = link->stream;
     link->stream = NULL;
     client = red_client_new(reds, mig_target);
-    reds->clients = g_list_prepend(reds->clients, client);
+    reds->clients.push_front(client);
 
     red_channel_capabilities_init_from_link_message(&caps, link_mess);
     mcc = main_channel_link(reds->main_channel, client,
@@ -2994,12 +2989,10 @@ static void reds_mig_started(RedsState *reds)
 
 static void reds_mig_fill_wait_disconnect(RedsState *reds)
 {
-    RedClient *client;
-
-    spice_assert(reds->clients != NULL);
+    spice_assert(!reds->clients.empty());
     /* tracking the clients, in order to ignore disconnection
      * of clients that got connected to the src after migration completion.*/
-    GLIST_FOREACH(reds->clients, RedClient, client) {
+    for (auto client: reds->clients) {
         reds->mig_wait_disconnect_clients = g_list_append(reds->mig_wait_disconnect_clients, client);
     }
     reds->mig_wait_connect = FALSE;
@@ -3440,7 +3433,6 @@ static int do_spice_init(RedsState *reds, SpiceCoreInterface *core_interface)
     reds->core.public_interface = core_interface;
     reds->agent_dev = red_char_device_vdi_port_new(reds);
     reds_update_agent_properties(reds);
-    reds->clients = NULL;
     reds->main_dispatcher = new MainDispatcher(reds);
     reds->mig_target_clients = NULL;
     reds->mig_wait_disconnect_clients = NULL;
@@ -4230,7 +4222,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_connect(SpiceServer *reds, const cha
     if (reds->main_channel->migrate_connect(reds->config->mig_spice, try_seamless)) {
         reds_mig_started(reds);
     } else {
-        if (reds->clients == NULL) {
+        if (reds->clients.empty()) {
             reds_mig_release(reds->config);
             spice_debug("no client connected");
         }
@@ -4272,7 +4264,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_end(SpiceServer *reds, int completed
     spice_assert(reds->migration_interface);
 
     sif = SPICE_UPCAST(SpiceMigrateInterface, reds->migration_interface->base.sif);
-    if (completed && !reds->expect_migrate && g_list_length(reds->clients) > 0) {
+    if (completed && !reds->expect_migrate && !reds->clients.empty()) {
         spice_warning("spice_server_migrate_info was not called, disconnecting clients");
         reds_disconnect(reds);
         ret = -1;
@@ -4297,7 +4289,7 @@ complete:
 SPICE_GNUC_VISIBLE int spice_server_migrate_switch(SpiceServer *reds)
 {
     spice_debug("trace");
-    if (reds->clients == NULL) {
+    if (reds->clients.empty()) {
        return 0;
     }
     reds->expect_migrate = FALSE;

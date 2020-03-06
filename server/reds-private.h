@@ -84,7 +84,7 @@ struct RedsState {
     RedCharDeviceVDIPort *agent_dev;
     int pending_mouse_event;
     bool pending_device_display_info_message;
-    GList *clients;
+    red::safe_list<RedClient*> clients;
     MainChannel *main_channel;
     InputsChannel *inputs_channel;
 
