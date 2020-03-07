@@ -25,41 +25,6 @@
 #include "cursor-channel.h"
 #include "reds.h"
 
-#define MAX_GUEST_CAPABILITIES_BYTES ((STREAM_CAP_END+7)/8)
-
-struct StreamDevice: public RedCharDevice
-{
-    StreamDevHeader hdr;
-    uint8_t hdr_pos;
-    union AllMessages {
-        StreamMsgFormat format;
-        StreamMsgCapabilities capabilities;
-        StreamMsgCursorSet cursor_set;
-        StreamMsgCursorMove cursor_move;
-        StreamMsgDeviceDisplayInfo device_display_info;
-        uint8_t buf[STREAM_MSG_CAPABILITIES_MAX_BYTES];
-    } *msg;
-    uint32_t msg_pos;
-    uint32_t msg_len;
-    bool has_error;
-    bool opened;
-    bool flow_stopped;
-    uint8_t guest_capabilities[MAX_GUEST_CAPABILITIES_BYTES];
-    red::shared_ptr<StreamChannel> stream_channel;
-    red::shared_ptr<CursorChannel> cursor_channel;
-    SpiceTimer *close_timer;
-    uint32_t frame_mmtime;
-    StreamDeviceDisplayInfo device_display_info;
-};
-
-struct StreamDeviceClass {
-    RedCharDeviceClass parent_class;
-};
-
-static StreamDevice *stream_device_new(SpiceCharDeviceInstance *sin, RedsState *reds);
-
-G_DEFINE_TYPE(StreamDevice, stream_device, RED_TYPE_CHAR_DEVICE)
-
 static void char_device_set_state(RedCharDevice *char_dev, int state);
 
 typedef bool StreamMsgHandler(StreamDevice *dev, SpiceCharDeviceInstance *sin)
@@ -205,12 +170,9 @@ stream_device_partial_read(StreamDevice *dev, SpiceCharDeviceInstance *sin)
     return false;
 }
 
-static RedPipeItem *
-stream_device_read_msg_from_dev(RedCharDevice *self, SpiceCharDeviceInstance *sin)
+RedPipeItem* StreamDevice::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
 {
-    StreamDevice *dev = STREAM_DEVICE(self);
-
-    while (stream_device_partial_read(dev, sin)) {
+    while (stream_device_partial_read(this, sin)) {
         continue;
     }
     return NULL;
@@ -552,8 +514,7 @@ handle_msg_cursor_move(StreamDevice *dev, SpiceCharDeviceInstance *sin)
     return true;
 }
 
-static void
-stream_device_remove_client(RedCharDevice *self, RedCharDeviceClientOpaque *client)
+void StreamDevice::remove_client(RedCharDeviceClientOpaque *client)
 {
 }
 
@@ -609,12 +570,12 @@ stream_device_stream_queue_stat(void *opaque, const StreamQueueStat *stats G_GNU
     }
 }
 
-StreamDevice *
+red::shared_ptr<StreamDevice>
 stream_device_connect(RedsState *reds, SpiceCharDeviceInstance *sin)
 {
     SpiceCharDeviceInterface *sif;
 
-    StreamDevice *dev = stream_device_new(sin, reds);
+    auto dev = red::make_shared<StreamDevice>(reds, sin);
 
     sif = spice_char_device_get_interface(sin);
     if (sif->state) {
@@ -624,38 +585,27 @@ stream_device_connect(RedsState *reds, SpiceCharDeviceInstance *sin)
     return dev;
 }
 
-static void
-stream_device_dispose(GObject *object)
+StreamDevice::StreamDevice(RedsState *reds, SpiceCharDeviceInstance *sin):
+    RedCharDevice(reds, sin, 0, 0)
 {
-    StreamDevice *dev = STREAM_DEVICE(object);
-
-    red_timer_remove(dev->close_timer);
-
-    if (dev->stream_channel) {
-        // close all current connections and drop the reference
-        dev->stream_channel->destroy();
-        dev->stream_channel.reset();
-    }
-    if (dev->cursor_channel) {
-        // close all current connections and drop the reference
-        dev->cursor_channel->destroy();
-        dev->cursor_channel.reset();
-    }
-
-    G_OBJECT_CLASS(stream_device_parent_class)->dispose(object);
+    msg = (StreamDevice::AllMessages*) g_malloc(sizeof(*msg));
+    msg_len = sizeof(*msg);
 }
 
-static void
-stream_device_finalize(GObject *object)
+StreamDevice::~StreamDevice()
 {
-    StreamDevice *dev = STREAM_DEVICE(object);
+    red_timer_remove(close_timer);
 
-    g_free(dev->msg);
-    dev->msg = NULL;
-    dev->msg_len = 0;
-    dev->msg_pos = 0;
+    if (stream_channel) {
+        // close all current connections
+        stream_channel->destroy();
+    }
+    if (cursor_channel) {
+        // close all current connections
+        cursor_channel->destroy();
+    }
 
-    G_OBJECT_CLASS(stream_device_parent_class)->finalize(object);
+    g_free(msg);
 }
 
 void
@@ -721,53 +671,30 @@ send_capabilities(RedCharDevice *char_dev)
     char_dev->write_buffer_add(buf);
 }
 
-static void
-stream_device_port_event(RedCharDevice *char_dev, uint8_t event)
+void
+StreamDevice::port_event(uint8_t event)
 {
     if (event != SPICE_PORT_EVENT_OPENED && event != SPICE_PORT_EVENT_CLOSED) {
         return;
     }
 
-    StreamDevice *dev = STREAM_DEVICE(char_dev);
-
     // reset device and channel on close/open
-    dev->opened = (event == SPICE_PORT_EVENT_OPENED);
-    if (dev->opened) {
-        stream_device_create_channel(dev);
+    opened = (event == SPICE_PORT_EVENT_OPENED);
+    if (opened) {
+        stream_device_create_channel(this);
 
-        send_capabilities(char_dev);
+        send_capabilities(this);
     }
-    dev->hdr_pos = 0;
-    dev->msg_pos = 0;
-    dev->has_error = false;
-    dev->flow_stopped = false;
-    char_dev->reset();
-    reset_channels(dev);
+    hdr_pos = 0;
+    msg_pos = 0;
+    has_error = false;
+    flow_stopped = false;
+    reset();
+    reset_channels(this);
 
     // enable the device again. We re-enable it on close as otherwise we don't want to get a
     // failure when  we try to re-open the device as would happen if we keep it disabled
-    char_device_set_state(char_dev, 1);
-}
-
-static void
-stream_device_class_init(StreamDeviceClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedCharDeviceClass *char_dev_class = RED_CHAR_DEVICE_CLASS(klass);
-
-    object_class->dispose = stream_device_dispose;
-    object_class->finalize = stream_device_finalize;
-
-    char_dev_class->read_one_msg_from_device = stream_device_read_msg_from_dev;
-    char_dev_class->remove_client = stream_device_remove_client;
-    char_dev_class->port_event = stream_device_port_event;
-}
-
-static void
-stream_device_init(StreamDevice *dev)
-{
-    dev->msg = (StreamDevice::AllMessages*) g_malloc(sizeof(*dev->msg));
-    dev->msg_len = sizeof(*dev->msg);
+    char_device_set_state(this, 1);
 }
 
 const StreamDeviceDisplayInfo *stream_device_get_device_display_info(StreamDevice *dev)
@@ -782,15 +709,4 @@ int32_t stream_device_get_stream_channel_id(StreamDevice *dev)
     }
 
     return dev->stream_channel->id();
-}
-
-static StreamDevice *
-stream_device_new(SpiceCharDeviceInstance *sin, RedsState *reds)
-{
-    return (StreamDevice*) g_object_new(TYPE_STREAM_DEVICE,
-                        "sin", sin,
-                        "spice-server", reds,
-                        "client-tokens-interval", 0ULL,
-                        "self-tokens", ~0ULL,
-                        NULL);
 }

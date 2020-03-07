@@ -51,6 +51,11 @@ struct RedSmartcardChannel final: public RedChannel
 };
 
 struct RedCharDeviceSmartcardPrivate {
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    RedCharDeviceSmartcardPrivate();
+    ~RedCharDeviceSmartcardPrivate();
+
     uint32_t             reader_id;
     /* read_from_device buffer */
     uint8_t             *buf;
@@ -61,8 +66,6 @@ struct RedCharDeviceSmartcardPrivate {
     SmartCardChannelClient    *scc; // client providing the remote card
     int                  reader_added; // has reader_add been sent to the device
 };
-
-G_DEFINE_TYPE_WITH_PRIVATE(RedCharDeviceSmartcard, red_char_device_smartcard, RED_TYPE_CHAR_DEVICE)
 
 typedef struct RedMsgItem {
     RedPipeItem base;
@@ -81,7 +84,6 @@ static int smartcard_char_device_add_to_readers(RedsState *reds, SpiceCharDevice
 
 static RedMsgItem *smartcard_char_device_on_message_from_device(
     RedCharDeviceSmartcard *dev, VSCMsgHeader *header);
-static RedCharDeviceSmartcard *smartcard_device_new(RedsState *reds, SpiceCharDeviceInstance *sin);
 static void smartcard_init(RedsState *reds);
 
 static void smartcard_read_buf_prepare(RedCharDeviceSmartcard *dev, VSCMsgHeader *vheader)
@@ -95,10 +97,10 @@ static void smartcard_read_buf_prepare(RedCharDeviceSmartcard *dev, VSCMsgHeader
     }
 }
 
-static RedPipeItem *smartcard_read_msg_from_device(RedCharDevice *self,
-                                                   SpiceCharDeviceInstance *sin)
+RedPipeItem*
+RedCharDeviceSmartcard::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
 {
-    RedCharDeviceSmartcard *dev = RED_CHAR_DEVICE_SMARTCARD(self);
+    RedCharDeviceSmartcard *dev = this;
     SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
     VSCMsgHeader *vheader = (VSCMsgHeader*)dev->priv->buf;
     int remaining;
@@ -145,24 +147,21 @@ static RedPipeItem *smartcard_read_msg_from_device(RedCharDevice *self,
 /* this is called from both device input and client input. since the device is
  * a usb device, the context is still the main thread (kvm_main_loop, timers)
  * so no mutex is required. */
-static void smartcard_send_msg_to_client(RedCharDevice *self,
-                                         RedPipeItem *msg,
-                                         RedCharDeviceClientOpaque *opaque)
+void
+RedCharDeviceSmartcard::send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque)
 {
     SmartCardChannelClient *scc = (SmartCardChannelClient *) opaque;
-    RedCharDeviceSmartcard *dev = RED_CHAR_DEVICE_SMARTCARD(self);
 
-    spice_assert(dev->priv->scc && dev->priv->scc == scc);
+    spice_assert(priv->scc && priv->scc == scc);
     red_pipe_item_ref(msg);
     scc->pipe_add_push(msg);
 }
 
-static void smartcard_remove_client(RedCharDevice *self, RedCharDeviceClientOpaque *opaque)
+void RedCharDeviceSmartcard::remove_client(RedCharDeviceClientOpaque *opaque)
 {
     SmartCardChannelClient *scc = (SmartCardChannelClient *) opaque;
-    RedCharDeviceSmartcard *dev = RED_CHAR_DEVICE_SMARTCARD(self);
 
-    spice_assert(dev->priv->scc && dev->priv->scc == scc);
+    spice_assert(priv->scc && priv->scc == scc);
     scc->shutdown();
 }
 
@@ -187,6 +186,8 @@ RedMsgItem *smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard 
     }
     return smartcard_new_vsc_msg_item(dev->priv->reader_id, vheader);
 }
+
+XXX_CAST(RedCharDevice, RedCharDeviceSmartcard, RED_CHAR_DEVICE_SMARTCARD);
 
 static int smartcard_char_device_add_to_readers(RedsState *reds, SpiceCharDeviceInstance *char_device)
 {
@@ -225,29 +226,31 @@ SpiceCharDeviceInstance *smartcard_readers_get_unattached(void)
     return NULL;
 }
 
-static RedCharDeviceSmartcard *smartcard_device_new(RedsState *reds, SpiceCharDeviceInstance *sin)
+RedCharDeviceSmartcardPrivate::RedCharDeviceSmartcardPrivate()
 {
-    RedCharDeviceSmartcard *dev;
-
-    dev = (RedCharDeviceSmartcard*)
-        g_object_new(RED_TYPE_CHAR_DEVICE_SMARTCARD,
-                     "sin", sin,
-                     "spice-server", reds,
-                     "client-tokens-interval", 0ULL,
-                     "self-tokens", ~0ULL,
-                     NULL);
-
-    return dev;
+    reader_id = VSCARD_UNDEFINED_READER_ID;
+    buf_size = APDUBufSize + sizeof(VSCMsgHeader);
+    buf = (uint8_t*) g_malloc(buf_size);
+    buf_pos = buf;
 }
 
-RedCharDevice *smartcard_device_connect(RedsState *reds, SpiceCharDeviceInstance *char_device)
+RedCharDeviceSmartcardPrivate::~RedCharDeviceSmartcardPrivate()
 {
-    RedCharDeviceSmartcard *dev;
+    g_free(buf);
+}
 
-    dev = smartcard_device_new(reds, char_device);
+RedCharDeviceSmartcard::RedCharDeviceSmartcard(RedsState *reds, SpiceCharDeviceInstance *sin):
+    RedCharDevice(reds, sin, 0, ~0ULL)
+{
+}
+
+red::shared_ptr<RedCharDeviceSmartcard> smartcard_device_connect(RedsState *reds, SpiceCharDeviceInstance *char_device)
+{
+    auto dev =
+        red::make_shared<RedCharDeviceSmartcard>(reds, char_device);
+
     if (smartcard_char_device_add_to_readers(reds, char_device) == -1) {
-        dev->unref();
-        return NULL;
+        dev.reset();
     }
     return dev;
 }
@@ -353,10 +356,9 @@ static void smartcard_channel_send_msg(RedChannelClient *rcc,
 static void smartcard_channel_send_migrate_data(SmartCardChannelClient *scc,
                                                 SpiceMarshaller *m, RedPipeItem *item)
 {
-    RedCharDeviceSmartcard *dev;
     SpiceMarshaller *m2;
 
-    dev = smartcard_channel_client_get_char_device(scc);
+    auto dev = smartcard_channel_client_get_char_device(scc);
     scc->init_send_data(SPICE_MSG_MIGRATE_DATA);
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_SMARTCARD_MAGIC);
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_SMARTCARD_VERSION);
@@ -432,7 +434,7 @@ void smartcard_channel_write_to_reader(RedCharDeviceWriteBuffer *write_buf)
     sin = g_smartcard_readers.sin[vheader->reader_id];
     dev = RED_CHAR_DEVICE_SMARTCARD(sin->st);
     spice_assert(!dev->priv->scc ||
-                 dev == smartcard_channel_client_get_char_device(dev->priv->scc));
+                 dev == smartcard_channel_client_get_char_device(dev->priv->scc).get());
     /* protocol requires messages to be in network endianness */
     vheader->type = htonl(vheader->type);
     vheader->length = htonl(vheader->length);
@@ -503,38 +505,8 @@ static void smartcard_init(RedsState *reds)
 }
 
 
-static void
-red_char_device_smartcard_finalize(GObject *object)
+RedCharDeviceSmartcard::~RedCharDeviceSmartcard()
 {
-    RedCharDeviceSmartcard *self = RED_CHAR_DEVICE_SMARTCARD(object);
-
-    g_free(self->priv->buf);
-
-    G_OBJECT_CLASS(red_char_device_smartcard_parent_class)->finalize(object);
-}
-
-static void
-red_char_device_smartcard_class_init(RedCharDeviceSmartcardClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedCharDeviceClass *char_dev_class = RED_CHAR_DEVICE_CLASS(klass);
-
-    object_class->finalize = red_char_device_smartcard_finalize;
-
-    char_dev_class->read_one_msg_from_device = smartcard_read_msg_from_device;
-    char_dev_class->send_msg_to_client = smartcard_send_msg_to_client;
-    char_dev_class->remove_client = smartcard_remove_client;
-}
-
-static void
-red_char_device_smartcard_init(RedCharDeviceSmartcard *self)
-{
-    self->priv = (RedCharDeviceSmartcardPrivate*) red_char_device_smartcard_get_instance_private(self);
-
-    self->priv->reader_id = VSCARD_UNDEFINED_READER_ID;
-    self->priv->buf_size = APDUBufSize + sizeof(VSCMsgHeader);
-    self->priv->buf = (uint8_t*) g_malloc(self->priv->buf_size);
-    self->priv->buf_pos = self->priv->buf;
 }
 
 uint32_t smartcard_get_n_readers(void)

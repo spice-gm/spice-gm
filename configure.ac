@@ -52,7 +52,7 @@ AC_PROG_CXX
 AC_LANG_PUSH([C++])
 m4_ifndef([AX_CXX_COMPILE_STDCXX_11], [m4_fatal([Missing AX_CXX_COMPILE_STDCXX_11, install autoconf-archive])])
 AX_CXX_COMPILE_STDCXX_11
-AX_APPEND_COMPILE_FLAGS([-fno-exceptions -fno-rtti -fno-check-new --no_rtti])
+AX_APPEND_COMPILE_FLAGS([-fno-exceptions -fno-check-new])
 AC_LANG_POP([C++])
 
 AC_CHECK_HEADERS([sys/time.h execinfo.h linux/sockios.h pthread_np.h])

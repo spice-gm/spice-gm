@@ -42,9 +42,6 @@
 // avoid DoS
 #define QUEUED_DATA_LIMIT (1024*1024)
 
-SPICE_DECLARE_TYPE(RedCharDeviceSpiceVmc, red_char_device_spicevmc, CHAR_DEVICE_SPICEVMC);
-#define RED_TYPE_CHAR_DEVICE_SPICEVMC red_char_device_spicevmc_get_type()
-
 struct RedVmcChannel;
 
 typedef struct RedVmcPipeItem {
@@ -59,21 +56,18 @@ typedef struct RedVmcPipeItem {
 
 struct RedCharDeviceSpiceVmc: public RedCharDevice
 {
-    // initializing this work as same as setting memory to zero,
-    // but destructor won't be called so must be done manually, for now
+    RedCharDeviceSpiceVmc(SpiceCharDeviceInstance *sin, RedsState *reds, RedVmcChannel *channel);
+    ~RedCharDeviceSpiceVmc();
+
+    virtual RedPipeItem* read_one_msg_from_device(SpiceCharDeviceInstance *sin) override;
+    virtual void remove_client(RedCharDeviceClientOpaque *opaque) override;
+    virtual void on_free_self_token() override;
+    virtual void port_event(uint8_t event) override;
+
     red::shared_ptr<RedVmcChannel> channel;
 };
 
-struct RedCharDeviceSpiceVmcClass: public RedCharDeviceClass
-{
-};
-
-static RedCharDevice *red_char_device_spicevmc_new(SpiceCharDeviceInstance *sin,
-                                                   RedsState *reds,
-                                                   RedVmcChannel *channel);
 static void spicevmc_red_channel_queue_data(RedVmcChannel *channel, RedVmcPipeItem *item);
-
-G_DEFINE_TYPE(RedCharDeviceSpiceVmc, red_char_device_spicevmc, RED_TYPE_CHAR_DEVICE)
 
 struct RedVmcChannel: public RedChannel
 {
@@ -253,10 +247,9 @@ static RedVmcPipeItem* try_compress_lz4(RedVmcChannel *channel, int n, RedVmcPip
 }
 #endif
 
-static RedPipeItem *spicevmc_chardev_read_msg_from_dev(RedCharDevice *self,
-                                                       SpiceCharDeviceInstance *sin)
+RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
 {
-    RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
+    RedCharDeviceSpiceVmc *vmc = this;
     RedVmcChannel *channel = vmc->channel.get();
     SpiceCharDeviceInterface *sif;
     RedVmcPipeItem *msg_item;
@@ -330,11 +323,10 @@ static void spicevmc_port_send_event(RedChannelClient *rcc, uint8_t event)
     rcc->pipe_add_push(&item->base);
 }
 
-static void spicevmc_char_dev_remove_client(RedCharDevice *self,
-                                            RedCharDeviceClientOpaque *opaque)
+void RedCharDeviceSpiceVmc::remove_client(RedCharDeviceClientOpaque *opaque)
 {
     RedClient *client = (RedClient *) opaque;
-    RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
+    RedCharDeviceSpiceVmc *vmc = this;
     RedVmcChannel *channel = vmc->channel.get();
 
     spice_assert(channel->rcc &&
@@ -476,9 +468,9 @@ bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
 }
 
 /* if device manage to send some data attempt to unblock the channel */
-static void spicevmc_on_free_self_token(RedCharDevice *self)
+void RedCharDeviceSpiceVmc::on_free_self_token()
 {
-    RedCharDeviceSpiceVmc *vmc = RED_CHAR_DEVICE_SPICEVMC(self);
+    RedCharDeviceSpiceVmc *vmc = this;
     RedVmcChannel *channel = vmc->channel.get();
 
     channel->rcc->unblock_read();
@@ -672,28 +664,26 @@ void RedVmcChannel::on_connect(RedClient *client, RedStream *stream, int migrati
     }
 }
 
-RedCharDevice *spicevmc_device_connect(RedsState *reds,
-                                       SpiceCharDeviceInstance *sin,
-                                       uint8_t channel_type)
+red::shared_ptr<RedCharDevice>
+spicevmc_device_connect(RedsState *reds, SpiceCharDeviceInstance *sin, uint8_t channel_type)
 {
-    RedCharDevice *dev;
     auto channel(red_vmc_channel_new(reds, channel_type));
     if (!channel) {
-        return NULL;
+        return red::shared_ptr<RedCharDevice>();
     }
 
     /* char device takes ownership of channel */
-    dev = red_char_device_spicevmc_new(sin, reds, channel.get());
+    auto dev = red::make_shared<RedCharDeviceSpiceVmc>(sin, reds, channel.get());
 
     channel->chardev_sin = sin;
 
     return dev;
 }
 
-static void spicevmc_port_event(RedCharDevice *char_dev, uint8_t event)
+void RedCharDeviceSpiceVmc::port_event(uint8_t event)
 {
     RedVmcChannel *channel;
-    RedCharDeviceSpiceVmc *device = RED_CHAR_DEVICE_SPICEVMC(char_dev);
+    RedCharDeviceSpiceVmc *device = this;
 
     channel = device->channel.get();
 
@@ -710,90 +700,25 @@ static void spicevmc_port_event(RedCharDevice *char_dev, uint8_t event)
     spicevmc_port_send_event(channel->rcc, event);
 }
 
-static void
-red_char_device_spicevmc_dispose(GObject *object)
+RedCharDeviceSpiceVmc::RedCharDeviceSpiceVmc(SpiceCharDeviceInstance *sin, RedsState *reds,
+                                             RedVmcChannel *channel):
+    RedCharDevice(reds, sin, 0, 128),
+    channel(channel)
 {
-    RedCharDeviceSpiceVmc *self = RED_CHAR_DEVICE_SPICEVMC(object);
+    if (channel) {
+        channel->chardev = this;
+    }
+}
 
-    if (self->channel) {
+RedCharDeviceSpiceVmc::~RedCharDeviceSpiceVmc()
+{
+    if (channel) {
         // prevent possible recursive calls
-        self->channel->chardev = NULL;
+        channel->chardev = NULL;
 
         // close all current connections and drop the reference
-        self->channel->destroy();
-        self->channel.reset();
+        channel->destroy();
     }
-    G_OBJECT_CLASS(red_char_device_spicevmc_parent_class)->dispose(object);
-}
-
-enum {
-    PROP0,
-    PROP_CHANNEL
-};
-
-static void
-red_char_device_spicevmc_set_property(GObject *object,
-                                      guint property_id,
-                                      const GValue *value,
-                                      GParamSpec *pspec)
-{
-    RedCharDeviceSpiceVmc *self = RED_CHAR_DEVICE_SPICEVMC(object);
-
-    switch (property_id)
-    {
-        case PROP_CHANNEL:
-            spice_assert(!self->channel);
-            self->channel.reset((RedVmcChannel*) g_value_get_pointer(value));
-            spice_assert(self->channel);
-            self->channel->chardev = self;
-
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static void
-red_char_device_spicevmc_class_init(RedCharDeviceSpiceVmcClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedCharDeviceClass *char_dev_class = RED_CHAR_DEVICE_CLASS(klass);
-
-    object_class->set_property = red_char_device_spicevmc_set_property;
-    object_class->dispose = red_char_device_spicevmc_dispose;
-
-    char_dev_class->read_one_msg_from_device = spicevmc_chardev_read_msg_from_dev;
-    char_dev_class->remove_client = spicevmc_char_dev_remove_client;
-    char_dev_class->port_event = spicevmc_port_event;
-    char_dev_class->on_free_self_token = spicevmc_on_free_self_token;
-
-    g_object_class_install_property(object_class,
-                                    PROP_CHANNEL,
-                                    g_param_spec_pointer("channel",
-                                                        "Channel",
-                                                        "Channel associated with this device",
-                                                        G_PARAM_STATIC_STRINGS |
-                                                        G_PARAM_WRITABLE |
-                                                        G_PARAM_CONSTRUCT));
-}
-
-static void
-red_char_device_spicevmc_init(RedCharDeviceSpiceVmc *self)
-{
-}
-
-static RedCharDevice *
-red_char_device_spicevmc_new(SpiceCharDeviceInstance *sin,
-                             RedsState *reds,
-                             RedVmcChannel *channel)
-{
-    return (RedCharDevice*) g_object_new(RED_TYPE_CHAR_DEVICE_SPICEVMC,
-                        "sin", sin,
-                        "spice-server", reds,
-                        "client-tokens-interval", 0ULL,
-                        "self-tokens", UINT64_C(128), // limit number of messages sent to device
-                        "channel", channel,
-                        NULL);
 }
 
 static VmcChannelClient *

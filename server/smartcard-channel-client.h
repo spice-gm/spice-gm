@@ -62,7 +62,8 @@ void smartcard_channel_client_send_error(RedChannelClient *rcc,
 void smartcard_channel_client_set_char_device(SmartCardChannelClient *scc,
                                               RedCharDeviceSmartcard *device);
 
-RedCharDeviceSmartcard* smartcard_channel_client_get_char_device(SmartCardChannelClient *scc);
+red::shared_ptr<RedCharDeviceSmartcard>
+smartcard_channel_client_get_char_device(SmartCardChannelClient *scc);
 
 #include "pop-visibility.h"
 

@@ -214,28 +214,27 @@ typedef struct SPICE_ATTR_PACKED VDInternalBuf {
 } VDInternalBuf;
 #include <spice/end-packed.h>
 
-SPICE_DECLARE_TYPE(RedCharDeviceVDIPort, red_char_device_vdi_port, CHAR_DEVICE_VDIPORT);
-#define RED_TYPE_CHAR_DEVICE_VDIPORT red_char_device_vdi_port_get_type()
-
 struct RedCharDeviceVDIPort: public RedCharDevice
 {
-    RedCharDeviceVDIPortPrivate *priv;
+    RedCharDeviceVDIPort(RedsState *reds);
+    RedCharDeviceVDIPort();
+    ~RedCharDeviceVDIPort();
+
+    virtual RedPipeItem* read_one_msg_from_device(SpiceCharDeviceInstance *sin) override;
+    virtual void send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque) override;
+    virtual void send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens) override;
+    virtual void remove_client(RedCharDeviceClientOpaque *opaque);
+    virtual void on_free_self_token();
+
+    RedCharDeviceVDIPortPrivate priv[1];
 };
-
-struct RedCharDeviceVDIPortClass: public RedCharDeviceClass
-{
-};
-
-G_DEFINE_TYPE_WITH_PRIVATE(RedCharDeviceVDIPort, red_char_device_vdi_port, RED_TYPE_CHAR_DEVICE)
-
-static RedCharDeviceVDIPort *red_char_device_vdi_port_new(RedsState *reds);
 
 static void migrate_timeout(RedsState *reds);
 static RedsMigTargetClient* reds_mig_target_client_find(RedsState *reds, RedClient *client);
 static void reds_mig_target_client_free(RedsState *reds, RedsMigTargetClient *mig_client);
 static void reds_mig_cleanup_wait_disconnect(RedsState *reds);
 static void reds_mig_remove_wait_disconnect_client(RedsState *reds, RedClient *client);
-static void reds_add_char_device(RedsState *reds, RedCharDevice *dev);
+static void reds_add_char_device(RedsState *reds, const red::shared_ptr<RedCharDevice> &dev);
 static void reds_send_mm_time(RedsState *reds);
 static void reds_on_ic_change(RedsState *reds);
 static void reds_on_sv_change(RedsState *reds);
@@ -406,7 +405,7 @@ static void reds_mig_cleanup(RedsState *reds)
 
 static void reds_reset_vdp(RedsState *reds)
 {
-    RedCharDeviceVDIPort *dev = reds->agent_dev;
+    RedCharDeviceVDIPort *dev = reds->agent_dev.get();
     SpiceCharDeviceInterface *sif;
 
     dev->priv->read_state = VDI_PORT_READ_STATE_READ_HEADER;
@@ -532,7 +531,7 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
         /* Let the agent know the client is disconnected */
         if (reds->agent_dev->priv->agent_attached) {
             RedCharDeviceWriteBuffer *char_dev_buf =
-                vdagent_new_write_buffer(reds->agent_dev,
+                vdagent_new_write_buffer(reds->agent_dev.get(),
                                          VD_AGENT_CLIENT_DISCONNECTED,
                                          0,
                                          false);
@@ -639,7 +638,7 @@ static void reds_update_mouse_mode(RedsState *reds)
 
 static void reds_update_agent_properties(RedsState *reds)
 {
-    if (reds->agent_dev == NULL || reds->config == NULL) {
+    if (!reds->agent_dev || reds->config == NULL) {
         return;
     }
     /* copy & paste */
@@ -760,68 +759,67 @@ static void reds_adjust_agent_capabilities(RedsState *reds, VDAgentMessage *mess
 
 /* reads from the device till completes reading a message that is addressed to the client,
  * or otherwise, when reading from the device fails */
-static RedPipeItem *vdi_port_read_one_msg_from_device(RedCharDevice *self,
-                                                      SpiceCharDeviceInstance *sin)
+RedPipeItem *
+RedCharDeviceVDIPort::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
 {
     RedsState *reds;
-    RedCharDeviceVDIPort *dev = RED_CHAR_DEVICE_VDIPORT(self);
     SpiceCharDeviceInterface *sif;
     RedVDIReadBuf *dispatch_buf;
     int n;
 
-    reds = self->get_server();
-    g_assert(reds->agent_dev == sin->st);
+    reds = get_server();
+    g_assert(reds->agent_dev.get() == sin->st);
     if (!reds->vdagent) {
         return NULL;
     }
     spice_assert(reds->vdagent == sin);
     sif = spice_char_device_get_interface(reds->vdagent);
     while (reds->vdagent) {
-        switch (dev->priv->read_state) {
+        switch (priv->read_state) {
         case VDI_PORT_READ_STATE_READ_HEADER:
-            n = sif->read(reds->vdagent, dev->priv->receive_pos, dev->priv->receive_len);
+            n = sif->read(reds->vdagent, priv->receive_pos, priv->receive_len);
             if (!n) {
                 return NULL;
             }
-            if ((dev->priv->receive_len -= n)) {
-                dev->priv->receive_pos += n;
+            if ((priv->receive_len -= n)) {
+                priv->receive_pos += n;
                 return NULL;
             }
-            dev->priv->message_receive_len = dev->priv->vdi_chunk_header.size;
-            dev->priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
+            priv->message_receive_len = priv->vdi_chunk_header.size;
+            priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
             /* fall through */
         case VDI_PORT_READ_STATE_GET_BUFF: {
-            if (!(dev->priv->current_read_buf = vdi_port_get_read_buf(dev))) {
+            if (!(priv->current_read_buf = vdi_port_get_read_buf(this))) {
                 return NULL;
             }
-            dev->priv->receive_pos = dev->priv->current_read_buf->data;
-            dev->priv->receive_len = MIN(dev->priv->message_receive_len,
-                                         sizeof(dev->priv->current_read_buf->data));
-            dev->priv->current_read_buf->len = dev->priv->receive_len;
-            dev->priv->message_receive_len -= dev->priv->receive_len;
-            dev->priv->read_state = VDI_PORT_READ_STATE_READ_DATA;
+            priv->receive_pos = priv->current_read_buf->data;
+            priv->receive_len = MIN(priv->message_receive_len,
+                                    sizeof(priv->current_read_buf->data));
+            priv->current_read_buf->len = priv->receive_len;
+            priv->message_receive_len -= priv->receive_len;
+            priv->read_state = VDI_PORT_READ_STATE_READ_DATA;
         }
             /* fall through */
         case VDI_PORT_READ_STATE_READ_DATA: {
-            n = sif->read(reds->vdagent, dev->priv->receive_pos, dev->priv->receive_len);
+            n = sif->read(reds->vdagent, priv->receive_pos, priv->receive_len);
             if (!n) {
                 return NULL;
             }
-            if ((dev->priv->receive_len -= n)) {
-                dev->priv->receive_pos += n;
+            if ((priv->receive_len -= n)) {
+                priv->receive_pos += n;
                 break;
             }
-            dispatch_buf = dev->priv->current_read_buf;
-            dev->priv->current_read_buf = NULL;
-            dev->priv->receive_pos = NULL;
-            if (dev->priv->message_receive_len == 0) {
-                dev->priv->read_state = VDI_PORT_READ_STATE_READ_HEADER;
-                dev->priv->receive_pos = (uint8_t *)&dev->priv->vdi_chunk_header;
-                dev->priv->receive_len = sizeof(dev->priv->vdi_chunk_header);
+            dispatch_buf = priv->current_read_buf;
+            priv->current_read_buf = NULL;
+            priv->receive_pos = NULL;
+            if (priv->message_receive_len == 0) {
+                priv->read_state = VDI_PORT_READ_STATE_READ_HEADER;
+                priv->receive_pos = (uint8_t *)&priv->vdi_chunk_header;
+                priv->receive_len = sizeof(priv->vdi_chunk_header);
             } else {
-                dev->priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
+                priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
             }
-            switch (vdi_port_read_buf_process(dev, dispatch_buf)) {
+            switch (vdi_port_read_buf_process(this, dispatch_buf)) {
             case AGENT_MSG_FILTER_OK:
                 reds_adjust_agent_capabilities(reds, (VDAgentMessage *) dispatch_buf->data);
                 return &dispatch_buf->base;
@@ -851,8 +849,8 @@ void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
 
     // add the stream devices to the message
     for (auto dev: reds->char_devices) {
-        if (IS_STREAM_DEVICE(dev)) {
-            StreamDevice *stream_dev = STREAM_DEVICE(dev);
+        auto stream_dev = dynamic_cast<StreamDevice*>(dev.get());
+        if (stream_dev) {
             const StreamDeviceDisplayInfo *info = stream_device_get_device_display_info(stream_dev);
             size_t device_address_len = strlen(info->device_address) + 1;
 
@@ -897,7 +895,7 @@ void reds_send_device_display_info(RedsState *reds)
     SpiceMarshaller *m = spice_marshaller_new();
     reds_marshall_device_display_info(reds, m);
 
-    RedCharDeviceWriteBuffer *char_dev_buf = vdagent_new_write_buffer(reds->agent_dev,
+    RedCharDeviceWriteBuffer *char_dev_buf = vdagent_new_write_buffer(reds->agent_dev.get(),
                                          VD_AGENT_GRAPHICS_DEVICE_INFO,
                                          spice_marshaller_get_total_size(m),
                                          true);
@@ -925,9 +923,7 @@ void reds_send_device_display_info(RedsState *reds)
 }
 
 /* after calling this, we unref the message, and the ref is in the instance side */
-static void vdi_port_send_msg_to_client(RedCharDevice *self,
-                                        RedPipeItem *msg,
-                                        RedCharDeviceClientOpaque *opaque)
+void RedCharDeviceVDIPort::send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque)
 {
     RedClient *client = (RedClient *) opaque;
     RedVDIReadBuf *agent_data_buf = (RedVDIReadBuf *)msg;
@@ -939,17 +935,15 @@ static void vdi_port_send_msg_to_client(RedCharDevice *self,
                                         agent_data_buf);
 }
 
-static void vdi_port_send_tokens_to_client(RedCharDevice *self,
-                                           RedCharDeviceClientOpaque *opaque,
-                                           uint32_t tokens)
+void RedCharDeviceVDIPort::send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens)
 {
     RedClient *client = (RedClient *) opaque;
     client->get_main()->push_agent_tokens(tokens);
 }
 
-static void vdi_port_on_free_self_token(RedCharDevice *self)
+void RedCharDeviceVDIPort::on_free_self_token()
 {
-    RedsState *reds = self->get_server();
+    RedsState *reds = get_server();
 
     if (reds->inputs_channel && reds->pending_mouse_event) {
         spice_debug("pending mouse event");
@@ -962,8 +956,7 @@ static void vdi_port_on_free_self_token(RedCharDevice *self)
     }
 }
 
-static void vdi_port_remove_client(RedCharDevice *self,
-                                   RedCharDeviceClientOpaque *opaque)
+void RedCharDeviceVDIPort::remove_client(RedCharDeviceClientOpaque *opaque)
 {
     RedClient *client = (RedClient *) opaque;
     client->get_main()->shutdown();
@@ -982,7 +975,7 @@ void reds_handle_agent_mouse_event(RedsState *reds, const VDAgentMouseState *mou
         return;
     }
 
-    RedCharDeviceWriteBuffer *char_dev_buf = vdagent_new_write_buffer(reds->agent_dev,
+    RedCharDeviceWriteBuffer *char_dev_buf = vdagent_new_write_buffer(reds->agent_dev.get(),
                                                                       VD_AGENT_MOUSE_STATE,
                                                                       sizeof(VDAgentMouseState),
                                                                       true);
@@ -1053,7 +1046,7 @@ SpiceMsgChannels *reds_msg_channels_new(RedsState *reds)
 
 void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t num_tokens)
 {
-    RedCharDevice *dev_state = reds->agent_dev;
+    RedCharDevice *dev_state = reds->agent_dev.get();
     RedClient *client;
 
     if (!reds->vdagent) {
@@ -1109,7 +1102,7 @@ void reds_on_main_agent_tokens(RedsState *reds, MainChannelClient *mcc, uint32_t
 
 uint8_t *reds_get_agent_data_buffer(RedsState *reds, MainChannelClient *mcc, size_t size)
 {
-    RedCharDeviceVDIPort *dev = reds->agent_dev;
+    RedCharDeviceVDIPort *dev = reds->agent_dev.get();
     RedClient *client;
 
     if (!dev->priv->client_agent_started) {
@@ -1139,7 +1132,7 @@ uint8_t *reds_get_agent_data_buffer(RedsState *reds, MainChannelClient *mcc, siz
 
 void reds_release_agent_data_buffer(RedsState *reds, uint8_t *buf)
 {
-    RedCharDeviceVDIPort *dev = reds->agent_dev;
+    RedCharDeviceVDIPort *dev = reds->agent_dev.get();
 
     if (!dev->priv->recv_from_client_buf) {
         g_free(buf);
@@ -1210,7 +1203,7 @@ overflow:
 void reds_on_main_agent_data(RedsState *reds, MainChannelClient *mcc, const void *message,
                              size_t size)
 {
-    RedCharDeviceVDIPort *dev = reds->agent_dev;
+    RedCharDeviceVDIPort *dev = reds->agent_dev.get();
     VDIChunkHeader *header;
     AgentMsgFilterResult res;
 
@@ -1273,7 +1266,7 @@ void reds_on_main_mouse_mode_request(RedsState *reds, void *message, size_t size
  */
 void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
 {
-    RedCharDeviceVDIPort *agent_dev = reds->agent_dev;
+    RedCharDeviceVDIPort *agent_dev = reds->agent_dev.get();
     uint32_t read_data_len;
 
     spice_assert(reds->clients.size() == 1);
@@ -1319,7 +1312,7 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
 void reds_marshall_migrate_data(RedsState *reds, SpiceMarshaller *m)
 {
     SpiceMigrateDataMain mig_data;
-    RedCharDeviceVDIPort *agent_dev = reds->agent_dev;
+    RedCharDeviceVDIPort *agent_dev = reds->agent_dev.get();
     SpiceMarshaller *m2;
 
     memset(&mig_data, 0, sizeof(mig_data));
@@ -1399,7 +1392,7 @@ void reds_marshall_migrate_data(RedsState *reds, SpiceMarshaller *m)
 
 static int reds_agent_state_restore(RedsState *reds, SpiceMigrateDataMain *mig_data)
 {
-    RedCharDeviceVDIPort *agent_dev = reds->agent_dev;
+    RedCharDeviceVDIPort *agent_dev = reds->agent_dev.get();
     uint32_t chunk_header_remaining;
 
     agent_dev->priv->vdi_chunk_header = mig_data->agent2client.chunk_header;
@@ -1473,7 +1466,7 @@ static int reds_agent_state_restore(RedsState *reds, SpiceMigrateDataMain *mig_d
 bool reds_handle_migrate_data(RedsState *reds, MainChannelClient *mcc,
                               SpiceMigrateDataMain *mig_data, uint32_t size)
 {
-    RedCharDeviceVDIPort *agent_dev = reds->agent_dev;
+    RedCharDeviceVDIPort *agent_dev = reds->agent_dev.get();
 
     spice_debug("main-channel: got migrate data");
     /*
@@ -1776,8 +1769,9 @@ static void reds_late_initialization(RedsState *reds)
 
     // create stream channels for streaming devices
     for (auto dev: reds->char_devices) {
-        if (IS_STREAM_DEVICE(dev)) {
-            stream_device_create_channel(STREAM_DEVICE(dev));
+        auto stream_dev = dynamic_cast<StreamDevice*>(dev.get());
+        if (stream_dev) {
+            stream_device_create_channel(stream_dev);
         }
     }
     reds->late_initialization_done = true;
@@ -3073,9 +3067,10 @@ void reds_disable_mm_time(RedsState *reds)
     reds->mm_time_enabled = FALSE;
 }
 
-static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstance *sin)
+static red::shared_ptr<RedCharDevice>
+attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstance *sin)
 {
-    RedCharDeviceVDIPort *dev = reds->agent_dev;
+    RedCharDeviceVDIPort *dev = reds->agent_dev.get();
     SpiceCharDeviceInterface *sif;
 
     dev->priv->agent_attached = true;
@@ -3090,7 +3085,7 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
     }
 
     if (!reds_main_channel_connected(reds)) {
-        return dev;
+        return reds->agent_dev;
     }
 
     dev->priv->read_filter.discard_all = FALSE;
@@ -3136,7 +3131,7 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
         reds->main_channel->push_agent_connected();
     }
 
-    return dev;
+    return reds->agent_dev;
 }
 
 SPICE_GNUC_VISIBLE void spice_server_char_device_wakeup(SpiceCharDeviceInstance* sin)
@@ -3167,7 +3162,7 @@ SPICE_GNUC_VISIBLE const char** spice_server_char_device_recognized_subtypes(voi
     return (const char **) spice_server_char_device_recognized_subtypes_list;
 }
 
-static void reds_add_char_device(RedsState *reds, RedCharDevice *dev)
+static void reds_add_char_device(RedsState *reds, const red::shared_ptr<RedCharDevice> &dev)
 {
     reds->char_devices.push_front(dev);
 }
@@ -3176,9 +3171,10 @@ static void reds_remove_char_device(RedsState *reds, RedCharDevice *dev)
 {
     g_return_if_fail(reds != NULL);
     auto &devs(reds->char_devices);
-    g_warn_if_fail(std::find(devs.begin(), devs.end(), dev) != devs.end());
+    g_warn_if_fail(std::find(devs.begin(), devs.end(),
+                             red::shared_ptr<RedCharDevice>(dev)) != devs.end());
 
-    devs.remove(dev);
+    devs.remove(red::shared_ptr<RedCharDevice>(dev));
 }
 
 static int
@@ -3186,7 +3182,7 @@ spice_server_char_device_add_interface(SpiceServer *reds, SpiceBaseInstance *sin
 {
     SpiceCharDeviceInstance* char_device =
             SPICE_UPCAST(SpiceCharDeviceInstance, sin);
-    RedCharDevice *dev_state = NULL;
+    red::shared_ptr<RedCharDevice> dev_state;
 
     spice_debug("CHAR_DEVICE %s", char_device->subtype);
     if (strcmp(char_device->subtype, SUBTYPE_VDAGENT) == 0) {
@@ -3195,11 +3191,11 @@ spice_server_char_device_add_interface(SpiceServer *reds, SpiceBaseInstance *sin
             return -1;
         }
         dev_state = attach_to_red_agent(reds, char_device);
-        dev_state->ref();
     }
 #ifdef USE_SMARTCARD
     else if (strcmp(char_device->subtype, SUBTYPE_SMARTCARD) == 0) {
-        if (!(dev_state = smartcard_device_connect(reds, char_device))) {
+        dev_state = smartcard_device_connect(reds, char_device);
+        if (!dev_state) {
             return -1;
         }
     }
@@ -3211,7 +3207,7 @@ spice_server_char_device_add_interface(SpiceServer *reds, SpiceBaseInstance *sin
         if (strcmp(char_device->portname, "org.spice-space.webdav.0") == 0) {
             dev_state = spicevmc_device_connect(reds, char_device, SPICE_CHANNEL_WEBDAV);
         } else if (strcmp(char_device->portname, "org.spice-space.stream.0") == 0) {
-            dev_state = RED_CHAR_DEVICE(stream_device_connect(reds, char_device));
+            dev_state = stream_device_connect(reds, char_device);
         } else {
             dev_state = spicevmc_device_connect(reds, char_device, SPICE_CHANNEL_PORT);
         }
@@ -3221,7 +3217,7 @@ spice_server_char_device_add_interface(SpiceServer *reds, SpiceBaseInstance *sin
         /* When spicevmc_device_connect() is called to create a RedCharDevice,
          * it also assigns that as the internal state for char_device. This is
          * just a sanity check to ensure that assumption is correct */
-        spice_assert(dev_state == char_device->st);
+        spice_assert(dev_state.get() == char_device->st);
 
         /* setting the char_device state to "started" for backward compatibily with
          * qemu releases that don't call spice api for start/stop (not implemented yet) */
@@ -3251,10 +3247,9 @@ static int spice_server_char_device_remove_interface(RedsState *reds, SpiceBaseI
     }
 
     if (char_device->st) {
-        reds_remove_char_device(reds, char_device->st);
         auto st = char_device->st;
-        char_device->st = NULL;
-        st->unref();
+        char_device->st = nullptr;
+        reds_remove_char_device(reds, st);
     }
     return 0;
 }
@@ -3426,7 +3421,7 @@ static int do_spice_init(RedsState *reds, SpiceCoreInterface *core_interface)
     }
     reds->core = core_interface_adapter;
     reds->core.public_interface = core_interface;
-    reds->agent_dev = red_char_device_vdi_port_new(reds);
+    reds->agent_dev = red::make_shared<RedCharDeviceVDIPort>(reds);
     reds_update_agent_properties(reds);
     reds->main_dispatcher = red::make_shared<MainDispatcher>(reds);
     reds->mig_target_clients = NULL;
@@ -3797,16 +3792,11 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
 
     reds->main_dispatcher.reset();
     reds_cleanup_net(reds);
-    if (reds->agent_dev) {
-        reds->agent_dev->unref();
-        reds->agent_dev = nullptr;
-    }
+    reds->agent_dev.reset();
 
     // NOTE: don't replace with g_list_free_full as this function that passed callback
     // don't change the list while unreferencing in this case will change it.
-    for (auto dev: reds->char_devices) {
-        dev->unref();
-    }
+    reds->char_devices.clear();
 
     spice_buffer_free(&reds->client_monitors_config);
     red_record_unref(reds->record);
@@ -4490,14 +4480,14 @@ MainDispatcher* reds_get_main_dispatcher(RedsState *reds)
     return reds->main_dispatcher.get();
 }
 
-static void red_char_device_vdi_port_constructed(GObject *object)
+RedCharDeviceVDIPort::RedCharDeviceVDIPort(RedsState *reds):
+    RedCharDevice(reds, nullptr, REDS_TOKENS_TO_SEND, REDS_NUM_INTERNAL_AGENT_MESSAGES)
 {
-    RedCharDeviceVDIPort *dev = RED_CHAR_DEVICE_VDIPORT(object);
-    RedsState *reds;
+    priv->read_state = VDI_PORT_READ_STATE_READ_HEADER;
+    priv->receive_pos = (uint8_t *)&priv->vdi_chunk_header;
+    priv->receive_len = sizeof(priv->vdi_chunk_header);
 
-    G_OBJECT_CLASS(red_char_device_vdi_port_parent_class)->constructed(object);
-
-    reds = RED_CHAR_DEVICE(object)->get_server();
+    RedCharDeviceVDIPort *dev = this;
 
     agent_msg_filter_init(&dev->priv->write_filter, reds->config->agent_copypaste,
                           reds->config->agent_file_xfer,
@@ -4509,20 +4499,9 @@ static void red_char_device_vdi_port_constructed(GObject *object)
                           TRUE);
 }
 
-static void
-red_char_device_vdi_port_init(RedCharDeviceVDIPort *self)
+RedCharDeviceVDIPort::~RedCharDeviceVDIPort()
 {
-    self->priv = (RedCharDeviceVDIPortPrivate*) red_char_device_vdi_port_get_instance_private(self);
-
-    self->priv->read_state = VDI_PORT_READ_STATE_READ_HEADER;
-    self->priv->receive_pos = (uint8_t *)&self->priv->vdi_chunk_header;
-    self->priv->receive_len = sizeof(self->priv->vdi_chunk_header);
-}
-
-static void
-red_char_device_vdi_port_finalize(GObject *object)
-{
-    RedCharDeviceVDIPort *dev = RED_CHAR_DEVICE_VDIPORT(object);
+    RedCharDeviceVDIPort *dev = this;
 
     /* make sure we have no other references to RedVDIReadBuf buffers */
     dev->reset();
@@ -4532,33 +4511,6 @@ red_char_device_vdi_port_finalize(GObject *object)
     }
     g_free(dev->priv->mig_data);
     spice_extra_assert(dev->priv->num_read_buf == 0);
-
-    G_OBJECT_CLASS(red_char_device_vdi_port_parent_class)->finalize(object);
-}
-
-static void
-red_char_device_vdi_port_class_init(RedCharDeviceVDIPortClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS(klass);
-    RedCharDeviceClass *char_dev_class = RED_CHAR_DEVICE_CLASS(klass);
-
-    object_class->finalize = red_char_device_vdi_port_finalize;
-    object_class->constructed = red_char_device_vdi_port_constructed;
-
-    char_dev_class->read_one_msg_from_device = vdi_port_read_one_msg_from_device;
-    char_dev_class->send_msg_to_client = vdi_port_send_msg_to_client;
-    char_dev_class->send_tokens_to_client = vdi_port_send_tokens_to_client;
-    char_dev_class->remove_client = vdi_port_remove_client;
-    char_dev_class->on_free_self_token = vdi_port_on_free_self_token;
-}
-
-static RedCharDeviceVDIPort *red_char_device_vdi_port_new(RedsState *reds)
-{
-    return (RedCharDeviceVDIPort*) g_object_new(RED_TYPE_CHAR_DEVICE_VDIPORT,
-                        "spice-server", reds,
-                        "client-tokens-interval", (guint64)REDS_TOKENS_TO_SEND,
-                        "self-tokens", (guint64)REDS_NUM_INTERNAL_AGENT_MESSAGES,
-                        NULL);
 }
 
 RedRecord *reds_get_record(RedsState *reds)

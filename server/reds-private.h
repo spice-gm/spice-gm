@@ -81,7 +81,7 @@ struct RedsState {
     int secure_listen_socket;
     SpiceWatch *listen_watch;
     SpiceWatch *secure_listen_watch;
-    RedCharDeviceVDIPort *agent_dev;
+    red::shared_ptr<RedCharDeviceVDIPort> agent_dev;
     int pending_mouse_event;
     bool pending_device_display_info_message;
     red::safe_list<RedClient*> clients;
@@ -112,7 +112,7 @@ struct RedsState {
     SpiceTimer *mig_timer;
 
     int vm_running;
-    red::safe_list<RedCharDevice*> char_devices;
+    red::safe_list<red::shared_ptr<RedCharDevice>> char_devices;
     int seamless_migration_enabled; /* command line arg */
 
     SSL_CTX *ctx;

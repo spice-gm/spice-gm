@@ -19,29 +19,21 @@
 #ifndef STREAM_DEVICE_H
 #define STREAM_DEVICE_H
 
+#include <spice/stream-device.h>
+
 #include "display-limits.h"
 #include "char-device.h"
 
-G_BEGIN_DECLS
+#include "push-visibility.h"
 
 /**
  * StreamDevice inherits from RedCharDevice.
  */
 struct StreamDevice;
-struct StreamDeviceClass;
 
-#define TYPE_STREAM_DEVICE stream_device_get_type()
-
-#define STREAM_DEVICE(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), TYPE_STREAM_DEVICE, StreamDevice))
-#define STREAM_DEVICE_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), TYPE_STREAM_DEVICE, StreamDeviceClass))
-#define IS_STREAM_DEVICE(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), TYPE_STREAM_DEVICE))
-#define STREAM_DEVICE_GET_CLASS(obj) \
-    (G_TYPE_INSTANCE_GET_CLASS((obj), TYPE_STREAM_DEVICE, StreamDeviceClass))
-
-GType stream_device_get_type(void) G_GNUC_CONST;
+// forward declarations
+struct StreamChannel;
+struct CursorChannel;
 
 typedef struct StreamDeviceDisplayInfo {
     uint32_t stream_id;
@@ -49,7 +41,7 @@ typedef struct StreamDeviceDisplayInfo {
     uint32_t device_display_id;
 } StreamDeviceDisplayInfo;
 
-StreamDevice *stream_device_connect(RedsState *reds, SpiceCharDeviceInstance *sin);
+red::shared_ptr<StreamDevice> stream_device_connect(RedsState *reds, SpiceCharDeviceInstance *sin);
 
 /* Create channel for the streaming device.
  * If the channel already exists the function does nothing.
@@ -63,6 +55,41 @@ const StreamDeviceDisplayInfo *stream_device_get_device_display_info(StreamDevic
  */
 int32_t stream_device_get_stream_channel_id(StreamDevice *dev);
 
-G_END_DECLS
+#define MAX_GUEST_CAPABILITIES_BYTES ((STREAM_CAP_END+7)/8)
+
+struct StreamDevice: public RedCharDevice
+{
+// TODO access
+    StreamDevice(RedsState *reds, SpiceCharDeviceInstance *sin);
+    ~StreamDevice();
+
+    StreamDevHeader hdr;
+    uint8_t hdr_pos;
+    union AllMessages {
+        StreamMsgFormat format;
+        StreamMsgCapabilities capabilities;
+        StreamMsgCursorSet cursor_set;
+        StreamMsgCursorMove cursor_move;
+        StreamMsgDeviceDisplayInfo device_display_info;
+        uint8_t buf[STREAM_MSG_CAPABILITIES_MAX_BYTES];
+    } *msg;
+    uint32_t msg_pos;
+    uint32_t msg_len;
+    bool has_error;
+    bool opened;
+    bool flow_stopped;
+    uint8_t guest_capabilities[MAX_GUEST_CAPABILITIES_BYTES];
+    red::shared_ptr<StreamChannel> stream_channel;
+    red::shared_ptr<CursorChannel> cursor_channel;
+    SpiceTimer *close_timer;
+    uint32_t frame_mmtime;
+    StreamDeviceDisplayInfo device_display_info;
+protected:
+    virtual RedPipeItem* read_one_msg_from_device(SpiceCharDeviceInstance *sin) override;
+    virtual void remove_client(RedCharDeviceClientOpaque *client) override;
+    virtual void port_event(uint8_t event) override;
+};
+
+#include "pop-visibility.h"
 
 #endif /* STREAM_DEVICE_H */

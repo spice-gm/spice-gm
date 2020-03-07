@@ -19,64 +19,17 @@
 #ifndef CHAR_DEVICE_H_
 #define CHAR_DEVICE_H_
 
-#include <glib-object.h>
-
 #include "spice-wrapped.h"
 #include "red-channel.h"
 #include "migration-protocol.h"
+#include "utils.hpp"
 
-SPICE_BEGIN_DECLS
-
-#define RED_TYPE_CHAR_DEVICE red_char_device_get_type()
-
-#define RED_CHAR_DEVICE(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), RED_TYPE_CHAR_DEVICE, RedCharDevice))
-#define RED_CHAR_DEVICE_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), RED_TYPE_CHAR_DEVICE, RedCharDeviceClass))
-#define RED_IS_CHAR_DEVICE(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), RED_TYPE_CHAR_DEVICE))
-#define RED_IS_CHAR_DEVICE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), RED_TYPE_CHAR_DEVICE))
-#define RED_CHAR_DEVICE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), RED_TYPE_CHAR_DEVICE, RedCharDeviceClass))
+#include "push-visibility.h"
 
 struct RedCharDevice;
 struct RedCharDeviceClass;
 struct RedCharDevicePrivate;
 struct RedCharDeviceClientOpaque;
-
-struct RedCharDeviceClass: public GObjectClass
-{
-    /*
-     * Messages that are addressed to the client can be queued in case we have
-     * multiple clients and some of them don't have enough tokens.
-     */
-
-    /* reads from the device till reaching a msg that should be sent to the client,
-     * or till the reading fails */
-    RedPipeItem* (*read_one_msg_from_device)(RedCharDevice *self,
-                                             SpiceCharDeviceInstance *sin);
-    /* After this call, the message is unreferenced.
-     * Can be NULL. */
-    void (*send_msg_to_client)(RedCharDevice *self,
-                               RedPipeItem *msg,
-                               RedCharDeviceClientOpaque *client);
-
-    /* The cb is called when a predefined number of write buffers were consumed by the
-     * device */
-    void (*send_tokens_to_client)(RedCharDevice *self,
-                                  RedCharDeviceClientOpaque *client,
-                                  uint32_t tokens);
-
-    /* The cb is called when a server (self) message that was addressed to the device,
-     * has been completely written to it */
-    void (*on_free_self_token)(RedCharDevice *self);
-
-    /* This cb is called if it is recommended to remove the client
-     * due to slow flow or due to some other error.
-     * The called instance should disconnect the client, or at least the corresponding channel */
-    void (*remove_client)(RedCharDevice *self, RedCharDeviceClientOpaque *client);
-
-    /* This cb is called when device receives an event */
-    void (*port_event)(RedCharDevice *self, uint8_t event);
-};
-
-GType red_char_device_get_type(void) G_GNUC_CONST;
 
 /*
  * Shared code for char devices, mainly for flow control.
@@ -152,9 +105,15 @@ struct RedCharDeviceWriteBuffer {
 };
 
 
-
-struct RedCharDevice: public GObject
+class RedCharDevice: public red::shared_ptr_counted_weak
 {
+public:
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    RedCharDevice(RedsState *reds, SpiceCharDeviceInstance *sin,
+                  uint64_t client_tokens_interval, uint64_t num_self_tokens);
+    ~RedCharDevice();
+
     void reset_dev_instance(SpiceCharDeviceInstance *sin);
     /* only one client is supported */
     void migrate_data_marshall(SpiceMarshaller *m);
@@ -218,9 +177,38 @@ struct RedCharDevice: public GObject
 
     SpiceCharDeviceInstance *get_device_instance();
 
-    RedCharDevicePrivate *priv;
-    void ref() { g_object_ref(this); }
-    void unref() { g_object_unref(this); }
+    red::unique_link<RedCharDevicePrivate> priv;
+
+//protected:
+public:
+    /*
+     * Messages that are addressed to the client can be queued in case we have
+     * multiple clients and some of them don't have enough tokens.
+     */
+
+    /* reads from the device till reaching a msg that should be sent to the client,
+     * or till the reading fails */
+    virtual RedPipeItem* read_one_msg_from_device(SpiceCharDeviceInstance *sin) = 0;
+    /* After this call, the message is unreferenced.
+     * Can be NULL. */
+    virtual void send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *client) {};
+
+    /* The cb is called when a predefined number of write buffers were consumed by the
+     * device */
+    virtual void send_tokens_to_client(RedCharDeviceClientOpaque *client, uint32_t tokens);
+
+    /* The cb is called when a server (self) message that was addressed to the device,
+     * has been completely written to it */
+    virtual void on_free_self_token() {};
+
+    /* This cb is called if it is recommended to remove the client
+     * due to slow flow or due to some other error.
+     * The called instance should disconnect the client, or at least the corresponding channel */
+    virtual void remove_client(RedCharDeviceClientOpaque *client) = 0;
+
+    /* This cb is called when device receives an event */
+    virtual void port_event(uint8_t event);
+
     // XXX private
     static void write_retry(RedCharDevice *dev);
 private:
@@ -229,16 +217,16 @@ private:
         write_buffer_release(this, p_write_buf);
     }
     int write_to_device();
+    void init_device_instance();
 };
 
 /* api for specific char devices */
 
-RedCharDevice *spicevmc_device_connect(RedsState *reds,
-                                       SpiceCharDeviceInstance *sin,
-                                       uint8_t channel_type);
+red::shared_ptr<RedCharDevice>
+spicevmc_device_connect(RedsState *reds, SpiceCharDeviceInstance *sin, uint8_t channel_type);
 
 SpiceCharDeviceInterface *spice_char_device_get_interface(SpiceCharDeviceInstance *instance);
 
-SPICE_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* CHAR_DEVICE_H_ */
