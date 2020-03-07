@@ -20,6 +20,7 @@
 #define RED_CLIENT_H_
 
 #include "main-channel-client.h"
+#include "safe-list.hpp"
 
 #include "push-visibility.h"
 
@@ -69,8 +70,8 @@ private:
     RedChannelClient *get_channel(int type, int id);
 
     RedsState *const reds;
-    GList *channels;
-    MainChannelClient *mcc;
+    red::safe_list<red::shared_ptr<RedChannelClient>> channels;
+    red::shared_ptr<MainChannelClient> mcc;
     pthread_mutex_t lock; // different channels can be in different threads
 
     pthread_t thread_id;

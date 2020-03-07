@@ -384,16 +384,16 @@ DisplayChannelClient *dcc_new(DisplayChannel *display,
 
 {
     auto dcc =
-        new DisplayChannelClient(display, client, stream, caps, display->priv->qxl->id,
-                                 image_compression, jpeg_state, zlib_glz_state);
+        red::make_shared<DisplayChannelClient>(display, client, stream, caps,
+                                               display->priv->qxl->id, image_compression,
+                                               jpeg_state, zlib_glz_state);
     if (!dcc->init()) {
-        dcc->unref();
-        dcc = nullptr;
+        return nullptr;
     }
-    spice_debug("New display (client %p) dcc %p stream %p", client, dcc, stream);
+    spice_debug("New display (client %p) dcc %p stream %p", client, dcc.get(), stream);
     display->set_during_target_migrate(mig_target);
 
-    return dcc;
+    return dcc.get();
 }
 
 static void dcc_create_all_streams(DisplayChannelClient *dcc)
@@ -448,7 +448,7 @@ void dcc_start(DisplayChannelClient *dcc)
     if (!display_channel_client_wait_for_init(dcc))
         return;
 
-    dcc->ref();
+    red::shared_ptr<DisplayChannelClient> self(dcc);
     dcc->ack_zero_messages_window();
     if (display->priv->surfaces[0].context.canvas) {
         display_channel_current_flush(display, 0);
@@ -465,7 +465,6 @@ void dcc_start(DisplayChannelClient *dcc)
         dcc->pipe_add(dcc_gl_scanout_item_new(dcc, NULL, 0));
         dcc_push_monitors_config(dcc);
     }
-    dcc->unref();
 }
 
 static void dcc_destroy_stream_agents(DisplayChannelClient *dcc)

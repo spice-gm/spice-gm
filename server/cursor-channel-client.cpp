@@ -80,15 +80,15 @@ CursorChannelClient* cursor_channel_client_new(CursorChannel *cursor, RedClient 
                                                int mig_target,
                                                RedChannelCapabilities *caps)
 {
-    auto rcc = new CursorChannelClient(cursor, client, stream, caps);
+    auto rcc =
+        red::make_shared<CursorChannelClient>(cursor, client, stream, caps);
 
     if (!rcc->init()) {
-        rcc->unref();
-        rcc = nullptr;
+        return nullptr;
     }
     cursor->set_during_target_migrate(mig_target);
 
-    return rcc;
+    return rcc.get();
 }
 
 RedCacheItem* CursorChannelClient::cache_find(uint64_t id)

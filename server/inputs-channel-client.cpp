@@ -44,12 +44,11 @@ InputsChannelClient* inputs_channel_client_create(RedChannel *channel,
                                                   RedStream *stream,
                                                   RedChannelCapabilities *caps)
 {
-    auto rcc = new InputsChannelClient(channel, client, stream, caps);
+    auto rcc = red::make_shared<InputsChannelClient>(channel, client, stream, caps);
     if (!rcc->init()) {
-        delete rcc;
-        rcc = nullptr;
+        return nullptr;
     }
-    return rcc;
+    return rcc.get();
 }
 
 bool InputsChannelClient::init()

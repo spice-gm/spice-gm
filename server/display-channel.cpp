@@ -1414,7 +1414,7 @@ bool display_channel_wait_for_migrate_data(DisplayChannel *display)
 
     rcc = (RedChannelClient*) g_list_nth_data(clients, 0);
 
-    rcc->ref();
+    red::shared_ptr<RedChannelClient> hold_rcc(rcc);
     for (;;) {
         rcc->receive();
         if (!rcc->is_connected()) {
@@ -1432,7 +1432,6 @@ bool display_channel_wait_for_migrate_data(DisplayChannel *display)
         }
         usleep(DISPLAY_CLIENT_RETRY_INTERVAL);
     }
-    rcc->unref();
     return ret;
 }
 

@@ -533,12 +533,12 @@ MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient 
                                               RedStream *stream, uint32_t connection_id,
                                               RedChannelCapabilities *caps)
 {
-    auto mcc = new MainChannelClient(main_chan, client, stream, caps, connection_id);
+    auto mcc =
+        red::make_shared<MainChannelClient>(main_chan, client, stream, caps, connection_id);
     if (!mcc->init()) {
-        mcc->unref();
-        mcc = nullptr;
+        return nullptr;
     }
-    return mcc;
+    return mcc.get();
 }
 
 int MainChannelClient::is_network_info_initialized()

@@ -555,7 +555,7 @@ typedef struct RedMessageMigrate {
 static void handle_dispatcher_migrate(void *opaque, RedMessageMigrate *msg)
 {
     msg->rcc->migrate();
-    msg->rcc->unref();
+    shared_ptr_unref(msg->rcc); // XXX because we use raw pointers :-(
 }
 
 void RedChannel::migrate_client(RedChannelClient *rcc)
@@ -566,7 +566,8 @@ void RedChannel::migrate_client(RedChannelClient *rcc)
         return;
     }
 
-    RedMessageMigrate payload = { .rcc = red::add_ref(rcc) };
+    shared_ptr_add_ref(rcc); // XXX
+    RedMessageMigrate payload = { .rcc = rcc };
     priv->dispatcher->send_message_custom(handle_dispatcher_migrate,
                                           &payload, false);
 }
@@ -578,7 +579,7 @@ typedef struct RedMessageDisconnect {
 static void handle_dispatcher_disconnect(void *opaque, RedMessageDisconnect *msg)
 {
     msg->rcc->disconnect();
-    msg->rcc->unref();
+    shared_ptr_unref(msg->rcc); // XXX because we use raw pointers :-(
 }
 
 void RedChannel::disconnect_client(RedChannelClient *rcc)
@@ -591,7 +592,8 @@ void RedChannel::disconnect_client(RedChannelClient *rcc)
 
     // TODO: we turned it to be sync, due to client_destroy . Should we support async? - for this we will need ref count
     // for channels
-    RedMessageDisconnect payload = { .rcc = red::add_ref(rcc) };
+    shared_ptr_add_ref(rcc); // XXX
+    RedMessageDisconnect payload = { .rcc = rcc };
     priv->dispatcher->send_message_custom(handle_dispatcher_disconnect,
                                           &payload, true);
 }

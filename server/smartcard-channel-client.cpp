@@ -58,12 +58,12 @@ SmartCardChannelClient* smartcard_channel_client_create(RedChannel *channel,
                                                         RedClient *client, RedStream *stream,
                                                         RedChannelCapabilities *caps)
 {
-    auto rcc = new SmartCardChannelClient(channel, client, stream, caps);
+    auto rcc =
+        red::make_shared<SmartCardChannelClient>(channel, client, stream, caps);
     if (!rcc->init()) {
-        rcc->unref();
-        rcc = nullptr;
+        return nullptr;
     }
-    return rcc;
+    return rcc.get();
 }
 
 uint8_t *

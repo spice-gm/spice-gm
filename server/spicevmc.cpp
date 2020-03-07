@@ -801,10 +801,9 @@ vmc_channel_client_create(RedChannel *channel, RedClient *client,
                           RedStream *stream,
                           RedChannelCapabilities *caps)
 {
-    auto rcc = new VmcChannelClient(channel, client, stream, caps);
+    auto rcc = red::make_shared<VmcChannelClient>(channel, client, stream, caps);
     if (!rcc->init()) {
-        delete rcc;
-        rcc = nullptr;
+        return nullptr;
     }
-    return rcc;
+    return rcc.get();
 }

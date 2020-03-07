@@ -22,14 +22,10 @@
 #include "reds.h"
 
 #define FOREACH_CHANNEL_CLIENT(_client, _data) \
-    GLIST_FOREACH(_client->channels, RedChannelClient, _data)
+    for (const auto &_data: _client->channels)
 
 RedClient::~RedClient()
 {
-    if (mcc) {
-        mcc->unref();
-        mcc = nullptr;
-    }
     spice_debug("release client=%p", this);
     pthread_mutex_destroy(&lock);
 }
@@ -49,8 +45,6 @@ RedClient *red_client_new(RedsState *reds, int migrated)
 
 void RedClient::set_migration_seamless() // dest
 {
-    RedChannelClient *rcc;
-
     spice_assert(during_target_migrate);
     pthread_mutex_lock(&lock);
     seamless_migrate = TRUE;
@@ -66,9 +60,6 @@ void RedClient::set_migration_seamless() // dest
 
 void RedClient::migrate()
 {
-    RedChannelClient *rcc;
-    RedChannel *channel;
-
     if (!pthread_equal(pthread_self(), thread_id)) {
         spice_warning("client->thread_id (%p) != "
                       "pthread_self (%p)."
@@ -78,8 +69,8 @@ void RedClient::migrate()
     }
     FOREACH_CHANNEL_CLIENT(this, rcc) {
         if (rcc->is_connected()) {
-            channel = rcc->get_channel();
-            channel->migrate_client(rcc);
+            auto channel = rcc->get_channel();
+            channel->migrate_client(rcc.get());
         }
     }
 }
@@ -96,19 +87,18 @@ void RedClient::destroy()
     }
 
     pthread_mutex_lock(&lock);
-    spice_debug("destroy this %p with #channels=%d", this, g_list_length(channels));
+    spice_debug("destroy this %p with #channels=%zd", this, channels.size());
     // This makes sure that we won't try to add new RedChannelClient instances
     // to the RedClient::channels list while iterating it
     disconnecting = TRUE;
-    while (channels) {
-        RedChannel *channel;
-        RedChannelClient *rcc = (RedChannelClient *) channels->data;
+    while (!channels.empty()) {
+        auto rcc = *channels.begin();
 
         // Remove the RedChannelClient we are processing from the list
         // Note that we own the object so it is safe to do some operations on it.
         // This manual scan of the list is done to have a thread safe
         // iteration of the list
-        channels = g_list_delete_link(channels, channels);
+        channels.pop_front();
 
         // prevent dead lock disconnecting rcc (which can happen
         // in the same thread or synchronously on another one)
@@ -116,19 +106,18 @@ void RedClient::destroy()
 
         // some channels may be in other threads, so disconnection
         // is not synchronous.
-        channel = rcc->get_channel();
+        auto channel = rcc->get_channel();
 
         // some channels may be in other threads. However we currently
         // assume disconnect is synchronous (we changed the dispatcher
         // to wait for disconnection)
         // TODO: should we go back to async. For this we need to use
         // ref count for channel clients.
-        channel->disconnect_client(rcc);
+        channel->disconnect_client(rcc.get());
 
         spice_assert(rcc->pipe_is_empty());
         spice_assert(rcc->no_item_being_sent());
 
-        rcc->unref();
         pthread_mutex_lock(&lock);
     }
     pthread_mutex_unlock(&lock);
@@ -139,14 +128,12 @@ void RedClient::destroy()
 /* client->lock should be locked */
 RedChannelClient *RedClient::get_channel(int type, int id)
 {
-    RedChannelClient *rcc;
-
     FOREACH_CHANNEL_CLIENT(this, rcc) {
         RedChannel *channel;
 
         channel = rcc->get_channel();
         if (channel->type() == type && channel->id() == id) {
-            return rcc;
+            return rcc.get();
         }
     }
     return NULL;
@@ -184,10 +171,9 @@ gboolean RedClient::add_channel(RedChannelClient *rcc, char **error)
     if (!mcc) {
         // FIXME use dynamic_cast to check type
         // spice_assert(MAIN_CHANNEL_CLIENT(rcc) != NULL);
-        rcc->ref();
-        mcc = (MainChannelClient *) rcc;
+        mcc.reset((MainChannelClient *) rcc);
     }
-    channels = g_list_prepend(channels, rcc);
+    channels.push_front(red::shared_ptr<RedChannelClient>(rcc));
     if (during_target_migrate && seamless_migrate) {
         if (rcc->set_migration_seamless()) {
             num_migrated_channels++;
@@ -201,13 +187,11 @@ cleanup:
 
 MainChannelClient *RedClient::get_main()
 {
-    return mcc;
+    return mcc.get();
 }
 
 void RedClient::semi_seamless_migrate_complete()
 {
-    RedChannelClient *rcc;
-
     pthread_mutex_lock(&lock);
     if (!during_target_migrate || seamless_migrate) {
         spice_error("unexpected");
@@ -235,15 +219,10 @@ int RedClient::during_migrate_at_target()
 void RedClient::remove_channel(RedChannelClient *rcc)
 {
     RedClient *client = rcc->get_client();
+    red::shared_ptr<RedChannelClient> holding_rcc(rcc);
     pthread_mutex_lock(&client->lock);
-    GList *link = g_list_find(client->channels, rcc);
-    if (link) {
-        client->channels = g_list_delete_link(client->channels, link);
-    }
+    client->channels.remove(holding_rcc);
     pthread_mutex_unlock(&client->lock);
-    if (link) {
-        rcc->unref();
-    }
 }
 
 /* returns TRUE If all channels are finished migrating, FALSE otherwise */

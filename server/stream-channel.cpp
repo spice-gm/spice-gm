@@ -119,12 +119,12 @@ static StreamChannelClient*
 stream_channel_client_new(StreamChannel *channel, RedClient *client, RedStream *stream,
                           int mig_target, RedChannelCapabilities *caps)
 {
-    auto rcc = new StreamChannelClient(channel, client, stream, caps);
+    auto rcc =
+        red::make_shared<StreamChannelClient>(channel, client, stream, caps);
     if (!rcc->init()) {
-        rcc->unref();
-        rcc = nullptr;
+        return nullptr;
     }
-    return rcc;
+    return rcc.get();
 }
 
 void

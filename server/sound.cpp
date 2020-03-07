@@ -1063,10 +1063,9 @@ void PlaybackChannel::on_connect(RedClient *client, RedStream *stream,
 {
     set_peer_common();
 
-    auto peer = new PlaybackChannelClient(this, client, stream, caps);
-    if (!peer->init()) {
-        peer->unref();
-    }
+    auto peer =
+        red::make_shared<PlaybackChannelClient>(this, client, stream, caps);
+    peer->init();
 }
 
 void SndChannelClient::migrate()
@@ -1210,10 +1209,9 @@ void RecordChannel::on_connect(RedClient *client, RedStream *stream,
 {
     set_peer_common();
 
-    auto peer = new RecordChannelClient(this, client, stream, caps);
-    if (!peer->init()) {
-        peer->unref();
-    }
+    auto peer =
+        red::make_shared<RecordChannelClient>(this, client, stream, caps);
+    peer->init();
 }
 
 static void add_channel(SndChannel *channel)

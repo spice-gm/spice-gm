@@ -29,7 +29,7 @@
 
 struct RedChannelClientPrivate;
 
-class RedChannelClient
+class RedChannelClient: public red::shared_ptr_counted
 {
 public:
     SPICE_CXX_GLIB_ALLOCATOR
@@ -146,9 +146,6 @@ public:
     void block_read();
     void unblock_read();
 
-    void ref() { g_atomic_int_inc(&_ref); }
-    void unref() { if (g_atomic_int_dec_and_test(&_ref)) delete this; }
-
     // callback from client
     virtual void migrate();
 
@@ -199,7 +196,6 @@ private:
 
     /* Private data */
 private:
-    gint _ref = 1;
     red::unique_link<RedChannelClientPrivate> priv;
 };
 

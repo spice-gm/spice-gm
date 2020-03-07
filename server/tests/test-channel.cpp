@@ -52,9 +52,9 @@ void
 RedTestChannel::on_connect(RedClient *client, RedStream *stream,
                            int migration, RedChannelCapabilities *caps)
 {
-    RedChannelClient *rcc;
-    rcc = new RedTestChannelClient(this, client, stream, caps);
-    g_assert_nonnull(rcc);
+    auto rcc =
+        red::make_shared<RedTestChannelClient>(this, client, stream, caps);
+    g_assert(rcc);
     g_assert_true(rcc->init());
 
     // requires an ACK after 10 messages
