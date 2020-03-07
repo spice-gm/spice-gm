@@ -2988,7 +2988,7 @@ static void reds_mig_fill_wait_disconnect(RedsState *reds)
     /* tracking the clients, in order to ignore disconnection
      * of clients that got connected to the src after migration completion.*/
     for (auto client: reds->clients) {
-        reds->mig_wait_disconnect_clients = g_list_append(reds->mig_wait_disconnect_clients, client);
+        reds->mig_wait_disconnect_clients.push_front(client);
     }
     reds->mig_wait_connect = FALSE;
     reds->mig_wait_disconnect = TRUE;
@@ -2997,16 +2997,17 @@ static void reds_mig_fill_wait_disconnect(RedsState *reds)
 
 static void reds_mig_cleanup_wait_disconnect(RedsState *reds)
 {
-    g_list_free(reds->mig_wait_disconnect_clients);
+    reds->mig_wait_disconnect_clients.clear();
     reds->mig_wait_disconnect = FALSE;
 }
 
 static void reds_mig_remove_wait_disconnect_client(RedsState *reds, RedClient *client)
 {
-    g_warn_if_fail(g_list_find(reds->mig_wait_disconnect_clients, client) != NULL);
+    auto &clients(reds->mig_wait_disconnect_clients);
+    g_warn_if_fail(std::find(clients.begin(), clients.end(), client) != clients.end());
 
-    reds->mig_wait_disconnect_clients = g_list_remove(reds->mig_wait_disconnect_clients, client);
-    if (reds->mig_wait_disconnect_clients == NULL) {
+    clients.remove(client);
+    if (clients.empty()) {
        reds_mig_cleanup(reds);
     }
 }
@@ -3428,7 +3429,6 @@ static int do_spice_init(RedsState *reds, SpiceCoreInterface *core_interface)
     reds_update_agent_properties(reds);
     reds->main_dispatcher = new MainDispatcher(reds);
     reds->mig_target_clients = NULL;
-    reds->mig_wait_disconnect_clients = NULL;
     reds->vm_running = TRUE; /* for backward compatibility */
 
     if (!(reds->mig_timer = reds->core.timer_new(migrate_timeout, reds))) {

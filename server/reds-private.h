@@ -91,7 +91,8 @@ struct RedsState {
     int mig_wait_connect; /* src waits for clients to establish connection to dest
                              (before migration starts) */
     int mig_wait_disconnect; /* src waits for clients to disconnect (after migration completes) */
-    GList *mig_wait_disconnect_clients;/* List of RedsMigWaitDisconnectClient. Holds the clients
+    std::forward_list<RedClient*, red::Mallocator<RedClient*>>
+        mig_wait_disconnect_clients;/* List of RedsMigWaitDisconnectClient. Holds the clients
                                          which the src waits for their disconnection */
 
 
