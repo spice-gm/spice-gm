@@ -95,6 +95,9 @@ constexpr size_t size(const T (&array)[N]) noexcept
 }
 
 
+template <typename T>
+class weak_ptr;
+
 /* Basic shared pointer for internal reference
  *
  * Similar to STL version but using intrusive. This to allow creating multiple
@@ -115,6 +118,7 @@ constexpr size_t size(const T (&array)[N]) noexcept
 template <typename T>
 class shared_ptr
 {
+friend class weak_ptr<T>;
 public:
     explicit shared_ptr(T *p=nullptr): p(p)
     {
@@ -205,6 +209,10 @@ public:
     }
 private:
     T* p;
+    // for weak_ptr
+    explicit shared_ptr(T *p, bool dummy): p(p)
+    {
+    }
 };
 
 template <class T, class O>
@@ -261,6 +269,146 @@ inline void shared_ptr_unref(shared_ptr_counted* p)
     if (--p->ref_count == 0) {
         delete p;
     }
+}
+
+/* Basic weak pointer for internal reference
+ *
+ * Similar to STL version like shared_ptr here.
+ *
+ * In order to support weak_ptr for an object weak_ptr_add_ref,
+ * weak_ptr_unref and weak_ptr_lock should be implemented. See below.
+ */
+template <typename T>
+class weak_ptr
+{
+public:
+    explicit weak_ptr(T *p=nullptr): p(p)
+    {
+        if (p) {
+            weak_ptr_add_ref(p);
+        }
+    }
+    weak_ptr(const weak_ptr& rhs): p(rhs.p)
+    {
+        if (p) {
+            weak_ptr_add_ref(p);
+        }
+    }
+    weak_ptr& operator=(const weak_ptr& rhs)
+    {
+        if (rhs.p != p) {
+            reset(rhs.p);
+        }
+        return *this;
+    }
+    weak_ptr(weak_ptr&& rhs): p(rhs.p)
+    {
+        rhs.p = nullptr;
+    }
+    weak_ptr& operator=(weak_ptr&& rhs)
+    {
+        if (p) {
+            weak_ptr_unref(p);
+        }
+        p = rhs.p;
+        rhs.p = nullptr;
+        return *this;
+    }
+    ~weak_ptr()
+    {
+        if (p) {
+            weak_ptr_unref(p);
+        }
+    }
+    // get a strong reference
+    shared_ptr<T> lock()
+    {
+        return shared_ptr<T>(p && weak_ptr_lock(p) ? p : nullptr, false);
+    }
+    void reset(T *ptr=nullptr)
+    {
+        if (ptr) {
+            weak_ptr_add_ref(ptr);
+        }
+        if (p) {
+            weak_ptr_unref(p);
+        }
+        p = ptr;
+    }
+    // NOTE do not add operator bool using p, we need to check if still valid
+private:
+    T* p;
+};
+
+
+/* Utility to help implementing shared ptr with weak semantic too
+ *
+ * Similar to shared_ptr_counted but you can use weak pointers too.
+ */
+class shared_ptr_counted_weak
+{
+public:
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    shared_ptr_counted_weak(): ref_count(0), weak_count(1)
+    {
+    }
+protected:
+    virtual ~shared_ptr_counted_weak() {}
+private:
+    std::atomic_int ref_count;
+    std::atomic_int weak_count;
+    shared_ptr_counted_weak(const shared_ptr_counted_weak& rhs)=delete;
+    void operator=(const shared_ptr_counted_weak& rhs)=delete;
+    // this is used in order to use operator delete defined in this class, not global one
+    void free_helper(void *p) { operator delete(p); }
+    friend inline void shared_ptr_add_ref(shared_ptr_counted_weak*);
+    friend inline void shared_ptr_unref(shared_ptr_counted_weak*);
+    friend inline void weak_ptr_add_ref(shared_ptr_counted_weak*);
+    friend inline void weak_ptr_unref(shared_ptr_counted_weak*);
+    friend inline bool weak_ptr_lock(shared_ptr_counted_weak*);
+};
+
+// implements requirements for shared_ptr
+inline void shared_ptr_add_ref(shared_ptr_counted_weak* p)
+{
+    ++p->ref_count;
+}
+
+inline void shared_ptr_unref(shared_ptr_counted_weak* p)
+{
+    if (--p->ref_count == 0) {
+        p->~shared_ptr_counted_weak();
+        std::atomic_thread_fence(std::memory_order_release);
+        if (--p->weak_count == 0) {
+            p->free_helper(p);
+        }
+    }
+}
+
+// implements requirements for weak_ptr
+inline void weak_ptr_add_ref(shared_ptr_counted_weak* p)
+{
+    p->weak_count++;
+}
+
+inline void weak_ptr_unref(shared_ptr_counted_weak* p)
+{
+    if (--p->weak_count == 0) {
+        std::atomic_thread_fence(std::memory_order_acquire);
+        p->free_helper(p);
+    }
+}
+
+inline bool weak_ptr_lock(shared_ptr_counted_weak* p)
+{
+    int count = (int) p->ref_count;
+    do {
+        if (count == 0) {
+            return false;
+        }
+    } while (!p->ref_count.compare_exchange_weak(count, count + 1));
+    return true;
 }
 
 
