@@ -1090,7 +1090,7 @@ red_char_device_class_init(RedCharDeviceClass *klass)
 SPICE_GNUC_VISIBLE void spice_server_port_event(SpiceCharDeviceInstance *sin, uint8_t event)
 {
     if (sin->st == NULL) {
-        spice_warning("no SpiceCharDeviceState attached to instance %p", sin);
+        spice_warning("no RedCharDevice attached to instance %p", sin);
         return;
     }
 

@@ -20,7 +20,7 @@
 
 #include <openssl/ssl.h>
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "red-common.h"
 
 SPICE_BEGIN_DECLS

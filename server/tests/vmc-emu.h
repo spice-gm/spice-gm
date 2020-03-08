@@ -19,6 +19,8 @@
 
 #include "char-device.h"
 
+#include "push-visibility.h"
+
 typedef struct VmcEmu VmcEmu;
 
 struct VmcEmu {
@@ -49,3 +51,5 @@ VmcEmu *vmc_emu_new(const char *subtype, const char *portname);
 void vmc_emu_destroy(VmcEmu *vmc);
 void vmc_emu_reset(VmcEmu *vmc);
 void vmc_emu_add_read_till(VmcEmu *vmc, uint8_t *end);
+
+#include "pop-visibility.h"

@@ -31,7 +31,7 @@
 #include <common/generated_server_marshallers.h>
 #include <common/snd_codec.h>
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "red-common.h"
 #include "main-channel.h"
 #include "reds.h"

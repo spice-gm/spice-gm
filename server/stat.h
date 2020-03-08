@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <glib.h>
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "stat-file.h"
 
 SPICE_BEGIN_DECLS

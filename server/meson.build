@@ -128,6 +128,7 @@ spice_server_sources = [
   'spice-bitmap-utils.c',
   'spice-bitmap-utils.h',
   'spicevmc.cpp',
+  'spice-wrapped.h',
   'stat-file.c',
   'stat-file.h',
   'stat.h',

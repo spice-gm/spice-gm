@@ -21,7 +21,7 @@
 
 #include <glib-object.h>
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "red-channel.h"
 #include "migration-protocol.h"
 
@@ -35,8 +35,7 @@ SPICE_BEGIN_DECLS
 #define RED_IS_CHAR_DEVICE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), RED_TYPE_CHAR_DEVICE))
 #define RED_CHAR_DEVICE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), RED_TYPE_CHAR_DEVICE, RedCharDeviceClass))
 
-/* SpiceCharDeviceState is public API, but internally we use RedCharDevice */
-typedef struct SpiceCharDeviceState RedCharDevice;
+struct RedCharDevice;
 struct RedCharDeviceClass;
 struct RedCharDevicePrivate;
 struct RedCharDeviceClientOpaque;
@@ -154,8 +153,7 @@ struct RedCharDeviceWriteBuffer {
 
 
 
-/* 'SpiceCharDeviceState' name is used for consistency with what spice-char.h exports */
-struct SpiceCharDeviceState: public GObject
+struct RedCharDevice: public GObject
 {
     void reset_dev_instance(SpiceCharDeviceInstance *sin);
     /* only one client is supported */

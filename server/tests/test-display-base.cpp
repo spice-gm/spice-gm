@@ -29,7 +29,7 @@
 #include <getopt.h>
 #include <pthread.h>
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include <spice/qxl_dev.h>
 
 #include "test-display-base.h"

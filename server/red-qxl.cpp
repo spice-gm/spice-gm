@@ -28,7 +28,7 @@
 #include <common/quic.h>
 #include <common/sw_canvas.h>
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "red-worker.h"
 #include "reds.h"
 #include "dispatcher.h"

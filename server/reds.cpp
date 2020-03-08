@@ -53,7 +53,7 @@
 #include <common/generated_server_marshallers.h>
 #include <common/ring.h>
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "reds.h"
 #include "agent-msg-filter.h"
 #include "inputs-channel.h"

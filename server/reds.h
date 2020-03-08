@@ -25,7 +25,7 @@
 #include <common/messages.h>
 
 #include "char-device.h"
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "red-channel.h"
 #include "video-encoder.h"
 #include "main-dispatcher.h"

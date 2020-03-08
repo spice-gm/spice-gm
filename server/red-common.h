@@ -32,7 +32,7 @@
 #include <common/draw.h>
 #include <common/verify.h>
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "utils.h"
 #include "sys-socket.h"
 

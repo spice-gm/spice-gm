@@ -170,6 +170,7 @@ libserver_la_SOURCES =				\
 	spice-bitmap-utils.c			\
 	spice-bitmap-utils.h			\
 	spicevmc.cpp				\
+	spice-wrapped.h				\
 	stat-file.c				\
 	stat-file.h				\
 	stat.h					\

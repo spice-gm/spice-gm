@@ -112,7 +112,7 @@ struct RedsState {
     SpiceTimer *mig_timer;
 
     int vm_running;
-    red::safe_list<SpiceCharDeviceState*> char_devices;
+    red::safe_list<RedCharDevice*> char_devices;
     int seamless_migration_enabled; /* command line arg */
 
     SSL_CTX *ctx;

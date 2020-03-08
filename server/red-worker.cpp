@@ -41,7 +41,7 @@
 #include "display-channel.h"
 #include "video-stream.h"
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "red-worker.h"
 #include "red-qxl.h"
 #include "cursor-channel.h"

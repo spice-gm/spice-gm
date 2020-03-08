@@ -27,7 +27,7 @@
 #include <common/generated_server_marshallers.h>
 #include <common/demarshallers.h>
 
-#include "spice.h"
+#include "spice-wrapped.h"
 #include "red-common.h"
 #include "reds.h"
 #include "red-stream.h"
