@@ -47,9 +47,6 @@ public:
     bool has_tablet() const;
     void detach_tablet(SpiceTabletInstance *tablet);
 
-    bool is_src_during_migrate() const;
-    void release_keys();
-
 private:
     VDAgentMouseState mouse_state;
     bool src_during_migrate;
@@ -69,6 +66,8 @@ private:
 
     void on_connect(RedClient *client, RedStream *stream, int migration,
                     RedChannelCapabilities *caps) override;
+    bool is_src_during_migrate() const;
+    void release_keys();
     void sync_locks(uint8_t scan);
     void activate_modifiers_watch();
     void push_keyboard_modifiers(uint8_t modifiers);

@@ -25,6 +25,29 @@
 
 class InputsChannelClient final: public RedChannelClient
 {
+public:
+    virtual bool init() override;
+
+private:
+    using RedChannelClient::RedChannelClient;
+
+    InputsChannel* get_channel()
+    {
+        return static_cast<InputsChannel*>(RedChannelClient::get_channel());
+    }
+    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
+    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
+    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    virtual void on_disconnect() override;
+    virtual void send_item(RedPipeItem *base) override;
+    virtual bool handle_migrate_data(uint32_t size, void *message) override;
+    virtual void migrate() override;
+    virtual void handle_migrate_flush_mark() override;
+    void send_migrate_data(SpiceMarshaller *m, RedPipeItem *item);
+    void on_mouse_motion();
+    void handle_migrate_data(uint16_t motion_count);
+    void pipe_add_init();
+
     // TODO: RECEIVE_BUF_SIZE used to be the same for inputs_channel and main_channel
     // since it was defined once in reds.c which contained both.
     // Now that they are split we can give a more fitting value for inputs - what
@@ -39,32 +62,8 @@ class InputsChannelClient final: public RedChannelClient
                      SPICE_AGENT_MAX_DATA_SIZE)
     };
 
-    using RedChannelClient::RedChannelClient;
-
     uint8_t recv_buf[RECEIVE_BUF_SIZE];
-    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
     uint16_t motion_count;
-public:
-
-    void send_migrate_data(SpiceMarshaller *m, RedPipeItem *item);
-    void on_mouse_motion();
-    void handle_migrate_data(uint16_t motion_count);
-    virtual bool init() override;
-
-protected:
-    InputsChannel* get_channel()
-    {
-        return static_cast<InputsChannel*>(RedChannelClient::get_channel());
-    }
-    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
-    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
-    virtual void on_disconnect() override;
-    virtual void send_item(RedPipeItem *base) override;
-    virtual bool handle_migrate_data(uint32_t size, void *message) override;
-    virtual void migrate() override;
-    virtual void handle_migrate_flush_mark() override;
-private:
-    void pipe_add_init();
 };
 
 InputsChannelClient* inputs_channel_client_create(RedChannel *channel,
