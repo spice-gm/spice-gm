@@ -209,11 +209,11 @@ static void channel_loop(void)
     g_assert_cmpint(spice_server_init(server, core), ==, 0);
 
     // create a channel and connect to it
-    red::shared_ptr<RedChannel> channel(
-        new RedTestChannel(server,
-                           SPICE_CHANNEL_PORT, // any other than main is fine
-                           0,
-                           RedChannel::HandleAcks)); // we want to test this
+    auto channel =
+        red::make_shared<RedTestChannel>(server,
+                                         SPICE_CHANNEL_PORT, // any other than main is fine
+                                         0,
+                                         RedChannel::HandleAcks); // we want to test this
 
     // create dummy RedClient and MainChannelClient
     RedChannelCapabilities caps;

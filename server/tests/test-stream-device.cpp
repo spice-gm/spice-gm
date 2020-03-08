@@ -133,9 +133,9 @@ StreamChannel::register_queue_stat_cb(stream_channel_queue_stat_proc cb, void *o
 {
 }
 
-StreamChannel* stream_channel_new(RedsState *server, uint32_t id)
+red::shared_ptr<StreamChannel> stream_channel_new(RedsState *server, uint32_t id)
 {
-    return new StreamChannel(server, id);
+    return red::make_shared<StreamChannel>(server, id);
 }
 
 void

@@ -74,7 +74,7 @@ private:
     static void key_modifiers_sender(InputsChannel *inputs);
 };
 
-InputsChannel* inputs_channel_new(RedsState *reds);
+red::shared_ptr<InputsChannel> inputs_channel_new(RedsState *reds);
 
 RedsState* spice_tablet_state_get_server(SpiceTabletState *dev);
 

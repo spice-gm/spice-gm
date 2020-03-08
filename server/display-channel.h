@@ -85,14 +85,12 @@ struct Drawable {
     DisplayChannel *display;
 };
 
-DisplayChannel*            display_channel_new                       (RedsState *reds,
-                                                                      QXLInstance *qxl,
-                                                                      SpiceCoreInterfaceInternal *core,
-                                                                      Dispatcher *dispatcher,
-                                                                      int migrate,
-                                                                      int stream_video,
-                                                                      GArray *video_codecs,
-                                                                      uint32_t n_surfaces);
+red::shared_ptr<DisplayChannel>
+display_channel_new(RedsState *reds, QXLInstance *qxl,
+                    SpiceCoreInterfaceInternal *core, Dispatcher *dispatcher,
+                    int migrate, int stream_video,
+                    GArray *video_codecs,
+                    uint32_t n_surfaces);
 void                       display_channel_create_surface            (DisplayChannel *display, uint32_t surface_id,
                                                                       uint32_t width, uint32_t height,
                                                                       int32_t stride, uint32_t format, void *line_0,

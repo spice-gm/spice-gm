@@ -1061,7 +1061,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
     worker->event_timeout = INF_EVENT_WAIT;
 
     worker->cursor_channel = cursor_channel_new(reds, qxl->id,
-                                                &worker->core, dispatcher);
+                                                &worker->core, dispatcher).get(); // XXX
     channel = worker->cursor_channel;
     channel->init_stat_node(&worker->stat, "cursor_channel");
 
@@ -1070,7 +1070,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
                                                   FALSE,
                                                   reds_get_streaming_video(reds),
                                                   reds_get_video_codecs(reds),
-                                                  init_info.n_surfaces);
+                                                  init_info.n_surfaces).get(); // XXX
     channel = worker->display_channel;
     channel->init_stat_node(&worker->stat, "display_channel");
     display_channel_set_image_compression(worker->display_channel,

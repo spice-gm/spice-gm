@@ -167,7 +167,7 @@ RedVmcChannel::~RedVmcChannel()
     }
 }
 
-static RedVmcChannel *red_vmc_channel_new(RedsState *reds, uint8_t channel_type)
+static red::shared_ptr<RedVmcChannel> red_vmc_channel_new(RedsState *reds, uint8_t channel_type)
 {
     switch (channel_type) {
         case SPICE_CHANNEL_USBREDIR:
@@ -176,16 +176,16 @@ static RedVmcChannel *red_vmc_channel_new(RedsState *reds, uint8_t channel_type)
             break;
         default:
             g_error("Unsupported channel_type for red_vmc_channel_new(): %u", channel_type);
-            return NULL;
+            return red::shared_ptr<RedVmcChannel>();
     }
 
     int id = reds_get_free_channel_id(reds, channel_type);
     if (id < 0) {
         g_warning("Free ID not found creating new VMC channel");
-        return NULL;
+        return red::shared_ptr<RedVmcChannel>();
     }
 
-    return new RedVmcChannel(reds, channel_type, id);
+    return red::make_shared<RedVmcChannel>(reds, channel_type, id);
 }
 
 typedef struct RedPortInitPipeItem {
@@ -677,7 +677,7 @@ RedCharDevice *spicevmc_device_connect(RedsState *reds,
                                        uint8_t channel_type)
 {
     RedCharDevice *dev;
-    red::shared_ptr<RedVmcChannel> channel(red_vmc_channel_new(reds, channel_type));
+    auto channel(red_vmc_channel_new(reds, channel_type));
     if (!channel) {
         return NULL;
     }

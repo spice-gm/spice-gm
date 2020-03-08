@@ -499,7 +499,7 @@ static void smartcard_init(RedsState *reds)
 {
     spice_assert(!reds_find_channel(reds, SPICE_CHANNEL_SMARTCARD, 0));
 
-    new RedSmartcardChannel(reds);
+    red::make_shared<RedSmartcardChannel>(reds);
 }
 
 

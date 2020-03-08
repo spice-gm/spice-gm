@@ -2167,22 +2167,20 @@ static SpiceCanvas *image_surfaces_get(SpiceImageSurfaces *surfaces, uint32_t su
     return p->surfaces[surface_id].context.canvas;
 }
 
-DisplayChannel* display_channel_new(RedsState *reds,
-                                    QXLInstance *qxl,
-                                    SpiceCoreInterfaceInternal *core,
-                                    Dispatcher *dispatcher,
-                                    int migrate, int stream_video,
-                                    GArray *video_codecs,
-                                    uint32_t n_surfaces)
+red::shared_ptr<DisplayChannel>
+display_channel_new(RedsState *reds, QXLInstance *qxl,
+                    SpiceCoreInterfaceInternal *core, Dispatcher *dispatcher,
+                    int migrate, int stream_video,
+                    GArray *video_codecs,
+                    uint32_t n_surfaces)
 {
-    DisplayChannel *display;
-
     /* FIXME: migrate is not used...? */
     spice_debug("create display channel");
-    display = new DisplayChannel(reds, qxl, core, dispatcher, migrate, stream_video,
-                                 video_codecs, n_surfaces);
+    auto display =
+        red::make_shared<DisplayChannel>(reds, qxl, core, dispatcher, migrate, stream_video,
+                                         video_codecs, n_surfaces);
     if (display) {
-        display_channel_set_stream_video(display, stream_video);
+        display_channel_set_stream_video(display.get(), stream_video);
     }
     return display;
 }

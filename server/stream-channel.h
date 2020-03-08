@@ -35,7 +35,7 @@ struct StreamChannel;
 /**
  * Create StreamChannel.
  */
-StreamChannel* stream_channel_new(RedsState *server, uint32_t id);
+red::shared_ptr<StreamChannel> stream_channel_new(RedsState *server, uint32_t id);
 
 struct StreamMsgStartStop;
 

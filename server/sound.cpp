@@ -1245,7 +1245,7 @@ PlaybackChannel::PlaybackChannel(RedsState *reds):
 
 void snd_attach_playback(RedsState *reds, SpicePlaybackInstance *sin)
 {
-    sin->st = new PlaybackChannel(reds);
+    sin->st = new PlaybackChannel(reds); // XXX make_shared
 }
 
 RecordChannel::RecordChannel(RedsState *reds):
@@ -1259,7 +1259,7 @@ RecordChannel::RecordChannel(RedsState *reds):
 
 void snd_attach_record(RedsState *reds, SpiceRecordInstance *sin)
 {
-    sin->st = new RecordChannel(reds);
+    sin->st = new RecordChannel(reds); // XXX make_shared
 }
 
 static void snd_detach_common(SndChannel *channel)

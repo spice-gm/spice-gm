@@ -40,7 +40,7 @@ struct RedsMigSpice {
 
 struct MainChannel;
 
-MainChannel *main_channel_new(RedsState *reds);
+red::shared_ptr<MainChannel> main_channel_new(RedsState *reds);
 
 /* This is a 'clone' from the reds.h Channel.link callback to allow passing link_id */
 MainChannelClient *main_channel_link(MainChannel *, RedClient *client,

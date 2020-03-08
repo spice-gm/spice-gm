@@ -279,11 +279,11 @@ bool StreamChannelClient::handle_message(uint16_t type, uint32_t size, void *msg
 }
 
 
-StreamChannel*
+red::shared_ptr<StreamChannel>
 stream_channel_new(RedsState *server, uint32_t id)
 {
     // TODO this id should be after all qxl devices
-    return new StreamChannel(server, id);
+    return red::make_shared<StreamChannel>(server, id);
 }
 
 #define MAX_SUPPORTED_CODECS SPICE_VIDEO_CODEC_TYPE_ENUM_END

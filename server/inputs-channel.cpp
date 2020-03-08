@@ -512,9 +512,9 @@ bool InputsChannelClient::handle_migrate_data(uint32_t size, void *message)
     return TRUE;
 }
 
-InputsChannel* inputs_channel_new(RedsState *reds)
+red::shared_ptr<InputsChannel> inputs_channel_new(RedsState *reds)
 {
-    return new InputsChannel(reds);
+    return red::make_shared<InputsChannel>(reds);
 }
 
 InputsChannel::InputsChannel(RedsState *reds):

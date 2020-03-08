@@ -54,9 +54,9 @@ struct CursorChannel final: public CommonGraphicsChannel
  * the function accepts a dispatcher parameter to allows some
  * operations to be executed in the channel thread.
  */
-CursorChannel* cursor_channel_new(RedsState *server, int id,
-                                  SpiceCoreInterfaceInternal *core,
-                                  Dispatcher *dispatcher);
+red::shared_ptr<CursorChannel> cursor_channel_new(RedsState *server, int id,
+                                                  SpiceCoreInterfaceInternal *core,
+                                                  Dispatcher *dispatcher);
 
 void                 cursor_channel_reset       (CursorChannel *cursor);
 void                 cursor_channel_do_init     (CursorChannel *cursor);

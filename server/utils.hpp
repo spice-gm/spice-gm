@@ -108,6 +108,9 @@ constexpr size_t size(const T (&array)[N]) noexcept
  * To allow to reference and unrefered any object the object should
  * define shared_ptr_add_ref and shared_ptr_unref, both taking a pointer and incrementing and
  * decrementing respectively. You should not call these function yourselves.
+ *
+ * It's recommended that you create the object with make_shared provided below. This to make sure
+ * that there is at least one strong reference to the object.
  */
 template <typename T>
 class shared_ptr
@@ -214,6 +217,12 @@ template <class T, class O>
 inline bool operator!=(const shared_ptr<T>& a, const shared_ptr<O>& b)
 {
     return a.get() != b.get();
+}
+
+template<typename T, typename... Args>
+inline shared_ptr<T> make_shared(Args&&... args)
+{
+    return shared_ptr<T>(new T(args...));
 }
 
 /* Utility to help implementing shared_ptr requirement

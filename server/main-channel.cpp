@@ -211,9 +211,9 @@ MainChannelClient *main_channel_link(MainChannel *channel, RedClient *client,
     return mcc;
 }
 
-MainChannel* main_channel_new(RedsState *reds)
+red::shared_ptr<MainChannel> main_channel_new(RedsState *reds)
 {
-    return new MainChannel(reds);
+    return red::make_shared<MainChannel>(reds);
 }
 
 MainChannel::MainChannel(RedsState *reds):

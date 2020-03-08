@@ -203,12 +203,13 @@ void CursorChannelClient::send_item(RedPipeItem *pipe_item)
     begin_send_message();
 }
 
-CursorChannel* cursor_channel_new(RedsState *server, int id,
-                                  SpiceCoreInterfaceInternal *core,
-                                  Dispatcher *dispatcher)
+red::shared_ptr<CursorChannel>
+cursor_channel_new(RedsState *server, int id,
+                   SpiceCoreInterfaceInternal *core,
+                   Dispatcher *dispatcher)
 {
     spice_debug("create cursor channel");
-    return new CursorChannel(server, id, core, dispatcher);
+    return red::make_shared<CursorChannel>(server, id, core, dispatcher);
 }
 
 void cursor_channel_process_cmd(CursorChannel *cursor, RedCursorCmd *cursor_cmd)

@@ -45,8 +45,8 @@ struct StreamDevice: public RedCharDevice
     bool opened;
     bool flow_stopped;
     uint8_t guest_capabilities[MAX_GUEST_CAPABILITIES_BYTES];
-    StreamChannel *stream_channel;
-    CursorChannel *cursor_channel;
+    red::shared_ptr<StreamChannel> stream_channel;
+    red::shared_ptr<CursorChannel> cursor_channel;
     SpiceTimer *close_timer;
     uint32_t frame_mmtime;
     StreamDeviceDisplayInfo device_display_info;
@@ -520,7 +520,7 @@ handle_msg_cursor_set(StreamDevice *dev, SpiceCharDeviceInstance *sin)
     if (!cmd) {
         return handle_msg_invalid(dev, sin, NULL);
     }
-    cursor_channel_process_cmd(dev->cursor_channel, cmd);
+    cursor_channel_process_cmd(dev->cursor_channel.get(), cmd);
 
     return true;
 }
@@ -547,7 +547,7 @@ handle_msg_cursor_move(StreamDevice *dev, SpiceCharDeviceInstance *sin)
     cmd->u.position.x = move->x;
     cmd->u.position.y = move->y;
 
-    cursor_channel_process_cmd(dev->cursor_channel, cmd);
+    cursor_channel_process_cmd(dev->cursor_channel.get(), cmd);
 
     return true;
 }
@@ -634,12 +634,12 @@ stream_device_dispose(GObject *object)
     if (dev->stream_channel) {
         // close all current connections and drop the reference
         dev->stream_channel->destroy();
-        dev->stream_channel = NULL;
+        dev->stream_channel.reset();
     }
     if (dev->cursor_channel) {
         // close all current connections and drop the reference
         dev->cursor_channel->destroy();
-        dev->cursor_channel = NULL;
+        dev->cursor_channel.reset();
     }
 
     G_OBJECT_CLASS(stream_device_parent_class)->dispose(object);
@@ -671,8 +671,8 @@ stream_device_create_channel(StreamDevice *dev)
     int id = reds_get_free_channel_id(reds, SPICE_CHANNEL_DISPLAY);
     g_return_if_fail(id >= 0);
 
-    StreamChannel *stream_channel = stream_channel_new(reds, id);
-    CursorChannel *cursor_channel = cursor_channel_new(reds, id, core, NULL);
+    auto stream_channel = stream_channel_new(reds, id);
+    auto cursor_channel = cursor_channel_new(reds, id, core, NULL);
 
     dev->stream_channel = stream_channel;
     dev->cursor_channel = cursor_channel;
@@ -777,7 +777,7 @@ const StreamDeviceDisplayInfo *stream_device_get_device_display_info(StreamDevic
 
 int32_t stream_device_get_stream_channel_id(StreamDevice *dev)
 {
-    if (dev->stream_channel == NULL) {
+    if (!dev->stream_channel) {
         return -1;
     }
 
