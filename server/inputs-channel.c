@@ -146,10 +146,6 @@ const VDAgentMouseState *inputs_channel_get_mouse_state(InputsChannel *inputs)
     return &inputs->mouse_state;
 }
 
-#define OUTGOING_OK 0
-#define OUTGOING_FAILED -1
-#define OUTGOING_BLOCKED 1
-
 #define RED_MOUSE_STATE_TO_LOCAL(state)     \
     ((state & SPICE_MOUSE_BUTTON_MASK_LEFT) |          \
      ((state & SPICE_MOUSE_BUTTON_MASK_MIDDLE) << 1) |   \
