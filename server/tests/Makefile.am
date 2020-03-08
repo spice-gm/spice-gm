@@ -19,7 +19,6 @@ AM_CPPFLAGS =					\
 	$(SPICE_COMMON_CFLAGS)			\
 	$(GIO_UNIX_CFLAGS)			\
 	$(GLIB2_CFLAGS)				\
-	$(GOBJECT2_CFLAGS)			\
 	$(SMARTCARD_CFLAGS)			\
 	$(SPICE_NONPKGCONFIG_CFLAGS)		\
 	$(NULL)
@@ -52,7 +51,6 @@ LDADD =								\
 	$(top_builddir)/server/libserver.la			\
 	$(GIO_UNIX_LIBS)					\
 	$(GLIB2_LIBS)						\
-	$(GOBJECT2_LIBS)					\
 	$(SPICE_NONPKGCONFIG_LIBS)		                \
 	$(NULL)
 
@@ -123,7 +121,6 @@ spice_server_replay_LDADD =					\
 	$(SPICE_COMMON_DIR)/common/libspice-common.la		\
 	$(top_builddir)/server/libspice-server.la		\
 	$(GLIB2_LIBS)						\
-	$(GOBJECT2_LIBS)					\
 	$(SPICE_NONPKGCONFIG_LIBS)		                \
 	$(NULL)
 

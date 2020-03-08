@@ -12,7 +12,6 @@ AM_CPPFLAGS =					\
 	-DSPICE_SERVER_INTERNAL			\
 	$(SPICE_COMMON_CFLAGS)			\
 	$(GLIB2_CFLAGS)				\
-	$(GOBJECT2_CFLAGS)			\
 	$(LZ4_CFLAGS)				\
 	$(PIXMAN_CFLAGS)			\
 	$(SASL_CFLAGS)				\
@@ -52,7 +51,6 @@ libserver_la_LIBADD =							\
 	$(SPICE_COMMON_DIR)/common/libspice-common.la			\
 	$(SPICE_COMMON_DIR)/common/libspice-common-server.la		\
 	$(GLIB2_LIBS)							\
-	$(GOBJECT2_LIBS)						\
 	$(JPEG_LIBS)							\
 	$(LZ4_LIBS)							\
 	$(LIBRT)							\
