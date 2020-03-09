@@ -255,16 +255,16 @@ SpiceCharDeviceInstance *smartcard_readers_get_unattached(void)
 
 static RedCharDeviceSmartcard *smartcard_device_new(RedsState *reds, SpiceCharDeviceInstance *sin)
 {
-    RedCharDevice *char_dev;
+    RedCharDeviceSmartcard *dev;
 
-    char_dev = g_object_new(RED_TYPE_CHAR_DEVICE_SMARTCARD,
-                            "sin", sin,
-                            "spice-server", reds,
-                            "client-tokens-interval", 0ULL,
-                            "self-tokens", ~0ULL,
-                            NULL);
+    dev = g_object_new(RED_TYPE_CHAR_DEVICE_SMARTCARD,
+                       "sin", sin,
+                       "spice-server", reds,
+                       "client-tokens-interval", 0ULL,
+                       "self-tokens", ~0ULL,
+                       NULL);
 
-    return RED_CHAR_DEVICE_SMARTCARD(char_dev);
+    return dev;
 }
 
 void smartcard_device_disconnect(SpiceCharDeviceInstance *char_device)
