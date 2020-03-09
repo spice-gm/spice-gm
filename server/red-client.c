@@ -293,7 +293,7 @@ gboolean red_client_add_channel(RedClient *client, RedChannelClient *rcc, GError
 
     // first must be the main one
     if (!client->mcc) {
-        client->mcc = g_object_ref(rcc);
+        client->mcc = (MainChannelClient *) g_object_ref(rcc);
         spice_assert(MAIN_CHANNEL_CLIENT(rcc) != NULL);
     }
     client->channels = g_list_prepend(client->channels, rcc);

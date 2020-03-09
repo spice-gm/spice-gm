@@ -68,6 +68,28 @@ AC_DEFUN([SPICE_COMPILE_WARNINGS],[
     # decl mess with  gtk/generated_*.c
     dontwarn="$dontwarn -Wmissing-declarations"
 
+    # Stuff that C++ won't allow. Turn them back on later
+    dontwarn="$dontwarn -Wdesignated-init"
+    dontwarn="$dontwarn -Wdiscarded-array-qualifiers"
+    dontwarn="$dontwarn -Wdiscarded-qualifiers"
+    dontwarn="$dontwarn -Wimplicit"
+    dontwarn="$dontwarn -Wimplicit-function-declaration"
+    dontwarn="$dontwarn -Wimplicit-int"
+    dontwarn="$dontwarn -Wincompatible-pointer-types"
+    dontwarn="$dontwarn -Wint-conversion"
+    dontwarn="$dontwarn -Wjump-misses-init"
+    dontwarn="$dontwarn -Wmissing-parameter-type"
+    dontwarn="$dontwarn -Wmissing-prototypes"
+    dontwarn="$dontwarn -Wnested-externs"
+    dontwarn="$dontwarn -Wold-style-declaration"
+    dontwarn="$dontwarn -Wold-style-definition"
+    dontwarn="$dontwarn -Woverride-init"
+    dontwarn="$dontwarn -Wpointer-sign"
+    dontwarn="$dontwarn -Wpointer-to-int-cast"
+    dontwarn="$dontwarn -Wstrict-prototypes"
+    dontwarn="$dontwarn -Wsuggest-final-methods"
+    dontwarn="$dontwarn -Wsuggest-final-types"
+
     # Get all possible GCC warnings
     gl_MANYWARN_ALL_GCC([maybewarn])
 
@@ -131,9 +153,28 @@ AC_DEFUN([SPICE_COMPILE_WARNINGS],[
     then
       gl_WARN_ADD([-Werror])
     fi
-    WARN_CXXFLAGS=$WARN_CFLAGS
+
+    save_CFLAGS="$WARN_CFLAGS"
+
+    # -fpermissive to allow compile C with C++
+    gl_WARN_ADD([-fpermissive])
+
+    # -Wno-suggest-final-methods and -Wno-suggest-final-types to avoid warnings for optimization
+    gl_WARN_ADD([-Wno-suggest-final-methods])
+    gl_WARN_ADD([-Wno-suggest-final-types])
+
+    # -Wno-array-bounds to avoid checks for array with 0 size
+    gl_WARN_ADD([-Wno-array-bounds])
+
+    # -Wno-narrowing to allow cast from -1 to unsigned (used in some initialization)
+    gl_WARN_ADD([-Wno-narrowing])
+
+    gl_WARN_ADD([-Wno-missing-field-initializers])
+
+    WARN_CXXFLAGS="$WARN_CFLAGS"
     AC_SUBST([WARN_CXXFLAGS])
 
+    WARN_CFLAGS="$save_CFLAGS"
     WARN_LDFLAGS=$WARN_CFLAGS
     AC_SUBST([WARN_CFLAGS])
     AC_SUBST([WARN_LDFLAGS])

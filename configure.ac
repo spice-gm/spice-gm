@@ -52,6 +52,7 @@ AC_PROG_CXX
 AC_LANG_PUSH([C++])
 m4_ifndef([AX_CXX_COMPILE_STDCXX_11], [m4_fatal([Missing AX_CXX_COMPILE_STDCXX_11, install autoconf-archive])])
 AX_CXX_COMPILE_STDCXX_11
+AX_APPEND_COMPILE_FLAGS([-fno-exceptions -fno-rtti -fno-check-new --no_rtti])
 AC_LANG_POP([C++])
 
 AC_CHECK_HEADERS([sys/time.h execinfo.h linux/sockios.h pthread_np.h])
@@ -187,7 +188,7 @@ GLIB2_REQUIRED=2.38
 GLIB2_ENCODED_VERSION="GLIB_VERSION_2_38"
 PKG_CHECK_MODULES([GLIB2], [glib-2.0 >= $GLIB2_REQUIRED gio-2.0 >= $GLIB2_REQUIRED])
 GLIB2_CFLAGS="$GLIB2_CFLAGS -DGLIB_VERSION_MIN_REQUIRED=$GLIB2_ENCODED_VERSION \
-  -DGLIB_VERSION_MAX_ALLOWED=$GLIB2_ENCODED_VERSION"
+  -DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_60"
 AS_VAR_APPEND([SPICE_REQUIRES], [" glib-2.0 >= $GLIB2_REQUIRED gio-2.0 >= $GLIB2_REQUIRED"])
 
 PKG_CHECK_MODULES([GOBJECT2], [gobject-2.0 >= $GLIB2_REQUIRED])
@@ -262,7 +263,9 @@ AS_IF([test "$enable_statistics" = "yes"],
 dnl ===========================================================================
 dnl check compiler flags
 
+AC_LANG_PUSH([C++])
 SPICE_COMPILE_WARNINGS
+AC_LANG_POP([C++])
 LIBVIRT_LINKER_RELRO
 LIBVIRT_LINKER_NO_INDIRECT
 

@@ -191,6 +191,18 @@ add_project_arguments(compiler.get_supported_arguments(spice_server_global_cflag
                       language : 'c')
 
 spice_server_global_cxxflags = spice_server_global_cflags
+spice_server_global_cxxflags += [
+  '-fno-exceptions',
+  '-fno-rtti',
+  '--no_rtti',
+  '-fpermissive',
+  '-Wno-suggest-final-methods',
+  '-Wno-suggest-final-types',
+  '-Wno-array-bounds',
+  '-Wno-narrowing',
+  '-Wno-missing-field-initializers',
+  '-Wno-deprecated-declarations',
+]
 add_project_arguments(cxx_compiler.get_supported_arguments(spice_server_global_cxxflags),
                       language : 'cpp')
 
