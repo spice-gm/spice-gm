@@ -4,7 +4,8 @@
 project('spice', 'c',
         version : run_command('build-aux/git-version-gen', meson.source_root() + '/.tarball-version', check : true).stdout().strip(),
         license : 'LGPLv2.1',
-        meson_version : '>= 0.48')
+        meson_version : '>= 0.48',
+        default_options : ['buildtype=debugoptimized'])
 
 message('Updating submodules')
 run_command('build-aux/meson/check-spice-common', check : true)
