@@ -117,10 +117,20 @@ SpiceWatch *reds_core_watch_add(RedsState *reds,
                                 int fd, int event_mask,
                                 SpiceWatchFunc func,
                                 void *opaque);
-SpiceTimer *reds_core_timer_add(RedsState *reds,
-                                SpiceTimerFunc func,
-                                void *opaque);
+SpiceTimer *
+reds_core_timer_add_internal(RedsState *reds,
+                             SpiceTimerFunc func,
+                             void *opaque);
 
 SPICE_END_DECLS
+
+#ifdef __cplusplus
+template <typename T>
+inline SpiceTimer *
+reds_core_timer_add(RedsState *reds, void (*func)(T*), T *opaque)
+{
+    return reds_core_timer_add_internal(reds, (SpiceTimerFunc) func, opaque);
+}
+#endif
 
 #endif /* REDS_H_ */

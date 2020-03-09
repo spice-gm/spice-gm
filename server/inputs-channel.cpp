@@ -514,9 +514,8 @@ SPICE_GNUC_VISIBLE int spice_server_kbd_leds(SpiceKbdInstance *sin, int leds)
     return 0;
 }
 
-static void key_modifiers_sender(void *opaque)
+static void key_modifiers_sender(InputsChannel *inputs)
 {
-    InputsChannel *inputs = (InputsChannel *) opaque;
     inputs_channel_push_keyboard_modifiers(inputs, inputs->modifiers);
 }
 
@@ -575,7 +574,7 @@ inputs_channel_constructed(GObject *object)
     self->set_cap(SPICE_INPUTS_CAP_KEY_SCANCODE);
     reds_register_channel(reds, self);
 
-    self->key_modifiers_timer = core->timer_add(core, key_modifiers_sender, self);
+    self->key_modifiers_timer = core->timer_new(key_modifiers_sender, self);
     if (!self->key_modifiers_timer) {
         spice_error("key modifiers timer create failed");
     }

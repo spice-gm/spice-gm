@@ -49,12 +49,28 @@ void red_watch_remove(SpiceWatch *watch);
 
 typedef struct SpiceCoreInterfaceInternal SpiceCoreInterfaceInternal;
 
+extern const SpiceCoreInterfaceInternal event_loop_core;
+extern const SpiceCoreInterfaceInternal core_interface_adapter;
+
+SPICE_END_DECLS
+
 struct SpiceCoreInterfaceInternal {
     SpiceTimer *(*timer_add)(const SpiceCoreInterfaceInternal *iface, SpiceTimerFunc func, void *opaque);
 
     SpiceWatch *(*watch_add)(const SpiceCoreInterfaceInternal *iface, int fd, int event_mask, SpiceWatchFunc func, void *opaque);
 
     void (*channel_event)(const SpiceCoreInterfaceInternal *iface, int event, SpiceChannelEventInfo *info);
+
+#ifdef __cplusplus
+    template <typename T>
+    inline SpiceTimer *timer_new(void (*func)(T*), T *opaque) const
+    { return this->timer_add(this, (SpiceTimerFunc) func, opaque); }
+
+    template <typename T>
+    inline SpiceWatch *watch_new(int fd, int event_mask, void (*func)(int,int,T*), T* opaque) const
+    { return this->watch_add(this, fd, event_mask, (SpiceWatchFunc) func, opaque); }
+#endif
+
 
     /* This structure is an adapter that allows us to use the same API to
      * implement the core interface in a couple different ways. The first
@@ -71,9 +87,6 @@ struct SpiceCoreInterfaceInternal {
         SpiceCoreInterface *public_interface;
     };
 };
-
-extern const SpiceCoreInterfaceInternal event_loop_core;
-extern const SpiceCoreInterfaceInternal core_interface_adapter;
 
 typedef struct RedsState RedsState;
 
@@ -156,7 +169,5 @@ inline GParamFlags operator|(GParamFlags a, GParamFlags b)
 static inline to* name(from *p) { \
     return p ? static_cast<to*>(p) : nullptr; \
 }
-
-SPICE_END_DECLS
 
 #endif /* RED_COMMON_H_ */

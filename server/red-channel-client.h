@@ -190,8 +190,8 @@ private:
     uint8_t *parse(uint8_t *message, size_t message_size,
                    uint16_t message_type,
                    size_t *size_out, message_destructor_t *free_message);
-    static void ping_timer(void *opaque);
-    static void connectivity_timer(void *opaque);
+    static void ping_timer(RedChannelClient *rcc);
+    static void connectivity_timer(RedChannelClient *rcc);
     void send_ping();
     void push_ping();
 

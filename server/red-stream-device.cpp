@@ -75,10 +75,8 @@ static bool handle_msg_invalid(StreamDevice *dev, SpiceCharDeviceInstance *sin,
 RECORDER(stream_device_data, 32, "Stream device data packet");
 
 static void
-close_timer_func(void *opaque)
+close_timer_func(StreamDevice *dev)
 {
-    StreamDevice *dev = (StreamDevice *) opaque;
-
     if (dev->opened && dev->has_error) {
         char_device_set_state(RED_CHAR_DEVICE(dev), 0);
     }

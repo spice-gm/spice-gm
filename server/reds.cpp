@@ -233,7 +233,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(RedCharDeviceVDIPort, red_char_device_vdi_port, RED_T
 
 static RedCharDeviceVDIPort *red_char_device_vdi_port_new(RedsState *reds);
 
-static void migrate_timeout(void *opaque);
+static void migrate_timeout(RedsState *reds);
 static RedsMigTargetClient* reds_mig_target_client_find(RedsState *reds, RedClient *client);
 static void reds_mig_target_client_free(RedsState *reds, RedsMigTargetClient *mig_client);
 static void reds_mig_cleanup_wait_disconnect(RedsState *reds);
@@ -3082,9 +3082,8 @@ static void reds_mig_finished(RedsState *reds, int completed)
     reds_mig_release(reds->config);
 }
 
-static void migrate_timeout(void *opaque)
+static void migrate_timeout(RedsState *reds)
 {
-    RedsState *reds = (RedsState *) opaque;
     spice_debug("trace");
     spice_assert(reds->mig_wait_connect || reds->mig_wait_disconnect);
     if (reds->mig_wait_connect) {
@@ -3491,7 +3490,7 @@ static int do_spice_init(RedsState *reds, SpiceCoreInterface *core_interface)
     reds->mig_wait_disconnect_clients = NULL;
     reds->vm_running = TRUE; /* for backward compatibility */
 
-    if (!(reds->mig_timer = reds->core.timer_add(&reds->core, migrate_timeout, reds))) {
+    if (!(reds->mig_timer = reds->core.timer_new(migrate_timeout, reds))) {
         spice_error("migration timer create failed");
     }
     /* Note that this will not actually send the mm_time to the client because
@@ -4419,9 +4418,10 @@ SpiceWatch *reds_core_watch_add(RedsState *reds,
    return reds->core.watch_add(&reds->core, fd, event_mask, func, opaque);
 }
 
-SpiceTimer *reds_core_timer_add(RedsState *reds,
-                                SpiceTimerFunc func,
-                                void *opaque)
+SpiceTimer *
+reds_core_timer_add_internal(RedsState *reds,
+                             SpiceTimerFunc func,
+                             void *opaque)
 {
    g_return_val_if_fail(reds != NULL, NULL);
    g_return_val_if_fail(reds->core.timer_add != NULL, NULL);

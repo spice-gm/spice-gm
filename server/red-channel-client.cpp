@@ -591,10 +591,8 @@ void RedChannelClient::push_ping()
     pipe_add_type(RED_PIPE_ITEM_TYPE_PING);
 }
 
-void RedChannelClient::ping_timer(void *opaque)
+void RedChannelClient::ping_timer(RedChannelClient *rcc)
 {
-    RedChannelClient *rcc = (RedChannelClient *) opaque;
-
     rcc->ref();
     spice_assert(rcc->priv->latency_monitor.state == PING_STATE_TIMER);
     rcc->priv->cancel_ping_timer();
@@ -642,9 +640,8 @@ inline int RedChannelClientPrivate::waiting_for_ack()
  * been idle during the time that passed since the previous timer call. If the connection
  * has been idle, we consider the client as disconnected.
  */
-void RedChannelClient::connectivity_timer(void *opaque)
+void RedChannelClient::connectivity_timer(RedChannelClient *rcc)
 {
-    RedChannelClient *rcc = (RedChannelClient *) opaque;
     RedChannelClientConnectivityMonitor *monitor = &rcc->priv->connectivity_monitor;
     int is_alive = TRUE;
 
@@ -707,7 +704,7 @@ void RedChannelClient::start_connectivity_monitoring(uint32_t timeout_ms)
      */
     if (priv->latency_monitor.timer == NULL) {
         priv->latency_monitor.timer =
-            core->timer_add(core, ping_timer, this);
+            core->timer_new(ping_timer, this);
         priv->latency_monitor.roundtrip = -1;
     } else {
         priv->cancel_ping_timer();
@@ -719,7 +716,7 @@ void RedChannelClient::start_connectivity_monitoring(uint32_t timeout_ms)
     if (priv->connectivity_monitor.timer == NULL) {
         priv->connectivity_monitor.state = CONNECTIVITY_STATE_CONNECTED;
         priv->connectivity_monitor.timer =
-            core->timer_add(core, connectivity_timer, this);
+            core->timer_new(connectivity_timer, this);
         priv->connectivity_monitor.timeout = timeout_ms;
         if (!red_client_during_migrate_at_target(priv->client)) {
             red_timer_start(priv->connectivity_monitor.timer,
@@ -728,10 +725,8 @@ void RedChannelClient::start_connectivity_monitoring(uint32_t timeout_ms)
     }
 }
 
-static void red_channel_client_event(int fd, int event, void *data)
+static void red_channel_client_event(int fd, int event, RedChannelClient *rcc)
 {
-    RedChannelClient *rcc = (RedChannelClient *) data;
-
     rcc->ref();
     if (event & SPICE_WATCH_EVENT_READ) {
         rcc->receive();
@@ -826,14 +821,14 @@ bool RedChannelClient::init()
     core = priv->channel->get_core_interface();
     red_stream_set_core_interface(priv->stream, core);
     priv->stream->watch =
-        core->watch_add(core, priv->stream->socket,
+        core->watch_new(priv->stream->socket,
                         SPICE_WATCH_EVENT_READ,
                         red_channel_client_event,
                         this);
 
     if (red_stream_get_family(priv->stream) != AF_UNIX) {
         priv->latency_monitor.timer =
-            core->timer_add(core, ping_timer, this);
+            core->timer_new(ping_timer, this);
 
         if (!red_client_during_migrate_at_target(priv->client)) {
             priv->start_ping_timer(PING_TEST_IDLE_NET_TIMEOUT_MS);

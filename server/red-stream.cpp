@@ -583,9 +583,8 @@ static inline void async_read_clear_handlers(RedStream *stream)
 
 static void async_read_handler(G_GNUC_UNUSED int fd,
                                G_GNUC_UNUSED int event,
-                               void *data)
+                               RedStream *stream)
 {
-    RedStream *stream = (RedStream *) data;
     AsyncRead *async = &stream->priv->async_read;
     SpiceCoreInterfaceInternal *core = stream->priv->core;
 
@@ -599,7 +598,7 @@ static void async_read_handler(G_GNUC_UNUSED int fd,
             switch (err) {
             case EAGAIN:
                 if (!stream->watch) {
-                    stream->watch = core->watch_add(core, stream->socket,
+                    stream->watch = core->watch_new(stream->socket,
                                                     SPICE_WATCH_EVENT_READ,
                                                     async_read_handler, stream);
                 }

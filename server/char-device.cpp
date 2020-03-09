@@ -95,7 +95,7 @@ enum {
 };
 
 static void red_char_device_write_buffer_unref(RedCharDeviceWriteBuffer *write_buf);
-static void red_char_device_write_retry(void *opaque);
+static void red_char_device_write_retry(RedCharDevice *dev);
 
 static RedPipeItem *
 red_char_device_read_one_msg_from_device(RedCharDevice *dev)
@@ -223,10 +223,8 @@ static RedCharDeviceClient *red_char_device_client_find(RedCharDevice *dev,
  * Reading from the device *
  **************************/
 
-static void device_client_wait_for_tokens_timeout(void *opaque)
+static void device_client_wait_for_tokens_timeout(RedCharDeviceClient *dev_client)
 {
-    RedCharDeviceClient *dev_client = (RedCharDeviceClient *) opaque;
-
     red_char_device_handle_client_overflow(dev_client);
 }
 
@@ -493,10 +491,8 @@ static int red_char_device_write_to_device(RedCharDevice *dev)
     return total;
 }
 
-static void red_char_device_write_retry(void *opaque)
+static void red_char_device_write_retry(RedCharDevice *dev)
 {
-    RedCharDevice *dev = (RedCharDevice *) opaque;
-
     if (dev->priv->write_to_dev_timer) {
         red_timer_cancel(dev->priv->write_to_dev_timer);
     }
