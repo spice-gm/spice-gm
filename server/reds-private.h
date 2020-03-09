@@ -135,7 +135,7 @@ struct RedsState {
 
     SpiceCoreInterfaceInternal core;
     red::safe_list<QXLInstance*> qxl_instances; // XXX owning
-    MainDispatcher *main_dispatcher;
+    red::shared_ptr<MainDispatcher> main_dispatcher;
     RedRecord *record;
 };
 

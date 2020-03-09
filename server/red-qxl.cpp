@@ -42,8 +42,9 @@
 #define MAX_MONITORS_COUNT 16
 
 struct QXLState {
+    SPICE_CXX_GLIB_ALLOCATOR
     QXLInstance *qxl;
-    Dispatcher *dispatcher;
+    red::shared_ptr<Dispatcher> dispatcher;
     uint32_t pending;
     int primary_active;
     int x_res;
@@ -566,13 +567,13 @@ void red_qxl_init(RedsState *reds, QXLInstance *qxl)
 
     spice_return_if_fail(qxl != NULL);
 
-    qxl_state = g_new0(QXLState, 1);
+    qxl_state = new QXLState();
     qxl_state->reds = reds;
     qxl_state->qxl = qxl;
     pthread_mutex_init(&qxl_state->scanout_mutex, NULL);
     qxl_state->scanout.drm_dma_buf_fd = -1;
     qxl_state->gl_draw_cookie = GL_DRAW_COOKIE_INVALID;
-    qxl_state->dispatcher = new Dispatcher(RED_WORKER_MESSAGE_COUNT);
+    qxl_state->dispatcher = red::make_shared<Dispatcher>(RED_WORKER_MESSAGE_COUNT);
 
     qxl_state->max_monitors = UINT_MAX;
     qxl->st = qxl_state;
@@ -584,7 +585,7 @@ void red_qxl_init(RedsState *reds, QXLInstance *qxl)
 
 void red_qxl_destroy(QXLInstance *qxl)
 {
-    spice_return_if_fail(qxl->st != NULL && qxl->st->dispatcher != NULL);
+    spice_return_if_fail(qxl->st != NULL && qxl->st->dispatcher);
 
     QXLState *qxl_state = qxl->st;
 
@@ -592,16 +593,15 @@ void red_qxl_destroy(QXLInstance *qxl)
     RedWorkerMessageClose message;
     qxl_state->dispatcher->send_message(RED_WORKER_MESSAGE_CLOSE_WORKER, &message);
     red_worker_free(qxl_state->worker);
-    qxl_state->dispatcher->unref();
     /* this must be done after calling red_worker_free */
     qxl->st = NULL;
     pthread_mutex_destroy(&qxl_state->scanout_mutex);
-    g_free(qxl_state);
+    delete qxl_state;
 }
 
 Dispatcher *red_qxl_get_dispatcher(QXLInstance *qxl)
 {
-    return qxl->st->dispatcher;
+    return qxl->st->dispatcher.get();
 }
 
 void red_qxl_clear_pending(QXLState *qxl_state, int pending)

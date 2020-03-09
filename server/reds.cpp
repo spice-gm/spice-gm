@@ -3428,7 +3428,7 @@ static int do_spice_init(RedsState *reds, SpiceCoreInterface *core_interface)
     reds->core.public_interface = core_interface;
     reds->agent_dev = red_char_device_vdi_port_new(reds);
     reds_update_agent_properties(reds);
-    reds->main_dispatcher = new MainDispatcher(reds);
+    reds->main_dispatcher = red::make_shared<MainDispatcher>(reds);
     reds->mig_target_clients = NULL;
     reds->vm_running = TRUE; /* for backward compatibility */
 
@@ -3795,9 +3795,7 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
         SSL_CTX_free(reds->ctx);
     }
 
-    if (reds->main_dispatcher) {
-        reds->main_dispatcher->unref();
-    }
+    reds->main_dispatcher.reset();
     reds_cleanup_net(reds);
     if (reds->agent_dev) {
         reds->agent_dev->unref();
@@ -4489,7 +4487,7 @@ uint32_t reds_qxl_ram_size(RedsState *reds)
 
 MainDispatcher* reds_get_main_dispatcher(RedsState *reds)
 {
-    return reds->main_dispatcher;
+    return reds->main_dispatcher.get();
 }
 
 static void red_char_device_vdi_port_constructed(GObject *object)

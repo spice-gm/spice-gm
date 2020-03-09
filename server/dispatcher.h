@@ -52,10 +52,9 @@ typedef void (*dispatcher_handle_any_message)(void *opaque,
  * activity and should call dispatcher_handle_recv_read() to process incoming
  * messages.
  */
-class Dispatcher
+class Dispatcher: public red::shared_ptr_counted
 {
 public:
-    SPICE_CXX_GLIB_ALLOCATOR
     /* Create a new Dispatcher object
      *
      * @max_message_type:   indicates the number of unique message types that can
@@ -150,9 +149,6 @@ public:
      */
     void set_opaque(void *opaque);
 
-    void ref() { g_atomic_int_inc(&_ref); }
-    void unref() { if (g_atomic_int_dec_and_test(&_ref)) delete this; }
-
 protected:
     virtual ~Dispatcher();
 
@@ -160,7 +156,6 @@ private:
     static int handle_single_read(Dispatcher *dispatcher);
     static void handle_event(int fd, int event, Dispatcher* dispatcher);
     void send_message_internal(const DispatcherMessage*msg, void *payload);
-    gint _ref = 1;
     red::unique_link<DispatcherPrivate> priv;
 };
 

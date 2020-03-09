@@ -72,7 +72,7 @@ struct RedChannelPrivate
         handle_acks(!!(flags & RedChannel::HandleAcks)),
         parser(spice_get_client_channel_parser(type, nullptr)),
         migration_flags(flags & RedChannel::MigrateAll),
-        dispatcher(red::add_ref(dispatcher)),
+        dispatcher(dispatcher),
         reds(reds)
     {
         thread_id = pthread_self();
@@ -80,9 +80,6 @@ struct RedChannelPrivate
 
     ~RedChannelPrivate()
     {
-        if (dispatcher) {
-            dispatcher->unref();
-        }
         red_channel_capabilities_reset(&local_caps);
     }
 
@@ -118,7 +115,7 @@ struct RedChannelPrivate
      * thread_id will be used to check the channel thread and automatically
      * use the dispatcher if the thread is different.
      */
-    Dispatcher *const dispatcher;
+    const red::shared_ptr<Dispatcher> dispatcher;
     RedsState *const reds;
     RedStatNode stat;
 };
@@ -351,13 +348,13 @@ static void handle_dispatcher_connect(void *opaque, RedMessageConnect *msg)
 void RedChannel::connect(RedClient *client, RedStream *stream, int migration,
                          RedChannelCapabilities *caps)
 {
-    if (priv->dispatcher == NULL ||
+    if (!priv->dispatcher ||
         pthread_equal(pthread_self(), priv->thread_id)) {
         on_connect(client, stream, migration, caps);
         return;
     }
 
-    Dispatcher *dispatcher = priv->dispatcher;
+    Dispatcher *dispatcher = priv->dispatcher.get();
 
     // get a reference potentially the main channel can be destroyed in
     // the main thread causing RedClient to be destroyed before using it
@@ -560,7 +557,7 @@ static void handle_dispatcher_migrate(void *opaque, RedMessageMigrate *msg)
 
 void RedChannel::migrate_client(RedChannelClient *rcc)
 {
-    if (priv->dispatcher == NULL ||
+    if (!priv->dispatcher ||
         pthread_equal(pthread_self(), priv->thread_id)) {
         rcc->migrate();
         return;
@@ -584,7 +581,7 @@ static void handle_dispatcher_disconnect(void *opaque, RedMessageDisconnect *msg
 
 void RedChannel::disconnect_client(RedChannelClient *rcc)
 {
-    if (priv->dispatcher == NULL ||
+    if (!priv->dispatcher ||
         pthread_equal(pthread_self(), priv->thread_id)) {
         rcc->disconnect();
         return;
