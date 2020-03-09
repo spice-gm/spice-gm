@@ -61,7 +61,7 @@ def get_args():
     parser.add_argument('--spice_port1', dest='spice_port1', type=int, default=5911)
     parser.add_argument('--spice_port2', dest='spice_port2', type=int, default=6911)
     parser.add_argument('--migrate_port', dest='migrate_port', type=int, default=8000)
-    parser.add_argument('--qemu', dest='qemu', default='../../qemu/x86_64-softmmu/qemu-system-x86_64')
+    parser.add_argument('--qemu', dest='qemu', default='qemu-system-x86_64')
     parser.add_argument('--log_filename', dest='log_filename', default='migrate.log')
     parser.add_argument('--image', dest='image', default='')
     parser.add_argument("--hostname", dest='hostname', default='localhost',
