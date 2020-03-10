@@ -96,6 +96,7 @@ libserver_la_SOURCES =				\
 	cursor-channel-client.cpp		\
 	cursor-channel-client.h			\
 	cursor-channel.h			\
+	utils.hpp				\
 	dcc.cpp					\
 	dcc.h					\
 	dcc-private.h				\
