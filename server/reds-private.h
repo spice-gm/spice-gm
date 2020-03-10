@@ -27,6 +27,7 @@
 #include "inputs-channel.h"
 #include "stat-file.h"
 #include "red-record-qxl.h"
+#include "safe-list.hpp"
 
 #define MIGRATE_TIMEOUT (MSEC_PER_SEC * 10)
 #define MM_TIME_DELTA 400 /*ms*/
@@ -73,6 +74,8 @@ typedef struct RedCharDeviceVDIPort RedCharDeviceVDIPort;
 typedef struct RedServerConfig RedServerConfig;
 
 struct RedsState {
+    SPICE_CXX_GLIB_ALLOCATOR
+
     RedServerConfig *config;
     int listen_socket;
     int secure_listen_socket;
@@ -100,7 +103,7 @@ struct RedsState {
                                     between the 2 servers */
     GList *mig_target_clients;
 
-    GList *channels;
+    red::safe_list<RedChannel*> channels;
     SpiceMouseMode mouse_mode;
     int is_client_mouse_allowed;
     int dispatcher_allows_client_mouse;
@@ -108,7 +111,7 @@ struct RedsState {
     SpiceTimer *mig_timer;
 
     int vm_running;
-    GList *char_devices; /* list of SpiceCharDeviceState */
+    red::safe_list<SpiceCharDeviceState*> char_devices;
     int seamless_migration_enabled; /* command line arg */
 
     SSL_CTX *ctx;

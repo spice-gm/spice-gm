@@ -332,21 +332,19 @@ void reds_register_channel(RedsState *reds, RedChannel *channel)
     } else {
         g_warn_if_fail(reds_find_channel(reds, this_type, this_id) == NULL);
     }
-    reds->channels = g_list_prepend(reds->channels, channel);
+    reds->channels.push_front(channel);
     // create new channel in the client if possible
     reds->main_channel->registered_new_channel(channel);
 }
 
 void reds_unregister_channel(RedsState *reds, RedChannel *channel)
 {
-    reds->channels = g_list_remove(reds->channels, channel);
+    reds->channels.remove(channel);
 }
 
 RedChannel *reds_find_channel(RedsState *reds, uint32_t type, uint32_t id)
 {
-    RedChannel *channel;
-
-    GLIST_FOREACH(reds->channels, RedChannel, channel) {
+    for (auto channel: reds->channels) {
         if (channel->type() == type && channel->id() == id) {
             return channel;
         }
@@ -358,8 +356,6 @@ RedChannel *reds_find_channel(RedsState *reds, uint32_t type, uint32_t id)
  * Return first id free or <0 if not found. */
 int reds_get_free_channel_id(RedsState *reds, uint32_t type)
 {
-    RedChannel *channel;
-
     // this mark if some IDs are used.
     // The size of the array limits the possible id returned but
     // usually the IDs used for a channel type are not much.
@@ -369,7 +365,7 @@ int reds_get_free_channel_id(RedsState *reds, uint32_t type)
 
     // mark id used for the specific channel type
     memset(used_ids, 0, sizeof(used_ids));
-    GLIST_FOREACH(reds->channels, RedChannel, channel) {
+    for (const auto channel: reds->channels) {
         if (channel->type() == type && channel->id() < SPICE_N_ELEMENTS(used_ids)) {
             used_ids[channel->id()] = true;
         }
@@ -619,9 +615,8 @@ static void reds_update_mouse_mode(RedsState *reds)
     int allowed = 0;
     int qxl_count = g_list_length(reds->qxl_instances);
     int display_channel_count = 0;
-    RedChannel *channel;
 
-    GLIST_FOREACH(reds->channels, RedChannel, channel) {
+    for (const auto channel: reds->channels) {
         if (channel->type() == SPICE_CHANNEL_DISPLAY) {
             ++display_channel_count;
         }
@@ -851,7 +846,6 @@ static RedPipeItem *vdi_port_read_one_msg_from_device(RedCharDevice *self,
 void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
 {
     QXLInstance *qxl;
-    RedCharDevice *dev;
 
     uint32_t device_count = 0;
     void *device_count_ptr = spice_marshaller_add_uint32(m, device_count);
@@ -862,7 +856,7 @@ void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
     }
 
     // add the stream devices to the message
-    GLIST_FOREACH(reds->char_devices, RedCharDevice, dev) {
+    for (auto dev: reds->char_devices) {
         if (IS_STREAM_DEVICE(dev)) {
             StreamDevice *stream_dev = STREAM_DEVICE(dev);
             const StreamDeviceDisplayInfo *info = stream_device_get_device_display_info(stream_dev);
@@ -1028,10 +1022,9 @@ static bool channel_supports_multiple_clients(RedChannel *channel)
 
 static void reds_fill_channels(RedsState *reds, SpiceMsgChannels *channels_info)
 {
-    RedChannel *channel;
     int used_channels = 0;
 
-    GLIST_FOREACH(reds->channels, RedChannel, channel) {
+    for (const auto channel: reds->channels) {
         if (g_list_length(reds->clients) > 1 &&
             !channel_supports_multiple_clients(channel)) {
             continue;
@@ -1042,8 +1035,8 @@ static void reds_fill_channels(RedsState *reds, SpiceMsgChannels *channels_info)
     }
 
     channels_info->num_of_channels = used_channels;
-    if (used_channels != g_list_length(reds->channels)) {
-        spice_warning("sent %d out of %d", used_channels, g_list_length(reds->channels));
+    if (used_channels != reds->channels.size()) {
+        spice_warning("sent %d out of %zd", used_channels, reds->channels.size());
     }
 }
 
@@ -1054,7 +1047,7 @@ SpiceMsgChannels *reds_msg_channels_new(RedsState *reds)
     spice_assert(reds != NULL);
 
     channels_info = (SpiceMsgChannels *)g_malloc(sizeof(SpiceMsgChannels)
-                            + g_list_length(reds->channels) * sizeof(SpiceChannelId));
+                            + reds->channels.size() * sizeof(SpiceChannelId));
 
     reds_fill_channels(reds, channels_info);
 
@@ -1786,15 +1779,13 @@ static RedClient *reds_get_client(RedsState *reds)
  * This should be called when a client connects */
 static void reds_late_initialization(RedsState *reds)
 {
-    RedCharDevice *dev;
-
     // do only once
     if (reds->late_initialization_done) {
         return;
     }
 
     // create stream channels for streaming devices
-    GLIST_FOREACH(reds->char_devices, RedCharDevice, dev) {
+    for (auto dev: reds->char_devices) {
         if (IS_STREAM_DEVICE(dev)) {
             stream_device_create_channel(STREAM_DEVICE(dev));
         }
@@ -3191,15 +3182,16 @@ SPICE_GNUC_VISIBLE const char** spice_server_char_device_recognized_subtypes(voi
 
 static void reds_add_char_device(RedsState *reds, RedCharDevice *dev)
 {
-    reds->char_devices = g_list_append(reds->char_devices, dev);
+    reds->char_devices.push_front(dev);
 }
 
 static void reds_remove_char_device(RedsState *reds, RedCharDevice *dev)
 {
     g_return_if_fail(reds != NULL);
-    g_warn_if_fail(g_list_find(reds->char_devices, dev) != NULL);
+    auto &devs(reds->char_devices);
+    g_warn_if_fail(std::find(devs.begin(), devs.end(), dev) != devs.end());
 
-    reds->char_devices = g_list_remove(reds->char_devices, dev);
+    devs.remove(dev);
 }
 
 static int
@@ -3450,9 +3442,7 @@ static int do_spice_init(RedsState *reds, SpiceCoreInterface *core_interface)
     reds_update_agent_properties(reds);
     reds->clients = NULL;
     reds->main_dispatcher = new MainDispatcher(reds);
-    reds->channels = NULL;
     reds->mig_target_clients = NULL;
-    reds->char_devices = NULL;
     reds->mig_wait_disconnect_clients = NULL;
     reds->vm_running = TRUE; /* for backward compatibility */
 
@@ -3517,7 +3507,7 @@ static const char default_video_codecs[] = "spice:mjpeg;" GSTREAMER_CODECS;
 SPICE_GNUC_VISIBLE SpiceServer *spice_server_new(void)
 {
     const char *record_filename;
-    RedsState *reds = g_new0(RedsState, 1);
+    RedsState *reds = new RedsState;
 
     reds->config = g_new0(RedServerConfig, 1);
     reds->config->default_channel_security =
@@ -3823,15 +3813,9 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
 
     // NOTE: don't replace with g_list_free_full as this function that passed callback
     // don't change the list while unreferencing in this case will change it.
-    RedCharDevice *dev;
-    GLIST_FOREACH(reds->char_devices, RedCharDevice, dev) {
+    for (auto dev: reds->char_devices) {
         dev->unref();
     }
-    g_list_free(reds->char_devices);
-    reds->char_devices = NULL;
-
-    g_list_free(reds->channels);
-    reds->channels = NULL;
 
     spice_buffer_free(&reds->client_monitors_config);
     red_record_unref(reds->record);
@@ -3841,7 +3825,7 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
 #endif
 
     reds_config_free(reds->config);
-    g_free(reds);
+    delete reds;
 }
 
 SPICE_GNUC_VISIBLE spice_compat_version_t spice_get_current_compat_version(void)
@@ -4328,22 +4312,18 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_switch(SpiceServer *reds)
 
 SPICE_GNUC_VISIBLE void spice_server_vm_start(SpiceServer *reds)
 {
-    GList *it;
-
     reds->vm_running = TRUE;
-    for (it = reds->char_devices; it != NULL; it = it->next) {
-        red_char_device_start((RedCharDevice*) it->data);
+    for (auto dev: reds->char_devices) {
+        red_char_device_start(dev);
     }
     reds_on_vm_start(reds);
 }
 
 SPICE_GNUC_VISIBLE void spice_server_vm_stop(SpiceServer *reds)
 {
-    GList *it;
-
     reds->vm_running = FALSE;
-    for (it = reds->char_devices; it != NULL; it = it->next) {
-        red_char_device_stop((RedCharDevice*) it->data);
+    for (auto dev: reds->char_devices) {
+        red_char_device_stop(dev);
     }
     reds_on_vm_stop(reds);
 }
