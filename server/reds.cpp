@@ -441,9 +441,9 @@ static void reds_reset_vdp(RedsState *reds)
      *  The tokens are also reset to avoid mismatch in upon agent reconnection.
      */
     dev->priv->agent_attached = FALSE;
-    red_char_device_stop(dev);
-    red_char_device_reset(dev);
-    red_char_device_reset_dev_instance(dev, NULL);
+    dev->stop();
+    dev->reset();
+    dev->reset_dev_instance(NULL);
 
     sif = spice_char_device_get_interface(reds->vdagent);
     if (sif->state) {
@@ -459,9 +459,8 @@ static RedCharDeviceWriteBuffer *vdagent_new_write_buffer(RedCharDeviceVDIPort *
     uint32_t total_msg_size = sizeof(VDIChunkHeader) + sizeof(VDAgentMessage) + size;
 
     RedCharDeviceWriteBuffer *char_dev_buf;
-        char_dev_buf = red_char_device_write_buffer_get_server(agent_dev,
-                                                               total_msg_size,
-                                                               use_token);
+        char_dev_buf = agent_dev->write_buffer_get_server(total_msg_size,
+                                                          use_token);
     if (!char_dev_buf) {
         return NULL;  // no token was available
     }
@@ -520,8 +519,8 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
     /* note that client might be NULL, if the vdagent was once
      * up and than was removed */
     RedCharDeviceClientOpaque *client_opaque = (RedCharDeviceClientOpaque *) client;
-    if (red_char_device_client_exists(reds->agent_dev, client_opaque)) {
-        red_char_device_client_remove(reds->agent_dev, client_opaque);
+    if (reds->agent_dev->client_exists(client_opaque)) {
+        reds->agent_dev->client_remove(client_opaque);
     }
 
     reds->clients.remove(client);
@@ -538,7 +537,7 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
                                          0,
                                          false);
 
-            red_char_device_write_buffer_add(reds->agent_dev, char_dev_buf);
+            reds->agent_dev->write_buffer_add(char_dev_buf);
         }
 
         /* Reset write filter to start with clean state on client reconnect */
@@ -729,7 +728,7 @@ static void vdi_port_read_buf_free(RedPipeItem *base)
        necessary. Note that since we can be called from red_char_device_wakeup
        this can cause recursion, but we have protection for that */
     if (buf->dev->priv->agent_attached) {
-       red_char_device_wakeup(buf->dev);
+       buf->dev->wakeup();
     }
     g_free(buf);
 }
@@ -772,7 +771,7 @@ static RedPipeItem *vdi_port_read_one_msg_from_device(RedCharDevice *self,
     RedVDIReadBuf *dispatch_buf;
     int n;
 
-    reds = red_char_device_get_server(self);
+    reds = self->get_server();
     g_assert(reds->agent_dev == sin->st);
     if (!reds->vdagent) {
         return NULL;
@@ -926,7 +925,7 @@ void reds_send_device_display_info(RedsState *reds)
 
     reds->pending_device_display_info_message = false;
 
-    red_char_device_write_buffer_add(reds->agent_dev, char_dev_buf);
+    reds->agent_dev->write_buffer_add(char_dev_buf);
 }
 
 /* after calling this, we unref the message, and the ref is in the instance side */
@@ -954,7 +953,7 @@ static void vdi_port_send_tokens_to_client(RedCharDevice *self,
 
 static void vdi_port_on_free_self_token(RedCharDevice *self)
 {
-    RedsState *reds = red_char_device_get_server(self);
+    RedsState *reds = self->get_server();
 
     if (reds->inputs_channel && reds->pending_mouse_event) {
         spice_debug("pending mouse event");
@@ -1002,7 +1001,7 @@ void reds_handle_agent_mouse_event(RedsState *reds, const VDAgentMouseState *mou
     VDInternalBuf *internal_buf = (VDInternalBuf *)char_dev_buf->buf;
     internal_buf->u.mouse_state = *mouse_state;
 
-    red_char_device_write_buffer_add(reds->agent_dev, char_dev_buf);
+    reds->agent_dev->write_buffer_add(char_dev_buf);
 }
 
 SPICE_GNUC_VISIBLE int spice_server_get_num_clients(SpiceServer *reds)
@@ -1075,16 +1074,14 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
      * flow control, but will have no other problem.
      */
     RedCharDeviceClientOpaque *client_opaque = (RedCharDeviceClientOpaque *) client;
-    if (!red_char_device_client_exists(dev_state, client_opaque)) {
+    if (!dev_state->client_exists(client_opaque)) {
         int client_added;
 
-        client_added = red_char_device_client_add(dev_state,
-                                                  client_opaque,
-                                                  TRUE, /* flow control */
-                                                  REDS_VDI_PORT_NUM_RECEIVE_BUFFS,
-                                                  REDS_AGENT_WINDOW_SIZE,
-                                                  num_tokens,
-                                                  mcc->is_waiting_for_migrate_data());
+        client_added = dev_state->client_add(client_opaque, TRUE,
+                                             REDS_VDI_PORT_NUM_RECEIVE_BUFFS,
+                                             REDS_AGENT_WINDOW_SIZE,
+                                             num_tokens,
+                                             mcc->is_waiting_for_migrate_data());
 
         if (!client_added) {
             spice_warning("failed to add client to agent");
@@ -1092,9 +1089,7 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
             return;
         }
     } else {
-        red_char_device_send_to_client_tokens_set(dev_state,
-                                                  client_opaque,
-                                                  num_tokens);
+        dev_state->send_to_client_tokens_set(client_opaque, num_tokens);
     }
 
     reds_send_device_display_info(reds);
@@ -1112,9 +1107,8 @@ void reds_on_main_agent_tokens(RedsState *reds, MainChannelClient *mcc, uint32_t
         return;
     }
     spice_assert(reds->vdagent->st);
-    red_char_device_send_to_client_tokens_add(reds->vdagent->st,
-                                              (RedCharDeviceClientOpaque *) client,
-                                              num_tokens);
+    reds->vdagent->st->send_to_client_tokens_add((RedCharDeviceClientOpaque *)client,
+                                                 num_tokens);
 }
 
 uint8_t *reds_get_agent_data_buffer(RedsState *reds, MainChannelClient *mcc, size_t size)
@@ -1136,9 +1130,8 @@ uint8_t *reds_get_agent_data_buffer(RedsState *reds, MainChannelClient *mcc, siz
     spice_assert(dev->priv->recv_from_client_buf == NULL);
     client = mcc->get_client();
     dev->priv->recv_from_client_buf =
-        red_char_device_write_buffer_get_client(dev,
-                                                (RedCharDeviceClientOpaque *) client,
-                                                size + sizeof(VDIChunkHeader));
+        dev->write_buffer_get_client((RedCharDeviceClientOpaque *)client,
+                                     size + sizeof(VDIChunkHeader));
     /* check if buffer was allocated, as flow control is enabled for
      * this device this is a normal condition */
     if (!dev->priv->recv_from_client_buf) {
@@ -1160,8 +1153,8 @@ void reds_release_agent_data_buffer(RedsState *reds, uint8_t *buf)
     spice_assert(buf == dev->priv->recv_from_client_buf->buf + sizeof(VDIChunkHeader));
     /* if we pushed the buffer the buffer is attached to the channel so don't free it */
     if (!dev->priv->recv_from_client_buf_pushed) {
-        red_char_device_write_buffer_release(dev,
-                                             &dev->priv->recv_from_client_buf);
+        RedCharDevice::write_buffer_release(dev,
+                                            &dev->priv->recv_from_client_buf);
     }
     dev->priv->recv_from_client_buf = NULL;
     dev->priv->recv_from_client_buf_pushed = FALSE;
@@ -1249,7 +1242,7 @@ void reds_on_main_agent_data(RedsState *reds, MainChannelClient *mcc, const void
     dev->priv->recv_from_client_buf->buf_used = sizeof(VDIChunkHeader) + size;
 
     dev->priv->recv_from_client_buf_pushed = TRUE;
-    red_char_device_write_buffer_add(dev, dev->priv->recv_from_client_buf);
+    dev->write_buffer_add(dev->priv->recv_from_client_buf);
 }
 
 void reds_on_main_migrate_connected(RedsState *reds, int seamless)
@@ -1346,14 +1339,14 @@ void reds_marshall_migrate_data(RedsState *reds, SpiceMarshaller *m)
            there is no need to track the client tokens
            (see reds_reset_vdp) */
         spice_assert(!agent_dev->priv->agent_attached);
-        red_char_device_migrate_data_marshall_empty(m);
+        RedCharDevice::migrate_data_marshall_empty(m);
         size_t padding_len = sizeof(SpiceMigrateDataMain) - sizeof(SpiceMigrateDataCharDevice);
         null_agent_mig_data = spice_marshaller_reserve_space(m, padding_len);
         memset(null_agent_mig_data, 0, padding_len);
         return;
     }
 
-    red_char_device_migrate_data_marshall(agent_dev, m);
+    agent_dev->migrate_data_marshall(m);
     spice_marshaller_add_uint8(m, agent_dev->priv->client_agent_started);
 
     mig_data.agent2client.chunk_header = agent_dev->priv->vdi_chunk_header;
@@ -1473,7 +1466,7 @@ static int reds_agent_state_restore(RedsState *reds, SpiceMigrateDataMain *mig_d
                 agent_dev->priv->read_filter.discard_all,
                 agent_dev->priv->read_filter.msg_data_to_read,
                 agent_dev->priv->read_filter.result);
-    return red_char_device_restore(agent_dev, &mig_data->agent_base);
+    return agent_dev->restore(&mig_data->agent_base);
 }
 
 /*
@@ -1524,7 +1517,7 @@ bool reds_handle_migrate_data(RedsState *reds, MainChannelClient *mcc,
             RedCharDeviceClientOpaque *client_opaque =
                 (RedCharDeviceClientOpaque *) mcc->get_client();
             /* red_char_device_client_remove disables waiting for migration data */
-            red_char_device_client_remove(agent_dev, client_opaque);
+            agent_dev->client_remove(client_opaque);
             reds->main_channel->push_agent_connected();
         }
     }
@@ -3089,7 +3082,7 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
     SpiceCharDeviceInterface *sif;
 
     dev->priv->agent_attached = true;
-    red_char_device_reset_dev_instance(dev, sin);
+    dev->reset_dev_instance(sin);
 
     reds->vdagent = sin;
     reds_update_mouse_mode(reds);
@@ -3117,16 +3110,12 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
          */
         RedCharDeviceClientOpaque *client_opaque =
             (RedCharDeviceClientOpaque *) reds_get_client(reds);
-        if (!red_char_device_client_exists(dev, client_opaque)) {
+        if (!dev->client_exists(client_opaque)) {
             int client_added;
 
-            client_added = red_char_device_client_add(dev,
-                                                      client_opaque,
-                                                      TRUE, /* flow control */
-                                                      REDS_VDI_PORT_NUM_RECEIVE_BUFFS,
-                                                      REDS_AGENT_WINDOW_SIZE,
-                                                      ~0,
-                                                      TRUE);
+            client_added = dev->client_add(client_opaque, TRUE,
+                                           REDS_VDI_PORT_NUM_RECEIVE_BUFFS,
+                                           REDS_AGENT_WINDOW_SIZE, ~0, TRUE);
 
             if (!client_added) {
                 spice_warning("failed to add client to agent");
@@ -3159,7 +3148,7 @@ SPICE_GNUC_VISIBLE void spice_server_char_device_wakeup(SpiceCharDeviceInstance*
         spice_warning("no RedCharDevice attached to instance %p", sin);
         return;
     }
-    red_char_device_wakeup(sin->st);
+    sin->st->wakeup();
 }
 
 #define SUBTYPE_VDAGENT "vdagent"
@@ -3240,7 +3229,7 @@ spice_server_char_device_add_interface(SpiceServer *reds, SpiceBaseInstance *sin
         /* setting the char_device state to "started" for backward compatibily with
          * qemu releases that don't call spice api for start/stop (not implemented yet) */
         if (reds->vm_running) {
-            red_char_device_start(dev_state);
+            dev_state->start();
         }
         reds_add_char_device(reds, dev_state);
     } else {
@@ -3260,7 +3249,7 @@ static int spice_server_char_device_remove_interface(RedsState *reds, SpiceBaseI
         g_return_val_if_fail(char_device == reds->vdagent, -1);
         if (reds->vdagent) {
             reds_agent_remove(reds);
-            red_char_device_reset_dev_instance(reds->agent_dev, NULL);
+            reds->agent_dev->reset_dev_instance(NULL);
         }
     }
 
@@ -3411,7 +3400,7 @@ SPICE_GNUC_VISIBLE int spice_server_remove_interface(SpiceBaseInstance *sin)
     } else if (strcmp(base_interface->type, SPICE_INTERFACE_CHAR_DEVICE) == 0) {
         SpiceCharDeviceInstance *char_device = SPICE_UPCAST(SpiceCharDeviceInstance, sin);
         g_return_val_if_fail(char_device->st != NULL, -1);
-        reds = red_char_device_get_server(char_device->st);
+        reds = char_device->st->get_server();
         return spice_server_char_device_remove_interface(reds, sin);
     } else if (strcmp(base_interface->type, SPICE_INTERFACE_QXL) == 0) {
         QXLInstance *qxl;
@@ -4314,7 +4303,7 @@ SPICE_GNUC_VISIBLE void spice_server_vm_start(SpiceServer *reds)
 {
     reds->vm_running = TRUE;
     for (auto dev: reds->char_devices) {
-        red_char_device_start(dev);
+        dev->start();
     }
     reds_on_vm_start(reds);
 }
@@ -4323,7 +4312,7 @@ SPICE_GNUC_VISIBLE void spice_server_vm_stop(SpiceServer *reds)
 {
     reds->vm_running = FALSE;
     for (auto dev: reds->char_devices) {
-        red_char_device_stop(dev);
+        dev->stop();
     }
     reds_on_vm_stop(reds);
 }
@@ -4519,7 +4508,7 @@ static void red_char_device_vdi_port_constructed(GObject *object)
 
     G_OBJECT_CLASS(red_char_device_vdi_port_parent_class)->constructed(object);
 
-    reds = red_char_device_get_server(RED_CHAR_DEVICE(object));
+    reds = RED_CHAR_DEVICE(object)->get_server();
 
     agent_msg_filter_init(&dev->priv->write_filter, reds->config->agent_copypaste,
                           reds->config->agent_file_xfer,
@@ -4547,7 +4536,7 @@ red_char_device_vdi_port_finalize(GObject *object)
     RedCharDeviceVDIPort *dev = RED_CHAR_DEVICE_VDIPORT(object);
 
     /* make sure we have no other references to RedVDIReadBuf buffers */
-    red_char_device_reset(dev);
+    dev->reset();
     if (dev->priv->current_read_buf) {
         red_pipe_item_unref(&dev->priv->current_read_buf->base);
         dev->priv->current_read_buf = NULL;

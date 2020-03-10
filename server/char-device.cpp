@@ -382,18 +382,16 @@ red_char_device_send_to_client_tokens_absorb(RedCharDevice *dev,
     }
 }
 
-void red_char_device_send_to_client_tokens_add(RedCharDevice *dev,
-                                               RedCharDeviceClientOpaque *client,
-                                               uint32_t tokens)
+void RedCharDevice::send_to_client_tokens_add(RedCharDeviceClientOpaque *client,
+                                              uint32_t tokens)
 {
-    red_char_device_send_to_client_tokens_absorb(dev, client, tokens, false);
+    red_char_device_send_to_client_tokens_absorb(this, client, tokens, false);
 }
 
-void red_char_device_send_to_client_tokens_set(RedCharDevice *dev,
-                                               RedCharDeviceClientOpaque *client,
-                                               uint32_t tokens)
+void RedCharDevice::send_to_client_tokens_set(RedCharDeviceClientOpaque *client,
+                                              uint32_t tokens)
 {
-    red_char_device_send_to_client_tokens_absorb(dev, client, tokens, true);
+    red_char_device_send_to_client_tokens_absorb(this, client, tokens, true);
 }
 
 /**************************
@@ -466,7 +464,8 @@ static int red_char_device_write_to_device(RedCharDevice *dev)
         total += n;
         write_len -= n;
         if (!write_len) {
-            red_char_device_write_buffer_release(dev, &dev->priv->cur_write_buf);
+            RedCharDevice::write_buffer_release(dev,
+                                                &dev->priv->cur_write_buf);
             continue;
         }
         dev->priv->cur_write_buf_pos += n;
@@ -554,21 +553,19 @@ error:
     return NULL;
 }
 
-RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_client(RedCharDevice *dev,
-                                                                  RedCharDeviceClientOpaque *client,
-                                                                  int size)
+RedCharDeviceWriteBuffer *RedCharDevice::write_buffer_get_client(RedCharDeviceClientOpaque *client,
+                                                                 int size)
 {
     spice_assert(client);
-    return  red_char_device_write_buffer_get(dev, client, size, WRITE_BUFFER_ORIGIN_CLIENT, 0);
+    return  red_char_device_write_buffer_get(this, client, size, WRITE_BUFFER_ORIGIN_CLIENT, 0);
 }
 
-RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_server(RedCharDevice *dev,
-                                                                  int size,
-                                                                  bool use_token)
+RedCharDeviceWriteBuffer *RedCharDevice::write_buffer_get_server(int size,
+                                                                 bool use_token)
 {
     WriteBufferOrigin origin =
         use_token ? WRITE_BUFFER_ORIGIN_SERVER : WRITE_BUFFER_ORIGIN_SERVER_NO_TOKEN;
-    return  red_char_device_write_buffer_get(dev, NULL, size, origin, 0);
+    return  red_char_device_write_buffer_get(this, NULL, size, origin, 0);
 }
 
 static RedCharDeviceWriteBuffer *red_char_device_write_buffer_ref(RedCharDeviceWriteBuffer *write_buf)
@@ -588,24 +585,23 @@ static void red_char_device_write_buffer_unref(RedCharDeviceWriteBuffer *write_b
         red_char_device_write_buffer_free(write_buf);
 }
 
-void red_char_device_write_buffer_add(RedCharDevice *dev,
-                                      RedCharDeviceWriteBuffer *write_buf)
+void RedCharDevice::write_buffer_add(RedCharDeviceWriteBuffer *write_buf)
 {
-    spice_assert(dev);
+
     /* caller shouldn't add buffers for client that was removed */
     if (write_buf->priv->origin == WRITE_BUFFER_ORIGIN_CLIENT &&
-        !red_char_device_client_find(dev, write_buf->priv->client)) {
-        g_warning("client not found: dev %p client %p", dev, write_buf->priv->client);
+        !red_char_device_client_find(this, write_buf->priv->client)) {
+        g_warning("client not found: this %p client %p", this, write_buf->priv->client);
         red_char_device_write_buffer_unref(write_buf);
         return;
     }
 
-    g_queue_push_head(&dev->priv->write_queue, write_buf);
-    red_char_device_write_to_device(dev);
+    g_queue_push_head(&priv->write_queue, write_buf);
+    red_char_device_write_to_device(this);
 }
 
-void red_char_device_write_buffer_release(RedCharDevice *dev,
-                                          RedCharDeviceWriteBuffer **p_write_buf)
+void RedCharDevice::write_buffer_release(RedCharDevice *dev,
+                                         RedCharDeviceWriteBuffer **p_write_buf)
 {
     RedCharDeviceWriteBuffer *write_buf = *p_write_buf;
     if (!write_buf) {
@@ -644,15 +640,14 @@ void red_char_device_write_buffer_release(RedCharDevice *dev,
  * char_device_state management *
  ********************************/
 
-void red_char_device_reset_dev_instance(RedCharDevice *dev,
-                                        SpiceCharDeviceInstance *sin)
+void RedCharDevice::reset_dev_instance(SpiceCharDeviceInstance *sin)
 {
-    spice_debug("sin %p, char device %p", sin, dev);
-    dev->priv->sin = sin;
+    spice_debug("sin %p, char device %p", sin, this);
+    priv->sin = sin;
     if (sin)
-        sin->st = dev;
-    if (dev->priv->reds) {
-        red_char_device_init_device_instance(dev);
+        sin->st = this;
+    if (priv->reds) {
+        red_char_device_init_device_instance(this);
     }
 }
 
@@ -688,100 +683,97 @@ red_char_device_client_new(RedsState *reds,
     return dev_client;
 }
 
-bool red_char_device_client_add(RedCharDevice *dev,
-                                RedCharDeviceClientOpaque *client,
-                                int do_flow_control,
-                                uint32_t max_send_queue_size,
-                                uint32_t num_client_tokens,
-                                uint32_t num_send_tokens,
-                                int wait_for_migrate_data)
+bool RedCharDevice::client_add(RedCharDeviceClientOpaque *client,
+                               int do_flow_control,
+                               uint32_t max_send_queue_size,
+                               uint32_t num_client_tokens,
+                               uint32_t num_send_tokens,
+                               int wait_for_migrate_data)
 {
     RedCharDeviceClient *dev_client;
 
-    spice_assert(dev);
+
     spice_assert(client);
 
-    if (wait_for_migrate_data && (dev->priv->clients != NULL || dev->priv->active)) {
+    if (wait_for_migrate_data && (priv->clients != NULL || priv->active)) {
         spice_warning("can't restore device %p from migration data. The device "
-                      "has already been active", dev);
+                      "has already been active", this);
         return FALSE;
     }
 
-    dev->priv->wait_for_migrate_data = wait_for_migrate_data;
+    priv->wait_for_migrate_data = wait_for_migrate_data;
 
-    spice_debug("char device %p, client %p", dev, client);
-    dev_client = red_char_device_client_new(dev->priv->reds,
+    spice_debug("char device %p, client %p", this, client);
+    dev_client = red_char_device_client_new(priv->reds,
                                             client,
                                             do_flow_control,
                                             max_send_queue_size,
                                             num_client_tokens,
                                             num_send_tokens);
-    dev_client->dev = dev;
-    dev->priv->clients = g_list_prepend(dev->priv->clients, dev_client);
+    dev_client->dev = this;
+    priv->clients = g_list_prepend(priv->clients, dev_client);
     /* Now that we have a client, forward any pending device data */
-    red_char_device_wakeup(dev);
+    wakeup();
     return TRUE;
 }
 
-void red_char_device_client_remove(RedCharDevice *dev,
-                                   RedCharDeviceClientOpaque *client)
+void RedCharDevice::client_remove(RedCharDeviceClientOpaque *client)
 {
     RedCharDeviceClient *dev_client;
 
-    spice_debug("char device %p, client %p", dev, client);
-    dev_client = red_char_device_client_find(dev, client);
+    spice_debug("char device %p, client %p", this, client);
+    dev_client = red_char_device_client_find(this, client);
 
     if (!dev_client) {
         spice_error("client wasn't found");
         return;
     }
-    red_char_device_client_free(dev, dev_client);
-    if (dev->priv->wait_for_migrate_data) {
-        spice_assert(dev->priv->clients == NULL);
-        dev->priv->wait_for_migrate_data  = FALSE;
-        red_char_device_read_from_device(dev);
+    red_char_device_client_free(this, dev_client);
+    if (priv->wait_for_migrate_data) {
+        spice_assert(priv->clients == NULL);
+        priv->wait_for_migrate_data  = FALSE;
+        red_char_device_read_from_device(this);
     }
 }
 
-int red_char_device_client_exists(RedCharDevice *dev,
-                                  RedCharDeviceClientOpaque *client)
+int RedCharDevice::client_exists(RedCharDeviceClientOpaque *client)
 {
-    return (red_char_device_client_find(dev, client) != NULL);
+    return (red_char_device_client_find(this, client) != NULL);
 }
 
-void red_char_device_start(RedCharDevice *dev)
+void RedCharDevice::start()
 {
-    spice_debug("char device %p", dev);
-    dev->priv->running = TRUE;
-    dev->ref();
-    while (red_char_device_write_to_device(dev) ||
-           red_char_device_read_from_device(dev));
-    dev->unref();
+    spice_debug("char device %p", this);
+    priv->running = TRUE;
+    ref();
+    while (red_char_device_write_to_device(this) ||
+           red_char_device_read_from_device(this));
+    unref();
 }
 
-void red_char_device_stop(RedCharDevice *dev)
+void RedCharDevice::stop()
 {
-    spice_debug("char device %p", dev);
-    dev->priv->running = FALSE;
-    dev->priv->active = FALSE;
-    if (dev->priv->write_to_dev_timer) {
-        red_timer_cancel(dev->priv->write_to_dev_timer);
+    spice_debug("char device %p", this);
+    priv->running = FALSE;
+    priv->active = FALSE;
+    if (priv->write_to_dev_timer) {
+        red_timer_cancel(priv->write_to_dev_timer);
     }
 }
 
-void red_char_device_reset(RedCharDevice *dev)
+void RedCharDevice::reset()
 {
     RedCharDeviceClient *dev_client;
     RedCharDeviceWriteBuffer *buf;
 
-    dev->priv->wait_for_migrate_data = FALSE;
-    spice_debug("char device %p", dev);
-    while ((buf = (RedCharDeviceWriteBuffer *) g_queue_pop_tail(&dev->priv->write_queue))) {
-        red_char_device_write_buffer_release(dev, &buf);
+    priv->wait_for_migrate_data = FALSE;
+    spice_debug("char device %p", this);
+    while ((buf = (RedCharDeviceWriteBuffer *) g_queue_pop_tail(&priv->write_queue))) {
+        RedCharDevice::write_buffer_release(this, &buf);
     }
-    red_char_device_write_buffer_release(dev, &dev->priv->cur_write_buf);
+    RedCharDevice::write_buffer_release(this, &priv->cur_write_buf);
 
-    GLIST_FOREACH(dev->priv->clients, RedCharDeviceClient, dev_client) {
+    GLIST_FOREACH(priv->clients, RedCharDeviceClient, dev_client) {
         spice_debug("send_queue_empty %d", g_queue_is_empty(dev_client->send_queue));
         dev_client->num_send_tokens += g_queue_get_length(dev_client->send_queue);
         g_queue_free_full(dev_client->send_queue, (GDestroyNotify)red_pipe_item_unref);
@@ -795,17 +787,17 @@ void red_char_device_reset(RedCharDevice *dev)
     }
 }
 
-void red_char_device_wakeup(RedCharDevice *dev)
+void RedCharDevice::wakeup()
 {
-    red_char_device_write_to_device(dev);
-    red_char_device_read_from_device(dev);
+    red_char_device_write_to_device(this);
+    red_char_device_read_from_device(this);
 }
 
 /*************
  * Migration *
  * **********/
 
-void red_char_device_migrate_data_marshall_empty(SpiceMarshaller *m)
+void RedCharDevice::migrate_data_marshall_empty(SpiceMarshaller *m)
 {
     SpiceMigrateDataCharDevice *mig_data;
 
@@ -824,8 +816,7 @@ static void migrate_data_marshaller_write_buffer_free(uint8_t *data, void *opaqu
     red_char_device_write_buffer_unref(write_buf);
 }
 
-void red_char_device_migrate_data_marshall(RedCharDevice *dev,
-                                           SpiceMarshaller *m)
+void RedCharDevice::migrate_data_marshall(SpiceMarshaller *m)
 {
     RedCharDeviceClient *dev_client;
     GList *item;
@@ -835,8 +826,8 @@ void red_char_device_migrate_data_marshall(RedCharDevice *dev,
     SpiceMarshaller *m2;
 
     /* multi-clients are not supported */
-    spice_assert(g_list_length(dev->priv->clients) == 1);
-    dev_client = (RedCharDeviceClient *) g_list_last(dev->priv->clients)->data;
+    spice_assert(g_list_length(priv->clients) == 1);
+    dev_client = (RedCharDeviceClient *) g_list_last(priv->clients)->data;
     /* FIXME: if there were more than one client before the marshalling,
      * it is possible that the send_queue length > 0, and the send data
      * should be migrated as well */
@@ -850,21 +841,21 @@ void red_char_device_migrate_data_marshall(RedCharDevice *dev,
     write_to_dev_tokens = 0;
 
     m2 = spice_marshaller_get_ptr_submarshaller(m);
-    if (dev->priv->cur_write_buf) {
-        uint32_t buf_remaining = dev->priv->cur_write_buf->buf + dev->priv->cur_write_buf->buf_used -
-                                 dev->priv->cur_write_buf_pos;
-        spice_marshaller_add_by_ref_full(m2, dev->priv->cur_write_buf_pos, buf_remaining,
+    if (priv->cur_write_buf) {
+        uint32_t buf_remaining = priv->cur_write_buf->buf + priv->cur_write_buf->buf_used -
+                                 priv->cur_write_buf_pos;
+        spice_marshaller_add_by_ref_full(m2, priv->cur_write_buf_pos, buf_remaining,
                                          migrate_data_marshaller_write_buffer_free,
-                                         red_char_device_write_buffer_ref(dev->priv->cur_write_buf)
+                                         red_char_device_write_buffer_ref(priv->cur_write_buf)
                                          );
         write_to_dev_size += buf_remaining;
-        if (dev->priv->cur_write_buf->priv->origin == WRITE_BUFFER_ORIGIN_CLIENT) {
-            spice_assert(dev->priv->cur_write_buf->priv->client == dev_client->client);
-            write_to_dev_tokens += dev->priv->cur_write_buf->priv->token_price;
+        if (priv->cur_write_buf->priv->origin == WRITE_BUFFER_ORIGIN_CLIENT) {
+            spice_assert(priv->cur_write_buf->priv->client == dev_client->client);
+            write_to_dev_tokens += priv->cur_write_buf->priv->token_price;
         }
     }
 
-    for (item = g_queue_peek_tail_link(&dev->priv->write_queue); item != NULL; item = item->prev) {
+    for (item = g_queue_peek_tail_link(&priv->write_queue); item != NULL; item = item->prev) {
         RedCharDeviceWriteBuffer *write_buf = (RedCharDeviceWriteBuffer *) item->data;
 
         spice_marshaller_add_by_ref_full(m2, write_buf->buf, write_buf->buf_used,
@@ -878,27 +869,26 @@ void red_char_device_migrate_data_marshall(RedCharDevice *dev,
         }
     }
     spice_debug("migration data dev %p: write_queue size %u tokens %u",
-                dev, write_to_dev_size, write_to_dev_tokens);
+                this, write_to_dev_size, write_to_dev_tokens);
     spice_marshaller_set_uint32(m, write_to_dev_sizes_ptr, write_to_dev_size);
     spice_marshaller_set_uint32(m, write_to_dev_sizes_ptr + sizeof(uint32_t), write_to_dev_tokens);
 }
 
-bool red_char_device_restore(RedCharDevice *dev,
-                             SpiceMigrateDataCharDevice *mig_data)
+bool RedCharDevice::restore(SpiceMigrateDataCharDevice *mig_data)
 {
     RedCharDeviceClient *dev_client;
     uint32_t client_tokens_window;
 
-    spice_assert(g_list_length(dev->priv->clients) == 1 &&
-                 dev->priv->wait_for_migrate_data);
+    spice_assert(g_list_length(priv->clients) == 1 &&
+                 priv->wait_for_migrate_data);
 
-    dev_client = (RedCharDeviceClient *) g_list_last(dev->priv->clients)->data;
+    dev_client = (RedCharDeviceClient *) g_list_last(priv->clients)->data;
     if (mig_data->version > SPICE_MIGRATE_DATA_CHAR_DEVICE_VERSION) {
         spice_error("dev %p error: migration data version %u is bigger than self %u",
-                    dev, mig_data->version, SPICE_MIGRATE_DATA_CHAR_DEVICE_VERSION);
+                    this, mig_data->version, SPICE_MIGRATE_DATA_CHAR_DEVICE_VERSION);
         return FALSE;
     }
-    spice_assert(!dev->priv->cur_write_buf && g_queue_is_empty(&dev->priv->write_queue));
+    spice_assert(!priv->cur_write_buf && g_queue_is_empty(&priv->write_queue));
     spice_assert(mig_data->connected);
 
     client_tokens_window = dev_client->num_client_tokens; /* initial state of tokens */
@@ -911,31 +901,31 @@ bool red_char_device_restore(RedCharDevice *dev,
 
     if (mig_data->write_size > 0) {
         if (mig_data->write_num_client_tokens) {
-            dev->priv->cur_write_buf =
-                red_char_device_write_buffer_get(dev, dev_client->client,
+            priv->cur_write_buf =
+                red_char_device_write_buffer_get(this, dev_client->client,
                     mig_data->write_size, WRITE_BUFFER_ORIGIN_CLIENT,
                     mig_data->write_num_client_tokens);
         } else {
-            dev->priv->cur_write_buf =
-                red_char_device_write_buffer_get(dev, NULL,
+            priv->cur_write_buf =
+                red_char_device_write_buffer_get(this, NULL,
                     mig_data->write_size, WRITE_BUFFER_ORIGIN_SERVER, 0);
         }
         /* the first write buffer contains all the data that was saved for migration */
-        memcpy(dev->priv->cur_write_buf->buf,
+        memcpy(priv->cur_write_buf->buf,
                ((uint8_t *)mig_data) + mig_data->write_data_ptr - sizeof(SpiceMigrateDataHeader),
                mig_data->write_size);
-        dev->priv->cur_write_buf->buf_used = mig_data->write_size;
-        dev->priv->cur_write_buf_pos = dev->priv->cur_write_buf->buf;
+        priv->cur_write_buf->buf_used = mig_data->write_size;
+        priv->cur_write_buf_pos = priv->cur_write_buf->buf;
     }
-    dev->priv->wait_for_migrate_data = FALSE;
-    red_char_device_write_to_device(dev);
-    red_char_device_read_from_device(dev);
+    priv->wait_for_migrate_data = FALSE;
+    red_char_device_write_to_device(this);
+    red_char_device_read_from_device(this);
     return TRUE;
 }
 
-SpiceServer* red_char_device_get_server(RedCharDevice *dev)
+SpiceServer* RedCharDevice::get_server()
 {
-    return dev->priv->reds;
+    return priv->reds;
 }
 
 SpiceCharDeviceInterface *spice_char_device_get_interface(SpiceCharDeviceInstance *instance)
@@ -1009,7 +999,7 @@ red_char_device_set_property(GObject      *object,
     switch (property_id)
     {
         case PROP_CHAR_DEV_INSTANCE:
-            red_char_device_reset_dev_instance(self, (SpiceCharDeviceInstance*) g_value_get_pointer(value));
+            self->reset_dev_instance((SpiceCharDeviceInstance *)g_value_get_pointer(value));
             break;
         case PROP_SPICE_SERVER:
             self->priv->reds = (SpiceServer *) g_value_get_pointer(value);
@@ -1115,9 +1105,9 @@ SPICE_GNUC_VISIBLE void spice_server_port_event(SpiceCharDeviceInstance *sin, ui
     return klass->port_event(sin->st, event);
 }
 
-SpiceCharDeviceInstance *red_char_device_get_device_instance(RedCharDevice *dev)
+SpiceCharDeviceInstance *RedCharDevice::get_device_instance()
 {
-    return dev->priv->sin;
+    return priv->sin;
 }
 
 static void

@@ -159,7 +159,7 @@ RedVmcChannel::RedVmcChannel(RedsState *reds, uint32_t type, uint32_t id):
 
 RedVmcChannel::~RedVmcChannel()
 {
-    red_char_device_write_buffer_release(chardev, &recv_from_client_buf);
+    RedCharDevice::write_buffer_release(chardev, &recv_from_client_buf);
     if (pipe_item) {
         red_pipe_item_unref(&pipe_item->base);
     }
@@ -350,11 +350,12 @@ void VmcChannelClient::on_disconnect()
     channel = get_channel();
 
     /* partial message which wasn't pushed to device */
-    red_char_device_write_buffer_release(channel->chardev, &channel->recv_from_client_buf);
+    RedCharDevice::write_buffer_release(channel->chardev,
+                                        &channel->recv_from_client_buf);
 
     if (channel->chardev) {
-        if (red_char_device_client_exists(channel->chardev, (RedCharDeviceClientOpaque *) client)) {
-            red_char_device_client_remove(channel->chardev, (RedCharDeviceClientOpaque *) client);
+        if (channel->chardev->client_exists((RedCharDeviceClientOpaque *)client)) {
+            channel->chardev->client_remove((RedCharDeviceClientOpaque *)client);
         } else {
             red_channel_warning(channel,
                                 "client %p have already been removed from char dev %p",
@@ -392,7 +393,7 @@ bool VmcChannelClient::handle_migrate_data(uint32_t size, void *message)
         spice_error("bad header");
         return FALSE;
     }
-    return red_char_device_restore(channel->chardev, &mig_data->base);
+    return channel->chardev->restore(&mig_data->base);
 }
 
 static bool handle_compressed_msg(RedVmcChannel *channel, RedChannelClient *rcc,
@@ -402,9 +403,8 @@ static bool handle_compressed_msg(RedVmcChannel *channel, RedChannelClient *rcc,
     int decompressed_size;
     RedCharDeviceWriteBuffer *write_buf;
 
-    write_buf = red_char_device_write_buffer_get_server(channel->chardev,
-                                                        compressed_data_msg->uncompressed_size,
-                                                        false);
+    write_buf = channel->chardev->write_buffer_get_server(compressed_data_msg->uncompressed_size,
+                                                          false);
     if (!write_buf) {
         return FALSE;
     }
@@ -424,16 +424,16 @@ static bool handle_compressed_msg(RedVmcChannel *channel, RedChannelClient *rcc,
 #endif
     default:
         spice_warning("Invalid Compression Type");
-        red_char_device_write_buffer_release(channel->chardev, &write_buf);
+        RedCharDevice::write_buffer_release(channel->chardev, &write_buf);
         return FALSE;
     }
     if (decompressed_size != compressed_data_msg->uncompressed_size) {
         spice_warning("Decompression Error");
-        red_char_device_write_buffer_release(channel->chardev, &write_buf);
+        RedCharDevice::write_buffer_release(channel->chardev, &write_buf);
         return FALSE;
     }
     write_buf->buf_used = decompressed_size;
-    red_char_device_write_buffer_add(channel->chardev, write_buf);
+    channel->chardev->write_buffer_add(write_buf);
     return TRUE;
 }
 
@@ -452,7 +452,7 @@ bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
         spice_assert(channel->recv_from_client_buf->buf == msg);
         stat_inc_counter(channel->in_data, size);
         channel->recv_from_client_buf->buf_used = size;
-        red_char_device_write_buffer_add(channel->chardev, channel->recv_from_client_buf);
+        channel->chardev->write_buffer_add(channel->recv_from_client_buf);
         channel->recv_from_client_buf = NULL;
         break;
     case SPICE_MSGC_SPICEVMC_COMPRESSED_DATA:
@@ -491,8 +491,8 @@ uint8_t *VmcChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 
         assert(!channel->recv_from_client_buf);
 
-        channel->recv_from_client_buf = red_char_device_write_buffer_get_server(channel->chardev,
-                                                                                size, true);
+        channel->recv_from_client_buf = channel->chardev->write_buffer_get_server(size,
+                                                                                  true);
         if (!channel->recv_from_client_buf) {
             block_read();
             return NULL;
@@ -513,7 +513,8 @@ void VmcChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *m
     case SPICE_MSGC_SPICEVMC_DATA: {
         RedVmcChannel *channel = get_channel();
         /* buffer wasn't pushed to device */
-        red_char_device_write_buffer_release(channel->chardev, &channel->recv_from_client_buf);
+        RedCharDevice::write_buffer_release(channel->chardev,
+                                            &channel->recv_from_client_buf);
         break;
     }
     default:
@@ -556,7 +557,7 @@ static void spicevmc_red_channel_send_data(VmcChannelClient *rcc,
     channel->queued_data -= i->buf_used;
     if (channel->chardev &&
         old_queued_data >= QUEUED_DATA_LIMIT && channel->queued_data < QUEUED_DATA_LIMIT) {
-        red_char_device_wakeup(channel->chardev);
+        channel->chardev->wakeup();
     }
 }
 
@@ -571,7 +572,7 @@ static void spicevmc_red_channel_send_migrate_data(VmcChannelClient *rcc,
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_SPICEVMC_MAGIC);
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_SPICEVMC_VERSION);
 
-    red_char_device_migrate_data_marshall(channel->chardev, m);
+    channel->chardev->migrate_data_marshall(m);
 }
 
 static void spicevmc_red_channel_send_port_init(RedChannelClient *rcc,
@@ -657,9 +658,7 @@ void RedVmcChannel::on_connect(RedClient *client, RedStream *stream, int migrati
         spicevmc_port_send_init(rcc);
     }
 
-    if (!red_char_device_client_add(vmc_channel->chardev, (RedCharDeviceClientOpaque *) client,
-                                    FALSE, 0, ~0, ~0,
-                                    rcc->is_waiting_for_migrate_data())) {
+    if (!vmc_channel->chardev->client_add((RedCharDeviceClientOpaque *)client, FALSE, 0, ~0, ~0, rcc->is_waiting_for_migrate_data())) {
         spice_warning("failed to add client to spicevmc");
         rcc->disconnect();
         return;

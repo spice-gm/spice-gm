@@ -257,9 +257,7 @@ void smartcard_char_device_notify_reader_add(RedCharDeviceSmartcard *dev)
     RedCharDeviceWriteBuffer *write_buf;
     VSCMsgHeader *vheader;
 
-    write_buf = red_char_device_write_buffer_get_server(dev,
-                                                        sizeof(*vheader),
-                                                        true);
+    write_buf = dev->write_buffer_get_server(sizeof(*vheader), true);
     if (!write_buf) {
         spice_error("failed to allocate write buffer");
         return;
@@ -281,13 +279,8 @@ void smartcard_char_device_attach_client(SpiceCharDeviceInstance *char_device,
     spice_assert(!smartcard_channel_client_get_char_device(scc) && !dev->priv->scc);
     dev->priv->scc = scc;
     smartcard_channel_client_set_char_device(scc, dev);
-    client_added = red_char_device_client_add(dev,
-                                              (RedCharDeviceClientOpaque *) scc,
-                                              FALSE, /* no flow control yet */
-                                              0, /* send queue size */
-                                              ~0,
-                                              ~0,
-                                              scc->is_waiting_for_migrate_data());
+    client_added = dev->client_add((RedCharDeviceClientOpaque *)scc, FALSE, 0,
+                                   ~0, ~0, scc->is_waiting_for_migrate_data());
     if (!client_added) {
         spice_warning("failed");
         dev->priv->scc = NULL;
@@ -310,9 +303,7 @@ gboolean smartcard_char_device_notify_reader_remove(RedCharDeviceSmartcard *dev)
         spice_debug("reader add was never sent to the device");
         return FALSE;
     }
-    write_buf = red_char_device_write_buffer_get_server(dev,
-                                                        sizeof(*vheader),
-                                                        true);
+    write_buf = dev->write_buffer_get_server(sizeof(*vheader), true);
     if (!write_buf) {
         spice_error("failed to allocate write buffer");
         return FALSE;
@@ -333,11 +324,11 @@ void smartcard_char_device_detach_client(RedCharDeviceSmartcard *smartcard,
     SpiceCharDeviceInterface *sif;
     SpiceCharDeviceInstance *sin;
 
-    sin = red_char_device_get_device_instance(smartcard);
+    sin = smartcard->get_device_instance();
     sif = spice_char_device_get_interface(sin);
 
     spice_assert(smartcard->priv->scc == scc);
-    red_char_device_client_remove(smartcard, (RedCharDeviceClientOpaque *) scc);
+    smartcard->client_remove((RedCharDeviceClientOpaque *)scc);
     smartcard_channel_client_set_char_device(scc, NULL);
     smartcard->priv->scc = NULL;
 
@@ -371,13 +362,13 @@ static void smartcard_channel_send_migrate_data(SmartCardChannelClient *scc,
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_SMARTCARD_VERSION);
 
     if (!dev) {
-        red_char_device_migrate_data_marshall_empty(m);
+        RedCharDevice::migrate_data_marshall_empty(m);
         spice_marshaller_add_uint8(m, 0);
         spice_marshaller_add_uint32(m, 0);
         spice_marshaller_add_uint32(m, 0);
         spice_debug("null char dev");
     } else {
-        red_char_device_migrate_data_marshall(dev, m);
+        dev->migrate_data_marshall(m);
         spice_marshaller_add_uint8(m, dev->priv->reader_added);
         spice_marshaller_add_uint32(m, dev->priv->buf_used);
         m2 = spice_marshaller_get_ptr_submarshaller(m);
@@ -449,7 +440,7 @@ void smartcard_channel_write_to_reader(RedCharDeviceWriteBuffer *write_buf)
     write_buf->buf_used = actual_length + sizeof(VSCMsgHeader);
     /* pushing the buffer to the write queue; It will be released
      * when it will be fully consumed by the device */
-    red_char_device_write_buffer_add(sin->st, write_buf);
+    sin->st->write_buffer_add(write_buf);
 }
 
 static void smartcard_device_restore_partial_read(RedCharDeviceSmartcard *dev,
@@ -475,7 +466,7 @@ int smartcard_char_device_handle_migrate_data(RedCharDeviceSmartcard *smartcard,
     smartcard->priv->reader_added = mig_data->reader_added;
 
     smartcard_device_restore_partial_read(smartcard, mig_data);
-    return red_char_device_restore(smartcard, &mig_data->base);
+    return smartcard->restore(&mig_data->base);
 }
 
 void RedSmartcardChannel::on_connect(RedClient *client, RedStream *stream, int migration,

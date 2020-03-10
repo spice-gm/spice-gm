@@ -113,7 +113,7 @@ stream_device_partial_read(StreamDevice *dev, SpiceCharDeviceInstance *sin)
         // As calling sif->state here can cause a crash, schedule
         // a timer and do the call in it. Remove this code when
         // we are sure all Qemu versions have been patched.
-        RedsState *reds = red_char_device_get_server(dev);
+        RedsState *reds = dev->get_server();
         if (!dev->close_timer) {
             dev->close_timer = reds_core_timer_add(reds, close_timer_func, dev);
         }
@@ -234,7 +234,7 @@ handle_msg_invalid(StreamDevice *dev, SpiceCharDeviceInstance *sin, const char *
 
     RedCharDevice *char_dev = dev;
     RedCharDeviceWriteBuffer *buf =
-        red_char_device_write_buffer_get_server(char_dev, total_size, false);
+        char_dev->write_buffer_get_server(total_size, false);
     buf->buf_used = total_size;
 
     StreamDevHeader *const hdr = (StreamDevHeader *)buf->buf;
@@ -244,7 +244,7 @@ handle_msg_invalid(StreamDevice *dev, SpiceCharDeviceInstance *sin, const char *
     error->error_code = GUINT32_TO_LE(0);
     strcpy((char *) error->msg, error_msg);
 
-    red_char_device_write_buffer_add(char_dev, buf);
+    char_dev->write_buffer_add(buf);
 
     dev->has_error = true;
     return false;
@@ -335,7 +335,7 @@ handle_msg_device_display_info(StreamDevice *dev, SpiceCharDeviceInstance *sin)
             dev->device_display_info.device_address,
             dev->device_display_info.device_display_id);
 
-    reds_send_device_display_info(red_char_device_get_server(dev));
+    reds_send_device_display_info(dev->get_server());
 
     return true;
 }
@@ -571,7 +571,7 @@ stream_device_stream_start(void *opaque, StreamMsgStartStop *start,
     int total_size = sizeof(StreamDevHeader) + msg_size;
 
     RedCharDeviceWriteBuffer *buf =
-        red_char_device_write_buffer_get_server(dev, total_size, false);
+        dev->write_buffer_get_server(total_size, false);
     buf->buf_used = total_size;
 
     StreamDevHeader *hdr = (StreamDevHeader *)buf->buf;
@@ -579,7 +579,7 @@ stream_device_stream_start(void *opaque, StreamMsgStartStop *start,
 
     memcpy(&hdr[1], start, msg_size);
 
-    red_char_device_write_buffer_add(dev, buf);
+    dev->write_buffer_add(buf);
 }
 
 static void
@@ -605,7 +605,7 @@ stream_device_stream_queue_stat(void *opaque, const StreamQueueStat *stats G_GNU
         // TODO resume flow...
         // avoid recursion if we need to call get data from data handling from
         // data handling
-        red_char_device_wakeup(dev);
+        dev->wakeup();
     }
 }
 
@@ -665,7 +665,7 @@ stream_device_create_channel(StreamDevice *dev)
         return;
     }
 
-    SpiceServer* reds = red_char_device_get_server(dev);
+    SpiceServer* reds = dev->get_server();
     SpiceCoreInterfaceInternal* core = reds_get_core_interface(reds);
 
     int id = reds_get_free_channel_id(reds, SPICE_CHANNEL_DISPLAY);
@@ -693,7 +693,7 @@ static void
 char_device_set_state(RedCharDevice *char_dev, int state)
 {
     SpiceCharDeviceInstance *sin;
-    sin = red_char_device_get_device_instance(char_dev);
+    sin = char_dev->get_device_instance();
     spice_assert(sin != NULL);
 
     SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
@@ -709,7 +709,7 @@ send_capabilities(RedCharDevice *char_dev)
     int total_size = sizeof(StreamDevHeader) + msg_size;
 
     RedCharDeviceWriteBuffer *buf =
-        red_char_device_write_buffer_get_server(char_dev, total_size, false);
+        char_dev->write_buffer_get_server(total_size, false);
     buf->buf_used = total_size;
 
     StreamDevHeader *const hdr = (StreamDevHeader *)buf->buf;
@@ -718,7 +718,7 @@ send_capabilities(RedCharDevice *char_dev)
     StreamMsgCapabilities *const caps = (StreamMsgCapabilities *)(hdr+1);
     memset(caps, 0, msg_size);
 
-    red_char_device_write_buffer_add(char_dev, buf);
+    char_dev->write_buffer_add(buf);
 }
 
 static void
@@ -741,7 +741,7 @@ stream_device_port_event(RedCharDevice *char_dev, uint8_t event)
     dev->msg_pos = 0;
     dev->has_error = false;
     dev->flow_stopped = false;
-    red_char_device_reset(char_dev);
+    char_dev->reset();
     reset_channels(dev);
 
     // enable the device again. We re-enable it on close as otherwise we don't want to get a

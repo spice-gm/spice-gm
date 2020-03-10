@@ -152,79 +152,75 @@ struct RedCharDeviceWriteBuffer {
     uint8_t buf[0];
 };
 
-void red_char_device_reset_dev_instance(RedCharDevice *dev,
-                                        SpiceCharDeviceInstance *sin);
-
-/* only one client is supported */
-void red_char_device_migrate_data_marshall(RedCharDevice *dev,
-                                           SpiceMarshaller *m);
-void red_char_device_migrate_data_marshall_empty(SpiceMarshaller *m);
-
-bool red_char_device_restore(RedCharDevice *dev,
-                             SpiceMigrateDataCharDevice *mig_data);
-
-/*
- * Resets write/read queues, and moves that state to being stopped.
- * This routine is a workaround for a bad tokens management in the vdagent
- * protocol:
- *  The client tokens' are set only once, when the main channel is initialized.
- *  Instead, it would have been more appropriate to reset them upon AGENT_CONNECT.
- *  The client tokens are tracked as part of the RedCharDeviceClient. Thus,
- *  in order to be backward compatible with the client, we need to track the tokens
- *  event when the agent is detached. We don't destroy the char_device state, and
- *  instead we just reset it.
- *  In addition, there is a misshandling of AGENT_TOKENS message in spice-gtk: it
- *  overrides the amount of tokens, instead of adding the given amount.
- */
-void red_char_device_reset(RedCharDevice *dev);
-
-/* max_send_queue_size = how many messages we can read from the device and enqueue for this client,
- * when we have tokens for other clients and no tokens for this one */
-bool red_char_device_client_add(RedCharDevice *dev,
-                                RedCharDeviceClientOpaque *client,
-                                int do_flow_control,
-                                uint32_t max_send_queue_size,
-                                uint32_t num_client_tokens,
-                                uint32_t num_send_tokens,
-                                int wait_for_migrate_data);
-
-void red_char_device_client_remove(RedCharDevice *dev,
-                                   RedCharDeviceClientOpaque *client);
-int red_char_device_client_exists(RedCharDevice *dev,
-                                  RedCharDeviceClientOpaque *client);
-
-void red_char_device_start(RedCharDevice *dev);
-void red_char_device_stop(RedCharDevice *dev);
-SpiceServer* red_char_device_get_server(RedCharDevice *dev);
-
-/** Read from device **/
-
-void red_char_device_wakeup(RedCharDevice *dev);
-
-void red_char_device_send_to_client_tokens_add(RedCharDevice *dev,
-                                               RedCharDeviceClientOpaque *client,
-                                               uint32_t tokens);
 
 
-void red_char_device_send_to_client_tokens_set(RedCharDevice *dev,
-                                               RedCharDeviceClientOpaque *client,
-                                               uint32_t tokens);
-/** Write to device **/
+/* 'SpiceCharDeviceState' name is used for consistency with what spice-char.h exports */
+struct SpiceCharDeviceState: public GObject
+{
+    void reset_dev_instance(SpiceCharDeviceInstance *sin);
+    /* only one client is supported */
+    void migrate_data_marshall(SpiceMarshaller *m);
+    static void migrate_data_marshall_empty(SpiceMarshaller *m);
 
-RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_client(RedCharDevice *dev,
-                                                                  RedCharDeviceClientOpaque *client,
-                                                                  int size);
+    bool restore(SpiceMigrateDataCharDevice *mig_data);
 
-/* Returns NULL if use_token == true and no tokens are available */
-RedCharDeviceWriteBuffer *red_char_device_write_buffer_get_server(RedCharDevice *dev,
-                                                                  int size,
-                                                                  bool use_token);
+    /*
+     * Resets write/read queues, and moves that state to being stopped.
+     * This routine is a workaround for a bad tokens management in the vdagent
+     * protocol:
+     *  The client tokens' are set only once, when the main channel is initialized.
+     *  Instead, it would have been more appropriate to reset them upon AGENT_CONNECT.
+     *  The client tokens are tracked as part of the RedCharDeviceClient. Thus,
+     *  in order to be backward compatible with the client, we need to track the tokens
+     *  event when the agent is detached. We don't destroy the char_device state, and
+     *  instead we just reset it.
+     *  In addition, there is a misshandling of AGENT_TOKENS message in spice-gtk: it
+     *  overrides the amount of tokens, instead of adding the given amount.
+     */
+    void reset();
 
-/* Either add the buffer to the write queue or release it */
-void red_char_device_write_buffer_add(RedCharDevice *dev,
-                                        RedCharDeviceWriteBuffer *write_buf);
-void red_char_device_write_buffer_release(RedCharDevice *dev,
-                                          RedCharDeviceWriteBuffer **p_write_buf);
+    /* max_send_queue_size = how many messages we can read from the device and enqueue for this client,
+     * when we have tokens for other clients and no tokens for this one */
+    bool client_add(RedCharDeviceClientOpaque *client, int do_flow_control,
+                    uint32_t max_send_queue_size, uint32_t num_client_tokens,
+                    uint32_t num_send_tokens, int wait_for_migrate_data);
+
+    void client_remove(RedCharDeviceClientOpaque *client);
+    int client_exists(RedCharDeviceClientOpaque *client);
+
+    void start();
+    void stop();
+    SpiceServer* get_server();
+
+    /** Read from device **/
+
+    void wakeup();
+
+    void send_to_client_tokens_add(RedCharDeviceClientOpaque *client,
+                                   uint32_t tokens);
+
+
+    void send_to_client_tokens_set(RedCharDeviceClientOpaque *client,
+                                   uint32_t tokens);
+    /** Write to device **/
+
+    RedCharDeviceWriteBuffer *write_buffer_get_client(RedCharDeviceClientOpaque *client,
+                                                      int size);
+
+    /* Returns NULL if use_token == true and no tokens are available */
+    RedCharDeviceWriteBuffer *write_buffer_get_server(int size, bool use_token);
+
+    /* Either add the buffer to the write queue or release it */
+    void write_buffer_add(RedCharDeviceWriteBuffer *write_buf);
+    static void write_buffer_release(RedCharDevice *dev,
+                                     RedCharDeviceWriteBuffer **p_write_buf);
+
+    SpiceCharDeviceInstance *get_device_instance();
+
+    RedCharDevicePrivate *priv;
+    void ref() { g_object_ref(this); }
+    void unref() { g_object_unref(this); }
+};
 
 /* api for specific char devices */
 
@@ -232,17 +228,7 @@ RedCharDevice *spicevmc_device_connect(RedsState *reds,
                                        SpiceCharDeviceInstance *sin,
                                        uint8_t channel_type);
 
-SpiceCharDeviceInstance *red_char_device_get_device_instance(RedCharDevice *dev);
-
 SpiceCharDeviceInterface *spice_char_device_get_interface(SpiceCharDeviceInstance *instance);
-
-/* 'SpiceCharDeviceState' name is used for consistency with what spice-char.h exports */
-struct SpiceCharDeviceState: public GObject
-{
-    RedCharDevicePrivate *priv;
-    void ref() { g_object_ref(this); }
-    void unref() { g_object_unref(this); }
-};
 
 SPICE_END_DECLS
 
