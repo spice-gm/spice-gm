@@ -20,6 +20,8 @@
 
 #include "red-common.h"
 
+#include "push-visibility.h"
+
 struct RedClient;
 
 void snd_attach_playback(RedsState *reds, SpicePlaybackInstance *sin);
@@ -31,5 +33,7 @@ void snd_detach_record(SpiceRecordInstance *sin);
 void snd_set_playback_compression(bool on);
 
 void snd_set_playback_latency(struct RedClient *client, uint32_t latency);
+
+#include "pop-visibility.h"
 
 #endif /* SOUND_H_ */
