@@ -38,9 +38,11 @@ install_headers(spice_server_headers, subdir : 'spice-server')
 
 # generate enums
 gnome = import('gnome')
-spice_server_enums = gnome.mkenums_simple('spice-server-enums',
-                                          sources : 'spice-server.h',
-                                          symbol_prefix : 'SPICE')
+spice_server_enums = gnome.mkenums('spice-server-enums',
+                                   sources : 'spice-server.h',
+                                   symbol_prefix : 'SPICE',
+                                   c_template: 'spice-server-enums.c.tmpl',
+                                   h_template: 'spice-server-enums.h.tmpl')
 
 spice_server_sources = [
   spice_server_headers,

@@ -1,37 +1,40 @@
 /*** BEGIN file-header ***/
 #include <config.h>
 
-#include <glib-object.h>
-
 #include "spice-server-enums.h"
-#include "spice-server.h"
+
+typedef struct EnumValues {
+    int value;
+    const char *nick;
+} EnumValues;
+
+static const char *
+enum_values_get_nick(int value, const EnumValues *e)
+{
+    for (; e->nick; e++) {
+        if (e->value == value) {
+            return e->nick;
+        }
+    }
+    return "???";
+}
 
 /*** END file-header ***/
 
 /*** BEGIN value-header ***/
-static const G@Type@Value _@enum_name@_values[] = {
+
+const char *@EnumName@_get_nick(@EnumName@ value)
+{
+    static const struct EnumValues @EnumName@_values[] = {
 /*** END value-header ***/
 
 /*** BEGIN value-production ***/
-    { @VALUENAME@, "@VALUENAME@", "@valuenick@" },
+        { @VALUENAME@, "@valuenick@" },
 /*** END value-production ***/
 
 /*** BEGIN value-tail ***/
-    { 0, NULL, NULL }
-};
-
-GType
-@enum_name@_get_type (void)
-{
-    static GType type = 0;
-    static volatile gsize type_volatile = 0;
-
-    if (g_once_init_enter(&type_volatile)) {
-        type = g_@type@_register_static ("@EnumName@", _@enum_name@_values);
-        g_once_init_leave(&type_volatile, type);
-    }
-
-    return type;
+        { 0, NULL, }
+    };
+    return enum_values_get_nick(value, @EnumName@_values);
 }
-
 /*** END value-tail ***/

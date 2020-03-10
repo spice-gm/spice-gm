@@ -965,8 +965,7 @@ static bool dcc_handle_preferred_compression(DisplayChannelClient *dcc,
         spice_warning("preferred-compression: unsupported image compression setting");
     }
     g_debug("Setting preferred compression to %s",
-            spice_genum_get_nick(SPICE_TYPE_SPICE_IMAGE_COMPRESSION_T,
-                                 dcc->priv->image_compression));
+            spice_image_compression_t_get_nick(dcc->priv->image_compression));
     return TRUE;
 }
 
