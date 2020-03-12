@@ -11,7 +11,9 @@ before_script:
     dconf
     -y
   - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
-  - (cd spice-protocol && ./autogen.sh --prefix=/usr && make install)
+  - meson --buildtype=release spice-protocol build-spice-protocol --prefix=/usr --werror
+  - ninja -C build-spice-protocol install
+  - rm -rf build-spice-protocol
   # This is a workaround for Fedora docker image, this will add some
   # missing configuration
   # '/org/gnome/system/location/enabled' is just the first key path
@@ -94,9 +96,11 @@ makecheck-centos:
       libcacard-devel cyrus-sasl-devel lz4-devel
       gstreamer1-devel gstreamer1-plugins-base-devel
       git-core python3-pyparsing python3-six python3
+      meson
       -y
     - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
-    - (cd spice-protocol && ./autogen.sh --prefix=/usr && make install)
+    - meson --buildtype=release spice-protocol build-spice-protocol --prefix=/usr --werror
+    - ninja -C build-spice-protocol install
   image: centos:latest
   script:
   - >
@@ -106,27 +110,32 @@ makecheck-centos:
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
 
-# Same as makecheck job but use a Centos image
-makecheck-centos32:
+# Same as meson-makecheck job but use a Debian i386 image,
+# this in order to test a 32 bit machine
+makecheck-debian32:
   before_script:
+    - apt-get update -y
     - >
-      yum install git libtool make libasan orc-devel glib-networking
-      yum-utils gcc glib2-devel celt051-devel
-      opus-devel pixman-devel openssl-devel libjpeg-devel
-      libcacard-devel cyrus-sasl-devel lz4-devel
-      gstreamer1-devel gstreamer1-plugins-base-devel
-      git-core pyparsing python-six
-      -y
+      apt-get install -y
+      debhelper
+      gstreamer1.0-libav gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+      gstreamer1.0-plugins-ugly gstreamer1.0-tools
+      libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev
+      libcacard-dev libglib2.0-dev
+      libjpeg-dev liblz4-dev libopus-dev libpixman-1-dev libsasl2-dev
+      libspice-protocol-dev libssl-dev pkg-config
+      python3-six python3-pyparsing liborc-0.4-dev meson git
     - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
-    - (cd spice-protocol && ./autogen.sh --prefix=/usr && make install)
-  image: i386/centos:latest
+    - meson --buildtype=release spice-protocol build-spice-protocol --prefix=/usr --werror
+    - ninja -C build-spice-protocol install
+  image: i386/debian:latest
   script:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    ./autogen.sh --enable-celt051
-  - make
-  - make -C server check || (cat server/tests/test-suite.log && exit 1)
+    meson --buildtype=release build || (cat build/meson-logs/meson-log.txt && exit 1)
+  - ninja -C build
+  - (cd build && meson test) || (cat build/meson-logs/testlog.txt && exit 1)
 
 # Same as makecheck job but use Windows build
 makecheck-windows:
@@ -137,31 +146,31 @@ makecheck-windows:
     mingw64-openssl mingw64-glib2 mingw64-glib-networking mingw64-libjpeg-turbo
     mingw64-pixman mingw64-opus mingw64-winpthreads mingw64-zlib
     mingw64-gstreamer1-plugins-base mingw64-gstreamer1-plugins-good mingw64-orc
-  - cd spice-protocol
-  - mingw64-configure
-  - mingw64-make install
-  - cd ..
+    meson
+  - mkdir spice-protocol/build
+  - (cd spice-protocol/build && mingw64-meson --werror)
+  - ninja -C spice-protocol/build install
   - NOCONFIGURE=yes ./autogen.sh
   - mingw64-configure --disable-celt051
   - mingw64-make
   - mingw64-make LOG_COMPILE=wine -C server check || (cat server/tests/test-suite.log && exit 1)
 
 websocket-autobahn:
-  before_script:
-  - apt-get update || true
-  - apt-get install -y python-six python-pyparsing libopus-dev libssl-dev libglib2.0-dev
-  - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
-  - (cd spice-protocol && ./autogen.sh --prefix=/usr && make install)
-  image: crossbario/autobahn-testsuite
   script:
-  - ./autogen.sh
-  - make -j4
-  - ./server/tests/test-websocket & pid=$!
+  - >
+    dnf install python2 python2-pip python2-devel python-unversioned-command
+    -y
+  - pip2 install autobahntestsuite
+  - wstest -a
+  - >
+    meson --buildtype=release build -Dcelt051=enabled || (cat build/meson-logs/meson-log.txt && exit 1)
+  - ninja -C build
+  - build/server/tests/test-websocket & pid=$!
   - wstest -m fuzzingclient -s server/tests/fuzzingclient.json
   - kill $pid
   - server/tests/autobahn-check-report reports/servers/index.json
   - rm -rf reports/servers
-  - ./server/tests/test-websocket -n & pid=$!
+  - build/server/tests/test-websocket -n & pid=$!
   - wstest -m fuzzingclient -s server/tests/fuzzingclient.json
   - kill $pid
   - server/tests/autobahn-check-report reports/servers/index.json
