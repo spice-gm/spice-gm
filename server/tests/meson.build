@@ -50,6 +50,7 @@ tests = [
   ['test-empty-success', true],
   ['test-channel', true],
   ['test-stream-device', true],
+  ['test-set-ticket', true],
   ['test-listen', true],
   ['test-record', true],
   ['test-display-no-ssl', false],

@@ -63,6 +63,7 @@ check_PROGRAMS =				\
 	test-channel				\
 	test-stream-device			\
 	test-listen				\
+	test-set-ticket				\
 	test-record				\
 	$(NULL)
 
