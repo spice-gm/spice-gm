@@ -300,7 +300,7 @@ static RedVmcPipeItem* try_compress_lz4(RedVmcChannel *channel, int n, RedVmcPip
         /* n <= threshold - data will not be compressed */
         return NULL;
     }
-    if (!red_channel_test_remote_cap(RED_CHANNEL(channel), SPICE_SPICEVMC_CAP_DATA_COMPRESS_LZ4)) {
+    if (!red_channel_client_test_remote_cap(channel->rcc, SPICE_SPICEVMC_CAP_DATA_COMPRESS_LZ4)) {
         /* Client doesn't have compression cap - data will not be compressed */
         return NULL;
     }
