@@ -57,7 +57,6 @@ struct DispatcherPrivate {
     pthread_t thread_id;
     pthread_mutex_t lock;
     DispatcherMessage *messages;
-    int stage;  /* message parser stage - sender has no stages */
     guint max_message_type;
     void *payload; /* allocated as max of message sizes */
     size_t payload_size; /* used to track realloc calls */
