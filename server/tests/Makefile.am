@@ -56,6 +56,7 @@ LDADD =								\
 
 check_PROGRAMS =				\
 	test-codecs-parsing			\
+	test-dispatcher				\
 	test-options				\
 	test-stat				\
 	test-agent-msg-filter			\
@@ -81,6 +82,7 @@ endif
 
 test_channel_SOURCES = test-channel.cpp
 test_stream_device_SOURCES = test-stream-device.cpp
+test_dispatcher_SOURCES = test-dispatcher.cpp
 
 if !OS_WIN32
 check_PROGRAMS +=				\

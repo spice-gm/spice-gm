@@ -39,6 +39,7 @@ endforeach
 
 tests = [
   ['test-codecs-parsing', true],
+  ['test-dispatcher', true, 'cpp'],
   ['test-options', true],
   ['test-stat', true],
   ['test-agent-msg-filter', true],
