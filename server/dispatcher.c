@@ -28,14 +28,6 @@
 
 #include "dispatcher.h"
 
-//#define DEBUG_DISPATCHER
-
-#ifdef DEBUG_DISPATCHER
-#include <signal.h>
-
-static void setup_dummy_signal_handler(void);
-#endif
-
 #define DISPATCHER_MESSAGE_TYPE_CUSTOM 0x7fffffffu
 
 /* structure to store message header information.
@@ -126,9 +118,6 @@ static void dispatcher_constructed(GObject *object)
 
     G_OBJECT_CLASS(dispatcher_parent_class)->constructed(object);
 
-#ifdef DEBUG_DISPATCHER
-    setup_dummy_signal_handler();
-#endif
     if (socketpair(AF_LOCAL, SOCK_STREAM, 0, channels) == -1) {
         spice_error("socketpair failed %s", strerror(errno));
         return;
@@ -406,30 +395,6 @@ void dispatcher_register_universal_handler(
 {
     dispatcher->priv->any_handler = any_handler;
 }
-
-#ifdef DEBUG_DISPATCHER
-static void dummy_handler(int bla)
-{
-}
-
-static void setup_dummy_signal_handler(void)
-{
-    static int inited = 0;
-    struct sigaction act = {
-        .sa_handler = &dummy_handler,
-    };
-    if (inited) {
-        return;
-    }
-    inited = 1;
-    /* handle SIGRTMIN+10 in order to test the loops for EINTR */
-    if (sigaction(SIGRTMIN + 10, &act, NULL) == -1) {
-        fprintf(stderr,
-            "failed to set dummy sigaction for DEBUG_DISPATCHER\n");
-        exit(1);
-    }
-}
-#endif
 
 SpiceWatch *dispatcher_create_watch(Dispatcher *dispatcher, SpiceCoreInterfaceInternal *core)
 {
