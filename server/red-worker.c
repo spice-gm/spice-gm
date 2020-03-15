@@ -236,7 +236,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
                 break;
             }
 #ifdef DEBUG
-            spice_warning("MESSAGE: %.*s", message.len, message.data);
+            spice_warning("MESSAGE: %.*s", message->len, message->data);
 #endif
             red_message_unref(message);
             break;
