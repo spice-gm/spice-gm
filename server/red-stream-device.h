@@ -34,35 +34,39 @@ struct StreamDevice;
 // forward declarations
 struct StreamChannel;
 struct CursorChannel;
+struct StreamQueueStat;
 
-typedef struct StreamDeviceDisplayInfo {
+struct StreamDeviceDisplayInfo {
     uint32_t stream_id;
     char device_address[MAX_DEVICE_ADDRESS_LEN];
     uint32_t device_display_id;
-} StreamDeviceDisplayInfo;
+};
 
 red::shared_ptr<StreamDevice> stream_device_connect(RedsState *reds, SpiceCharDeviceInstance *sin);
 
-/* Create channel for the streaming device.
- * If the channel already exists the function does nothing.
- */
-void stream_device_create_channel(StreamDevice *dev);
-
-const StreamDeviceDisplayInfo *stream_device_get_device_display_info(StreamDevice *dev);
-
-/**
- * Returns -1 if the StreamDevice doesn't have a channel yet.
- */
-int32_t stream_device_get_stream_channel_id(StreamDevice *dev);
-
 #define MAX_GUEST_CAPABILITIES_BYTES ((STREAM_CAP_END+7)/8)
 
-struct StreamDevice: public RedCharDevice
+class StreamDevice final: public RedCharDevice
 {
-// TODO access
+public:
     StreamDevice(RedsState *reds, SpiceCharDeviceInstance *sin);
+
+    /* Create channel for the streaming device.
+     * If the channel already exists the function does nothing.
+     */
+    void create_channel();
+
+    /**
+     * Returns -1 if the StreamDevice doesn't have a channel yet.
+     */
+    int32_t get_stream_channel_id();
+
+    const StreamDeviceDisplayInfo *get_device_display_info();
+
+protected:
     ~StreamDevice();
 
+private:
     StreamDevHeader hdr;
     uint8_t hdr_pos;
     union AllMessages {
@@ -84,10 +88,26 @@ struct StreamDevice: public RedCharDevice
     SpiceTimer *close_timer;
     uint32_t frame_mmtime;
     StreamDeviceDisplayInfo device_display_info;
-protected:
+
+private:
     virtual RedPipeItem* read_one_msg_from_device(SpiceCharDeviceInstance *sin) override;
     virtual void remove_client(RedCharDeviceClientOpaque *client) override;
     virtual void port_event(uint8_t event) override;
+
+    bool partial_read(SpiceCharDeviceInstance *sin);
+    bool handle_msg_invalid(SpiceCharDeviceInstance *sin, const char *error_msg) SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_capabilities(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_format(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_cursor_move(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_cursor_set(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_data(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_device_display_info(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
+    void reset_channels();
+    static void close_timer_func(StreamDevice *dev);
+    static void stream_start(void *opaque, StreamMsgStartStop *start,
+                             StreamChannel *stream_channel);
+    static void stream_queue_stat(void *opaque, const StreamQueueStat *stats,
+                                  StreamChannel *stream_channel);
 };
 
 #include "pop-visibility.h"

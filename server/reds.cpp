@@ -851,7 +851,7 @@ void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
     for (auto dev: reds->char_devices) {
         auto stream_dev = dynamic_cast<StreamDevice*>(dev.get());
         if (stream_dev) {
-            const StreamDeviceDisplayInfo *info = stream_device_get_device_display_info(stream_dev);
+            const StreamDeviceDisplayInfo *info = stream_dev->get_device_display_info();
             size_t device_address_len = strlen(info->device_address) + 1;
 
             if (device_address_len == 1) {
@@ -859,7 +859,7 @@ void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
                 continue;
             }
 
-            int32_t channel_id = stream_device_get_stream_channel_id(stream_dev);
+            int32_t channel_id = stream_dev->get_stream_channel_id();
             if (channel_id == -1) {
                 g_warning("DeviceDisplayInfo set but no stream channel exists");
                 continue;
@@ -1771,7 +1771,7 @@ static void reds_late_initialization(RedsState *reds)
     for (auto dev: reds->char_devices) {
         auto stream_dev = dynamic_cast<StreamDevice*>(dev.get());
         if (stream_dev) {
-            stream_device_create_channel(stream_dev);
+            stream_dev->create_channel();
         }
     }
     reds->late_initialization_done = true;
