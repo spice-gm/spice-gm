@@ -46,7 +46,7 @@ spice_server_global_cflags = ['-DSPICE_SERVER_INTERNAL',
 compiler = meson.get_compiler('c')
 spice_server_config_data = configuration_data()
 spice_server_include = [include_directories('.')]
-spice_server_deps = []
+spice_server_deps = [dependency('threads')]
 spice_server_link_args = []
 spice_server_requires = ''
 
