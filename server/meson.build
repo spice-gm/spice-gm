@@ -184,7 +184,8 @@ spice_server_libs = both_libraries('spice-server', spice_server_sources,
                                    dependencies : spice_server_deps,
                                    gnu_symbol_visibility : 'hidden')
 
-spice_server_shared_lib = spice_server_libs.get_shared_lib()
-spice_server_static_lib = spice_server_libs.get_static_lib()
-
-subdir('tests')
+if get_option('tests')
+  spice_server_shared_lib = spice_server_libs.get_shared_lib()
+  spice_server_static_lib = spice_server_libs.get_static_lib()
+  subdir('tests')
+endif

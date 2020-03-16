@@ -46,3 +46,8 @@ option('instrumentation',
     value : 'no',
     choices : ['recorder', 'agent', 'no'],
     description: 'Enable instrumentation')
+
+option('tests',
+    type : 'boolean',
+    value : true,
+    description : 'Build the test binaries')
