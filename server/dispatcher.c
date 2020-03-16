@@ -46,7 +46,6 @@ typedef struct DispatcherMessage {
 struct DispatcherPrivate {
     int recv_fd;
     int send_fd;
-    pthread_t thread_id;
     pthread_mutex_t lock;
     DispatcherMessage *messages;
     guint max_message_type;
@@ -125,7 +124,6 @@ static void dispatcher_constructed(GObject *object)
     pthread_mutex_init(&self->priv->lock, NULL);
     self->priv->recv_fd = channels[0];
     self->priv->send_fd = channels[1];
-    self->priv->thread_id = pthread_self();
 
     self->priv->messages = g_new0(DispatcherMessage,
                                   self->priv->max_message_type);
@@ -405,9 +403,4 @@ SpiceWatch *dispatcher_create_watch(Dispatcher *dispatcher, SpiceCoreInterfaceIn
 void dispatcher_set_opaque(Dispatcher *self, void *opaque)
 {
     self->priv->opaque = opaque;
-}
-
-pthread_t dispatcher_get_thread_id(Dispatcher *self)
-{
-    return self->priv->thread_id;
 }

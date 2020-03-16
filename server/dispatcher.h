@@ -167,10 +167,4 @@ SpiceWatch *dispatcher_create_watch(Dispatcher *dispatcher, SpiceCoreInterfaceIn
  */
 void dispatcher_set_opaque(Dispatcher *dispatcher, void *opaque);
 
-/* dispatcher_get_thread_id
- *
- * Returns the id of the thread that created this Dispatcher object
- */
-pthread_t dispatcher_get_thread_id(Dispatcher *self);
-
 #endif /* DISPATCHER_H_ */

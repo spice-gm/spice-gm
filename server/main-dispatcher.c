@@ -50,6 +50,7 @@ struct MainDispatcherPrivate
 {
     RedsState *reds; /* weak */
     SpiceWatch *watch;
+    pthread_t thread_id;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE(MainDispatcher, main_dispatcher, TYPE_DISPATCHER)
@@ -119,6 +120,7 @@ static void
 main_dispatcher_init(MainDispatcher *self)
 {
     self->priv = main_dispatcher_get_instance_private(self);
+    self->priv->thread_id = pthread_self();
 }
 
 enum {
@@ -162,7 +164,7 @@ void main_dispatcher_channel_event(MainDispatcher *self, int event, SpiceChannel
 {
     MainDispatcherChannelEventMessage msg = {0,};
 
-    if (pthread_self() == dispatcher_get_thread_id(DISPATCHER(self))) {
+    if (pthread_self() == self->priv->thread_id) {
         reds_handle_channel_event(self->priv->reds, event, info);
         return;
     }
@@ -208,7 +210,7 @@ void main_dispatcher_seamless_migrate_dst_complete(MainDispatcher *self,
 {
     MainDispatcherMigrateSeamlessDstCompleteMessage msg;
 
-    if (pthread_self() == dispatcher_get_thread_id(DISPATCHER(self))) {
+    if (pthread_self() == self->priv->thread_id) {
         reds_on_client_seamless_migrate_complete(self->priv->reds, client);
         return;
     }
@@ -222,7 +224,7 @@ void main_dispatcher_set_mm_time_latency(MainDispatcher *self, RedClient *client
 {
     MainDispatcherMmTimeLatencyMessage msg;
 
-    if (pthread_self() == dispatcher_get_thread_id(DISPATCHER(self))) {
+    if (pthread_self() == self->priv->thread_id) {
         reds_set_client_mm_time_latency(self->priv->reds, client, latency);
         return;
     }
