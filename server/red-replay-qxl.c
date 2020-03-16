@@ -1247,7 +1247,7 @@ static void red_replay_cursor_cmd_free(SpiceReplay *replay, QXLCursorCmd *qxl)
     g_free(qxl);
 }
 
-static void replay_handle_create_primary(QXLWorker *worker, SpiceReplay *replay)
+static void replay_handle_create_primary(QXLInstance *instance, SpiceReplay *replay)
 {
     QXLDevSurfaceCreate surface = { 0, };
     size_t size;
@@ -1256,7 +1256,7 @@ static void replay_handle_create_primary(QXLWorker *worker, SpiceReplay *replay)
     if (replay->created_primary) {
         g_warning("WARNING: %d: original recording event not preceded by a destroy primary",
                   replay->counter);
-        worker->destroy_primary_surface(worker, 0);
+        spice_qxl_destroy_primary_surface(instance, 0);
     }
     replay->created_primary = TRUE;
 
@@ -1273,26 +1273,26 @@ static void replay_handle_create_primary(QXLWorker *worker, SpiceReplay *replay)
     replay->allocated = g_list_remove(replay->allocated, mem);
     replay->primary_mem = mem;
     surface.mem = QXLPHYSICAL_FROM_PTR(mem);
-    worker->create_primary_surface(worker, 0, &surface);
+    spice_qxl_create_primary_surface(instance, 0, &surface);
 }
 
-static void replay_handle_dev_input(QXLWorker *worker, SpiceReplay *replay,
+static void replay_handle_dev_input(QXLInstance *instance, SpiceReplay *replay,
                                     RedWorkerMessage message)
 {
     switch (message) {
     case RED_WORKER_MESSAGE_CREATE_PRIMARY_SURFACE:
     case RED_WORKER_MESSAGE_CREATE_PRIMARY_SURFACE_ASYNC:
-        replay_handle_create_primary(worker, replay);
+        replay_handle_create_primary(instance, replay);
         break;
     case RED_WORKER_MESSAGE_DESTROY_PRIMARY_SURFACE:
         replay->created_primary = FALSE;
-        worker->destroy_primary_surface(worker, 0);
+        spice_qxl_destroy_primary_surface(instance, 0);
         g_free(replay->primary_mem);
         replay->primary_mem = NULL;
         break;
     case RED_WORKER_MESSAGE_DESTROY_SURFACES:
         replay->created_primary = FALSE;
-        worker->destroy_surfaces(worker);
+        spice_qxl_destroy_surfaces(instance);
         break;
     case RED_WORKER_MESSAGE_UPDATE:
         // XXX do anything? we record the correct bitmaps already.
@@ -1311,7 +1311,7 @@ static void replay_handle_dev_input(QXLWorker *worker, SpiceReplay *replay,
  * since it will block reading from the dispatcher pipe.
  */
 SPICE_GNUC_VISIBLE QXLCommandExt* spice_replay_next_cmd(SpiceReplay *replay,
-                                                         QXLWorker *worker)
+                                                        QXLInstance *instance)
 {
     QXLCommandExt* cmd = NULL;
     uint64_t timestamp;
@@ -1326,7 +1326,7 @@ SPICE_GNUC_VISIBLE QXLCommandExt* spice_replay_next_cmd(SpiceReplay *replay,
             goto error;
         }
         if (what == 1) {
-            replay_handle_dev_input(worker, replay, type);
+            replay_handle_dev_input(instance, replay, type);
         }
     }
     cmd = replay_malloc0(replay, sizeof(QXLCommandExt));

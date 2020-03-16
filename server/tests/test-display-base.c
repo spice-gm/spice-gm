@@ -423,7 +423,7 @@ static QXLDevMemSlot slot = {
 .qxl_ram_size = ~0,
 };
 
-static void attache_worker(QXLInstance *qin, QXLWorker *_qxl_worker)
+static void attache_worker(QXLInstance *qin, SPICE_GNUC_UNUSED QXLWorker *_qxl_worker)
 {
     Test *test = SPICE_CONTAINEROF(qin, Test, qxl_instance);
 

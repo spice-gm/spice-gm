@@ -30,7 +30,7 @@ typedef struct SpiceReplay SpiceReplay;
 
 /* reads until encountering a cmd, processing any recorded messages (io) on the
  * way */
-QXLCommandExt*  spice_replay_next_cmd(SpiceReplay *replay, QXLWorker *worker);
+QXLCommandExt*  spice_replay_next_cmd(SpiceReplay *replay, QXLInstance *instance);
 void            spice_replay_free_cmd(SpiceReplay *replay, QXLCommandExt *cmd);
 void            spice_replay_free(SpiceReplay *replay);
 SpiceReplay *   spice_replay_new(FILE *file, int nsurfaces);

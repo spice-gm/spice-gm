@@ -41,30 +41,6 @@ typedef struct QXLWorker QXLWorker;
 typedef struct QXLDevMemSlot QXLDevMemSlot;
 typedef struct QXLDevSurfaceCreate QXLDevSurfaceCreate;
 
-struct QXLWorker {
-    uint32_t minor_version;
-    uint32_t major_version;
-    /* These calls are deprecated. Please use the spice_qxl_* calls instead */
-    void (*wakeup)(QXLWorker *worker) SPICE_GNUC_DEPRECATED;
-    void (*oom)(QXLWorker *worker) SPICE_GNUC_DEPRECATED;
-    void (*start)(QXLWorker *worker) SPICE_GNUC_DEPRECATED;
-    void (*stop)(QXLWorker *worker) SPICE_GNUC_DEPRECATED;
-    void (*update_area)(QXLWorker *qxl_worker, uint32_t surface_id,
-                       struct QXLRect *area, struct QXLRect *dirty_rects,
-                       uint32_t num_dirty_rects, uint32_t clear_dirty_region) SPICE_GNUC_DEPRECATED;
-    void (*add_memslot)(QXLWorker *worker, QXLDevMemSlot *slot) SPICE_GNUC_DEPRECATED;
-    void (*del_memslot)(QXLWorker *worker, uint32_t slot_group_id, uint32_t slot_id) SPICE_GNUC_DEPRECATED;
-    void (*reset_memslots)(QXLWorker *worker) SPICE_GNUC_DEPRECATED;
-    void (*destroy_surfaces)(QXLWorker *worker) SPICE_GNUC_DEPRECATED;
-    void (*destroy_primary_surface)(QXLWorker *worker, uint32_t surface_id) SPICE_GNUC_DEPRECATED;
-    void (*create_primary_surface)(QXLWorker *worker, uint32_t surface_id,
-                                   QXLDevSurfaceCreate *surface) SPICE_GNUC_DEPRECATED;
-    void (*reset_image_cache)(QXLWorker *worker) SPICE_GNUC_DEPRECATED;
-    void (*reset_cursor)(QXLWorker *worker) SPICE_GNUC_DEPRECATED;
-    void (*destroy_surface_wait)(QXLWorker *worker, uint32_t surface_id) SPICE_GNUC_DEPRECATED;
-    void (*loadvm_commands)(QXLWorker *worker, struct QXLCommandExt *ext, uint32_t count) SPICE_GNUC_DEPRECATED;
-};
-
 void spice_qxl_wakeup(QXLInstance *instance);
 void spice_qxl_oom(QXLInstance *instance);
 /* deprecated since 0.11.2, spice_server_vm_start replaces it */

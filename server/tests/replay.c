@@ -43,7 +43,6 @@
 static SpiceCoreInterface *core;
 static SpiceServer *server;
 static SpiceReplay *replay;
-static QXLWorker *qxl_worker = NULL;
 static gboolean started = FALSE;
 static QXLInstance display_sin;
 static gint slow = 0;
@@ -74,7 +73,7 @@ static QXLDevMemSlot slot = {
 .qxl_ram_size = ~0,
 };
 
-static void attach_worker(QXLInstance *qin, QXLWorker *_qxl_worker)
+static void attach_worker(QXLInstance *qin, SPICE_GNUC_UNUSED QXLWorker *_qxl_worker)
 {
     static int count = 0;
     if (++count > 1) {
@@ -82,7 +81,6 @@ static void attach_worker(QXLInstance *qin, QXLWorker *_qxl_worker)
         return;
     }
     g_debug("%s\n", __func__);
-    qxl_worker = _qxl_worker;
     spice_qxl_add_memslot(qin, &slot);
     spice_server_vm_start(server);
 }
@@ -112,7 +110,7 @@ static gboolean fill_queue_idle(gpointer user_data)
 
     while ((g_async_queue_length(display_queue) +
             g_async_queue_length(cursor_queue)) < 50) {
-        QXLCommandExt *cmd = spice_replay_next_cmd(replay, qxl_worker);
+        QXLCommandExt *cmd = spice_replay_next_cmd(replay, &display_sin);
         if (!cmd) {
             g_async_queue_push(display_queue, GINT_TO_POINTER(-1));
             g_async_queue_push(cursor_queue, GINT_TO_POINTER(-1));
