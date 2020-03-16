@@ -427,16 +427,7 @@ static void attache_worker(QXLInstance *qin, QXLWorker *_qxl_worker)
 {
     Test *test = SPICE_CONTAINEROF(qin, Test, qxl_instance);
 
-    if (test->qxl_worker) {
-        if (test->qxl_worker != _qxl_worker)
-            printf("%s ignored, %p is set, ignoring new %p\n", __func__,
-                   test->qxl_worker, _qxl_worker);
-        else
-            printf("%s ignored, redundant\n", __func__);
-        return;
-    }
     printf("%s\n", __func__);
-    test->qxl_worker = _qxl_worker;
     spice_qxl_add_memslot(&test->qxl_instance, &slot);
     create_primary_surface(test, DEFAULT_WIDTH, DEFAULT_HEIGHT);
     spice_server_vm_start(test->server);
@@ -516,9 +507,6 @@ static int get_command(SPICE_GNUC_UNUSED QXLInstance *qin,
 static void produce_command(Test *test)
 {
     Command *command;
-    QXLWorker *qxl_worker = test->qxl_worker;
-
-    spice_assert(qxl_worker);
 
     if (test->has_secondary)
         test->target_surface = 1;

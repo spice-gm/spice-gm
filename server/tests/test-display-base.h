@@ -100,7 +100,6 @@ struct Test {
     SpiceServer *server;
 
     QXLInstance qxl_instance;
-    QXLWorker *qxl_worker;
 
     uint8_t primary_surface[MAX_HEIGHT * MAX_WIDTH * 4];
     int primary_height;
