@@ -333,12 +333,14 @@ static bool snd_record_handle_write(RecordChannelClient *record_client, size_t s
 static
 const char* spice_audio_data_mode_to_string(gint mode)
 {
+    G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     static const char * const str[] = {
         [ SPICE_AUDIO_DATA_MODE_INVALID ] = "invalid",
         [ SPICE_AUDIO_DATA_MODE_RAW ] = "raw",
         [ SPICE_AUDIO_DATA_MODE_CELT_0_5_1 ] = "celt",
         [ SPICE_AUDIO_DATA_MODE_OPUS ] = "opus",
     };
+    G_GNUC_END_IGNORE_DEPRECATIONS
     if (mode >= 0 && mode < G_N_ELEMENTS(str)) {
         return str[mode];
     }
@@ -1014,16 +1016,13 @@ void snd_set_playback_latency(RedClient *client, uint32_t latency)
 }
 
 static int snd_desired_audio_mode(bool playback_compression, int frequency,
-                                  bool client_can_celt, bool client_can_opus)
+                                  bool client_can_opus)
 {
     if (!playback_compression)
         return SPICE_AUDIO_DATA_MODE_RAW;
 
     if (client_can_opus && snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_OPUS, frequency))
         return SPICE_AUDIO_DATA_MODE_OPUS;
-
-    if (client_can_celt && snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_CELT_0_5_1, frequency))
-        return SPICE_AUDIO_DATA_MODE_CELT_0_5_1;
 
     return SPICE_AUDIO_DATA_MODE_RAW;
 }
@@ -1065,14 +1064,11 @@ playback_channel_client_constructed(GObject *object)
 
     scc->on_message_done = snd_playback_on_message_done;
 
-    bool client_can_celt = red_channel_client_test_remote_cap(rcc,
-                                          SPICE_PLAYBACK_CAP_CELT_0_5_1);
     bool client_can_opus = red_channel_client_test_remote_cap(rcc,
                                           SPICE_PLAYBACK_CAP_OPUS);
     bool playback_compression =
         reds_config_get_playback_compression(red_channel_get_server(red_channel));
-    int desired_mode = snd_desired_audio_mode(playback_compression, channel->frequency,
-                                              client_can_celt, client_can_opus);
+    int desired_mode = snd_desired_audio_mode(playback_compression, channel->frequency, client_can_opus);
     if (desired_mode != SPICE_AUDIO_DATA_MODE_RAW) {
         if (snd_codec_create(&playback_client->codec, desired_mode, channel->frequency,
                              SND_CODEC_ENCODE) == SND_CODEC_OK) {
@@ -1381,9 +1377,6 @@ playback_channel_constructed(GObject *object)
 
     G_OBJECT_CLASS(playback_channel_parent_class)->constructed(object);
 
-    if (snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_CELT_0_5_1, SND_CODEC_ANY_FREQUENCY)) {
-        red_channel_set_cap(RED_CHANNEL(self), SPICE_PLAYBACK_CAP_CELT_0_5_1);
-    }
     red_channel_set_cap(RED_CHANNEL(self), SPICE_PLAYBACK_CAP_VOLUME);
 
     add_channel(self);
@@ -1430,9 +1423,6 @@ record_channel_constructed(GObject *object)
 
     G_OBJECT_CLASS(record_channel_parent_class)->constructed(object);
 
-    if (snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_CELT_0_5_1, SND_CODEC_ANY_FREQUENCY)) {
-        red_channel_set_cap(RED_CHANNEL(self), SPICE_RECORD_CAP_CELT_0_5_1);
-    }
     red_channel_set_cap(RED_CHANNEL(self), SPICE_RECORD_CAP_VOLUME);
 
     add_channel(self);
@@ -1497,12 +1487,9 @@ void snd_set_playback_compression(bool on)
         if (type == SPICE_CHANNEL_PLAYBACK && client) {
             PlaybackChannelClient* playback = PLAYBACK_CHANNEL_CLIENT(client);
             RedChannelClient *rcc = RED_CHANNEL_CLIENT(playback);
-            bool client_can_celt = red_channel_client_test_remote_cap(rcc,
-                                    SPICE_PLAYBACK_CAP_CELT_0_5_1);
             bool client_can_opus = red_channel_client_test_remote_cap(rcc,
                                     SPICE_PLAYBACK_CAP_OPUS);
-            int desired_mode = snd_desired_audio_mode(on, now->frequency,
-                                                      client_can_celt, client_can_opus);
+            int desired_mode = snd_desired_audio_mode(on, now->frequency, client_can_opus);
             if (playback->mode != desired_mode) {
                 playback->mode = desired_mode;
                 snd_set_command(client, SND_PLAYBACK_MODE_MASK);

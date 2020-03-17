@@ -112,8 +112,7 @@ endif
 #
 # Non-mandatory/optional dependencies
 #
-optional_deps = {'celt051' : '>= 0.5.1.1',
-                 'opus'    : '>= 0.9.14'}
+optional_deps = {'opus' : '>= 0.9.14'}
 foreach dep, version : optional_deps
   d = dependency(dep, required : get_option(dep), version : version)
   if d.found()

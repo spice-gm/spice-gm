@@ -13,11 +13,6 @@ option('sasl',
     value : true,
     description : 'Use cyrus SASL authentication')
 
-option('celt051',
-    type : 'feature',
-    value : 'disabled',
-    description: 'Enable celt051 audio codec')
-
 option('opus',
     type : 'feature',
     description: 'Enable Opus audio codec')
