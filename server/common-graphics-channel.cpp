@@ -51,7 +51,7 @@ bool CommonGraphicsChannelClient::config_socket()
     gboolean is_low_bandwidth;
 
     // TODO - this should be dynamic, not one time at channel creation
-    is_low_bandwidth = main_channel_client_is_low_bandwidth(mcc);
+    is_low_bandwidth = mcc->is_low_bandwidth();
     if (!red_stream_set_auto_flush(stream, false)) {
         /* FIXME: Using Nagle's Algorithm can lead to apparent delays, depending
          * on the delayed ack timeout on the other side.

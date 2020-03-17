@@ -26,11 +26,48 @@
 
 #include "push-visibility.h"
 
-struct MainChannelClientPrivate;
+class MainChannelClientPrivate;
+
+MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient *client,
+                                              RedStream *stream, uint32_t connection_id,
+                                              RedChannelCapabilities *caps);
+
 
 class MainChannelClient final: public RedChannelClient
 {
 public:
+    void push_agent_tokens(uint32_t num_tokens);
+    void push_agent_data(uint8_t *data, size_t len,
+                         spice_marshaller_item_free_func free_data, void *opaque);
+    // TODO: huge. Consider making a reds_* interface for these functions
+    // and calling from main.
+    void push_init(int display_channels_hint, SpiceMouseMode current_mouse_mode,
+                   int is_client_mouse_allowed, int multi_media_time,
+                   int ram_hint);
+    void push_notify(const char *msg);
+    gboolean connect_semi_seamless();
+    void connect_seamless();
+    void handle_migrate_connected(int success, int seamless);
+    void handle_migrate_dst_do_seamless(uint32_t src_version);
+    void handle_migrate_end();
+    void migrate_cancel_wait();
+    void migrate_dst_complete();
+    gboolean migrate_src_complete(gboolean success);
+
+    /*
+     * return TRUE if network test had been completed successfully.
+     * If FALSE, bitrate_per_sec is set to MAX_UINT64 and the roundtrip is set to 0
+     */
+    int is_network_info_initialized();
+    int is_low_bandwidth();
+    uint64_t get_bitrate_per_sec();
+    uint64_t get_roundtrip_ms();
+
+    void push_name(const char *name);
+    void push_uuid(const uint8_t uuid[16]);
+
+    uint32_t get_connection_id();
+
     MainChannelClient(MainChannel *channel,
                       RedClient *client,
                       RedStream *stream,
@@ -57,49 +94,6 @@ protected:
 public:
     red::unique_link<MainChannelClientPrivate> priv;
 };
-
-MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient *client,
-                                              RedStream *stream, uint32_t connection_id,
-                                              RedChannelCapabilities *caps);
-
-void main_channel_client_push_agent_tokens(MainChannelClient *mcc, uint32_t num_tokens);
-void main_channel_client_push_agent_data(MainChannelClient *mcc, uint8_t* data, size_t len,
-                                         spice_marshaller_item_free_func free_data, void *opaque);
-// TODO: huge. Consider making a reds_* interface for these functions
-// and calling from main.
-void main_channel_client_push_init(MainChannelClient *mcc,
-                                   int display_channels_hint,
-                                   SpiceMouseMode current_mouse_mode,
-                                   int is_client_mouse_allowed,
-                                   int multi_media_time,
-                                   int ram_hint);
-void main_channel_client_push_notify(MainChannelClient *mcc, const char *msg);
-gboolean main_channel_client_connect_semi_seamless(MainChannelClient *mcc);
-void main_channel_client_connect_seamless(MainChannelClient *mcc);
-void main_channel_client_handle_migrate_connected(MainChannelClient *mcc,
-                                                  int success,
-                                                  int seamless);
-void main_channel_client_handle_migrate_dst_do_seamless(MainChannelClient *mcc,
-                                                        uint32_t src_version);
-void main_channel_client_handle_migrate_end(MainChannelClient *mcc);
-void main_channel_client_migrate_cancel_wait(MainChannelClient *mcc);
-void main_channel_client_migrate_dst_complete(MainChannelClient *mcc);
-gboolean main_channel_client_migrate_src_complete(MainChannelClient *mcc,
-                                                  gboolean success);
-
-/*
- * return TRUE if network test had been completed successfully.
- * If FALSE, bitrate_per_sec is set to MAX_UINT64 and the roundtrip is set to 0
- */
-int main_channel_client_is_network_info_initialized(MainChannelClient *mcc);
-int main_channel_client_is_low_bandwidth(MainChannelClient *mcc);
-uint64_t main_channel_client_get_bitrate_per_sec(MainChannelClient *mcc);
-uint64_t main_channel_client_get_roundtrip_ms(MainChannelClient *mcc);
-
-void main_channel_client_push_name(MainChannelClient *mcc, const char *name);
-void main_channel_client_push_uuid(MainChannelClient *mcc, const uint8_t uuid[16]);
-
-uint32_t main_channel_client_get_connection_id(MainChannelClient *mcc);
 
 enum {
     RED_PIPE_ITEM_TYPE_MAIN_CHANNELS_LIST = RED_PIPE_ITEM_TYPE_CHANNEL_BASE,

@@ -758,7 +758,7 @@ bool SndChannelClient::config_socket()
     }
 #endif
 
-    red_stream_set_no_delay(stream, !main_channel_client_is_low_bandwidth(mcc));
+    red_stream_set_no_delay(stream, !mcc->is_low_bandwidth());
 
     return true;
 }

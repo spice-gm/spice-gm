@@ -1262,7 +1262,7 @@ bool DisplayChannelClient::config_socket()
     RedClient *client = get_client();
     MainChannelClient *mcc = client->get_main();
 
-    is_low_bandwidth = main_channel_client_is_low_bandwidth(mcc);
+    is_low_bandwidth = mcc->is_low_bandwidth();
 
     return CommonGraphicsChannelClient::config_socket();
 }

@@ -641,8 +641,8 @@ static uint64_t get_initial_bit_rate(DisplayChannelClient *dcc, VideoStream *str
         uint64_t net_test_bit_rate;
 
         mcc = dcc->get_client()->get_main();
-        net_test_bit_rate = main_channel_client_is_network_info_initialized(mcc) ?
-                                main_channel_client_get_bitrate_per_sec(mcc) :
+        net_test_bit_rate = mcc->is_network_info_initialized() ?
+                                mcc->get_bitrate_per_sec() :
                                 0;
         bit_rate = MAX(dcc_get_max_stream_bit_rate(dcc), net_test_bit_rate);
         if (bit_rate == 0) {
@@ -680,7 +680,7 @@ static uint32_t get_roundtrip_ms(void *opaque)
          * calculated (e.g., after migration). In such case,
          * main_channel_client_get_roundtrip_ms returns 0.
          */
-        roundtrip = main_channel_client_get_roundtrip_ms(mcc);
+        roundtrip = mcc->get_roundtrip_ms();
     }
 
     return roundtrip;

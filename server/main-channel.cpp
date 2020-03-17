@@ -34,7 +34,7 @@ RedClient *MainChannel::get_client_by_link_id(uint32_t connection_id)
 
     FOREACH_CLIENT(this, rcc) {
         MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
-        if (main_channel_client_get_connection_id(mcc) == connection_id) {
+        if (mcc->get_connection_id() == connection_id) {
             return rcc->get_client();
         }
     }
@@ -163,24 +163,19 @@ bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *messa
         main_channel_push_channels(this);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_CONNECTED:
-        main_channel_client_handle_migrate_connected(this,
-                                                     TRUE /* success */,
-                                                     FALSE /* seamless */);
+        this->handle_migrate_connected(TRUE, FALSE);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_CONNECTED_SEAMLESS:
-        main_channel_client_handle_migrate_connected(this,
-                                                     TRUE /* success */,
-                                                     TRUE /* seamless */);
+        this->handle_migrate_connected(TRUE, TRUE);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_CONNECT_ERROR:
-        main_channel_client_handle_migrate_connected(this, FALSE, FALSE);
+        this->handle_migrate_connected(FALSE, FALSE);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_DST_DO_SEAMLESS:
-        main_channel_client_handle_migrate_dst_do_seamless(this,
-            ((SpiceMsgcMainMigrateDstDoSeamless *)message)->src_version);
+        this->handle_migrate_dst_do_seamless(((SpiceMsgcMainMigrateDstDoSeamless *)message)->src_version);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_END:
-        main_channel_client_handle_migrate_end(this);
+        this->handle_migrate_end();
         break;
     case SPICE_MSGC_MAIN_MOUSE_MODE_REQUEST:
         reds_on_main_mouse_mode_request(reds, message, size);
@@ -234,7 +229,7 @@ static int main_channel_connect_semi_seamless(MainChannel *main_channel)
 
     FOREACH_CLIENT(main_channel, rcc) {
         MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
-        if (main_channel_client_connect_semi_seamless(mcc))
+        if (mcc->connect_semi_seamless())
             main_channel->num_clients_mig_wait++;
     }
     return main_channel->num_clients_mig_wait;
@@ -248,7 +243,7 @@ static int main_channel_connect_seamless(MainChannel *main_channel)
 
     FOREACH_CLIENT(main_channel, rcc) {
         MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
-        main_channel_client_connect_seamless(mcc);
+        mcc->connect_seamless();
         main_channel->num_clients_mig_wait++;
     }
     return main_channel->num_clients_mig_wait;
@@ -287,7 +282,7 @@ void MainChannel::migrate_cancel_wait()
 
     FOREACH_CLIENT(this, rcc) {
         MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
-        main_channel_client_migrate_cancel_wait(mcc);
+        mcc->migrate_cancel_wait();
     }
     num_clients_mig_wait = 0;
 }
@@ -304,7 +299,7 @@ int MainChannel::migrate_src_complete(int success)
 
     FOREACH_CLIENT(this, rcc) {
         MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
-        if (main_channel_client_migrate_src_complete(mcc, success))
+        if (mcc->migrate_src_complete(success))
             semi_seamless_count++;
    }
    return semi_seamless_count;

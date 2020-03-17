@@ -944,8 +944,7 @@ static void vdi_port_send_msg_to_client(RedCharDevice *self,
     RedVDIReadBuf *agent_data_buf = (RedVDIReadBuf *)msg;
 
     red_pipe_item_ref(msg);
-    main_channel_client_push_agent_data(client->get_main(),
-                                        agent_data_buf->data,
+    client->get_main()->push_agent_data(agent_data_buf->data,
                                         agent_data_buf->len,
                                         vdi_port_read_buf_release,
                                         agent_data_buf);
@@ -955,8 +954,7 @@ static void vdi_port_send_tokens_to_client(RedCharDevice *self,
                                            RedClient *client,
                                            uint32_t tokens)
 {
-    main_channel_client_push_agent_tokens(client->get_main(),
-                                          tokens);
+    client->get_main()->push_agent_tokens(tokens);
 }
 
 static void vdi_port_on_free_self_token(RedCharDevice *self)
@@ -1313,11 +1311,8 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
         switch (vdi_port_read_buf_process(agent_dev, read_buf)) {
         case AGENT_MSG_FILTER_OK:
             reds_adjust_agent_capabilities(reds, (VDAgentMessage *)read_buf->data);
-            main_channel_client_push_agent_data(mcc,
-                                                read_buf->data,
-                                                read_buf->len,
-                                                vdi_port_read_buf_release,
-                                                read_buf);
+            mcc->push_agent_data(read_buf->data, read_buf->len,
+                                 vdi_port_read_buf_release, read_buf);
             break;
         case AGENT_MSG_FILTER_PROTO_ERROR:
             reds_agent_remove(reds);
@@ -1891,14 +1886,14 @@ static void reds_handle_main_link(RedsState *reds, RedLinkInfo *link)
     }
 
     if (!mig_target) {
-        main_channel_client_push_init(mcc, g_list_length(reds->qxl_instances),
-            reds->mouse_mode, reds->is_client_mouse_allowed,
-            reds_get_mm_time() - MM_TIME_DELTA,
-            reds_qxl_ram_size(reds));
+        mcc->push_init(g_list_length(reds->qxl_instances), reds->mouse_mode,
+                       reds->is_client_mouse_allowed,
+                       reds_get_mm_time() - MM_TIME_DELTA,
+                       reds_qxl_ram_size(reds));
         if (reds->config->spice_name)
-            main_channel_client_push_name(mcc, reds->config->spice_name);
+            mcc->push_name(reds->config->spice_name);
         if (reds->config->spice_uuid_is_set)
-            main_channel_client_push_uuid(mcc, reds->config->spice_uuid);
+            mcc->push_uuid(reds->config->spice_uuid);
     } else {
         reds_mig_target_client_add(reds, client);
     }
@@ -2012,7 +2007,7 @@ void reds_on_client_seamless_migrate_complete(RedsState *reds, RedClient *client
         spice_debug("client no longer exists");
         return;
     }
-    main_channel_client_migrate_dst_complete(client->get_main());
+    client->get_main()->migrate_dst_complete();
 }
 
 void reds_on_client_semi_seamless_migrate_complete(RedsState *reds, RedClient *client)
@@ -2023,13 +2018,12 @@ void reds_on_client_semi_seamless_migrate_complete(RedsState *reds, RedClient *c
     mcc = client->get_main();
 
     // TODO: not doing net test. consider doing it on client_migrate_info
-    main_channel_client_push_init(mcc, g_list_length(reds->qxl_instances),
-                                  reds->mouse_mode,
-                                  reds->is_client_mouse_allowed,
-                                  reds_get_mm_time() - MM_TIME_DELTA,
-                                  reds_qxl_ram_size(reds));
+    mcc->push_init(g_list_length(reds->qxl_instances), reds->mouse_mode,
+                   reds->is_client_mouse_allowed,
+                   reds_get_mm_time() - MM_TIME_DELTA,
+                   reds_qxl_ram_size(reds));
     reds_link_mig_target_channels(reds, client);
-    main_channel_client_migrate_dst_complete(mcc);
+    mcc->migrate_dst_complete();
 }
 
 static void reds_handle_other_links(RedsState *reds, RedLinkInfo *link)
