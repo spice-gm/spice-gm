@@ -1231,19 +1231,6 @@ SPICE_GNUC_VISIBLE uint32_t spice_server_record_get_samples(SpiceRecordInstance 
     return len;
 }
 
-static uint32_t snd_get_best_rate(SndChannelClient *client, uint32_t cap_opus)
-{
-    bool client_can_opus = true;
-    if (client) {
-        client_can_opus = red_channel_client_test_remote_cap(RED_CHANNEL_CLIENT(client), cap_opus);
-    }
-
-    if (client_can_opus && snd_codec_is_capable(SPICE_AUDIO_DATA_MODE_OPUS, SND_CODEC_ANY_FREQUENCY))
-        return SND_CODEC_OPUS_PLAYBACK_FREQ;
-
-    return SND_CODEC_CELT_PLAYBACK_FREQ;
-}
-
 static void snd_set_rate(SndChannel *channel, uint32_t frequency, uint32_t cap_opus)
 {
     RedChannel *red_channel = RED_CHANNEL(channel);
@@ -1255,8 +1242,7 @@ static void snd_set_rate(SndChannel *channel, uint32_t frequency, uint32_t cap_o
 
 SPICE_GNUC_VISIBLE uint32_t spice_server_get_best_playback_rate(SpicePlaybackInstance *sin)
 {
-    SndChannelClient *client = sin ? snd_channel_get_client(&sin->st->channel) : NULL;
-    return snd_get_best_rate(client, SPICE_PLAYBACK_CAP_OPUS);
+    return SND_CODEC_OPUS_PLAYBACK_FREQ;
 }
 
 SPICE_GNUC_VISIBLE void spice_server_set_playback_rate(SpicePlaybackInstance *sin, uint32_t frequency)
@@ -1266,8 +1252,7 @@ SPICE_GNUC_VISIBLE void spice_server_set_playback_rate(SpicePlaybackInstance *si
 
 SPICE_GNUC_VISIBLE uint32_t spice_server_get_best_record_rate(SpiceRecordInstance *sin)
 {
-    SndChannelClient *client = sin ? snd_channel_get_client(&sin->st->channel) : NULL;
-    return snd_get_best_rate(client, SPICE_RECORD_CAP_OPUS);
+    return SND_CODEC_OPUS_PLAYBACK_FREQ;
 }
 
 SPICE_GNUC_VISIBLE void spice_server_set_record_rate(SpiceRecordInstance *sin, uint32_t frequency)
@@ -1340,7 +1325,7 @@ static void remove_channel(SndChannel *channel)
 static void
 snd_channel_init(SndChannel *self)
 {
-    self->frequency = SND_CODEC_CELT_PLAYBACK_FREQ; /* Default to the legacy rate */
+    self->frequency = SND_CODEC_OPUS_PLAYBACK_FREQ;
 }
 
 static void
