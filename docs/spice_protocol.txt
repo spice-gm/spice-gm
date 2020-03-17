@@ -2541,8 +2541,8 @@ signed integer */
 +
 . Playback data mode
 +
-Two types of data mode are available: (1) raw PCM data and (2) compressed data
-in CELT 0_5_1 format.
+Two types of data mode are available: (1) raw PCM data, (2) compressed data
+in CELT 0_5_1 format (obsolete) and (3) compressed data in OPUS format.
 +
 [source,c]
 ----
@@ -2561,8 +2561,8 @@ SPICE_PLAYBACK_CAP_LATENCY		= 2
 SPICE_PLAYBACK_CAP_OPUS			= 3
 ----
 +
-Spice client needs to declare support of CELT_5_1 in channel capabilities in
-order to allow the server to send playback packets in CELT_0_5_1 format.
+Spice client needs to declare support of OPUS in channel capabilities in
+order to allow the server to send playback packets in OPUS format.
 +
 . SPICE_MSG_PLAYBACK_MODE, SpiceMsgPlaybackMode
 +
@@ -2651,7 +2651,7 @@ SPICE_AUDIO_FMT_S16 			= 1 /* each channel sample is a 16 bit signed integer */
 . Record data mode
 +
 Two types of data mode are available: (1) raw PCM data (2) compressed data   in
-CELT 0.5.1 format.
+CELT 0.5.1 format (obsolete) (3) compressed data in OPUS format.
 +
 [source,c]
 ----
@@ -2669,8 +2669,8 @@ SPICE_RECORD_CAP_VOLUME			= 1
 SPICE_RECORD_CAP_OPUS			= 2
 ----
 +
-Spice server needs to declare support of CELT_5_1 in channel capabilities in
-order to allow the client to send recorded packets in CELT_0_5_1 format.
+Spice server needs to declare support of OPUS in channel capabilities in
+order to allow the client to send recorded packets in OPUS format.
 +
 . SPICE_MSGC_RECORD_MODE, SpiceMsgcRecordMode
 +

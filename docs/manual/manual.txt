@@ -196,7 +196,7 @@ client OS and the guest OS.
 
 Bidirectional Audio::
 Spice supports audio playback and recording. Playback is compressed
-using the CELT algorithm
+using the OPUS algorithm
 
 Lip-sync::
 between video and audio. Available only when video streaming is

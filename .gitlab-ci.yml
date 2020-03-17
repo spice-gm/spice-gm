@@ -5,7 +5,7 @@ before_script:
     dnf install 'dnf-command(debuginfo-install)' git libtool make libasan orc-devel
     python3 python3-six python3-pyparsing glib-networking
     asciidoc bzip2 meson ninja-build file
-    glib2-devel celt051-devel pixman-devel alsa-lib-devel openssl-devel libjpeg-turbo-devel
+    glib2-devel pixman-devel alsa-lib-devel openssl-devel libjpeg-turbo-devel
     libcacard-devel cyrus-sasl-devel lz4-devel opus-devel
     gstreamer1-devel gstreamer1-plugins-base-devel
     dconf
@@ -31,7 +31,7 @@ makecheck:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    ../autogen.sh --enable-celt051
+    ../autogen.sh
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
   - cd ..
@@ -41,7 +41,7 @@ meson-makecheck:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    meson --buildtype=release build -Dcelt051=enabled || (cat build/meson-logs/meson-log.txt && exit 1)
+    meson --buildtype=release build || (cat build/meson-logs/meson-log.txt && exit 1)
   - ninja -C build
   - (cd build && meson test) || (cat build/meson-logs/testlog.txt && exit 1)
 
@@ -50,13 +50,13 @@ meson-makecheck:
 # --without-sasl       disable SASL
 options:
   script:
-  - ./autogen.sh --enable-statistics --without-sasl --disable-celt051
+  - ./autogen.sh --enable-statistics --without-sasl
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
 
 meson-options:
   script:
-  - meson --buildtype=release -Dstatistics=true -Dsasl=false -Dcelt051=disabled build
+  - meson --buildtype=release -Dstatistics=true -Dsasl=false build
   - ninja -C build
   - (cd build && meson test) || (cat build/meson-logs/testlog.txt && exit 1)
 
@@ -70,18 +70,18 @@ check-valgrind:
     -y
   - >
     CFLAGS='-O2 -pipe -g -D_FORTIFY_SOURCE=0'
-    ./autogen.sh --enable-valgrind --enable-extra-checks --enable-celt051
+    ./autogen.sh --enable-valgrind --enable-extra-checks
   - make
   - make check-valgrind || (cat server/tests/test-suite-memcheck.log && exit 1)
 
 syntax-check:
   script:
-  - ./autogen.sh --enable-celt051
+  - ./autogen.sh
   - make syntax-check
 
 distcheck:
   script:
-  - ./autogen.sh --enable-celt051 --enable-manual
+  - ./autogen.sh --enable-manual
   - make distcheck
 
 # Same as makecheck job but use a Centos image
@@ -106,7 +106,7 @@ makecheck-centos:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    ./autogen.sh --disable-celt051
+    ./autogen.sh
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
 
@@ -151,7 +151,7 @@ makecheck-windows:
   - (cd spice-protocol/build && mingw64-meson --werror)
   - ninja -C spice-protocol/build install
   - NOCONFIGURE=yes ./autogen.sh
-  - mingw64-configure --disable-celt051
+  - mingw64-configure
   - mingw64-make
   - mingw64-make LOG_COMPILE=wine -C server check || (cat server/tests/test-suite.log && exit 1)
 
@@ -163,7 +163,7 @@ websocket-autobahn:
   - pip2 install autobahntestsuite
   - wstest -a
   - >
-    meson --buildtype=release build -Dcelt051=enabled || (cat build/meson-logs/meson-log.txt && exit 1)
+    meson --buildtype=release build || (cat build/meson-logs/meson-log.txt && exit 1)
   - ninja -C build
   - build/server/tests/test-websocket & pid=$!
   - wstest -m fuzzingclient -s server/tests/fuzzingclient.json
