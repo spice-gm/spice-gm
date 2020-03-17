@@ -380,7 +380,7 @@ void main_channel_client_handle_migrate_connected(MainChannelClient *mcc,
 
         mcc->priv->mig_wait_connect = FALSE;
         mcc->priv->mig_connect_ok = success;
-        main_channel_on_migrate_connected(channel, success, seamless);
+        channel->on_migrate_connected(success, seamless);
     } else {
         if (success) {
             mcc->pipe_add_empty_msg(SPICE_MSG_MAIN_MIGRATE_CANCEL);
@@ -743,7 +743,7 @@ static void main_channel_marshall_notify(RedChannelClient *rcc,
 static void main_channel_fill_migrate_dst_info(MainChannel *main_channel,
                                                SpiceMigrationDstInfo *dst_info)
 {
-    const RedsMigSpice *mig_dst = main_channel_get_migration_target(main_channel);
+    const RedsMigSpice *mig_dst = main_channel->get_migration_target();
     dst_info->port = mig_dst->port;
     dst_info->sport = mig_dst->sport;
     dst_info->host_size = strlen(mig_dst->host) + 1;
@@ -800,7 +800,7 @@ static void main_channel_marshall_migrate_switch(SpiceMarshaller *m, MainChannel
     const RedsMigSpice *mig_target;
 
     rcc->init_send_data(SPICE_MSG_MAIN_MIGRATE_SWITCH_HOST);
-    mig_target = main_channel_get_migration_target(channel);
+    mig_target = channel->get_migration_target();
     migrate.port = mig_target->port;
     migrate.sport = mig_target->sport;
     migrate.host_size = strlen(mig_target->host) + 1;

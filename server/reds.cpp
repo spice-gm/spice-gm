@@ -334,7 +334,7 @@ void reds_register_channel(RedsState *reds, RedChannel *channel)
     }
     reds->channels = g_list_prepend(reds->channels, channel);
     // create new channel in the client if possible
-    main_channel_registered_new_channel(reds->main_channel, channel);
+    reds->main_channel->registered_new_channel(channel);
 }
 
 void reds_unregister_channel(RedsState *reds, RedChannel *channel)
@@ -484,7 +484,7 @@ static RedCharDeviceWriteBuffer *vdagent_new_write_buffer(RedCharDeviceVDIPort *
 
 static int reds_main_channel_connected(RedsState *reds)
 {
-    return main_channel_is_connected(reds->main_channel);
+    return reds->main_channel && reds->main_channel->is_connected();
 }
 
 void reds_client_disconnect(RedsState *reds, RedClient *client)
@@ -605,7 +605,8 @@ static void reds_set_mouse_mode(RedsState *reds, SpiceMouseMode mode)
         red_qxl_set_mouse_mode(qxl, mode);
     }
 
-    main_channel_push_mouse_mode(reds->main_channel, reds->mouse_mode, reds->is_client_mouse_allowed);
+    reds->main_channel->push_mouse_mode(reds->mouse_mode,
+                                        reds->is_client_mouse_allowed);
 }
 
 gboolean reds_config_get_agent_mouse(const RedsState *reds)
@@ -640,8 +641,8 @@ static void reds_update_mouse_mode(RedsState *reds)
         return;
     }
     if (reds->main_channel) {
-        main_channel_push_mouse_mode(reds->main_channel, reds->mouse_mode,
-                                     reds->is_client_mouse_allowed);
+        reds->main_channel->push_mouse_mode(reds->mouse_mode,
+                                            reds->is_client_mouse_allowed);
     }
 }
 
@@ -668,7 +669,7 @@ static void reds_agent_remove(RedsState *reds)
     reds_update_mouse_mode(reds);
     if (reds_main_channel_connected(reds) &&
         !reds->main_channel->is_waiting_for_migrate_data()) {
-        main_channel_push_agent_disconnected(reds->main_channel);
+        reds->main_channel->push_agent_disconnected();
     }
 }
 
@@ -1507,14 +1508,14 @@ bool reds_handle_migrate_data(RedsState *reds, MainChannelClient *mcc,
         if (agent_dev->priv->agent_attached) { // agent was attached before migration data has arrived
             if (!reds->vdagent) {
                 spice_assert(agent_dev->priv->plug_generation > 0);
-                main_channel_push_agent_disconnected(reds->main_channel);
+                reds->main_channel->push_agent_disconnected();
                 spice_debug("agent is no longer connected");
             } else {
                 if (agent_dev->priv->plug_generation > 1) {
                     /* red_char_device_state_reset takes care of not making the device wait for migration data */
                     spice_debug("agent has been detached and reattached before receiving migration data");
-                    main_channel_push_agent_disconnected(reds->main_channel);
-                    main_channel_push_agent_connected(reds->main_channel);
+                    reds->main_channel->push_agent_disconnected();
+                    reds->main_channel->push_agent_connected();
                 } else {
                     spice_debug("restoring state from mig_data");
                     return reds_agent_state_restore(reds, mig_data);
@@ -1532,7 +1533,7 @@ bool reds_handle_migrate_data(RedsState *reds, MainChannelClient *mcc,
             RedClient *client = mcc->get_client();
             /* red_char_device_client_remove disables waiting for migration data */
             red_char_device_client_remove(agent_dev, client);
-            main_channel_push_agent_connected(reds->main_channel);
+            reds->main_channel->push_agent_connected();
         }
     }
 
@@ -2040,8 +2041,7 @@ static void reds_handle_other_links(RedsState *reds, RedLinkInfo *link)
 
     link_mess = link->link_mess;
     if (reds->main_channel) {
-        client = main_channel_get_client_by_link_id(reds->main_channel,
-                                                    link_mess->connection_id);
+        client = reds->main_channel->get_client_by_link_id(link_mess->connection_id);
     }
 
     // TODO: MC: broke migration (at least for the dont-drop-connection kind).
@@ -2649,8 +2649,7 @@ static void reds_send_mm_time(RedsState *reds)
         return;
     }
     spice_debug("trace");
-    main_channel_push_multi_media_time(reds->main_channel,
-                                       reds_get_mm_time() - reds->mm_time_latency);
+    reds->main_channel->push_multi_media_time(reds_get_mm_time() - reds->mm_time_latency);
 }
 
 void reds_set_client_mm_time_latency(RedsState *reds, RedClient *client, uint32_t latency)
@@ -3057,7 +3056,7 @@ static void reds_mig_finished(RedsState *reds, int completed)
     if (reds->src_do_seamless_migrate && completed) {
         reds_migrate_channels_seamless(reds);
     } else {
-        main_channel_migrate_src_complete(reds->main_channel, completed);
+        reds->main_channel->migrate_src_complete(completed);
     }
 
     if (completed) {
@@ -3074,7 +3073,7 @@ static void migrate_timeout(RedsState *reds)
     spice_assert(reds->mig_wait_connect || reds->mig_wait_disconnect);
     if (reds->mig_wait_connect) {
         /* we will fall back to the switch host scheme when migration completes */
-        main_channel_migrate_cancel_wait(reds->main_channel);
+        reds->main_channel->migrate_cancel_wait();
         /* in case part of the client haven't yet completed the previous migration, disconnect them */
         reds_mig_target_client_disconnect_all(reds);
         reds_mig_cleanup(reds);
@@ -3162,7 +3161,7 @@ static RedCharDevice *attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstan
     } else {
         /* we will associate the client with the char device, upon reds_on_main_agent_start,
          * in response to MSGC_AGENT_START */
-        main_channel_push_agent_connected(reds->main_channel);
+        reds->main_channel->push_agent_connected();
     }
 
     return dev;
@@ -4227,7 +4226,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_connect(SpiceServer *reds, const cha
 
     if (reds->expect_migrate) {
         spice_debug("consecutive calls without migration. Canceling previous call");
-        main_channel_migrate_src_complete(reds->main_channel, FALSE);
+        reds->main_channel->migrate_src_complete(FALSE);
     }
 
     sif = SPICE_UPCAST(SpiceMigrateInterface, reds->migration_interface->base.sif);
@@ -4250,8 +4249,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_connect(SpiceServer *reds, const cha
     try_seamless = reds->seamless_migration_enabled &&
                    reds->main_channel->test_remote_cap(SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS);
     /* main channel will take care of clients that are still during migration (at target)*/
-    if (main_channel_migrate_connect(reds->main_channel, reds->config->mig_spice,
-                                     try_seamless)) {
+    if (reds->main_channel->migrate_connect(reds->config->mig_spice, try_seamless)) {
         reds_mig_started(reds);
     } else {
         if (reds->clients == NULL) {
@@ -4329,7 +4327,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_switch(SpiceServer *reds)
         spice_warning("spice_server_migrate_switch called without migrate_info set");
         return 0;
     }
-    main_channel_migrate_switch(reds->main_channel, reds->config->mig_spice);
+    reds->main_channel->migrate_switch(reds->config->mig_spice);
     reds_mig_release(reds->config);
     return 0;
 }

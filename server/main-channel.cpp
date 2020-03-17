@@ -26,18 +26,13 @@
 #include "main-channel.h"
 #include "main-channel-client.h"
 
-int main_channel_is_connected(MainChannel *main_chan)
-{
-    return main_chan && main_chan->is_connected();
-}
-
 XXX_CAST(RedChannelClient, MainChannelClient, MAIN_CHANNEL_CLIENT);
 
-RedClient *main_channel_get_client_by_link_id(MainChannel *main_chan, uint32_t connection_id)
+RedClient *MainChannel::get_client_by_link_id(uint32_t connection_id)
 {
     RedChannelClient *rcc;
 
-    FOREACH_CLIENT(main_chan, rcc) {
+    FOREACH_CLIENT(this, rcc) {
         MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
         if (main_channel_client_get_connection_id(mcc) == connection_id) {
             return rcc->get_client();
@@ -57,16 +52,16 @@ static void main_channel_push_channels(MainChannelClient *mcc)
     mcc->pipe_add_type(RED_PIPE_ITEM_TYPE_MAIN_CHANNELS_LIST);
 }
 
-void main_channel_push_mouse_mode(MainChannel *main_chan, SpiceMouseMode current_mode,
+void MainChannel::push_mouse_mode(SpiceMouseMode current_mode,
                                   int is_client_mouse_allowed)
 {
-    main_chan->pipes_add(main_mouse_mode_item_new(current_mode, is_client_mouse_allowed));
+    pipes_add(main_mouse_mode_item_new(current_mode, is_client_mouse_allowed));
 }
 
-void main_channel_push_agent_connected(MainChannel *main_chan)
+void MainChannel::push_agent_connected()
 {
     RedChannelClient *rcc;
-    FOREACH_CLIENT(main_chan, rcc) {
+    FOREACH_CLIENT(this, rcc) {
         if (rcc->test_remote_cap(SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS)) {
             rcc->pipe_add_type(RED_PIPE_ITEM_TYPE_MAIN_AGENT_CONNECTED_TOKENS);
         } else {
@@ -75,9 +70,9 @@ void main_channel_push_agent_connected(MainChannel *main_chan)
     }
 }
 
-void main_channel_push_agent_disconnected(MainChannel *main_chan)
+void MainChannel::push_agent_disconnected()
 {
-    main_chan->pipes_add_type(RED_PIPE_ITEM_TYPE_MAIN_AGENT_DISCONNECTED);
+    pipes_add_type(RED_PIPE_ITEM_TYPE_MAIN_AGENT_DISCONNECTED);
 }
 
 static void main_channel_push_migrate_data_item(MainChannel *main_chan)
@@ -109,9 +104,9 @@ bool MainChannelClient::handle_migrate_data(uint32_t size, void *message)
                                     size);
 }
 
-void main_channel_push_multi_media_time(MainChannel *main_chan, uint32_t time)
+void MainChannel::push_multi_media_time(uint32_t time)
 {
-    main_chan->pipes_add(main_multi_media_time_item_new(time));
+    pipes_add(main_multi_media_time_item_new(time));
 }
 
 static void main_channel_fill_mig_target(MainChannel *main_channel, RedsMigSpice *mig_target)
@@ -130,15 +125,15 @@ static void main_channel_fill_mig_target(MainChannel *main_channel, RedsMigSpice
 }
 
 void
-main_channel_registered_new_channel(MainChannel *main_chan, RedChannel *channel)
+MainChannel::registered_new_channel(RedChannel *channel)
 {
-    main_chan->pipes_add(registered_channel_item_new(channel));
+    pipes_add(registered_channel_item_new(channel));
 }
 
-void main_channel_migrate_switch(MainChannel *main_chan, RedsMigSpice *mig_target)
+void MainChannel::migrate_switch(RedsMigSpice *mig_target)
 {
-    main_channel_fill_mig_target(main_chan, mig_target);
-    main_chan->pipes_add_type(RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_SWITCH_HOST);
+    main_channel_fill_mig_target(this, mig_target);
+    pipes_add_type(RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_SWITCH_HOST);
 }
 
 bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *message)
@@ -259,56 +254,55 @@ static int main_channel_connect_seamless(MainChannel *main_channel)
     return main_channel->num_clients_mig_wait;
 }
 
-int main_channel_migrate_connect(MainChannel *main_channel, RedsMigSpice *mig_target,
-                                 int try_seamless)
+int MainChannel::migrate_connect(RedsMigSpice *mig_target, int try_seamless)
 {
-    main_channel_fill_mig_target(main_channel, mig_target);
-    main_channel->num_clients_mig_wait = 0;
+    main_channel_fill_mig_target(this, mig_target);
+    num_clients_mig_wait = 0;
 
-    if (!main_channel_is_connected(main_channel)) {
+    if (!is_connected()) {
         return 0;
     }
 
     if (!try_seamless) {
-        return main_channel_connect_semi_seamless(main_channel);
+        return main_channel_connect_semi_seamless(this);
     } else {
         RedChannelClient *rcc;
-        GList *clients = main_channel->get_clients();
+        GList *clients = get_clients();
 
         /* just test the first one */
         rcc = (RedChannelClient*) g_list_nth_data(clients, 0);
 
         if (!rcc->test_remote_cap(SPICE_MAIN_CAP_SEAMLESS_MIGRATE)) {
-            return main_channel_connect_semi_seamless(main_channel);
+            return main_channel_connect_semi_seamless(this);
         } else {
-            return main_channel_connect_seamless(main_channel);
+            return main_channel_connect_seamless(this);
         }
     }
 
 }
 
-void main_channel_migrate_cancel_wait(MainChannel *main_chan)
+void MainChannel::migrate_cancel_wait()
 {
     RedChannelClient *rcc;
 
-    FOREACH_CLIENT(main_chan, rcc) {
+    FOREACH_CLIENT(this, rcc) {
         MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
         main_channel_client_migrate_cancel_wait(mcc);
     }
-    main_chan->num_clients_mig_wait = 0;
+    num_clients_mig_wait = 0;
 }
 
-int main_channel_migrate_src_complete(MainChannel *main_chan, int success)
+int MainChannel::migrate_src_complete(int success)
 {
     int semi_seamless_count = 0;
     RedChannelClient *rcc;
 
-    if (!main_chan->get_clients()) {
-        red_channel_warning(main_chan, "no peer connected");
+    if (!get_clients()) {
+        red_channel_warning(this, "no peer connected");
         return 0;
     }
 
-    FOREACH_CLIENT(main_chan, rcc) {
+    FOREACH_CLIENT(this, rcc) {
         MainChannelClient *mcc = MAIN_CHANNEL_CLIENT(rcc);
         if (main_channel_client_migrate_src_complete(mcc, success))
             semi_seamless_count++;
@@ -316,18 +310,17 @@ int main_channel_migrate_src_complete(MainChannel *main_chan, int success)
    return semi_seamless_count;
 }
 
-void main_channel_on_migrate_connected(MainChannel *main_channel,
-                                       gboolean success, gboolean seamless)
+void MainChannel::on_migrate_connected(gboolean success, gboolean seamless)
 {
-        spice_assert(main_channel->num_clients_mig_wait);
-        spice_assert(!seamless || main_channel->num_clients_mig_wait == 1);
-        if (!--main_channel->num_clients_mig_wait) {
-            reds_on_main_migrate_connected(main_channel->get_server(),
+        spice_assert(num_clients_mig_wait);
+        spice_assert(!seamless || num_clients_mig_wait == 1);
+        if (!--num_clients_mig_wait) {
+            reds_on_main_migrate_connected(get_server(),
                                            seamless && success);
         }
 }
 
-const RedsMigSpice* main_channel_get_migration_target(MainChannel *main_chan)
+const RedsMigSpice* MainChannel::get_migration_target()
 {
-    return &main_chan->mig_target;
+    return &mig_target;
 }
