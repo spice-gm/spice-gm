@@ -1,8 +1,12 @@
 NULL =
+SUBDIRS =
+
+if ENABLE_TESTS
 SUBDIRS = . tests
 
 check-valgrind:
 	$(MAKE) -C tests check-valgrind
+endif
 
 AM_CPPFLAGS =					\
 	-DSPICE_SERVER_INTERNAL			\

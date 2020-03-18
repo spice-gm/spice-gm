@@ -3,8 +3,10 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = subprojects/spice-common server docs tools
 
+if ENABLE_TESTS
 check-valgrind:
 	$(MAKE) -C server check-valgrind
+endif
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = spice-server.pc

@@ -135,6 +135,13 @@ if test "x$have_gstreamer_0_10" = "xyes" || test "x$have_gstreamer_1_0" = "xyes"
     AC_SUBST(ORC_LIBS)
 fi
 
+AC_ARG_ENABLE([tests],
+  AS_HELP_STRING([--enable-tests],
+                 [Enable tests @<:@default=yes@:>@]),
+  [],
+  enable_tests="yes")
+AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "xyes")
+
 dnl Check for the presence of Valgrind and do the plumbing to allow
 dnl the running of "make check-valgrind".
 AX_VALGRIND_DFLT(memcheck, on)
