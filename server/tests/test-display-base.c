@@ -423,7 +423,7 @@ static QXLDevMemSlot slot = {
 .qxl_ram_size = ~0,
 };
 
-static void attache_worker(QXLInstance *qin, SPICE_GNUC_UNUSED QXLWorker *_qxl_worker)
+static void attached_worker(QXLInstance *qin)
 {
     Test *test = SPICE_CONTAINEROF(qin, Test, qxl_instance);
 
@@ -797,7 +797,7 @@ static QXLInterface display_sif = {
         .major_version = SPICE_INTERFACE_QXL_MAJOR,
         .minor_version = SPICE_INTERFACE_QXL_MINOR
     },
-    .attache_worker = attache_worker,
+    .attached_worker = attached_worker,
     .set_compression_level = set_compression_level,
     .get_init_info = get_init_info,
 

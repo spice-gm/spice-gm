@@ -185,7 +185,10 @@ struct QXLDevSurfaceCreate {
 struct QXLInterface {
     SpiceBaseInterface base;
 
-    void (*attache_worker)(QXLInstance *qin, QXLWorker *qxl_worker);
+    union {
+        void (*attache_worker)(QXLInstance *qin, QXLWorker *qxl_worker) SPICE_GNUC_DEPRECATED;
+        void (*attached_worker)(QXLInstance *qin);
+    };
     void (*set_compression_level)(QXLInstance *qin, int level);
     void (*set_mm_time)(QXLInstance *qin, uint32_t mm_time) SPICE_GNUC_DEPRECATED;
 
