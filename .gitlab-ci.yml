@@ -41,7 +41,7 @@ meson-makecheck:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    meson --buildtype=release build || (cat build/meson-logs/meson-log.txt && exit 1)
+    meson --buildtype=release --werror build || (cat build/meson-logs/meson-log.txt && exit 1)
   - ninja -C build
   - (cd build && meson test) || (cat build/meson-logs/testlog.txt && exit 1)
 
@@ -56,7 +56,7 @@ options:
 
 meson-options:
   script:
-  - meson --buildtype=release -Dstatistics=true -Dsasl=false build
+  - meson --buildtype=release --werror -Dstatistics=true -Dsasl=false build
   - ninja -C build
   - (cd build && meson test) || (cat build/meson-logs/testlog.txt && exit 1)
 
@@ -129,7 +129,7 @@ makecheck-debian32:
   - >
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    meson --buildtype=release build || (cat build/meson-logs/meson-log.txt && exit 1)
+    meson --buildtype=release --werror build || (cat build/meson-logs/meson-log.txt && exit 1)
   - ninja -C build
   - (cd build && meson test) || (cat build/meson-logs/testlog.txt && exit 1)
 
