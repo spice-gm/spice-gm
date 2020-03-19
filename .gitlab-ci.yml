@@ -34,7 +34,6 @@ makecheck:
     ../autogen.sh
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
-  - cd ..
 
 meson-makecheck:
   script:
