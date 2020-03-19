@@ -144,8 +144,7 @@ makecheck-windows:
     mingw64-gstreamer1-plugins-base mingw64-gstreamer1-plugins-good mingw64-orc
     meson
   - mkdir spice-protocol/build
-  - (cd spice-protocol/build && mingw64-meson --werror)
-  - ninja -C spice-protocol/build install
+  - (cd spice-protocol/build && mingw64-meson --werror && ninja install)
   - NOCONFIGURE=yes ./autogen.sh
   - mingw64-configure
   - mingw64-make
