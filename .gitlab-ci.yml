@@ -10,10 +10,11 @@ before_script:
     gstreamer1-devel gstreamer1-plugins-base-devel
     dconf
     -y
-  - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
-  - meson --buildtype=release spice-protocol build-spice-protocol --prefix=/usr --werror
-  - ninja -C build-spice-protocol install
-  - rm -rf build-spice-protocol
+  - &protocol >
+    git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git} &&
+    meson --buildtype=release spice-protocol build-spice-protocol --prefix=/usr --werror &&
+    ninja -C build-spice-protocol install &&
+    rm -rf build-spice-protocol
   # This is a workaround for Fedora docker image, this will add some
   # missing configuration
   # '/org/gnome/system/location/enabled' is just the first key path
@@ -97,9 +98,7 @@ makecheck-centos:
       git-core python3-pyparsing python3-six python3
       meson
       -y
-    - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
-    - meson --buildtype=release spice-protocol build-spice-protocol --prefix=/usr --werror
-    - ninja -C build-spice-protocol install
+    - *protocol
   image: centos:latest
   script:
   - >
@@ -124,9 +123,7 @@ makecheck-debian32:
       libjpeg-dev liblz4-dev libopus-dev libpixman-1-dev libsasl2-dev
       libspice-protocol-dev libssl-dev pkg-config
       python3-six python3-pyparsing liborc-0.4-dev meson git
-    - git clone ${CI_REPOSITORY_URL/spice.git/spice-protocol.git}
-    - meson --buildtype=release spice-protocol build-spice-protocol --prefix=/usr --werror
-    - ninja -C build-spice-protocol install
+    - *protocol
   image: i386/debian:latest
   script:
   - >
