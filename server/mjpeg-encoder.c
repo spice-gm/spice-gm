@@ -717,11 +717,12 @@ static void mjpeg_encoder_adjust_fps(MJpegEncoder *encoder, uint64_t now)
  *  MJPEG_ENCODER_FRAME_ENCODE_DONE : frame encoding started. Continue with
  *                                    mjpeg_encoder_encode_scanline.
  */
-static int mjpeg_encoder_start_frame(MJpegEncoder *encoder,
-                                     SpiceBitmapFmt format,
-                                     const SpiceRect *src,
-                                     MJpegVideoBuffer *buffer,
-                                     uint32_t frame_mm_time)
+static VideoEncodeResults
+mjpeg_encoder_start_frame(MJpegEncoder *encoder,
+                          SpiceBitmapFmt format,
+                          const SpiceRect *src,
+                          MJpegVideoBuffer *buffer,
+                          uint32_t frame_mm_time)
 {
     uint32_t quality;
 
@@ -936,12 +937,13 @@ static bool encode_frame(MJpegEncoder *encoder, const SpiceRect *src,
     return TRUE;
 }
 
-static int mjpeg_encoder_encode_frame(VideoEncoder *video_encoder,
-                                      uint32_t frame_mm_time,
-                                      const SpiceBitmap *bitmap,
-                                      const SpiceRect *src, int top_down,
-                                      gpointer bitmap_opaque,
-                                      VideoBuffer **outbuf)
+static VideoEncodeResults
+mjpeg_encoder_encode_frame(VideoEncoder *video_encoder,
+                           uint32_t frame_mm_time,
+                           const SpiceBitmap *bitmap,
+                           const SpiceRect *src, int top_down,
+                           gpointer bitmap_opaque,
+                           VideoBuffer **outbuf)
 {
     MJpegEncoder *encoder = SPICE_CONTAINEROF(video_encoder, MJpegEncoder, base);
     MJpegVideoBuffer *buffer = create_mjpeg_video_buffer();
@@ -949,8 +951,8 @@ static int mjpeg_encoder_encode_frame(VideoEncoder *video_encoder,
         return VIDEO_ENCODER_FRAME_UNSUPPORTED;
     }
 
-    int ret = mjpeg_encoder_start_frame(encoder, bitmap->format, src,
-                                        buffer, frame_mm_time);
+    VideoEncodeResults ret = mjpeg_encoder_start_frame(encoder, bitmap->format, src,
+                                                       buffer, frame_mm_time);
     if (ret == VIDEO_ENCODER_FRAME_ENCODE_DONE) {
         if (encode_frame(encoder, src, bitmap, top_down)) {
             buffer->base.size = mjpeg_encoder_end_frame(encoder);

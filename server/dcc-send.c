@@ -1687,7 +1687,7 @@ static bool red_marshall_stream_data(RedChannelClient *rcc,
     SpiceCopy *copy;
     uint32_t frame_mm_time;
     int is_sized;
-    int ret;
+    VideoEncodeResults ret;
 
     spice_assert(drawable->red_drawable->type == QXL_DRAW_COPY);
 

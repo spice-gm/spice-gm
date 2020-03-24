@@ -206,9 +206,9 @@ input_frames(GstSample *sample, void *param)
     TestFrame *frame = gst_to_spice_frame(sample);
 
     // send frame to our video encoder (must be from a single thread)
-    int res = video_encoder->encode_frame(video_encoder, frame_mm_time, frame->bitmap,
-                                          &clipping_rect, top_down, frame,
-                                          &p_outbuf);
+    VideoEncodeResults res =
+        video_encoder->encode_frame(video_encoder, frame_mm_time, frame->bitmap,
+                                    &clipping_rect, top_down, frame, &p_outbuf);
     switch (res) {
     case VIDEO_ENCODER_FRAME_ENCODE_DONE:
         // save frame into queue for comparison later

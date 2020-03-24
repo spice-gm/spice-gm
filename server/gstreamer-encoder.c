@@ -1347,10 +1347,11 @@ static void unmap_and_release_memory(GstMapInfo *map, GstBuffer *buffer)
 }
 
 /* A helper for spice_gst_encoder_encode_frame() */
-static int push_raw_frame(SpiceGstEncoder *encoder,
-                          const SpiceBitmap *bitmap,
-                          const SpiceRect *src, int top_down,
-                          gpointer bitmap_opaque)
+static VideoEncodeResults
+push_raw_frame(SpiceGstEncoder *encoder,
+               const SpiceBitmap *bitmap,
+               const SpiceRect *src, int top_down,
+               gpointer bitmap_opaque)
 {
     uint32_t height = src->bottom - src->top;
     // GStreamer require the stream to be 4 bytes aligned
@@ -1465,12 +1466,13 @@ static void spice_gst_encoder_destroy(VideoEncoder *video_encoder)
     g_free(encoder);
 }
 
-static int spice_gst_encoder_encode_frame(VideoEncoder *video_encoder,
-                                          uint32_t frame_mm_time,
-                                          const SpiceBitmap *bitmap,
-                                          const SpiceRect *src, int top_down,
-                                          gpointer bitmap_opaque,
-                                          VideoBuffer **outbuf)
+static VideoEncodeResults
+spice_gst_encoder_encode_frame(VideoEncoder *video_encoder,
+                               uint32_t frame_mm_time,
+                               const SpiceBitmap *bitmap,
+                               const SpiceRect *src, int top_down,
+                               gpointer bitmap_opaque,
+                               VideoBuffer **outbuf)
 {
     SpiceGstEncoder *encoder = (SpiceGstEncoder*)video_encoder;
     g_return_val_if_fail(outbuf != NULL, VIDEO_ENCODER_FRAME_UNSUPPORTED);
