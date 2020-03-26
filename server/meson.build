@@ -175,17 +175,30 @@ spice_server_link_args = ['-Wl,--no-copy-dt-needed-entries',
                           '-Wl,-z,now',
                           '-Wl,--version-script=@0@'.format(spice_server_syms_path)]
 
-spice_server_libs = both_libraries('spice-server', spice_server_sources,
-                                   version : spice_server_so_version,
-                                   install : true,
-                                   include_directories : spice_server_include,
-                                   link_args : compiler.get_supported_link_arguments(spice_server_link_args),
-                                   link_depends : spice_server_syms,
-                                   dependencies : spice_server_deps,
-                                   gnu_symbol_visibility : 'hidden')
+spice_server_libs = library('spice-server', spice_server_sources,
+                            version : spice_server_so_version,
+                            install : true,
+                            include_directories : spice_server_include,
+                            link_args : compiler.get_supported_link_arguments(spice_server_link_args),
+                            link_depends : spice_server_syms,
+                            dependencies : spice_server_deps,
+                            gnu_symbol_visibility : 'hidden')
 
 if get_option('tests')
-  spice_server_shared_lib = spice_server_libs.get_shared_lib()
-  spice_server_static_lib = spice_server_libs.get_static_lib()
+  if get_option('default_library') == 'both'
+    spice_server_shared_lib = spice_server_libs.get_shared_lib()
+    spice_server_static_lib = spice_server_libs.get_static_lib()
+  elif get_option('default_library') == 'shared'
+    spice_server_shared_lib = spice_server_libs
+    # create static library extracting objects from shared one, avoid to
+    # install static library using both_libraries
+    spice_server_static_lib = static_library('spice-server-static',
+                                             objects: spice_server_libs.extract_all_objects(),
+                                             dependencies : spice_server_deps)
+  else
+    # here we use the static library to link to utilities (currently spice-server-replay)
+    spice_server_shared_lib = spice_server_libs
+    spice_server_static_lib = spice_server_libs
+  endif
   subdir('tests')
 endif
