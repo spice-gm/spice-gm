@@ -1,8 +1,8 @@
 NULL =
-SUBDIRS =
+SUBDIRS = .
 
 if ENABLE_TESTS
-SUBDIRS = . tests
+SUBDIRS += tests
 
 check-valgrind:
 	$(MAKE) -C tests check-valgrind
