@@ -59,6 +59,26 @@ test_record(bool compress)
 
     red_record_unref(rec);
 
+    // this code prevents a race between closing the record and using the file
+    // in case of a filter is used. red_record_unref flushed data to external
+    // program but don't wait. Make sure other program wrote some data
+    if (compress) {
+        int n;
+        for (n = 0; n < 10; ++n) {
+            FILE *f = fopen(fn, "rb");
+            if (f) {
+                long size;
+                fseek(f, 0, SEEK_END);
+                size = ftell(f);
+                fclose(f);
+                if (size > 0) {
+                    break;
+                }
+            }
+            usleep(100000);
+        }
+    }
+
     // check content of the output file
     FILE *f;
     if (!compress) {
