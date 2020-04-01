@@ -628,7 +628,7 @@ void red_qxl_destroy(QXLInstance *qxl)
                             RED_WORKER_MESSAGE_CLOSE_WORKER,
                             &message);
     red_worker_free(qxl_state->worker);
-    g_object_unref(qxl_state->dispatcher);
+    qxl_state->dispatcher->unref();
     /* this must be done after calling red_worker_free */
     qxl->st = NULL;
     pthread_mutex_destroy(&qxl_state->scanout_mutex);

@@ -24,28 +24,6 @@
 #define FOREACH_CHANNEL_CLIENT(_client, _data) \
     GLIST_FOREACH((_client ? (_client)->channels : NULL), RedChannelClient, _data)
 
-struct RedClient {
-    GObject parent;
-    RedsState *reds;
-    GList *channels;
-    MainChannelClient *mcc;
-    pthread_mutex_t lock; // different channels can be in different threads
-
-    pthread_t thread_id;
-
-    int disconnecting;
-    /* Note that while semi-seamless migration is conducted by the main thread, seamless migration
-     * involves all channels, and thus the related variables can be accessed from different
-     * threads */
-    /* if seamless=TRUE, migration_target is turned off when all
-     * the clients received their migration data. Otherwise (semi-seamless),
-     * it is turned off, when red_client_semi_seamless_migrate_complete
-     * is called */
-    int during_target_migrate;
-    int seamless_migrate;
-    int num_migrated_channels; /* for seamless - number of channels that wait for migrate data*/
-};
-
 struct RedClientClass
 {
     GObjectClass parent_class;
@@ -240,7 +218,7 @@ void red_client_destroy(RedClient *client)
         pthread_mutex_lock(&client->lock);
     }
     pthread_mutex_unlock(&client->lock);
-    g_object_unref(client);
+    client->unref();
 }
 
 

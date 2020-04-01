@@ -3831,7 +3831,7 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
     }
 
     if (reds->main_dispatcher) {
-        g_object_unref(reds->main_dispatcher);
+        reds->main_dispatcher->unref();
     }
     reds_cleanup_net(reds);
     if (reds->agent_dev) {

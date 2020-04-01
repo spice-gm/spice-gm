@@ -57,6 +57,30 @@ gboolean red_client_is_disconnecting(RedClient *client);
 void red_client_set_disconnecting(RedClient *client);
 RedsState* red_client_get_server(RedClient *client);
 
+struct RedClient: public GObject
+{
+    RedsState *reds;
+    GList *channels;
+    MainChannelClient *mcc;
+    pthread_mutex_t lock; // different channels can be in different threads
+
+    pthread_t thread_id;
+
+    int disconnecting;
+    /* Note that while semi-seamless migration is conducted by the main thread, seamless migration
+     * involves all channels, and thus the related variables can be accessed from different
+     * threads */
+    /* if seamless=TRUE, migration_target is turned off when all
+     * the clients received their migration data. Otherwise (semi-seamless),
+     * it is turned off, when red_client_semi_seamless_migrate_complete
+     * is called */
+    int during_target_migrate;
+    int seamless_migrate;
+    int num_migrated_channels; /* for seamless - number of channels that wait for migrate data*/
+    void ref() { g_object_ref(this); }
+    void unref() { g_object_unref(this); }
+};
+
 G_END_DECLS
 
 #endif /* RED_CLIENT_H_ */

@@ -26,6 +26,7 @@
 #include "red-channel-client.h"
 #include "reds.h"
 #include "red-stream.h"
+#include "red-client.h"
 #include "main-dispatcher.h"
 #include "utils.h"
 #include "utils.hpp"
@@ -71,7 +72,7 @@ struct RedChannelPrivate
         handle_acks(!!(flags & RedChannel::HandleAcks)),
         parser(spice_get_client_channel_parser(type, nullptr)),
         migration_flags(flags & RedChannel::MigrateAll),
-        dispatcher(dispatcher ? (Dispatcher*) g_object_ref(dispatcher) : dispatcher),
+        dispatcher(red::add_ref(dispatcher)),
         reds(reds)
     {
         thread_id = pthread_self();
@@ -340,7 +341,7 @@ static void handle_dispatcher_connect(void *opaque, void *payload)
     RedChannel *channel = msg->channel;
 
     channel->on_connect(msg->client, msg->stream, msg->migration, &msg->caps);
-    g_object_unref(msg->client);
+    msg->client->unref();
     red_channel_capabilities_reset(&msg->caps);
 }
 
@@ -359,7 +360,7 @@ void RedChannel::connect(RedClient *client, RedStream *stream, int migration,
     // the main thread causing RedClient to be destroyed before using it
     RedMessageConnect payload = {
         .channel = this,
-        .client = (RedClient*) g_object_ref(client),
+        .client = red::add_ref(client),
         .stream = stream,
         .migration = migration
     };

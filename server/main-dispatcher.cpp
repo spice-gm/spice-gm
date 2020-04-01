@@ -182,7 +182,7 @@ static void main_dispatcher_handle_migrate_complete(void *opaque,
     MainDispatcherMigrateSeamlessDstCompleteMessage *mig_complete = (MainDispatcherMigrateSeamlessDstCompleteMessage*) payload;
 
     reds_on_client_seamless_migrate_complete(reds, mig_complete->client);
-    g_object_unref(mig_complete->client);
+    mig_complete->client->unref();
 }
 
 static void main_dispatcher_handle_mm_time_latency(void *opaque,
@@ -191,7 +191,7 @@ static void main_dispatcher_handle_mm_time_latency(void *opaque,
     RedsState *reds = (RedsState*) opaque;
     MainDispatcherMmTimeLatencyMessage *msg = (MainDispatcherMmTimeLatencyMessage*) payload;
     reds_set_client_mm_time_latency(reds, msg->client, msg->latency);
-    g_object_unref(msg->client);
+    msg->client->unref();
 }
 
 static void main_dispatcher_handle_client_disconnect(void *opaque,
@@ -202,7 +202,7 @@ static void main_dispatcher_handle_client_disconnect(void *opaque,
 
     spice_debug("client=%p", msg->client);
     reds_client_disconnect(reds, msg->client);
-    g_object_unref(msg->client);
+    msg->client->unref();
 }
 
 void main_dispatcher_seamless_migrate_dst_complete(MainDispatcher *self,
@@ -215,7 +215,7 @@ void main_dispatcher_seamless_migrate_dst_complete(MainDispatcher *self,
         return;
     }
 
-    msg.client = (RedClient*) g_object_ref(client);
+    msg.client = red::add_ref(client);
     dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_MIGRATE_SEAMLESS_DST_COMPLETE,
                             &msg);
 }
@@ -229,7 +229,7 @@ void main_dispatcher_set_mm_time_latency(MainDispatcher *self, RedClient *client
         return;
     }
 
-    msg.client = (RedClient*) g_object_ref(client);
+    msg.client = red::add_ref(client);
     msg.latency = latency;
     dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_SET_MM_TIME_LATENCY,
                             &msg);
@@ -241,7 +241,7 @@ void main_dispatcher_client_disconnect(MainDispatcher *self, RedClient *client)
 
     if (!red_client_is_disconnecting(client)) {
         spice_debug("client %p", client);
-        msg.client = (RedClient*) g_object_ref(client);
+        msg.client = red::add_ref(client);
         dispatcher_send_message(DISPATCHER(self), MAIN_DISPATCHER_CLIENT_DISCONNECT,
                                 &msg);
     } else {

@@ -53,6 +53,8 @@ typedef struct DispatcherPrivate DispatcherPrivate;
 struct Dispatcher: public GObject
 {
     DispatcherPrivate *priv;
+    void ref() { g_object_ref(this); }
+    void unref() { g_object_unref(this); }
 };
 
 struct DispatcherClass
