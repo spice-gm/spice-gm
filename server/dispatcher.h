@@ -50,10 +50,8 @@ typedef struct DispatcherPrivate DispatcherPrivate;
  * activity and should call dispatcher_handle_recv_read() to process incoming
  * messages.
  */
-struct Dispatcher
+struct Dispatcher: public GObject
 {
-    GObject parent;
-
     DispatcherPrivate *priv;
 };
 

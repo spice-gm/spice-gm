@@ -37,10 +37,8 @@ typedef struct MainDispatcher MainDispatcher;
 typedef struct MainDispatcherClass MainDispatcherClass;
 typedef struct MainDispatcherPrivate MainDispatcherPrivate;
 
-struct MainDispatcher
+struct MainDispatcher: public Dispatcher
 {
-    Dispatcher parent;
-
     MainDispatcherPrivate *priv;
 };
 

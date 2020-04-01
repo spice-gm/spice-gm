@@ -309,7 +309,7 @@ static int dispatcher_handle_single_read(Dispatcher *dispatcher)
  */
 static void dispatcher_handle_event(int fd, int event, void *opaque)
 {
-    Dispatcher *dispatcher = opaque;
+    Dispatcher *dispatcher = (Dispatcher *) opaque;
 
     while (dispatcher_handle_single_read(dispatcher)) {
     }

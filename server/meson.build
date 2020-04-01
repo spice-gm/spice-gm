@@ -61,7 +61,7 @@ spice_server_sources = [
   'dcc.h',
   'dcc-private.h',
   'dcc-send.cpp',
-  'dispatcher.c',
+  'dispatcher.cpp',
   'dispatcher.h',
   'display-channel.cpp',
   'display-channel.h',
