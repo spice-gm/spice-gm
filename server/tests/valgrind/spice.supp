@@ -80,3 +80,12 @@
 	fun:g_socket_client_connect
 	fun:fake_client_connect_tls
 }
+
+{
+    g-type-register-static-possible
+    Memcheck:Leak
+    match-leak-kinds:possible
+    fun:malloc
+    ...
+    fun:g_type_register_static
+}
