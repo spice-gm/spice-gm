@@ -213,22 +213,3 @@ endif
 
 configure_file(output : 'config.h',
                configuration : spice_server_config_data)
-
-#
-# write spice-server.pc
-#
-spice_server_pc = configuration_data()
-spice_server_pc.set('prefix', get_option('prefix'))
-spice_server_pc.set('exec_prefix', '${prefix}')
-spice_server_pc.set('libdir', join_paths('${exec_prefix}', get_option('libdir')))
-spice_server_pc.set('includedir', join_paths('${prefix}', get_option('includedir')))
-spice_server_pc.set('VERSION', meson.project_version())
-spice_server_pc.set('SPICE_PROTOCOL_MIN_VER', spice_protocol_version)
-spice_server_requires += 'glib-2.0 @0@ gio-2.0 @0@ gobject-2.0 @0@ pixman-1 @1@ openssl'.format(glib_version_info, pixman_version)
-spice_server_pc.set('SPICE_REQUIRES', spice_server_requires)
-spice_server_pc.set('SPICE_NONPKGCONFIG_LIBS', '-pthread -lm -lrt')
-
-configure_file(input : 'spice-server.pc.in',
-               output : 'spice-server.pc',
-               install_dir : join_paths(get_option('libdir'), 'pkgconfig'),
-               configuration : spice_server_pc)

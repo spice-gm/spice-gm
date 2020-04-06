@@ -202,3 +202,9 @@ if get_option('tests')
   endif
   subdir('tests')
 endif
+
+pc = import('pkgconfig')
+pc.generate(spice_server_libs,
+            description : 'SPICE server library',
+            subdirs : 'spice-server',
+            requires : 'spice-protocol')
