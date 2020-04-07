@@ -102,7 +102,7 @@ foreach dep : ['libjpeg', 'zlib']
 endforeach
 
 if host_machine.system() != 'windows'
-  foreach dep : ['librt', 'libm']
+  foreach dep : ['rt', 'm']
     spice_server_deps += compiler.find_library(dep)
   endforeach
 else
