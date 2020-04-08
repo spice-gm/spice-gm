@@ -80,7 +80,7 @@ SPICE_FIXED28_4 y +
 +
 . Protocol Magic number UINT8[4]
 +
-SPICE_MAGIC = { 0x52, 0x45, 0x44,  0x51}
+SPICE_MAGIC = { 0x52, 0x45, 0x44,  0x51} // "REDQ"
 +
 . Protocol version
 +
@@ -97,8 +97,8 @@ compatibility. It is  set to zero on  major protocol version increment.
 +
 [source,c]
 ----
-SPICE_VERSION_MAJOR = 1
-SPICE_VERSION_MINOR = 0
+SPICE_VERSION_MAJOR = 2
+SPICE_VERSION_MINOR = 2
 ----
 +
 . Compatibility – UINT32[]
@@ -112,6 +112,7 @@ compatibilities shared by all channels, and  channels compatibilities stands
 for channel specific compatibilities. Splitting the vector into two types
 allows us to add channel compatibilities independently. Each compatibility is
 expressed using one or more bits in the compatibilities vector.
+For example capability 0 will be the low bit of the first (index 0) UINT32.
 +
 . Channel types – UINT8
 +
@@ -123,6 +124,11 @@ SPICE_CHANNEL_INPUTS 	= 3
 SPICE_CHANNEL_CURSOR 	= 4
 SPICE_CHANNEL_PLAYBACK 	= 5
 SPICE_CHANNEL_RECORD 	= 6
+SPICE_CHANNEL_TUNNEL	= 7 // obsolete
+SPICE_CHANNEL_SMARTCARD	= 8
+SPICE_CHANNEL_USBREDIR	= 9
+SPICE_CHANNEL_PORT		= 10
+SPICE_CHANNEL_WEBDAV	= 11
 ----
 +
 . Error codes UINT32
