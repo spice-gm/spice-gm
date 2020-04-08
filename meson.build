@@ -49,13 +49,19 @@ spice_server_include = [include_directories('.')]
 spice_server_deps = [dependency('threads')]
 spice_server_link_args = []
 spice_server_requires = ''
+spice_protocol_version='0.14.0'
 
 #
 # Spice common subproject
 #
-spice_common = subproject('spice-common', default_options : 'generate-code=server')
+spice_common = subproject('spice-common',
+                          default_options : [
+                            'generate-code=server',
+                            'spice-protocol-version=@0@'.format(spice_protocol_version),
+                          ])
 spice_server_config_data.merge_from(spice_common.get_variable('spice_common_config_data'))
 spice_server_deps += spice_common.get_variable('spice_common_server_dep')
+spice_protocol_version = spice_common.get_variable('spice_protocol_version')
 
 #
 # check for system headers
@@ -79,14 +85,11 @@ endif
 #
 # check for mandatory dependencies
 #
-spice_protocol_version='0.14.0'
-
 glib_version = '2.38'
 glib_version_info = '>= @0@'.format(glib_version)
 pixman_version = '>= 0.17.7'
 
-deps = {'spice-protocol' : '>= @0@'.format(spice_protocol_version),
-        'glib-2.0'       : glib_version_info,
+deps = {'glib-2.0'       : glib_version_info,
         'gio-2.0'        : glib_version_info,
         'gobject-2.0'    : glib_version_info,
         'pixman-1'       : pixman_version,
