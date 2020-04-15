@@ -1084,6 +1084,9 @@ static void *red_worker_main(void *arg)
     RedWorker *worker = (RedWorker *) arg;
 
     spice_debug("begin");
+#if defined(__APPLE__)
+    pthread_setname_np("SPICE Worker");
+#endif
     SPICE_VERIFY(MAX_PIPE_SIZE > WIDE_CLIENT_ACK_WINDOW &&
            MAX_PIPE_SIZE > NARROW_CLIENT_ACK_WINDOW); //ensure wakeup by ack message
 
@@ -1123,7 +1126,9 @@ bool red_worker_run(RedWorker *worker)
 #ifndef _WIN32
     pthread_sigmask(SIG_SETMASK, &curr_sig_mask, NULL);
 #endif
+#if !defined(__APPLE__)
     pthread_setname_np(worker->thread, "SPICE Worker");
+#endif
 
     return r == 0;
 }
