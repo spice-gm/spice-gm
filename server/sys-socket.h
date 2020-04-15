@@ -146,4 +146,8 @@ SPICE_END_DECLS
 
 #endif
 
+#if defined(SO_NOSIGPIPE) && defined(__APPLE__)
+#define MSG_NOSIGNAL 0
+#endif
+
 #endif // RED_SYS_SOCKET_H_
