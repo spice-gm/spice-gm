@@ -200,7 +200,7 @@ handle_client(int new_sock)
     }
 
     int enable = 1;
-    setsockopt(new_sock, SOL_TCP, TCP_NODELAY, (const void *) &enable, sizeof(enable));
+    setsockopt(new_sock, IPPROTO_TCP, TCP_NODELAY, (const void *) &enable, sizeof(enable));
 
     // wait header
     wait_for(new_sock, POLLIN);
