@@ -992,6 +992,7 @@ folder will show up in GNOME Files network places (or Nautilus). It
 can then be mounted and browsed in traditional applications thanks to
 `gvfs-fuse`.
 
+[[virgl]]
 GL acceleration (virgl)
 =======================
 
@@ -1053,6 +1054,29 @@ client$ virt-viewer -a $vmname
 
 [source,sh]
 client$ remote-viewer spice+unix:///run/user/1000/spice.sock
+
+[[gvtg]]
+Intel's GVTg
+============
+
+Intel GVTg allows you to share your host GPU with the guest so that it can
+accelerate graphic and media operations.
+
+Configuration
+-------------
+
+To configure your host and the vGPU device, follow
+https://www.kraxel.org/blog/2018/04/vgpu-display-support-finally-merged-upstream/[this blog post]
+
+For spice configuration you have two main options:
+
+1. Use locally, connect and configure spice similar to  <<virgl, virGL>> spice configuration
+(set vfio display=on)
+2. Use remotley, connect and configure spice similar to <<videostreaming, spice-streaming-agent>>
+(set vfio display=off)
+
+* For remote connection you may want to accelerate your video encoding using the configured
+Intel's vGPU, check for Gstreamer's Intel accelerated codec options.
 
 QEMU Spice reference
 ====================
