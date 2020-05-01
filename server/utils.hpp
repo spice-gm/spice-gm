@@ -66,6 +66,10 @@ public:
     {
         return p;
     }
+    T *get() const noexcept
+    {
+        return p;
+    }
 private:
     T *const p;
     unique_link(const unique_link&)=delete;

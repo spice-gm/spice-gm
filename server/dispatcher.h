@@ -153,9 +153,6 @@ protected:
     virtual ~Dispatcher();
 
 private:
-    static int handle_single_read(Dispatcher *dispatcher);
-    static void handle_event(int fd, int event, Dispatcher* dispatcher);
-    void send_message_internal(const DispatcherMessage*msg, void *payload);
     red::unique_link<DispatcherPrivate> priv;
 };
 

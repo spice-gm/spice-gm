@@ -50,6 +50,10 @@ struct DispatcherPrivate {
     {
     }
     ~DispatcherPrivate();
+    void send_message(const DispatcherMessage& msg, void *payload);
+    bool handle_single_read();
+    static void handle_event(int fd, int event, DispatcherPrivate* priv);
+
     int recv_fd;
     int send_fd;
     pthread_mutex_t lock;
@@ -184,96 +188,89 @@ static int write_safe(int fd, uint8_t *buf, size_t size)
     return written_size;
 }
 
-int Dispatcher::handle_single_read(Dispatcher *dispatcher)
+bool DispatcherPrivate::handle_single_read()
 {
     int ret;
     DispatcherMessage msg[1];
-    void *payload;
     uint32_t ack = ACK;
 
-    if ((ret = read_safe(dispatcher->priv->recv_fd, (uint8_t*)msg, sizeof(msg), 0)) == -1) {
+    if ((ret = read_safe(recv_fd, (uint8_t*)msg, sizeof(msg), 0)) == -1) {
         g_warning("error reading from dispatcher: %d", errno);
-        return 0;
+        return false;
     }
     if (ret == 0) {
         /* no message */
-        return 0;
+        return false;
     }
-    if (G_UNLIKELY(msg->size > dispatcher->priv->payload_size)) {
-        dispatcher->priv->payload = g_realloc(dispatcher->priv->payload, msg->size);
-        dispatcher->priv->payload_size = msg->size;
+    if (G_UNLIKELY(msg->size > payload_size)) {
+        payload = g_realloc(payload, msg->size);
+        payload_size = msg->size;
     }
-    payload = dispatcher->priv->payload;
-    if (read_safe(dispatcher->priv->recv_fd, (uint8_t*) payload, msg->size, 1) == -1) {
+    if (read_safe(recv_fd, (uint8_t*) payload, msg->size, 1) == -1) {
         g_warning("error reading from dispatcher: %d", errno);
         /* TODO: close socketpair? */
-        return 0;
+        return false;
     }
-    if (dispatcher->priv->any_handler && msg->type != DISPATCHER_MESSAGE_TYPE_CUSTOM) {
-        dispatcher->priv->any_handler(dispatcher->priv->opaque, msg->type, payload);
+    if (any_handler && msg->type != DISPATCHER_MESSAGE_TYPE_CUSTOM) {
+        any_handler(opaque, msg->type, payload);
     }
     if (msg->handler) {
-        msg->handler(dispatcher->priv->opaque, payload);
+        msg->handler(opaque, payload);
     } else {
         g_warning("error: no handler for message type %d", msg->type);
     }
     if (msg->ack) {
-        if (write_safe(dispatcher->priv->recv_fd,
-                       (uint8_t*)&ack, sizeof(ack)) == -1) {
+        if (write_safe(recv_fd, (uint8_t*)&ack, sizeof(ack)) == -1) {
             g_warning("error writing ack for message %d", msg->type);
             /* TODO: close socketpair? */
         }
     }
-    return 1;
+    return true;
 }
 
 /*
  * handle_event
  * doesn't handle being in the middle of a message. all reads are blocking.
  */
-void Dispatcher::handle_event(int fd, int event, Dispatcher* dispatcher)
+void DispatcherPrivate::handle_event(int fd, int event, DispatcherPrivate* priv)
 {
-    while (dispatcher->handle_single_read(dispatcher)) {
+    while (priv->handle_single_read()) {
     }
 }
 
-void Dispatcher::send_message_internal(const DispatcherMessage* msg, void *payload)
+void DispatcherPrivate::send_message(const DispatcherMessage& msg, void *payload)
 {
     uint32_t ack;
-    int send_fd = priv->send_fd;
 
-    pthread_mutex_lock(&priv->lock);
-    if (write_safe(send_fd, (uint8_t*)msg, sizeof(*msg)) == -1) {
+    pthread_mutex_lock(&lock);
+    if (write_safe(send_fd, (uint8_t*)&msg, sizeof(msg)) == -1) {
         g_warning("error: failed to send message header for message %d",
-                  msg->type);
+                  msg.type);
         goto unlock;
     }
-    if (write_safe(send_fd, (uint8_t*) payload, msg->size) == -1) {
+    if (write_safe(send_fd, (uint8_t*) payload, msg.size) == -1) {
         g_warning("error: failed to send message body for message %d",
-                  msg->type);
+                  msg.type);
         goto unlock;
     }
-    if (msg->ack) {
+    if (msg.ack) {
         if (read_safe(send_fd, (uint8_t*)&ack, sizeof(ack), 1) == -1) {
             g_warning("error: failed to read ack");
         } else if (ack != ACK) {
             g_warning("error: got wrong ack value in dispatcher "
-                      "for message %d\n", msg->type);
+                      "for message %d\n", msg.type);
             /* TODO handling error? */
         }
     }
 unlock:
-    pthread_mutex_unlock(&priv->lock);
+    pthread_mutex_unlock(&lock);
 }
 
 void Dispatcher::send_message(uint32_t message_type, void *payload)
 {
-    DispatcherMessage *msg;
-
     assert(priv->max_message_type > message_type);
     assert(priv->messages[message_type].handler);
-    msg = &priv->messages[message_type];
-    send_message_internal(msg, payload);
+    priv->send_message(priv->messages[message_type], payload);
 }
 
 void Dispatcher::send_message_custom(dispatcher_handle_message handler,
@@ -285,7 +282,7 @@ void Dispatcher::send_message_custom(dispatcher_handle_message handler,
         .type = DISPATCHER_MESSAGE_TYPE_CUSTOM,
         .ack = ack,
     };
-    send_message_internal(&msg, payload);
+    priv->send_message(msg, payload);
 }
 
 void Dispatcher::register_handler(uint32_t message_type,
@@ -315,7 +312,7 @@ void Dispatcher::register_universal_handler(dispatcher_handle_any_message any_ha
 SpiceWatch *Dispatcher::create_watch(SpiceCoreInterfaceInternal *core)
 {
     return core->watch_new(priv->recv_fd,
-                           SPICE_WATCH_EVENT_READ, handle_event, this);
+                           SPICE_WATCH_EVENT_READ, DispatcherPrivate::handle_event, priv.get());
 }
 
 void Dispatcher::set_opaque(void *opaque)
