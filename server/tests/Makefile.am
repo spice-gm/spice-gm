@@ -83,6 +83,7 @@ endif
 test_channel_SOURCES = test-channel.cpp
 test_stream_device_SOURCES = test-stream-device.cpp
 test_dispatcher_SOURCES = test-dispatcher.cpp
+test_qxl_parsing_SOURCES = test-qxl-parsing.cpp
 
 if !OS_WIN32
 check_PROGRAMS +=				\

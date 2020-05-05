@@ -44,7 +44,7 @@ tests = [
   ['test-stat', true],
   ['test-agent-msg-filter', true],
   ['test-loop', true],
-  ['test-qxl-parsing', true],
+  ['test-qxl-parsing', true, 'cpp'],
   ['test-leaks', true],
   ['test-vdagent', true],
   ['test-fail-on-null-core-interface', true],

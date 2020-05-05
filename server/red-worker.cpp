@@ -90,16 +90,13 @@ struct RedWorker {
 
 static gboolean red_process_cursor_cmd(RedWorker *worker, const QXLCommandExt *ext)
 {
-    RedCursorCmd *cursor_cmd;
-
-    cursor_cmd = red_cursor_cmd_new(worker->qxl, &worker->mem_slots,
-                                    ext->group_id, ext->cmd.data);
-    if (cursor_cmd == nullptr) {
+    auto cursor_cmd = red_cursor_cmd_new(worker->qxl, &worker->mem_slots,
+                                         ext->group_id, ext->cmd.data);
+    if (!cursor_cmd) {
         return FALSE;
     }
 
-    worker->cursor_channel->process_cmd(cursor_cmd);
-    red_cursor_cmd_unref(cursor_cmd);
+    worker->cursor_channel->process_cmd(std::move(cursor_cmd));
 
     return TRUE;
 }

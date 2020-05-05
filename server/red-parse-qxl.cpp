@@ -1609,46 +1609,26 @@ static bool red_get_cursor_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
     return true;
 }
 
-RedCursorCmd *red_cursor_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
-                                 int group_id, QXLPHYSICAL addr)
+red::shared_ptr<const RedCursorCmd>
+red_cursor_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots, int group_id, QXLPHYSICAL addr)
 {
-    RedCursorCmd *cmd;
+    auto cmd = red::make_shared<RedCursorCmd>();
 
-    cmd = g_new0(RedCursorCmd, 1);
-
-    cmd->refs = 1;
-
-    if (!red_get_cursor_cmd(qxl, slots, group_id, cmd, addr)) {
-        red_cursor_cmd_unref(cmd);
-        return nullptr;
+    if (!red_get_cursor_cmd(qxl, slots, group_id, cmd.get(), addr)) {
+        cmd.reset();
     }
 
     return cmd;
 }
 
-static void red_put_cursor_cmd(RedCursorCmd *red)
+RedCursorCmd::~RedCursorCmd()
 {
-    switch (red->type) {
+    switch (type) {
     case QXL_CURSOR_SET:
-        red_put_cursor(&red->u.set.shape);
+        red_put_cursor(&u.set.shape);
         break;
     }
-    if (red->qxl) {
-        red_qxl_release_resource(red->qxl, red->release_info_ext);
+    if (qxl) {
+        red_qxl_release_resource(qxl, release_info_ext);
     }
-}
-
-RedCursorCmd *red_cursor_cmd_ref(RedCursorCmd *red)
-{
-    red->refs++;
-    return red;
-}
-
-void red_cursor_cmd_unref(RedCursorCmd *red)
-{
-    if (--red->refs) {
-        return;
-    }
-    red_put_cursor_cmd(red);
-    g_free(red);
 }

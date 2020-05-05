@@ -26,37 +26,24 @@
 #include "reds.h"
 
 struct RedCursorPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_CURSOR> {
-    explicit RedCursorPipeItem(RedCursorCmd *cmd);
-    ~RedCursorPipeItem() override;
-    RedCursorCmd *red_cursor;
+    explicit RedCursorPipeItem(const red::shared_ptr<const RedCursorCmd>& cmd);
+    red::shared_ptr<const RedCursorCmd> red_cursor;
 };
 
-RedCursorPipeItem::RedCursorPipeItem(RedCursorCmd *cmd):
-    red_cursor(red_cursor_cmd_ref(cmd))
+RedCursorPipeItem::RedCursorPipeItem(const red::shared_ptr<const RedCursorCmd>& cmd):
+    red_cursor(cmd)
 {
-}
-
-RedCursorPipeItem::~RedCursorPipeItem()
-{
-    red_cursor_cmd_unref(red_cursor);
-}
-
-static void cursor_channel_set_item(CursorChannel *cursor, RedCursorPipeItem *item)
-{
-    cursor->item.reset(item);
 }
 
 static void cursor_fill(CursorChannelClient *ccc, RedCursorPipeItem *cursor,
                         SpiceCursor *red_cursor, SpiceMarshaller *m)
 {
-    RedCursorCmd *cursor_cmd;
-
     if (!cursor) {
         red_cursor->flags = SPICE_CURSOR_FLAGS_NONE;
         return;
     }
 
-    cursor_cmd = cursor->red_cursor;
+    auto cursor_cmd = cursor->red_cursor.get();
     *red_cursor = cursor_cmd->u.set.shape;
 
     if (red_cursor->header.unique) {
@@ -100,11 +87,10 @@ static void red_marshall_cursor(CursorChannelClient *ccc,
 {
     CursorChannel *cursor_channel = ccc->get_channel();
     RedCursorPipeItem *item = cursor_pipe_item;
-    RedCursorCmd *cmd;
 
     spice_return_if_fail(cursor_channel);
 
-    cmd = item->red_cursor;
+    auto cmd = item->red_cursor.get();
     switch (cmd->type) {
     case QXL_CURSOR_MOVE:
         {
@@ -189,7 +175,7 @@ cursor_channel_new(RedsState *server, int id,
     return red::make_shared<CursorChannel>(server, id, core, dispatcher);
 }
 
-void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
+void CursorChannel::process_cmd(red::shared_ptr<const RedCursorCmd> &&cursor_cmd)
 {
     bool cursor_show = false;
 
@@ -200,7 +186,7 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
     switch (cursor_cmd->type) {
     case QXL_CURSOR_SET:
         cursor_visible = !!cursor_cmd->u.set.visible;
-        cursor_channel_set_item(this, cursor_pipe_item.get());
+        item = cursor_pipe_item;
         break;
     case QXL_CURSOR_MOVE:
         cursor_show = !cursor_visible;
@@ -229,7 +215,7 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
 
 void CursorChannel::reset()
 {
-    cursor_channel_set_item(this, nullptr);
+    item.reset();
     cursor_visible = true;
     cursor_position.x = cursor_position.y = 0;
     cursor_trail_length = cursor_trail_frequency = 0;

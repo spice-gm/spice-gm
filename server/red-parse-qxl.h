@@ -23,8 +23,9 @@
 
 #include "red-common.h"
 #include "memslot.h"
+#include "utils.hpp"
 
-SPICE_BEGIN_DECLS
+#include "push-visibility.h"
 
 typedef struct RedDrawable {
     int refs;
@@ -98,10 +99,10 @@ typedef struct RedSurfaceCmd {
     } u;
 } RedSurfaceCmd;
 
-typedef struct RedCursorCmd {
+struct RedCursorCmd final: public red::simple_ptr_counted<RedCursorCmd> {
+    ~RedCursorCmd();
     QXLInstance *qxl;
     QXLReleaseInfoExt release_info_ext;
-    int refs;
     uint8_t type;
     union {
         struct {
@@ -115,7 +116,7 @@ typedef struct RedCursorCmd {
         } trail;
         SpicePoint16 position;
     } u;
-} RedCursorCmd;
+};
 
 void red_get_rect_ptr(SpiceRect *red, const QXLRect *qxl);
 
@@ -143,11 +144,9 @@ RedSurfaceCmd *red_surface_cmd_new(QXLInstance *qxl_instance, RedMemSlotInfo *sl
 RedSurfaceCmd *red_surface_cmd_ref(RedSurfaceCmd *cmd);
 void red_surface_cmd_unref(RedSurfaceCmd *cmd);
 
-RedCursorCmd *red_cursor_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
-                                 int group_id, QXLPHYSICAL addr);
-RedCursorCmd *red_cursor_cmd_ref(RedCursorCmd *red);
-void red_cursor_cmd_unref(RedCursorCmd *red);
+red::shared_ptr<const RedCursorCmd>
+red_cursor_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots, int group_id, QXLPHYSICAL addr);
 
-SPICE_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* RED_PARSE_QXL_H_ */

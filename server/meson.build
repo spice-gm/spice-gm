@@ -136,7 +136,7 @@ spice_server_sources = [
   'red-pipe-item.h',
   'red-qxl.cpp',
   'red-qxl.h',
-  'red-record-qxl.c',
+  'red-record-qxl.cpp',
   'red-record-qxl.h',
   'red-replay-qxl.cpp',
   'reds.cpp',

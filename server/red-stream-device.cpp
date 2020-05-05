@@ -378,10 +378,10 @@ get_cursor_type_bits(unsigned int cursor_type)
     }
 }
 
-static RedCursorCmd *
+static red::shared_ptr<const RedCursorCmd>
 stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_size)
 {
-    auto cmd = g_new0(RedCursorCmd, 1);
+    auto cmd = red::make_shared<RedCursorCmd>();
     cmd->type = QXL_CURSOR_SET;
     cmd->u.set.position.x = 0; // TODO
     cmd->u.set.position.y = 0; // TODO
@@ -397,14 +397,12 @@ stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_si
     /* Limit cursor size to prevent DoS */
     if (cursor->header.width > STREAM_MSG_CURSOR_SET_MAX_WIDTH ||
         cursor->header.height > STREAM_MSG_CURSOR_SET_MAX_HEIGHT) {
-        g_free(cmd);
-        return nullptr;
+        return red::shared_ptr<const RedCursorCmd>();
     }
 
     const unsigned int cursor_bits = get_cursor_type_bits(cursor->header.type);
     if (cursor_bits == 0) {
-        g_free(cmd);
-        return nullptr;
+        return red::shared_ptr<const RedCursorCmd>();
     }
 
     /* Check that enough data has been sent for the cursor.
@@ -413,8 +411,7 @@ stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_si
     size_t size_required = cursor->header.width * cursor->header.height;
     size_required = SPICE_ALIGN(size_required * cursor_bits, 8) / 8U;
     if (msg_size < sizeof(StreamMsgCursorSet) + size_required) {
-        g_free(cmd);
-        return nullptr;
+        return red::shared_ptr<const RedCursorCmd>();
     }
     cursor->data_size = size_required;
     cursor->data = (uint8_t*) g_memdup2(msg->data, size_required);
@@ -453,11 +450,11 @@ StreamDevice::handle_msg_cursor_set()
     }
 
     // transform the message to a cursor command and process it
-    RedCursorCmd *cmd = stream_msg_cursor_set_to_cursor_cmd(&msg->cursor_set, msg_pos);
+    auto cmd = stream_msg_cursor_set_to_cursor_cmd(&msg->cursor_set, msg_pos);
     if (!cmd) {
         return handle_msg_invalid(nullptr);
     }
-    cursor_channel->process_cmd(cmd);
+    cursor_channel->process_cmd(std::move(cmd));
 
     return true;
 }
@@ -478,12 +475,12 @@ StreamDevice::handle_msg_cursor_move()
     move->x = GINT32_FROM_LE(move->x);
     move->y = GINT32_FROM_LE(move->y);
 
-    auto cmd = g_new0(RedCursorCmd, 1);
+    auto cmd = red::make_shared<RedCursorCmd>();
     cmd->type = QXL_CURSOR_MOVE;
     cmd->u.position.x = move->x;
     cmd->u.position.y = move->y;
 
-    cursor_channel->process_cmd(cmd);
+    cursor_channel->process_cmd(std::move(cmd));
 
     return true;
 }

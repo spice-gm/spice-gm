@@ -38,7 +38,7 @@ struct CursorChannel final: public CommonGraphicsChannel
     ~CursorChannel();
     void reset();
     void do_init();
-    void process_cmd(RedCursorCmd *cursor_cmd);
+    void process_cmd(red::shared_ptr<const RedCursorCmd> &&cursor_cmd);
     void set_mouse_mode(uint32_t mode);
     void on_connect(RedClient *client, RedStream *stream, int migration,
                     RedChannelCapabilities *caps) override;
