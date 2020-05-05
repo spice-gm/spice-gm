@@ -238,7 +238,7 @@ inline shared_ptr<T> make_shared(Args&&... args)
  * You should inherit publicly this class in order to have base internal reference counting
  * implementation.
  *
- * This class uses aromic operations and virtual destructor so it's not really light.
+ * This class uses atomic operations and virtual destructor so it's not really light.
  */
 class shared_ptr_counted
 {
