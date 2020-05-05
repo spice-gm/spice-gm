@@ -239,13 +239,11 @@ static const SpiceDataHeaderOpaque mini_header_wrapper = {NULL, sizeof(SpiceMini
 #define PING_TEST_LONG_TIMEOUT_MS (MSEC_PER_SEC * 60 * 5)
 #define PING_TEST_IDLE_NET_TIMEOUT_MS (MSEC_PER_SEC / 10)
 
-struct RedEmptyMsgPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedEmptyMsgPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_EMPTY_MSG> {
     int msg;
 };
 
-struct MarkerPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct MarkerPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MARKER> {
     bool item_sent;
 };
 
@@ -1435,7 +1433,7 @@ void RedChannelClient::pipe_add_type(int pipe_item_type)
 
 RedPipeItem *RedChannelClient::new_empty_msg(int msg_type)
 {
-    RedEmptyMsgPipeItem *item = new RedEmptyMsgPipeItem(RED_PIPE_ITEM_TYPE_EMPTY_MSG);
+    RedEmptyMsgPipeItem *item = new RedEmptyMsgPipeItem();
 
     item->msg = msg_type;
     return item;
@@ -1576,7 +1574,7 @@ bool RedChannelClient::wait_pipe_item_sent(GList *item_pos, int64_t timeout)
         end_time = UINT64_MAX;
     }
 
-    MarkerPipeItem *mark_item = new MarkerPipeItem(RED_PIPE_ITEM_TYPE_MARKER);
+    MarkerPipeItem *mark_item = new MarkerPipeItem();
 
     mark_item->item_sent = false;
     red_pipe_item_ref(mark_item);

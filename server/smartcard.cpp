@@ -67,8 +67,7 @@ struct RedCharDeviceSmartcardPrivate {
     int                  reader_added; // has reader_add been sent to the device
 };
 
-struct RedMsgItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedMsgItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_SMARTCARD_DATA> {
     ~RedMsgItem();
     VSCMsgHeader* vheader;
 };
@@ -397,7 +396,7 @@ RedMsgItem::~RedMsgItem()
 
 static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader)
 {
-    RedMsgItem *msg_item = new RedMsgItem(RED_PIPE_ITEM_TYPE_SMARTCARD_DATA);
+    RedMsgItem *msg_item = new RedMsgItem();
 
     msg_item->vheader = (VSCMsgHeader*) g_memdup(vheader, sizeof(*vheader) + vheader->length);
     /* We patch the reader_id, since the device only knows about itself, and

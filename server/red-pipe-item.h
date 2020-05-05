@@ -67,6 +67,18 @@ struct RedPipeItem: public red::shared_ptr_counted
 RedPipeItem *red_pipe_item_ref(RedPipeItem *item);
 void red_pipe_item_unref(RedPipeItem *item);
 
+/* Most of the time the type is constant and we just add fields,
+ * make it easier to initialize just with declaration
+ */
+template <int initial_type>
+struct RedPipeItemNum: public RedPipeItem
+{
+    RedPipeItemNum():
+        RedPipeItem(initial_type)
+    {
+    }
+};
+
 #include "pop-visibility.h"
 
 #endif /* RED_PIPE_ITEM_H_ */

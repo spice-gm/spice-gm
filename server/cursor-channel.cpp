@@ -25,15 +25,14 @@
 #include "cursor-channel-client.h"
 #include "reds.h"
 
-struct RedCursorPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedCursorPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_CURSOR> {
     ~RedCursorPipeItem();
     RedCursorCmd *red_cursor;
 };
 
 static RedCursorPipeItem *cursor_pipe_item_new(RedCursorCmd *cmd)
 {
-    RedCursorPipeItem *item = new RedCursorPipeItem(RED_PIPE_ITEM_TYPE_CURSOR);
+    RedCursorPipeItem *item = new RedCursorPipeItem();
 
     spice_return_val_if_fail(cmd != NULL, NULL);
 

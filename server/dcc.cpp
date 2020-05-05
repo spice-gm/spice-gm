@@ -500,8 +500,7 @@ RedMonitorsConfigItem::~RedMonitorsConfigItem()
     monitors_config_unref(monitors_config);
 }
 
-RedMonitorsConfigItem::RedMonitorsConfigItem(MonitorsConfig *init_monitors_config):
-    RedPipeItem(RED_PIPE_ITEM_TYPE_MONITORS_CONFIG)
+RedMonitorsConfigItem::RedMonitorsConfigItem(MonitorsConfig *init_monitors_config)
 {
     monitors_config = monitors_config_ref(init_monitors_config);
 }
@@ -525,8 +524,7 @@ void dcc_push_monitors_config(DisplayChannelClient *dcc)
     dcc->pipe_add(mci);
 }
 
-RedSurfaceDestroyItem::RedSurfaceDestroyItem(uint32_t surface_id):
-    RedPipeItem(RED_PIPE_ITEM_TYPE_DESTROY_SURFACE)
+RedSurfaceDestroyItem::RedSurfaceDestroyItem(uint32_t surface_id)
 {
     surface_destroy.surface_id = surface_id;
 }

@@ -32,8 +32,7 @@ struct SmartCardChannelClientPrivate
     bool msg_in_write_buf = false;
 };
 
-struct RedErrorItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedErrorItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_ERROR> {
     VSCMsgHeader vheader;
     VSCMsgError  error;
 };
@@ -138,7 +137,7 @@ static void smartcard_channel_client_push_error(RedChannelClient *rcc,
                                                 uint32_t reader_id,
                                                 VSCErrorCode error)
 {
-    RedErrorItem *error_item = new RedErrorItem(RED_PIPE_ITEM_TYPE_ERROR);
+    RedErrorItem *error_item = new RedErrorItem();
 
     error_item->vheader.reader_id = reader_id;
     error_item->vheader.type = VSC_Error;

@@ -61,18 +61,15 @@ struct MainChannelClientPrivate {
     uint8_t recv_buf[MAIN_CHANNEL_RECEIVE_BUF_SIZE];
 };
 
-struct RedPingPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedPingPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_PING> {
     int size;
 };
 
-struct RedTokensPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedTokensPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_AGENT_TOKEN> {
     int tokens;
 };
 
-struct RedAgentDataPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedAgentDataPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_AGENT_DATA> {
     ~RedAgentDataPipeItem();
     uint8_t* data;
     size_t len;
@@ -80,8 +77,7 @@ struct RedAgentDataPipeItem: public RedPipeItem {
     void *opaque;
 };
 
-struct RedInitPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedInitPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_INIT> {
     int connection_id;
     int display_channels_hint;
     int current_mouse_mode;
@@ -90,35 +86,31 @@ struct RedInitPipeItem: public RedPipeItem {
     int ram_hint;
 };
 
-struct RedNamePipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedNamePipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_NAME> {
     SpiceMsgMainName msg;
 };
 
-struct RedUuidPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedUuidPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_UUID> {
     SpiceMsgMainUuid msg;
 };
 
-struct RedNotifyPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedNotifyPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_NOTIFY> {
     ~RedNotifyPipeItem();
     char *msg;
 };
 
-struct RedMouseModePipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedMouseModePipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_MOUSE_MODE> {
     SpiceMouseMode current_mode;
     int is_client_mouse_allowed;
 };
 
-struct RedMultiMediaTimePipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedMultiMediaTimePipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_MULTI_MEDIA_TIME> {
     uint32_t time;
 };
 
-struct RedRegisteredChannelPipeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct RedRegisteredChannelPipeItem:
+    public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_REGISTERED_CHANNEL>
+{
     uint32_t channel_type;
     uint32_t channel_id;
 };
@@ -166,7 +158,7 @@ RedNotifyPipeItem::~RedNotifyPipeItem()
 
 static RedPipeItem *main_notify_item_new(const char *msg, int num)
 {
-    RedNotifyPipeItem *item = new RedNotifyPipeItem(RED_PIPE_ITEM_TYPE_MAIN_NOTIFY);
+    RedNotifyPipeItem *item = new RedNotifyPipeItem();
 
     item->msg = g_strdup(msg);
     return item;
@@ -193,7 +185,7 @@ void MainChannelClient::start_net_test(int test_rate)
 
 static RedPipeItem *red_ping_item_new(int size)
 {
-    RedPingPipeItem *item = new RedPingPipeItem(RED_PIPE_ITEM_TYPE_MAIN_PING);
+    RedPingPipeItem *item = new RedPingPipeItem();
 
     item->size = size;
     return item;
@@ -207,7 +199,7 @@ static void main_channel_client_push_ping(MainChannelClient *mcc, int size)
 
 static RedPipeItem *main_agent_tokens_item_new(uint32_t num_tokens)
 {
-    RedTokensPipeItem *item = new RedTokensPipeItem(RED_PIPE_ITEM_TYPE_MAIN_AGENT_TOKEN);
+    RedTokensPipeItem *item = new RedTokensPipeItem();
 
     item->tokens = num_tokens;
     return item;
@@ -230,7 +222,7 @@ static RedPipeItem *main_agent_data_item_new(uint8_t* data, size_t len,
                                              spice_marshaller_item_free_func free_data,
                                              void *opaque)
 {
-    RedAgentDataPipeItem *item = new RedAgentDataPipeItem(RED_PIPE_ITEM_TYPE_MAIN_AGENT_DATA);
+    RedAgentDataPipeItem *item = new RedAgentDataPipeItem();
 
     item->data = data;
     item->len = len;
@@ -256,7 +248,7 @@ static RedPipeItem *main_init_item_new(int connection_id,
                                        int multi_media_time,
                                        int ram_hint)
 {
-    RedInitPipeItem *item = new RedInitPipeItem(RED_PIPE_ITEM_TYPE_MAIN_INIT);
+    RedInitPipeItem *item = new RedInitPipeItem();
 
     item->connection_id = connection_id;
     item->display_channels_hint = display_channels_hint;
@@ -282,7 +274,7 @@ void MainChannelClient::push_init(int display_channels_hint,
 
 static RedPipeItem *main_name_item_new(const char *name)
 {
-    RedNamePipeItem *item = new (strlen(name) + 1) RedNamePipeItem(RED_PIPE_ITEM_TYPE_MAIN_NAME);
+    RedNamePipeItem *item = new (strlen(name) + 1) RedNamePipeItem();
     item->msg.name_len = strlen(name) + 1;
     memcpy(&item->msg.name, name, item->msg.name_len);
 
@@ -302,7 +294,7 @@ void MainChannelClient::push_name(const char *name)
 
 static RedPipeItem *main_uuid_item_new(const uint8_t uuid[16])
 {
-    RedUuidPipeItem *item = new RedUuidPipeItem(RED_PIPE_ITEM_TYPE_MAIN_UUID);
+    RedUuidPipeItem *item = new RedUuidPipeItem();
 
     memcpy(item->msg.uuid, uuid, sizeof(item->msg.uuid));
 
@@ -328,7 +320,7 @@ void MainChannelClient::push_notify(const char *msg)
 
 RedPipeItem *main_mouse_mode_item_new(SpiceMouseMode current_mode, int is_client_mouse_allowed)
 {
-    RedMouseModePipeItem *item = new RedMouseModePipeItem(RED_PIPE_ITEM_TYPE_MAIN_MOUSE_MODE);
+    RedMouseModePipeItem *item = new RedMouseModePipeItem();
 
     item->current_mode = current_mode;
     item->is_client_mouse_allowed = is_client_mouse_allowed;
@@ -339,7 +331,7 @@ RedPipeItem *main_multi_media_time_item_new(uint32_t mm_time)
 {
     RedMultiMediaTimePipeItem *item;
 
-    item = new RedMultiMediaTimePipeItem(RED_PIPE_ITEM_TYPE_MAIN_MULTI_MEDIA_TIME);
+    item = new RedMultiMediaTimePipeItem();
     item->time = mm_time;
     return item;
 }
@@ -348,7 +340,7 @@ RedPipeItem *registered_channel_item_new(RedChannel *channel)
 {
     RedRegisteredChannelPipeItem *item;
 
-    item = new RedRegisteredChannelPipeItem(RED_PIPE_ITEM_TYPE_MAIN_REGISTERED_CHANNEL);
+    item = new RedRegisteredChannelPipeItem();
 
     item->channel_type = channel->type();
     item->channel_id = channel->id();

@@ -153,8 +153,10 @@ struct ChannelSecurityOptions {
     ChannelSecurityOptions *next;
 };
 
-struct RedVDIReadBuf final: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+/* Bogus pipe item type, we only need the RingItem and refcounting
+ * from the base class and are not going to use the type
+ */
+struct RedVDIReadBuf final: public RedPipeItemNum<-1> {
     ~RedVDIReadBuf();
 
     RedCharDeviceVDIPort *dev;
@@ -697,10 +699,7 @@ RedVDIReadBuf::~RedVDIReadBuf()
 
 static RedVDIReadBuf *vdi_read_buf_new(RedCharDeviceVDIPort *dev)
 {
-    /* Bogus pipe item type, we only need the RingItem and refcounting
-     * from the base class and are not going to use the type
-     */
-    RedVDIReadBuf *buf = new RedVDIReadBuf(-1);
+    RedVDIReadBuf *buf = new RedVDIReadBuf();
     buf->dev = dev;
     buf->len = 0;
     return buf;

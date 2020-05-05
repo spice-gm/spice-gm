@@ -139,12 +139,6 @@ struct DisplayChannelPrivate
     GLIST_FOREACH((_channel ? _channel->get_clients() : NULL), \
                   DisplayChannelClient, _data)
 
-struct RedMonitorsConfigItem: public RedPipeItem {
-    RedMonitorsConfigItem(MonitorsConfig *monitors_config);
-    ~RedMonitorsConfigItem();
-    MonitorsConfig *monitors_config;
-};
-
 enum {
     RED_PIPE_ITEM_TYPE_DRAW = RED_PIPE_ITEM_TYPE_COMMON_LAST,
     RED_PIPE_ITEM_TYPE_IMAGE,
@@ -162,6 +156,12 @@ enum {
     RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT,
     RED_PIPE_ITEM_TYPE_GL_SCANOUT,
     RED_PIPE_ITEM_TYPE_GL_DRAW,
+};
+
+struct RedMonitorsConfigItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MONITORS_CONFIG> {
+    RedMonitorsConfigItem(MonitorsConfig *monitors_config);
+    ~RedMonitorsConfigItem();
+    MonitorsConfig *monitors_config;
 };
 
 void drawable_unref(Drawable *drawable);
@@ -182,7 +182,7 @@ uint32_t display_channel_generate_uid(DisplayChannel *display);
 int display_channel_get_video_stream_id(DisplayChannel *display, VideoStream *stream);
 VideoStream *display_channel_get_nth_video_stream(DisplayChannel *display, gint i);
 
-struct RedSurfaceDestroyItem: public RedPipeItem {
+struct RedSurfaceDestroyItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_DESTROY_SURFACE> {
     RedSurfaceDestroyItem(uint32_t surface_id);
     SpiceMsgSurfaceDestroy surface_destroy;
 };

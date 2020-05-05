@@ -67,13 +67,11 @@ enum {
     RED_PIPE_ITEM_TYPE_MONITORS_CONFIG,
 };
 
-struct StreamCreateItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct StreamCreateItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_STREAM_CREATE> {
     SpiceMsgDisplayStreamCreate stream_create;
 };
 
-struct StreamDataItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+struct StreamDataItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_STREAM_DATA> {
     ~StreamDataItem();
 
     StreamChannel *channel;
@@ -426,7 +424,7 @@ StreamChannel::change_format(const StreamMsgFormat *fmt)
     stream_id = (stream_id + 1) % NUM_STREAMS;
 
     // send create stream
-    StreamCreateItem *item = new StreamCreateItem(RED_PIPE_ITEM_TYPE_STREAM_CREATE);
+    StreamCreateItem *item = new StreamCreateItem();
     item->stream_create.id = stream_id;
     item->stream_create.flags = SPICE_STREAM_FLAGS_TOP_DOWN;
     item->stream_create.codec_type = fmt->codec;
@@ -467,7 +465,7 @@ StreamChannel::send_data(const void *data, size_t size, uint32_t mm_time)
         return;
     }
 
-    StreamDataItem *item = new (size) StreamDataItem(RED_PIPE_ITEM_TYPE_STREAM_DATA);
+    StreamDataItem *item = new (size) StreamDataItem();
     item->data.base.id = stream_id;
     item->data.base.multi_media_time = mm_time;
     item->data.data_size = size;

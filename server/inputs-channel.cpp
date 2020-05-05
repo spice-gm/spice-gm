@@ -86,12 +86,12 @@ RedsState* spice_tablet_state_get_server(SpiceTabletState *st)
     return st->reds;
 }
 
-struct RedKeyModifiersPipeItem: public RedPipeItem {
+struct RedKeyModifiersPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_KEY_MODIFIERS> {
     RedKeyModifiersPipeItem(uint8_t modifiers);
     uint8_t modifiers;
 };
 
-struct RedInputsInitPipeItem: public RedPipeItem {
+struct RedInputsInitPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_INPUTS_INIT> {
     RedInputsInitPipeItem(uint8_t modifiers);
     uint8_t modifiers;
 };
@@ -195,7 +195,6 @@ static uint8_t kbd_get_leds(SpiceKbdInstance *sin)
 }
 
 RedKeyModifiersPipeItem::RedKeyModifiersPipeItem(uint8_t init_modifiers):
-    RedPipeItem(RED_PIPE_ITEM_KEY_MODIFIERS),
     modifiers(init_modifiers)
 {
 }
@@ -430,7 +429,6 @@ void InputsChannel::release_keys()
 }
 
 RedInputsInitPipeItem::RedInputsInitPipeItem(uint8_t init_modifiers):
-    RedPipeItem(RED_PIPE_ITEM_INPUTS_INIT),
     modifiers(init_modifiers)
 {
 }

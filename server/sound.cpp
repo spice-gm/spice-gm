@@ -74,6 +74,10 @@ struct RecordChannelClient;
 struct AudioFrame;
 struct AudioFrameContainer;
 
+enum {
+    RED_PIPE_ITEM_PERSISTENT = RED_PIPE_ITEM_TYPE_CHANNEL_BASE,
+};
+
 /* This pipe item is never deleted and added to the queue when messages
  * have to be sent.
  * This is used to have a simple item in RedChannelClient queue but to send
@@ -82,7 +86,7 @@ struct AudioFrameContainer;
  * much data or having retransmission preferring instead loosing some
  * samples.
  */
-struct PersistentPipeItem final: public RedPipeItem
+struct PersistentPipeItem final: public RedPipeItemNum<RED_PIPE_ITEM_PERSISTENT>
 {
     PersistentPipeItem();
 };
@@ -114,10 +118,6 @@ private:
 };
 
 static void snd_playback_alloc_frames(PlaybackChannelClient *playback);
-
-enum {
-    RED_PIPE_ITEM_PERSISTENT = RED_PIPE_ITEM_TYPE_CHANNEL_BASE,
-};
 
 
 struct AudioFrame {
@@ -616,8 +616,7 @@ static bool playback_send_mode(PlaybackChannelClient *playback_client)
     return true;
 }
 
-PersistentPipeItem::PersistentPipeItem():
-    RedPipeItem(RED_PIPE_ITEM_PERSISTENT)
+PersistentPipeItem::PersistentPipeItem()
 {
 }
 
