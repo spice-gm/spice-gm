@@ -1295,43 +1295,24 @@ static bool red_get_update_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
     return true;
 }
 
-static void red_put_update_cmd(RedUpdateCmd *red)
+RedUpdateCmd::~RedUpdateCmd()
 {
-    if (red->qxl != nullptr) {
-        red_qxl_release_resource(red->qxl, red->release_info_ext);
+    if (qxl != nullptr) {
+        red_qxl_release_resource(qxl, release_info_ext);
     }
 }
 
-RedUpdateCmd *red_update_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
-                                 int group_id, QXLPHYSICAL addr)
+red::shared_ptr<const RedUpdateCmd>
+red_update_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                   int group_id, QXLPHYSICAL addr)
 {
-    RedUpdateCmd *red;
+    auto red = red::make_shared<RedUpdateCmd>();
 
-    red = g_new0(RedUpdateCmd, 1);
-
-    red->refs = 1;
-
-    if (!red_get_update_cmd(qxl, slots, group_id, red, addr)) {
-        red_update_cmd_unref(red);
-        return nullptr;
+    if (!red_get_update_cmd(qxl, slots, group_id, red.get(), addr)) {
+        red.reset();
     }
 
     return red;
-}
-
-RedUpdateCmd *red_update_cmd_ref(RedUpdateCmd *red)
-{
-    red->refs++;
-    return red;
-}
-
-void red_update_cmd_unref(RedUpdateCmd *red)
-{
-    if (--red->refs) {
-        return;
-    }
-    red_put_update_cmd(red);
-    g_free(red);
 }
 
 static bool red_get_message(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group_id,

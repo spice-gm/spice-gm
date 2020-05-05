@@ -204,11 +204,9 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
             break;
         }
         case QXL_CMD_UPDATE: {
-            RedUpdateCmd *update;
-
-            update = red_update_cmd_new(worker->qxl, &worker->mem_slots,
-                                        ext_cmd.group_id, ext_cmd.cmd.data);
-            if (update == nullptr) {
+            auto update = red_update_cmd_new(worker->qxl, &worker->mem_slots,
+                                             ext_cmd.group_id, ext_cmd.cmd.data);
+            if (!update) {
                 break;
             }
             if (!display_channel_validate_surface(worker->display_channel, update->surface_id)) {
@@ -217,7 +215,6 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
                 display_channel_draw(worker->display_channel, &update->area, update->surface_id);
                 red_qxl_notify_update(worker->qxl, update->update_id);
             }
-            red_update_cmd_unref(update);
             break;
         }
         case QXL_CMD_MESSAGE: {
