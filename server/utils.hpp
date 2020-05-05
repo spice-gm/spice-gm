@@ -186,15 +186,6 @@ public:
         }
         p = ptr;
     }
-    T *release()
-    {
-        T *ptr = p;
-        if (p) {
-            shared_ptr_unref(p);
-            p = nullptr;
-        }
-        return ptr;
-    }
     operator bool() const
     {
         return p;
