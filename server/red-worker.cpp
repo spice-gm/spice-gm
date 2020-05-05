@@ -221,17 +221,14 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
             break;
         }
         case QXL_CMD_MESSAGE: {
-            RedMessage *message;
-
-            message = red_message_new(worker->qxl, &worker->mem_slots,
-                                      ext_cmd.group_id, ext_cmd.cmd.data);
-            if (message == nullptr) {
+            auto message = red_message_new(worker->qxl, &worker->mem_slots,
+                                           ext_cmd.group_id, ext_cmd.cmd.data);
+            if (!message) {
                 break;
             }
 #ifdef DEBUG
             spice_warning("MESSAGE: %.*s", message->len, message->data);
 #endif
-            red_message_unref(message);
             break;
         }
         case QXL_CMD_SURFACE:
