@@ -27,8 +27,8 @@
 
 #include "push-visibility.h"
 
-typedef struct RedDrawable {
-    int refs;
+struct RedDrawable final: public red::simple_ptr_counted<RedDrawable> {
+    ~RedDrawable();
     QXLInstance *qxl;
     QXLReleaseInfoExt release_info_ext;
     uint32_t surface_id;
@@ -60,7 +60,7 @@ typedef struct RedDrawable {
         SpiceWhiteness whiteness;
         SpiceComposite composite;
     } u;
-} RedDrawable;
+};
 
 struct RedUpdateCmd final: public red::simple_ptr_counted<RedUpdateCmd> {
     ~RedUpdateCmd();
@@ -120,11 +120,9 @@ struct RedCursorCmd final: public red::simple_ptr_counted<RedCursorCmd> {
 
 void red_get_rect_ptr(SpiceRect *red, const QXLRect *qxl);
 
-RedDrawable *red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
-                              int group_id, QXLPHYSICAL addr,
-                              uint32_t flags);
-RedDrawable *red_drawable_ref(RedDrawable *drawable);
-void red_drawable_unref(RedDrawable *red_drawable);
+red::shared_ptr<RedDrawable>
+red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                 int group_id, QXLPHYSICAL addr, uint32_t flags);
 
 red::shared_ptr<const RedUpdateCmd>
 red_update_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,

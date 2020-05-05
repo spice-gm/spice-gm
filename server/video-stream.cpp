@@ -224,7 +224,7 @@ static bool is_next_stream_frame(const Drawable *candidate,
         return FALSE;
     }
 
-    red_drawable = candidate->red_drawable;
+    red_drawable = candidate->red_drawable.get();
     if (!container_candidate_allowed) {
         SpiceRect* candidate_src;
 
@@ -692,13 +692,13 @@ static void update_client_playback_delay(void *opaque, uint32_t delay_ms)
 static void bitmap_ref(gpointer data)
 {
     auto red_drawable = (RedDrawable*)data;
-    red_drawable_ref(red_drawable);
+    shared_ptr_add_ref(red_drawable);
 }
 
 static void bitmap_unref(gpointer data)
 {
     auto red_drawable = (RedDrawable*)data;
-    red_drawable_unref(red_drawable);
+    shared_ptr_unref(red_drawable);
 }
 
 /* A helper for dcc_create_stream(). */

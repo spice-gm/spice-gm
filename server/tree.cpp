@@ -136,7 +136,7 @@ static void dump_item(TreeItem *item, void *data)
             printf("  ");
         }
         printf(item_prefix, 0);
-        show_red_drawable(drawable->red_drawable, nullptr);
+        show_red_drawable(drawable->red_drawable.get(), nullptr);
         for (i = 0; i < di->level; i++) {
             printf("  ");
         }

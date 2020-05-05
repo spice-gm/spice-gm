@@ -67,7 +67,7 @@ struct GlzDrawableInstanceItem {
 struct RedGlzDrawable {
     RingItem link;    // ordered by the time it was encoded
     RingItem drawable_link;
-    RedDrawable *red_drawable;
+    red::shared_ptr<RedDrawable> red_drawable;
     GlzDrawableInstanceItem instances_pool[MAX_GLZ_DRAWABLE_INSTANCES];
     Ring instances;
     uint8_t instances_count;
@@ -524,7 +524,7 @@ static void glz_drawable_instance_item_free(GlzDrawableInstanceItem *instance)
         if (glz_drawable->has_drawable) {
             ring_remove(&glz_drawable->drawable_link);
         }
-        red_drawable_unref(glz_drawable->red_drawable);
+        glz_drawable->red_drawable.reset();
         glz_drawable->encoders->shared_data->glz_drawable_count--;
         if (ring_item_is_linked(&glz_drawable->link)) {
             ring_remove(&glz_drawable->link);
@@ -1166,10 +1166,10 @@ static RedGlzDrawable *get_glz_drawable(ImageEncoders *enc, RedDrawable *red_dra
         }
     }
 
-    ret = g_new(RedGlzDrawable, 1);
+    ret = g_new0(RedGlzDrawable, 1);
 
     ret->encoders = enc;
-    ret->red_drawable = red_drawable_ref(red_drawable);
+    ret->red_drawable.reset(red_drawable);
     ret->has_drawable = TRUE;
     ret->instances_count = 0;
     ring_init(&ret->instances);

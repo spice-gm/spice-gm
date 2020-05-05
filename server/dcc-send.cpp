@@ -530,7 +530,7 @@ static void marshall_qxl_draw_fill(DisplayChannelClient *dcc,
                                    RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *mask_bitmap_out;
     SpiceFill fill;
@@ -561,7 +561,7 @@ static void surface_lossy_region_update(DisplayChannelClient *dcc,
     }
 
     surface_lossy_region = &dcc->priv->surface_client_lossy_region[item->surface_id];
-    drawable = item->red_drawable;
+    drawable = item->red_drawable.get();
 
     if (drawable->clip.type == SPICE_CLIP_TYPE_RECTS ) {
         QRegion clip_rgn;
@@ -636,7 +636,7 @@ static bool drawable_depends_on_areas(Drawable *drawable, int surface_ids[],
     int drawable_has_shadow;
     SpiceRect shadow_rect = {0, 0, 0, 0};
 
-    red_drawable = drawable->red_drawable;
+    red_drawable = drawable->red_drawable.get();
     drawable_has_shadow = has_shadow(red_drawable);
 
     if (drawable_has_shadow) {
@@ -737,7 +737,7 @@ static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
                                                    int num_deps)
 {
     DisplayChannel *display = DCC_TO_DC(dcc);
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int sync_rendered = FALSE;
     int i;
 
@@ -803,7 +803,7 @@ static void red_lossy_marshall_qxl_draw_fill(DisplayChannelClient *dcc,
                                              RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
 
     int dest_allowed_lossy = FALSE;
     int dest_is_lossy = FALSE;
@@ -860,7 +860,7 @@ static FillBitsType red_marshall_qxl_draw_opaque(DisplayChannelClient *dcc,
                                                  int src_allowed_lossy)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *src_bitmap_out;
     SpiceMarshaller *mask_bitmap_out;
@@ -892,7 +892,7 @@ static void red_lossy_marshall_qxl_draw_opaque(DisplayChannelClient *dcc,
                                                RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
 
     int src_allowed_lossy;
     int rop;
@@ -956,7 +956,7 @@ static FillBitsType red_marshall_qxl_draw_copy(DisplayChannelClient *dcc,
                                                int src_allowed_lossy)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *src_bitmap_out;
     SpiceMarshaller *mask_bitmap_out;
     SpiceCopy copy;
@@ -981,7 +981,7 @@ static void red_lossy_marshall_qxl_draw_copy(DisplayChannelClient *dcc,
                                              RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int has_mask = !!drawable->u.copy.mask.bitmap;
     int src_is_lossy;
     BitmapData src_bitmap_data;
@@ -1005,7 +1005,7 @@ static void red_marshall_qxl_draw_transparent(DisplayChannelClient *dcc,
                                               RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *src_bitmap_out;
     SpiceTransparent transparent;
 
@@ -1023,7 +1023,7 @@ static void red_lossy_marshall_qxl_draw_transparent(DisplayChannelClient *dcc,
                                                     RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int src_is_lossy;
     BitmapData src_bitmap_data;
 
@@ -1051,7 +1051,7 @@ static FillBitsType red_marshall_qxl_draw_alpha_blend(DisplayChannelClient *dcc,
                                                       int src_allowed_lossy)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *src_bitmap_out;
     SpiceAlphaBlend alpha_blend;
     FillBitsType src_send_type;
@@ -1073,7 +1073,7 @@ static void red_lossy_marshall_qxl_draw_alpha_blend(DisplayChannelClient *dcc,
                                                     RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int src_is_lossy;
     BitmapData src_bitmap_data;
     FillBitsType src_send_type;
@@ -1099,7 +1099,7 @@ static void red_marshall_qxl_copy_bits(RedChannelClient *rcc,
                                        RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpicePoint copy_bits;
 
     rcc->init_send_data(SPICE_MSG_DISPLAY_COPY_BITS);
@@ -1114,7 +1114,7 @@ static void red_lossy_marshall_qxl_copy_bits(DisplayChannelClient *dcc,
                                              RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceRect src_rect;
     int horz_offset;
     int vert_offset;
@@ -1142,7 +1142,7 @@ static void red_marshall_qxl_draw_blend(DisplayChannelClient *dcc,
                                         RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *src_bitmap_out;
     SpiceMarshaller *mask_bitmap_out;
     SpiceBlend blend;
@@ -1165,7 +1165,7 @@ static void red_lossy_marshall_qxl_draw_blend(DisplayChannelClient *dcc,
                                               RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int src_is_lossy;
     BitmapData src_bitmap_data;
     int dest_is_lossy;
@@ -1206,7 +1206,7 @@ static void red_marshall_qxl_draw_blackness(DisplayChannelClient *dcc,
                                             RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *mask_bitmap_out;
     SpiceBlackness blackness;
 
@@ -1226,7 +1226,7 @@ static void red_lossy_marshall_qxl_draw_blackness(DisplayChannelClient *dcc,
                                                   RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int has_mask = !!drawable->u.blackness.mask.bitmap;
 
     red_marshall_qxl_draw_blackness(dcc, base_marshaller, dpi);
@@ -1239,7 +1239,7 @@ static void red_marshall_qxl_draw_whiteness(DisplayChannelClient *dcc,
                                             RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *mask_bitmap_out;
     SpiceWhiteness whiteness;
 
@@ -1259,7 +1259,7 @@ static void red_lossy_marshall_qxl_draw_whiteness(DisplayChannelClient *dcc,
                                                   RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int has_mask = !!drawable->u.whiteness.mask.bitmap;
 
     red_marshall_qxl_draw_whiteness(dcc, base_marshaller, dpi);
@@ -1271,7 +1271,7 @@ static void red_marshall_qxl_draw_inverse(DisplayChannelClient *dcc,
                                           SpiceMarshaller *base_marshaller,
                                           Drawable *item)
 {
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *mask_bitmap_out;
     SpiceInvers inverse;
 
@@ -1298,7 +1298,7 @@ static void red_marshall_qxl_draw_rop3(DisplayChannelClient *dcc,
                                        RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceRop3 rop3;
     SpiceMarshaller *src_bitmap_out;
     SpiceMarshaller *brush_pat_out;
@@ -1326,7 +1326,7 @@ static void red_lossy_marshall_qxl_draw_rop3(DisplayChannelClient *dcc,
                                              RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int src_is_lossy;
     BitmapData src_bitmap_data;
     int brush_is_lossy;
@@ -1380,7 +1380,7 @@ static void red_marshall_qxl_draw_composite(DisplayChannelClient *dcc,
                                             RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceMarshaller *src_bitmap_out;
     SpiceMarshaller *mask_bitmap_out;
     SpiceComposite composite;
@@ -1404,7 +1404,7 @@ static void red_lossy_marshall_qxl_draw_composite(DisplayChannelClient *dcc,
                                                   RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int src_is_lossy;
     BitmapData src_bitmap_data;
     int mask_is_lossy;
@@ -1459,7 +1459,7 @@ static void red_marshall_qxl_draw_stroke(DisplayChannelClient *dcc,
                                          RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceStroke stroke;
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *style_out;
@@ -1483,7 +1483,7 @@ static void red_lossy_marshall_qxl_draw_stroke(DisplayChannelClient *dcc,
                                                RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int brush_is_lossy;
     BitmapData brush_bitmap_data;
     int dest_is_lossy = FALSE;
@@ -1537,7 +1537,7 @@ static void red_marshall_qxl_draw_text(DisplayChannelClient *dcc,
                                        RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     SpiceText text;
     SpiceMarshaller *brush_pat_out;
     SpiceMarshaller *back_brush_pat_out;
@@ -1563,7 +1563,7 @@ static void red_lossy_marshall_qxl_draw_text(DisplayChannelClient *dcc,
                                              RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
     int fg_is_lossy;
     BitmapData fg_bitmap_data;
     int bg_is_lossy;
@@ -1669,7 +1669,7 @@ static bool red_marshall_stream_data(DisplayChannelClient *dcc,
                                              frame_mm_time,
                                              &copy->src_bitmap->u.bitmap,
                                              &copy->src_area, stream->top_down,
-                                             drawable->red_drawable,
+                                             drawable->red_drawable.get(),
                                              &outbuf);
     switch (ret) {
     case VIDEO_ENCODER_FRAME_DROP:
@@ -2019,7 +2019,7 @@ static void marshall_lossless_qxl_drawable(DisplayChannelClient *dcc,
                                            RedDrawablePipeItem *dpi)
 {
     Drawable *item = dpi->drawable;
-    RedDrawable *drawable = item->red_drawable;
+    RedDrawable *drawable = item->red_drawable.get();
 
     switch (drawable->type) {
     case QXL_DRAW_FILL:
@@ -2117,7 +2117,7 @@ static void marshall_stream_start(DisplayChannelClient *dcc,
     stream_create.dest = stream->dest_area;
 
     if (stream->current) {
-        RedDrawable *red_drawable = stream->current->red_drawable;
+        RedDrawable *red_drawable = stream->current->red_drawable.get();
         stream_create.clip = red_drawable->clip;
     } else {
         stream_create.clip.type = SPICE_CLIP_TYPE_RECTS;
@@ -2171,7 +2171,7 @@ static void marshall_upgrade(DisplayChannelClient *dcc, SpiceMarshaller *m,
     spice_assert(channel && item && item->drawable);
     dcc->init_send_data(SPICE_MSG_DISPLAY_DRAW_COPY);
 
-    red_drawable = item->drawable->red_drawable;
+    red_drawable = item->drawable->red_drawable.get();
     spice_assert(red_drawable->type == QXL_DRAW_COPY);
     spice_assert(red_drawable->u.copy.rop_descriptor == SPICE_ROPD_OP_PUT);
     spice_assert(red_drawable->u.copy.mask.bitmap == nullptr);

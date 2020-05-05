@@ -799,7 +799,7 @@ static bool current_add_with_shadow(DisplayChannel *display, Ring *ring, Drawabl
     ++display->priv->add_with_shadow_count;
 #endif
 
-    RedDrawable *red_drawable = item->red_drawable;
+    RedDrawable *red_drawable = item->red_drawable.get();
     SpicePoint delta = {
         .x = red_drawable->u.copy_bits.src_pos.x - red_drawable->bbox.left,
         .y = red_drawable->u.copy_bits.src_pos.y - red_drawable->bbox.top
@@ -1043,7 +1043,7 @@ static bool current_add(DisplayChannel *display, Ring *ring, Drawable *drawable)
 
 static bool drawable_can_stream(DisplayChannel *display, Drawable *drawable)
 {
-    RedDrawable *red_drawable = drawable->red_drawable;
+    RedDrawable *red_drawable = drawable->red_drawable.get();
     SpiceImage *image;
 
     if (display->priv->stream_video == SPICE_STREAM_VIDEO_OFF) {
@@ -1131,7 +1131,7 @@ static void surface_read_bits(DisplayChannel *display, int surface_id,
 
 static void handle_self_bitmap(DisplayChannel *display, Drawable *drawable)
 {
-    RedDrawable *red_drawable = drawable->red_drawable;
+    RedDrawable *red_drawable = drawable->red_drawable.get();
     SpiceImage *image;
     int32_t width;
     int32_t height;
@@ -1274,7 +1274,7 @@ static bool validate_drawable_bbox(DisplayChannel *display, RedDrawable *drawabl
  * @return initialized Drawable or NULL on failure
  */
 static Drawable *display_channel_get_drawable(DisplayChannel *display, uint8_t effect,
-                                              RedDrawable *red_drawable,
+                                              red::shared_ptr<RedDrawable> &&red_drawable,
                                               uint32_t process_commands_generation)
 {
     Drawable *drawable;
@@ -1282,7 +1282,7 @@ static Drawable *display_channel_get_drawable(DisplayChannel *display, uint8_t e
     /* Validate all surface ids before updating counters
      * to avoid invalid updates if we find an invalid id.
      */
-    if (!validate_drawable_bbox(display, red_drawable)) {
+    if (!validate_drawable_bbox(display, red_drawable.get())) {
         return nullptr;
     }
     for (const auto surface_id : red_drawable->surface_deps) {
@@ -1297,12 +1297,14 @@ static Drawable *display_channel_get_drawable(DisplayChannel *display, uint8_t e
     }
 
     drawable->tree_item.effect = effect;
-    drawable->red_drawable = red_drawable_ref(red_drawable);
 
     drawable->surface_id = red_drawable->surface_id;
     display->priv->surfaces[drawable->surface_id].refs++;
 
     memcpy(drawable->surface_deps, red_drawable->surface_deps, sizeof(drawable->surface_deps));
+
+    drawable->red_drawable = red_drawable;
+
     /*
         surface->refs is affected by a drawable (that is
         dependent on the surface) as long as the drawable is alive.
@@ -1321,7 +1323,7 @@ static Drawable *display_channel_get_drawable(DisplayChannel *display, uint8_t e
 static void display_channel_add_drawable(DisplayChannel *display, Drawable *drawable)
 {
     int surface_id = drawable->surface_id;
-    RedDrawable *red_drawable = drawable->red_drawable;
+    RedDrawable *red_drawable = drawable->red_drawable.get();
 
     red_drawable->mm_time = reds_get_mm_time();
 
@@ -1368,11 +1370,12 @@ static void display_channel_add_drawable(DisplayChannel *display, Drawable *draw
 #endif
 }
 
-void display_channel_process_draw(DisplayChannel *display, RedDrawable *red_drawable,
+void display_channel_process_draw(DisplayChannel *display,
+                                  red::shared_ptr<RedDrawable> &&red_drawable,
                                   uint32_t process_commands_generation)
 {
     Drawable *drawable =
-        display_channel_get_drawable(display, red_drawable->effect, red_drawable,
+        display_channel_get_drawable(display, red_drawable->effect, std::move(red_drawable),
                                      process_commands_generation);
 
     if (!drawable) {
@@ -1630,9 +1633,6 @@ void drawable_unref(Drawable *drawable)
 
     glz_retention_detach_drawables(&drawable->glz_retention);
 
-    if (drawable->red_drawable) {
-        red_drawable_unref(drawable->red_drawable);
-    }
     drawable_free(display, drawable);
 }
 

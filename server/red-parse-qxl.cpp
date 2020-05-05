@@ -1193,87 +1193,69 @@ static bool red_get_drawable(QXLInstance *qxl, RedMemSlotInfo *slots, int group_
     return ret;
 }
 
-static void red_put_drawable(RedDrawable *red)
+RedDrawable::~RedDrawable()
 {
-    red_put_clip(&red->clip);
-    if (red->self_bitmap_image) {
-        red_put_image(red->self_bitmap_image);
+    red_put_clip(&clip);
+    if (self_bitmap_image) {
+        red_put_image(self_bitmap_image);
     }
-    switch (red->type) {
+    switch (type) {
     case QXL_DRAW_ALPHA_BLEND:
-        red_put_alpha_blend(&red->u.alpha_blend);
+        red_put_alpha_blend(&u.alpha_blend);
         break;
     case QXL_DRAW_BLACKNESS:
-        red_put_blackness(&red->u.blackness);
+        red_put_blackness(&u.blackness);
         break;
     case QXL_DRAW_BLEND:
-        red_put_blend(&red->u.blend);
+        red_put_blend(&u.blend);
         break;
     case QXL_DRAW_COPY:
-        red_put_copy(&red->u.copy);
+        red_put_copy(&u.copy);
         break;
     case QXL_DRAW_FILL:
-        red_put_fill(&red->u.fill);
+        red_put_fill(&u.fill);
         break;
     case QXL_DRAW_OPAQUE:
-        red_put_opaque(&red->u.opaque);
+        red_put_opaque(&u.opaque);
         break;
     case QXL_DRAW_INVERS:
-        red_put_invers(&red->u.invers);
+        red_put_invers(&u.invers);
         break;
     case QXL_DRAW_ROP3:
-        red_put_rop3(&red->u.rop3);
+        red_put_rop3(&u.rop3);
         break;
     case QXL_DRAW_COMPOSITE:
-        red_put_composite(&red->u.composite);
+        red_put_composite(&u.composite);
         break;
     case QXL_DRAW_STROKE:
-        red_put_stroke(&red->u.stroke);
+        red_put_stroke(&u.stroke);
         break;
     case QXL_DRAW_TEXT:
-        red_put_text_ptr(&red->u.text);
+        red_put_text_ptr(&u.text);
         break;
     case QXL_DRAW_TRANSPARENT:
-        red_put_transparent(&red->u.transparent);
+        red_put_transparent(&u.transparent);
         break;
     case QXL_DRAW_WHITENESS:
-        red_put_whiteness(&red->u.whiteness);
+        red_put_whiteness(&u.whiteness);
         break;
     }
-    if (red->qxl != nullptr) {
-        red_qxl_release_resource(red->qxl, red->release_info_ext);
+    if (qxl != nullptr) {
+        red_qxl_release_resource(qxl, release_info_ext);
     }
 }
 
-RedDrawable *red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
-                              int group_id, QXLPHYSICAL addr,
-                              uint32_t flags)
+red::shared_ptr<RedDrawable>
+red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
+                 int group_id, QXLPHYSICAL addr, uint32_t flags)
 {
-    auto red = g_new0(RedDrawable, 1);
+    auto red = red::make_shared<RedDrawable>();
 
-    red->refs = 1;
-
-    if (!red_get_drawable(qxl, slots, group_id, red, addr, flags)) {
-       red_drawable_unref(red);
-       return nullptr;
+    if (!red_get_drawable(qxl, slots, group_id, red.get(), addr, flags)) {
+        red.reset();
     }
 
     return red;
-}
-
-RedDrawable *red_drawable_ref(RedDrawable *drawable)
-{
-    drawable->refs++;
-    return drawable;
-}
-
-void red_drawable_unref(RedDrawable *red_drawable)
-{
-    if (--red_drawable->refs) {
-        return;
-    }
-    red_put_drawable(red_drawable);
-    g_free(red_drawable);
 }
 
 static bool red_get_update_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group_id,

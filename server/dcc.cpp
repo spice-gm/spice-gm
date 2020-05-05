@@ -665,7 +665,7 @@ int dcc_compress_image(DisplayChannelClient *dcc,
         break;
     case SPICE_IMAGE_COMPRESSION_GLZ:
         success = image_encoders_compress_glz(&dcc->priv->encoders, dest, src,
-                                              drawable->red_drawable, &drawable->glz_retention,
+                                              drawable->red_drawable.get(), &drawable->glz_retention,
                                               o_comp_data,
                                               display_channel->priv->enable_zlib_glz_wrap);
         if (success) {
