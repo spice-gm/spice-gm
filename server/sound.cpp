@@ -90,9 +90,6 @@ public:
 
     uint32_t command;
 
-    /* we don't expect very big messages so don't allocate too much
-     * bytes, data will be cached in RecordChannelClient::samples */
-    uint8_t receive_buf[SND_CODEC_MAX_FRAME_BYTES + 64];
     PersistentPipeItem persistent_pipe_item;
 
     virtual void on_message_done() {};
@@ -103,6 +100,11 @@ public:
     virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
     virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
     virtual void migrate() override;
+
+private:
+    /* we don't expect very big messages so don't allocate too much
+     * bytes, data will be cached in RecordChannelClient::samples */
+    uint8_t receive_buf[SND_CODEC_MAX_FRAME_BYTES + 64];
 };
 
 static void snd_playback_alloc_frames(PlaybackChannelClient *playback);
