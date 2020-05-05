@@ -249,8 +249,6 @@ static RedVmcPipeItem* try_compress_lz4(RedVmcChannel *channel, int n, RedVmcPip
 
 RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
 {
-    RedCharDeviceSpiceVmc *vmc = this;
-    RedVmcChannel *channel = vmc->channel.get();
     SpiceCharDeviceInterface *sif;
     RedVmcPipeItem *msg_item;
     int n;
@@ -278,16 +276,16 @@ RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device(SpiceCharDeviceInst
 #ifdef USE_LZ4
         RedVmcPipeItem *msg_item_compressed;
 
-        msg_item_compressed = try_compress_lz4(channel, n, msg_item);
+        msg_item_compressed = try_compress_lz4(channel.get(), n, msg_item);
         if (msg_item_compressed != NULL) {
-            spicevmc_red_channel_queue_data(channel, msg_item_compressed);
+            spicevmc_red_channel_queue_data(channel.get(), msg_item_compressed);
             return NULL;
         }
 #endif
         stat_inc_counter(channel->out_data, n);
         msg_item->uncompressed_data_size = n;
         msg_item->buf_used = n;
-        spicevmc_red_channel_queue_data(channel, msg_item);
+        spicevmc_red_channel_queue_data(channel.get(), msg_item);
         return NULL;
     }
     channel->pipe_item = msg_item;
@@ -326,8 +324,6 @@ static void spicevmc_port_send_event(RedChannelClient *rcc, uint8_t event)
 void RedCharDeviceSpiceVmc::remove_client(RedCharDeviceClientOpaque *opaque)
 {
     RedClient *client = (RedClient *) opaque;
-    RedCharDeviceSpiceVmc *vmc = this;
-    RedVmcChannel *channel = vmc->channel.get();
 
     spice_assert(channel->rcc &&
                  channel->rcc->get_client() == client);
@@ -470,9 +466,6 @@ bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
 /* if device manage to send some data attempt to unblock the channel */
 void RedCharDeviceSpiceVmc::on_free_self_token()
 {
-    RedCharDeviceSpiceVmc *vmc = this;
-    RedVmcChannel *channel = vmc->channel.get();
-
     channel->rcc->unblock_read();
 }
 
@@ -682,11 +675,6 @@ spicevmc_device_connect(RedsState *reds, SpiceCharDeviceInstance *sin, uint8_t c
 
 void RedCharDeviceSpiceVmc::port_event(uint8_t event)
 {
-    RedVmcChannel *channel;
-    RedCharDeviceSpiceVmc *device = this;
-
-    channel = device->channel.get();
-
     if (event == SPICE_PORT_EVENT_OPENED) {
         channel->port_opened = TRUE;
     } else if (event == SPICE_PORT_EVENT_CLOSED) {
