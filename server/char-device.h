@@ -208,8 +208,6 @@ public:
     /* This cb is called when device receives an event */
     virtual void port_event(uint8_t event);
 
-    // XXX private
-    static void write_retry(RedCharDevice *dev);
 private:
     inline void write_buffer_release(RedCharDeviceWriteBuffer **p_write_buf)
     {
@@ -217,6 +215,8 @@ private:
     }
     int write_to_device();
     void init_device_instance();
+
+    static void write_retry(RedCharDevice *dev);
 };
 
 /* api for specific char devices */
