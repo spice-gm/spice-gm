@@ -1520,30 +1520,35 @@ void display_channel_free_some(DisplayChannel *display)
 
 static Drawable* drawable_try_new(DisplayChannel *display)
 {
-    Drawable *drawable;
-
     if (!display->priv->free_drawables)
         return nullptr;
 
-    drawable = &display->priv->free_drawables->u.drawable;
+    void *buf = display->priv->free_drawables->u.raw_drawable;
     display->priv->free_drawables = display->priv->free_drawables->u.next;
     display->priv->drawable_count++;
 
-    return drawable;
+    memset(buf, 0, sizeof(display->priv->free_drawables->u.raw_drawable));
+    return new(buf) Drawable();
 }
 
 static void drawable_free(DisplayChannel *display, Drawable *drawable)
 {
+    drawable->~Drawable();
     ((_Drawable *)drawable)->u.next = display->priv->free_drawables;
     display->priv->free_drawables = (_Drawable *)drawable;
+    display->priv->drawable_count--;
 }
 
+// initialize Drawable memory pool
 static void drawables_init(DisplayChannel *display)
 {
-    display->priv->free_drawables = nullptr;
+    _Drawable *curr = nullptr;
+
     for (auto& drawable : display->priv->drawables) {
-        drawable_free(display, &drawable.u.drawable);
+        drawable.u.next = curr;
+        curr = &drawable;
     }
+    display->priv->free_drawables = curr;
 }
 
 /**
@@ -1561,7 +1566,6 @@ static Drawable *display_channel_drawable_try_new(DisplayChannel *display,
             return nullptr;
     }
 
-    memset(drawable, 0, sizeof(Drawable));
     /* Pointer to the display from which the drawable is allocated.  This
      * pointer is safe to be retained as DisplayChannel lifespan is bigger than
      * all drawables.  */
@@ -1636,7 +1640,6 @@ void drawable_unref(Drawable *drawable)
         red_drawable_unref(drawable->red_drawable);
     }
     drawable_free(display, drawable);
-    display->priv->drawable_count--;
 }
 
 static void drawable_deps_draw(DisplayChannel *display, Drawable *drawable)

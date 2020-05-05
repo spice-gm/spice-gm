@@ -71,7 +71,7 @@ typedef struct MonitorsConfig {
 typedef struct _Drawable _Drawable;
 struct _Drawable {
     union {
-        Drawable drawable;
+        alignas(Drawable) char raw_drawable[sizeof(Drawable)];
         _Drawable *next;
     } u;
 };
