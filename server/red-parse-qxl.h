@@ -87,17 +87,17 @@ typedef struct RedSurfaceCreate {
     uint8_t *data;
 } RedSurfaceCreate;
 
-typedef struct RedSurfaceCmd {
+struct RedSurfaceCmd final: public red::simple_ptr_counted<RedSurfaceCmd> {
+    ~RedSurfaceCmd();
     QXLInstance *qxl;
     QXLReleaseInfoExt release_info_ext;
-    int refs;
     uint32_t surface_id;
     uint8_t type;
     uint32_t flags;
     union {
         RedSurfaceCreate surface_create;
     } u;
-} RedSurfaceCmd;
+};
 
 struct RedCursorCmd final: public red::simple_ptr_counted<RedCursorCmd> {
     ~RedCursorCmd();
@@ -139,10 +139,9 @@ void red_message_unref(RedMessage *red);
 bool red_validate_surface(uint32_t width, uint32_t height,
                           int32_t stride, uint32_t format);
 
-RedSurfaceCmd *red_surface_cmd_new(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
-                                   int group_id, QXLPHYSICAL addr);
-RedSurfaceCmd *red_surface_cmd_ref(RedSurfaceCmd *cmd);
-void red_surface_cmd_unref(RedSurfaceCmd *cmd);
+red::shared_ptr<const RedSurfaceCmd>
+red_surface_cmd_new(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
+                    int group_id, QXLPHYSICAL addr);
 
 red::shared_ptr<const RedCursorCmd>
 red_cursor_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots, int group_id, QXLPHYSICAL addr);

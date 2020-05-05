@@ -1490,43 +1490,24 @@ static bool red_get_surface_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots
     return true;
 }
 
-static void red_put_surface_cmd(RedSurfaceCmd *red)
+RedSurfaceCmd::~RedSurfaceCmd()
 {
-    if (red->qxl) {
-        red_qxl_release_resource(red->qxl, red->release_info_ext);
+    if (qxl) {
+        red_qxl_release_resource(qxl, release_info_ext);
     }
 }
 
-RedSurfaceCmd *red_surface_cmd_new(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
-                                   int group_id, QXLPHYSICAL addr)
+red::shared_ptr<const RedSurfaceCmd>
+red_surface_cmd_new(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
+                    int group_id, QXLPHYSICAL addr)
 {
-    RedSurfaceCmd *cmd;
+    auto cmd = red::make_shared<RedSurfaceCmd>();
 
-    cmd = g_new0(RedSurfaceCmd, 1);
-
-    cmd->refs = 1;
-
-    if (!red_get_surface_cmd(qxl_instance, slots, group_id, cmd, addr)) {
-        red_surface_cmd_unref(cmd);
-        return nullptr;
+    if (!red_get_surface_cmd(qxl_instance, slots, group_id, cmd.get(), addr)) {
+        cmd.reset();
     }
 
     return cmd;
-}
-
-RedSurfaceCmd *red_surface_cmd_ref(RedSurfaceCmd *cmd)
-{
-    cmd->refs++;
-    return cmd;
-}
-
-void red_surface_cmd_unref(RedSurfaceCmd *cmd)
-{
-    if (--cmd->refs) {
-        return;
-    }
-    red_put_surface_cmd(cmd);
-    g_free(cmd);
 }
 
 static bool red_get_cursor(RedMemSlotInfo *slots, int group_id,

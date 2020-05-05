@@ -124,14 +124,14 @@ void                       display_channel_destroy_surfaces          (DisplayCha
 void                       display_channel_process_draw              (DisplayChannel *display,
                                                                       RedDrawable *red_drawable,
                                                                       uint32_t process_commands_generation);
-void                       display_channel_process_surface_cmd       (DisplayChannel *display,
-                                                                      RedSurfaceCmd *surface_cmd,
-                                                                      int loadvm);
 void                       display_channel_gl_scanout                (DisplayChannel *display);
 void                       display_channel_gl_draw                   (DisplayChannel *display,
                                                                       SpiceMsgDisplayGlDraw *draw);
 void                       display_channel_gl_draw_done              (DisplayChannel *display);
 
+void display_channel_process_surface_cmd(DisplayChannel *display,
+                                         red::shared_ptr<const RedSurfaceCmd> &&surface_cmd,
+                                         bool loadvm);
 void display_channel_update_monitors_config(DisplayChannel *display, const QXLMonitorsConfig *config,
                                             uint16_t count, uint16_t max_allowed);
 void display_channel_set_monitors_config_to_primary(DisplayChannel *display);

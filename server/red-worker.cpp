@@ -145,15 +145,12 @@ static int red_process_cursor(RedWorker *worker, int *ring_is_empty)
 
 static gboolean red_process_surface_cmd(RedWorker *worker, QXLCommandExt *ext, gboolean loadvm)
 {
-    RedSurfaceCmd *surface_cmd;
-
-    surface_cmd = red_surface_cmd_new(worker->qxl, &worker->mem_slots,
-                                      ext->group_id, ext->cmd.data);
-    if (surface_cmd == nullptr) {
+    auto surface_cmd = red_surface_cmd_new(worker->qxl, &worker->mem_slots,
+                                           ext->group_id, ext->cmd.data);
+    if (!surface_cmd) {
         return false;
     }
-    display_channel_process_surface_cmd(worker->display_channel, surface_cmd, loadvm);
-    red_surface_cmd_unref(surface_cmd);
+    display_channel_process_surface_cmd(worker->display_channel, std::move(surface_cmd), loadvm);
 
     return true;
 }
