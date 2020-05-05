@@ -24,6 +24,8 @@
 #define SPICE_GNUC_DEPRECATED
 
 #define SpiceCharDeviceState RedCharDevice
+#define SpicePlaybackState PlaybackChannel
+#define SpiceRecordState RecordChannel
 
 #include "push-visibility.h"
 struct RedCharDevice;
@@ -33,3 +35,5 @@ struct SpiceCharDeviceInstance;
 #include "spice.h"
 
 #undef SpiceCharDeviceState
+#undef SpicePlaybackState
+#undef SpiceRecordState

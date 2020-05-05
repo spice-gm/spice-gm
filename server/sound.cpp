@@ -73,10 +73,6 @@ struct PlaybackChannelClient;
 struct RecordChannelClient;
 struct AudioFrame;
 struct AudioFrameContainer;
-typedef struct SpicePlaybackState PlaybackChannel;
-#define PlaybackChannel SpicePlaybackState
-typedef struct SpiceRecordState RecordChannel;
-#define RecordChannel SpiceRecordState
 
 struct PersistentPipeItem: public RedPipeItem
 {
@@ -162,7 +158,7 @@ typedef struct SpiceVolumeState {
     int mute;
 } SpiceVolumeState;
 
-/* Base class for SpicePlaybackState and SpiceRecordState */
+/* Base class for PlaybackChannel and RecordChannel */
 struct SndChannel: public RedChannel
 {
     using RedChannel::RedChannel;
