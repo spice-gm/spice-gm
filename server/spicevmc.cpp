@@ -189,9 +189,7 @@ static red::shared_ptr<RedVmcChannel> red_vmc_channel_new(RedsState *reds, uint8
 }
 
 struct RedPortInitPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_PORT_INIT> {
-    ~RedPortInitPipeItem();
-
-    char* name;
+    red::glib_unique_ptr<char> name;
     uint8_t opened;
 };
 
@@ -285,18 +283,13 @@ RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device()
     return NULL;
 }
 
-RedPortInitPipeItem::~RedPortInitPipeItem()
-{
-    g_free(name);
-}
-
 static void spicevmc_port_send_init(VmcChannelClient *rcc)
 {
     RedVmcChannel *channel = rcc->get_channel();
     SpiceCharDeviceInstance *sin = channel->chardev_sin;
     RedPortInitPipeItem *item = new RedPortInitPipeItem();
 
-    item->name = g_strdup(sin->portname);
+    item->name.reset(g_strdup(sin->portname));
     item->opened = channel->port_opened;
     rcc->pipe_add_push(item);
 }
@@ -556,8 +549,8 @@ static void spicevmc_red_channel_send_port_init(RedChannelClient *rcc,
     SpiceMsgPortInit init;
 
     rcc->init_send_data(SPICE_MSG_PORT_INIT);
-    init.name = (uint8_t *)i->name;
-    init.name_size = strlen(i->name) + 1;
+    init.name = (uint8_t *)i->name.get();
+    init.name_size = strlen(i->name.get()) + 1;
     init.opened = i->opened;
     spice_marshall_msg_port_init(m, &init);
 }

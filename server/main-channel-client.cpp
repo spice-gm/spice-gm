@@ -87,8 +87,7 @@ struct RedUuidPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_UUID> {
 };
 
 struct RedNotifyPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_NOTIFY> {
-    ~RedNotifyPipeItem();
-    char *msg;
+    red::glib_unique_ptr<char> msg;
 };
 
 struct RedMouseModePipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_MOUSE_MODE> {
@@ -143,16 +142,11 @@ void MainChannelClient::on_disconnect()
 
 static void main_channel_client_push_ping(MainChannelClient *mcc, int size);
 
-RedNotifyPipeItem::~RedNotifyPipeItem()
-{
-    g_free(msg);
-}
-
 static RedPipeItem *main_notify_item_new(const char *msg, int num)
 {
     RedNotifyPipeItem *item = new RedNotifyPipeItem();
 
-    item->msg = g_strdup(msg);
+    item->msg.reset(g_strdup(msg));
     return item;
 }
 
@@ -675,9 +669,9 @@ static void main_channel_marshall_notify(RedChannelClient *rcc,
     notify.severity = SPICE_NOTIFY_SEVERITY_WARN;
     notify.visibilty = SPICE_NOTIFY_VISIBILITY_HIGH;
     notify.what = SPICE_WARN_GENERAL;
-    notify.message_len = strlen(item->msg);
+    notify.message_len = strlen(item->msg.get());
     spice_marshall_msg_notify(m, &notify);
-    spice_marshaller_add(m, (uint8_t *)item->msg, notify.message_len + 1);
+    spice_marshaller_add(m, (uint8_t *)item->msg.get(), notify.message_len + 1);
 }
 
 static void main_channel_fill_migrate_dst_info(MainChannel *main_channel,

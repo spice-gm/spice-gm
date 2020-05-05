@@ -2158,7 +2158,7 @@ static void marshall_stream_clip(DisplayChannelClient *dcc,
 
     stream_clip.id = display_channel_get_video_stream_id(DCC_TO_DC(dcc), agent->stream);
     stream_clip.clip.type = item->clip_type;
-    stream_clip.clip.rects = item->rects;
+    stream_clip.clip.rects = item->rects.get();
 
     spice_marshall_msg_display_stream_clip(base_marshaller, &stream_clip);
 }
@@ -2194,7 +2194,7 @@ static void marshall_upgrade(DisplayChannelClient *dcc, SpiceMarshaller *m,
     copy.base.surface_id = 0;
     copy.base.box = red_drawable->bbox;
     copy.base.clip.type = SPICE_CLIP_TYPE_RECTS;
-    copy.base.clip.rects = item->rects;
+    copy.base.clip.rects = item->rects.get();
     copy.data = red_drawable->u.copy;
 
     spice_marshall_msg_display_draw_copy(m, &copy,

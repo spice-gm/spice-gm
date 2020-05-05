@@ -164,7 +164,6 @@ VideoStreamClipItem::~VideoStreamClipItem()
     DisplayChannel *display = DCC_TO_DC(stream_agent->dcc);
 
     video_stream_agent_unref(display, stream_agent);
-    g_free(rects);
 }
 
 VideoStreamClipItem *video_stream_clip_item_new(VideoStreamAgent *agent)
@@ -177,7 +176,8 @@ VideoStreamClipItem *video_stream_clip_item_new(VideoStreamAgent *agent)
     item->clip_type = SPICE_CLIP_TYPE_RECTS;
 
     int n_rects = pixman_region32_n_rects(&agent->clip);
-    item->rects = (SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) + n_rects * sizeof(SpiceRect));
+    item->rects.reset((SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) +
+                                                 n_rects * sizeof(SpiceRect)));
     item->rects->num_rects = n_rects;
     region_ret_rects(&agent->clip, item->rects->rects, n_rects);
 
@@ -803,7 +803,6 @@ void video_stream_agent_stop(VideoStreamAgent *agent)
 RedUpgradeItem::~RedUpgradeItem()
 {
     drawable_unref(drawable);
-    g_free(rects);
 }
 
 /*
@@ -846,7 +845,8 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         upgrade_item->drawable = stream->current;
         upgrade_item->drawable->refs++;
         n_rects = pixman_region32_n_rects(&upgrade_item->drawable->tree_item.base.rgn);
-        upgrade_item->rects = (SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) + n_rects * sizeof(SpiceRect));
+        upgrade_item->rects.reset((SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) +
+                                                             n_rects * sizeof(SpiceRect)));
         upgrade_item->rects->num_rects = n_rects;
         region_ret_rects(&upgrade_item->drawable->tree_item.base.rgn,
                          upgrade_item->rects->rects, n_rects);

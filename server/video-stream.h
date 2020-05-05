@@ -53,7 +53,7 @@ struct RedUpgradeItem: public RedPipeItem {
     using RedPipeItem::RedPipeItem;
     ~RedUpgradeItem();
     Drawable *drawable;
-    SpiceClipRects *rects;
+    red::glib_unique_ptr<SpiceClipRects> rects;
 };
 
 struct RedStreamActivateReportItem: public RedPipeItem {
@@ -101,7 +101,7 @@ struct VideoStreamClipItem: public RedPipeItem {
     ~VideoStreamClipItem();
     VideoStreamAgent *stream_agent;
     int clip_type;
-    SpiceClipRects *rects;
+    red::glib_unique_ptr<SpiceClipRects> rects;
 };
 
 VideoStreamClipItem *video_stream_clip_item_new(VideoStreamAgent *agent);

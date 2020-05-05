@@ -68,8 +68,7 @@ struct RedCharDeviceSmartcardPrivate {
 };
 
 struct RedMsgItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_SMARTCARD_DATA> {
-    ~RedMsgItem();
-    VSCMsgHeader* vheader;
+    red::glib_unique_ptr<VSCMsgHeader> vheader;
 };
 
 static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader);
@@ -339,7 +338,7 @@ static void smartcard_channel_send_msg(RedChannelClient *rcc,
 {
     RedMsgItem* msg_item = static_cast<RedMsgItem*>(item);
 
-    smartcard_channel_client_send_data(rcc, m, item, msg_item->vheader);
+    smartcard_channel_client_send_data(rcc, m, item, msg_item->vheader.get());
 }
 
 static void smartcard_channel_send_migrate_data(SmartCardChannelClient *scc,
@@ -389,16 +388,11 @@ void SmartCardChannelClient::send_item(RedPipeItem *item)
     begin_send_message();
 }
 
-RedMsgItem::~RedMsgItem()
-{
-    g_free(vheader);
-}
-
 static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader)
 {
     RedMsgItem *msg_item = new RedMsgItem();
 
-    msg_item->vheader = (VSCMsgHeader*) g_memdup(vheader, sizeof(*vheader) + vheader->length);
+    msg_item->vheader.reset((VSCMsgHeader*) g_memdup(vheader, sizeof(*vheader) + vheader->length));
     /* We patch the reader_id, since the device only knows about itself, and
      * we know about the sum of readers. */
     msg_item->vheader->reader_id = reader_id;
