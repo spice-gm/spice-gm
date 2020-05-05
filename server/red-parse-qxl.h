@@ -27,10 +27,17 @@
 
 #include "push-visibility.h"
 
-struct RedDrawable final: public red::simple_ptr_counted<RedDrawable> {
-    ~RedDrawable();
-    QXLInstance *qxl;
+template <typename T>
+struct RedQXLResource: public red::simple_ptr_counted<T> {
+    ~RedQXLResource();
+    void set_resource(QXLInstance *qxl, QXLReleaseInfo *info, uint32_t group_id);
+private:
+    QXLInstance *qxl = nullptr;
     QXLReleaseInfoExt release_info_ext;
+};
+
+struct RedDrawable final: public RedQXLResource<RedDrawable> {
+    ~RedDrawable();
     uint32_t surface_id;
     uint8_t effect;
     uint8_t type;
@@ -62,19 +69,15 @@ struct RedDrawable final: public red::simple_ptr_counted<RedDrawable> {
     } u;
 };
 
-struct RedUpdateCmd final: public red::simple_ptr_counted<RedUpdateCmd> {
+struct RedUpdateCmd final: public RedQXLResource<RedUpdateCmd> {
     ~RedUpdateCmd();
-    QXLInstance *qxl;
-    QXLReleaseInfoExt release_info_ext;
     SpiceRect area;
     uint32_t update_id;
     uint32_t surface_id;
 };
 
-struct RedMessage final: public red::simple_ptr_counted<RedMessage> {
+struct RedMessage final: public RedQXLResource<RedMessage> {
     ~RedMessage();
-    QXLInstance *qxl;
-    QXLReleaseInfoExt release_info_ext;
     int len;
     uint8_t *data;
 };
@@ -87,10 +90,8 @@ typedef struct RedSurfaceCreate {
     uint8_t *data;
 } RedSurfaceCreate;
 
-struct RedSurfaceCmd final: public red::simple_ptr_counted<RedSurfaceCmd> {
+struct RedSurfaceCmd final: public RedQXLResource<RedSurfaceCmd> {
     ~RedSurfaceCmd();
-    QXLInstance *qxl;
-    QXLReleaseInfoExt release_info_ext;
     uint32_t surface_id;
     uint8_t type;
     uint32_t flags;
@@ -99,10 +100,8 @@ struct RedSurfaceCmd final: public red::simple_ptr_counted<RedSurfaceCmd> {
     } u;
 };
 
-struct RedCursorCmd final: public red::simple_ptr_counted<RedCursorCmd> {
+struct RedCursorCmd final: public RedQXLResource<RedCursorCmd> {
     ~RedCursorCmd();
-    QXLInstance *qxl;
-    QXLReleaseInfoExt release_info_ext;
     uint8_t type;
     union {
         struct {

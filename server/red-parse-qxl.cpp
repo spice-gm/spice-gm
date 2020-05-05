@@ -77,6 +77,22 @@ static void hexdump_qxl(RedMemSlotInfo *slots, int group_id,
 }
 #endif
 
+template <typename T>
+inline RedQXLResource<T>::~RedQXLResource()
+{
+    if (qxl) {
+        red_qxl_release_resource(qxl, release_info_ext);
+    }
+}
+
+template <typename T>
+inline void RedQXLResource<T>::set_resource(QXLInstance *qxl_instance, QXLReleaseInfo *info, uint32_t group_id)
+{
+    qxl = qxl_instance;
+    release_info_ext.info = info;
+    release_info_ext.group_id = group_id;
+}
+
 static inline uint32_t color_16_to_32(uint32_t color)
 {
     uint32_t ret;
@@ -1026,9 +1042,7 @@ static bool red_get_native_drawable(QXLInstance *qxl_instance, RedMemSlotInfo *s
     if (qxl == nullptr) {
         return false;
     }
-    red->qxl = qxl_instance;
-    red->release_info_ext.info     = &qxl->release_info;
-    red->release_info_ext.group_id = group_id;
+    red->set_resource(qxl_instance, &qxl->release_info, group_id);
 
     red_get_rect_ptr(&red->bbox, &qxl->bbox);
     red_get_clip_ptr(slots, group_id, &red->clip, &qxl->clip);
@@ -1106,9 +1120,7 @@ static bool red_get_compat_drawable(QXLInstance *qxl_instance, RedMemSlotInfo *s
     if (qxl == nullptr) {
         return false;
     }
-    red->qxl = qxl_instance;
-    red->release_info_ext.info     = &qxl->release_info;
-    red->release_info_ext.group_id = group_id;
+    red->set_resource(qxl_instance, &qxl->release_info, group_id);
 
     red_get_rect_ptr(&red->bbox, &qxl->bbox);
     red_get_clip_ptr(slots, group_id, &red->clip, &qxl->clip);
@@ -1240,9 +1252,6 @@ RedDrawable::~RedDrawable()
         red_put_whiteness(&u.whiteness);
         break;
     }
-    if (qxl != nullptr) {
-        red_qxl_release_resource(qxl, release_info_ext);
-    }
 }
 
 red::shared_ptr<RedDrawable>
@@ -1267,9 +1276,7 @@ static bool red_get_update_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
     if (qxl == nullptr) {
         return false;
     }
-    red->qxl = qxl_instance;
-    red->release_info_ext.info     = &qxl->release_info;
-    red->release_info_ext.group_id = group_id;
+    red->set_resource(qxl_instance, &qxl->release_info, group_id);
 
     red_get_rect_ptr(&red->area, &qxl->area);
     red->update_id  = qxl->update_id;
@@ -1277,12 +1284,7 @@ static bool red_get_update_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
     return true;
 }
 
-RedUpdateCmd::~RedUpdateCmd()
-{
-    if (qxl != nullptr) {
-        red_qxl_release_resource(qxl, release_info_ext);
-    }
-}
+RedUpdateCmd::~RedUpdateCmd() = default;
 
 red::shared_ptr<const RedUpdateCmd>
 red_update_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
@@ -1315,9 +1317,7 @@ static bool red_get_message(QXLInstance *qxl_instance, RedMemSlotInfo *slots, in
     if (qxl == nullptr) {
         return false;
     }
-    red->qxl = qxl_instance;
-    red->release_info_ext.info      = &qxl->release_info;
-    red->release_info_ext.group_id  = group_id;
+    red->set_resource(qxl_instance, &qxl->release_info, group_id);
     red->data                       = qxl->data;
     memslot_id = memslot_get_id(slots, addr+sizeof(*qxl));
     len = memslot_max_size_virt(slots, ((intptr_t) qxl)+sizeof(*qxl), memslot_id, group_id);
@@ -1330,12 +1330,7 @@ static bool red_get_message(QXLInstance *qxl_instance, RedMemSlotInfo *slots, in
     return true;
 }
 
-RedMessage::~RedMessage()
-{
-    if (qxl != nullptr) {
-        red_qxl_release_resource(qxl, release_info_ext);
-    }
-}
+RedMessage::~RedMessage() = default;
 
 red::shared_ptr<const RedMessage>
 red_message_new(QXLInstance *qxl, RedMemSlotInfo *slots,
@@ -1403,9 +1398,7 @@ static bool red_get_surface_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots
     if (qxl == nullptr) {
         return false;
     }
-    red->qxl = qxl_instance;
-    red->release_info_ext.info      = &qxl->release_info;
-    red->release_info_ext.group_id  = group_id;
+    red->set_resource(qxl_instance, &qxl->release_info, group_id);
 
     red->surface_id = qxl->surface_id;
     red->type       = qxl->type;
@@ -1434,12 +1427,7 @@ static bool red_get_surface_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots
     return true;
 }
 
-RedSurfaceCmd::~RedSurfaceCmd()
-{
-    if (qxl) {
-        red_qxl_release_resource(qxl, release_info_ext);
-    }
-}
+RedSurfaceCmd::~RedSurfaceCmd() = default;
 
 red::shared_ptr<const RedSurfaceCmd>
 red_surface_cmd_new(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
@@ -1513,9 +1501,7 @@ static bool red_get_cursor_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots,
     if (qxl == nullptr) {
         return false;
     }
-    red->qxl = qxl_instance;
-    red->release_info_ext.info      = &qxl->release_info;
-    red->release_info_ext.group_id  = group_id;
+    red->set_resource(qxl_instance, &qxl->release_info, group_id);
 
     red->type = qxl->type;
     switch (red->type) {
@@ -1552,8 +1538,5 @@ RedCursorCmd::~RedCursorCmd()
     case QXL_CURSOR_SET:
         red_put_cursor(&u.set.shape);
         break;
-    }
-    if (qxl) {
-        red_qxl_release_resource(qxl, release_info_ext);
     }
 }
