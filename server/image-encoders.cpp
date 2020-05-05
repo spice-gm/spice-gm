@@ -258,7 +258,7 @@ static int jpeg_usr_more_space(JpegEncoderUsrContext *usr, uint8_t **io_ptr)
 #ifdef USE_LZ4
 static int lz4_usr_more_space(Lz4EncoderUsrContext *usr, uint8_t **io_ptr)
 {
-    EncoderData *usr_data = &(((Lz4Data *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, Lz4Data, usr)->data);
     return encoder_usr_more_space(usr_data, io_ptr);
 }
 #endif
@@ -326,7 +326,7 @@ static int jpeg_usr_more_lines(JpegEncoderUsrContext *usr, uint8_t **lines)
 #ifdef USE_LZ4
 static int lz4_usr_more_lines(Lz4EncoderUsrContext *usr, uint8_t **lines)
 {
-    EncoderData *usr_data = &(((Lz4Data *)usr)->data);
+    EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, Lz4Data, usr)->data);
     return encoder_usr_more_lines(usr_data, lines);
 }
 #endif
