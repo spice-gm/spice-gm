@@ -27,7 +27,6 @@
 #include "push-visibility.h"
 
 struct RedCharDevice;
-struct RedCharDeviceClass;
 struct RedCharDevicePrivate;
 struct RedCharDeviceClientOpaque;
 
