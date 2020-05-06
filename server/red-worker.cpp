@@ -448,7 +448,7 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
         display->push();
     }
 
-    cursor_channel_do_init(worker->cursor_channel);
+    worker->cursor_channel->do_init();
 }
 
 static void handle_dev_create_primary_surface(void *opaque, void *payload)

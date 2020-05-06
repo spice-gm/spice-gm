@@ -288,9 +288,9 @@ static void cursor_channel_init_client(CursorChannel *cursor, CursorChannelClien
         cursor->pipes_add_type(RED_PIPE_ITEM_TYPE_CURSOR_INIT);
 }
 
-void cursor_channel_do_init(CursorChannel *cursor)
+void CursorChannel::do_init()
 {
-    cursor_channel_init_client(cursor, NULL);
+    cursor_channel_init_client(this, NULL);
 }
 
 void cursor_channel_set_mouse_mode(CursorChannel *cursor, uint32_t mode)
