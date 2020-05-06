@@ -707,7 +707,7 @@ static void handle_dev_set_mouse_mode(void *opaque, void *payload)
     RedWorker *worker = (RedWorker*) opaque;
 
     spice_debug("mouse mode %u", msg->mode);
-    cursor_channel_set_mouse_mode(worker->cursor_channel, msg->mode);
+    worker->cursor_channel->set_mouse_mode(msg->mode);
 }
 
 static void dev_add_memslot(RedWorker *worker, QXLDevMemSlot mem_slot)

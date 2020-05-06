@@ -293,11 +293,9 @@ void CursorChannel::do_init()
     cursor_channel_init_client(this, NULL);
 }
 
-void cursor_channel_set_mouse_mode(CursorChannel *cursor, uint32_t mode)
+void CursorChannel::set_mouse_mode(uint32_t mode)
 {
-    spice_return_if_fail(cursor);
-
-    cursor->mouse_mode = mode;
+    mouse_mode = mode;
 }
 
 /**

@@ -38,6 +38,7 @@ struct CursorChannel final: public CommonGraphicsChannel
     ~CursorChannel();
     void do_init();
     void process_cmd(RedCursorCmd *cursor_cmd);
+    void set_mouse_mode(uint32_t mode);
     void on_connect(RedClient *client, RedStream *stream, int migration,
                     RedChannelCapabilities *caps) override;
 
@@ -61,7 +62,6 @@ red::shared_ptr<CursorChannel> cursor_channel_new(RedsState *server, int id,
                                                   Dispatcher *dispatcher);
 
 void                 cursor_channel_reset       (CursorChannel *cursor);
-void                 cursor_channel_set_mouse_mode(CursorChannel *cursor, uint32_t mode);
 
 #include "pop-visibility.h"
 
