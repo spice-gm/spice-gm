@@ -472,7 +472,7 @@ StreamDevice::handle_msg_cursor_set(SpiceCharDeviceInstance *sin)
     if (!cmd) {
         return handle_msg_invalid(sin, NULL);
     }
-    cursor_channel_process_cmd(cursor_channel.get(), cmd);
+    cursor_channel->process_cmd(cmd);
 
     return true;
 }
@@ -499,7 +499,7 @@ StreamDevice::handle_msg_cursor_move(SpiceCharDeviceInstance *sin)
     cmd->u.position.x = move->x;
     cmd->u.position.y = move->y;
 
-    cursor_channel_process_cmd(cursor_channel.get(), cmd);
+    cursor_channel->process_cmd(cmd);
 
     return true;
 }

@@ -36,6 +36,7 @@ struct CursorChannel final: public CommonGraphicsChannel
     CursorChannel(RedsState *reds, uint32_t id,
                   SpiceCoreInterfaceInternal *core=nullptr, Dispatcher *dispatcher=nullptr);
     ~CursorChannel();
+    void process_cmd(RedCursorCmd *cursor_cmd);
     void on_connect(RedClient *client, RedStream *stream, int migration,
                     RedChannelCapabilities *caps) override;
 
@@ -60,7 +61,6 @@ red::shared_ptr<CursorChannel> cursor_channel_new(RedsState *server, int id,
 
 void                 cursor_channel_reset       (CursorChannel *cursor);
 void                 cursor_channel_do_init     (CursorChannel *cursor);
-void                 cursor_channel_process_cmd (CursorChannel *cursor, RedCursorCmd *cursor_cmd);
 void                 cursor_channel_set_mouse_mode(CursorChannel *cursor, uint32_t mode);
 
 #include "pop-visibility.h"

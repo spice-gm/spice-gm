@@ -99,7 +99,7 @@ static gboolean red_process_cursor_cmd(RedWorker *worker, const QXLCommandExt *e
         return FALSE;
     }
 
-    cursor_channel_process_cmd(worker->cursor_channel, cursor_cmd);
+    worker->cursor_channel->process_cmd(cursor_cmd);
     red_cursor_cmd_unref(cursor_cmd);
 
     return TRUE;

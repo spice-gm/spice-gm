@@ -212,32 +212,31 @@ cursor_channel_new(RedsState *server, int id,
     return red::make_shared<CursorChannel>(server, id, core, dispatcher);
 }
 
-void cursor_channel_process_cmd(CursorChannel *cursor, RedCursorCmd *cursor_cmd)
+void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
 {
     RedCursorPipeItem *cursor_pipe_item;
     bool cursor_show = false;
 
-    spice_return_if_fail(cursor);
     spice_return_if_fail(cursor_cmd);
 
     cursor_pipe_item = cursor_pipe_item_new(cursor_cmd);
 
     switch (cursor_cmd->type) {
     case QXL_CURSOR_SET:
-        cursor->cursor_visible = !!cursor_cmd->u.set.visible;
-        cursor_channel_set_item(cursor, cursor_pipe_item);
+        cursor_visible = !!cursor_cmd->u.set.visible;
+        cursor_channel_set_item(this, cursor_pipe_item);
         break;
     case QXL_CURSOR_MOVE:
-        cursor_show = !cursor->cursor_visible;
-        cursor->cursor_visible = true;
-        cursor->cursor_position = cursor_cmd->u.position;
+        cursor_show = !cursor_visible;
+        cursor_visible = true;
+        cursor_position = cursor_cmd->u.position;
         break;
     case QXL_CURSOR_HIDE:
-        cursor->cursor_visible = false;
+        cursor_visible = false;
         break;
     case QXL_CURSOR_TRAIL:
-        cursor->cursor_trail_length = cursor_cmd->u.trail.length;
-        cursor->cursor_trail_frequency = cursor_cmd->u.trail.frequency;
+        cursor_trail_length = cursor_cmd->u.trail.length;
+        cursor_trail_frequency = cursor_cmd->u.trail.frequency;
         break;
     default:
         spice_warning("invalid cursor command %u", cursor_cmd->type);
@@ -245,11 +244,11 @@ void cursor_channel_process_cmd(CursorChannel *cursor, RedCursorCmd *cursor_cmd)
         return;
     }
 
-    if (cursor->is_connected() &&
-        (cursor->mouse_mode == SPICE_MOUSE_MODE_SERVER
+    if (is_connected() &&
+        (mouse_mode == SPICE_MOUSE_MODE_SERVER
          || cursor_cmd->type != QXL_CURSOR_MOVE
          || cursor_show)) {
-        cursor->pipes_add(&cursor_pipe_item->base);
+        pipes_add(&cursor_pipe_item->base);
     } else {
         red_pipe_item_unref(&cursor_pipe_item->base);
     }
