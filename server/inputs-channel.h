@@ -19,7 +19,7 @@
 #define INPUTS_CHANNEL_H_
 
 // Inputs channel, dealing with keyboard, mouse, tablet.
-// This include should only be used by reds.c and inputs-channel.c
+// This include should only be used by reds.cpp and inputs-channel.cpp
 
 #include <stdint.h>
 #include <spice/vd_agent.h>

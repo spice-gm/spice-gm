@@ -17,8 +17,8 @@
 
 /* This header should contains internal details between RedQxl and
  * RedWorker.
- * Should be included only by red-worker.c, red-qxl.c and
- * red-replay-qxl.c (which uses message values).
+ * Should be included only by red-worker.cpp, red-qxl.cpp and
+ * red-replay-qxl.cpp (which uses message values).
  */
 
 #ifndef RED_WORKER_H_

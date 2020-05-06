@@ -170,7 +170,7 @@ void MainDispatcher::client_disconnect(RedClient *client)
 
 /*
  * FIXME:
- * Reds routines shouldn't be exposed. Instead reds.c should register the callbacks,
+ * Reds routines shouldn't be exposed. Instead reds.cpp should register the callbacks,
  * and the corresponding operations should be made only via main_dispatcher.
  */
 MainDispatcher::MainDispatcher(RedsState *reds):
