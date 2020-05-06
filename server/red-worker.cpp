@@ -395,7 +395,7 @@ static void handle_dev_destroy_surfaces(void *opaque, void *payload)
 
     flush_all_qxl_commands(worker);
     display_channel_destroy_surfaces(worker->display_channel);
-    cursor_channel_reset(worker->cursor_channel);
+    worker->cursor_channel->reset();
 }
 
 static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
@@ -478,7 +478,7 @@ static void destroy_primary_surface(RedWorker *worker, uint32_t surface_id)
     */
     spice_warn_if_fail(!display_channel_surface_has_canvas(display, surface_id));
 
-    cursor_channel_reset(worker->cursor_channel);
+    worker->cursor_channel->reset();
 }
 
 static void handle_dev_destroy_primary_surface(void *opaque, void *payload)
@@ -583,7 +583,7 @@ static void handle_dev_reset_cursor(void *opaque, void *payload)
 {
     RedWorker *worker = (RedWorker*) opaque;
 
-    cursor_channel_reset(worker->cursor_channel);
+    worker->cursor_channel->reset();
 }
 
 static void handle_dev_reset_image_cache(void *opaque, void *payload)
@@ -609,7 +609,7 @@ static void handle_dev_destroy_surfaces_async(void *opaque, void *payload)
 
     flush_all_qxl_commands(worker);
     display_channel_destroy_surfaces(worker->display_channel);
-    cursor_channel_reset(worker->cursor_channel);
+    worker->cursor_channel->reset();
     red_qxl_async_complete(worker->qxl, msg->base.cookie);
 }
 

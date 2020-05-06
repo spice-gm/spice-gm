@@ -254,21 +254,19 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
     }
 }
 
-void cursor_channel_reset(CursorChannel *cursor)
+void CursorChannel::reset()
 {
-    spice_return_if_fail(cursor);
+    cursor_channel_set_item(this, NULL);
+    cursor_visible = true;
+    cursor_position.x = cursor_position.y = 0;
+    cursor_trail_length = cursor_trail_frequency = 0;
 
-    cursor_channel_set_item(cursor, NULL);
-    cursor->cursor_visible = true;
-    cursor->cursor_position.x = cursor->cursor_position.y = 0;
-    cursor->cursor_trail_length = cursor->cursor_trail_frequency = 0;
-
-    if (cursor->is_connected()) {
-        cursor->pipes_add_type(RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE);
-        if (!cursor->get_during_target_migrate()) {
-            cursor->pipes_add_empty_msg(SPICE_MSG_CURSOR_RESET);
+    if (is_connected()) {
+        pipes_add_type(RED_PIPE_ITEM_TYPE_INVAL_CURSOR_CACHE);
+        if (!get_during_target_migrate()) {
+            pipes_add_empty_msg(SPICE_MSG_CURSOR_RESET);
         }
-        cursor->wait_all_sent(COMMON_CLIENT_TIMEOUT);
+        wait_all_sent(COMMON_CLIENT_TIMEOUT);
     }
 }
 
