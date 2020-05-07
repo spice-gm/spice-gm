@@ -174,6 +174,11 @@ public:
 
     SpiceCharDeviceInstance *get_device_instance();
 
+    /**
+     * Read data from device
+     */
+    int read(uint8_t *buf, int len);
+
     red::unique_link<RedCharDevicePrivate> priv;
 
 //protected:

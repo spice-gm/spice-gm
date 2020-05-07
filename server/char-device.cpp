@@ -947,3 +947,14 @@ RedCharDevice::RedCharDevice(RedsState *reds, SpiceCharDeviceInstance *sin,
 
     g_queue_init(&priv->write_queue);
 }
+
+int RedCharDevice::read(uint8_t *buf, int len)
+{
+    auto sif = spice_char_device_get_interface(priv->sin);
+
+    int ret = sif->read(priv->sin, buf, len);
+    if (ret > 0) {
+        priv->active = true;
+    }
+    return ret;
+}
