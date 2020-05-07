@@ -247,13 +247,10 @@ static RedVmcPipeItem* try_compress_lz4(RedVmcChannel *channel, int n, RedVmcPip
 }
 #endif
 
-RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
+RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device(SpiceCharDeviceInstance *)
 {
-    SpiceCharDeviceInterface *sif;
     RedVmcPipeItem *msg_item;
     int n;
-
-    sif = spice_char_device_get_interface(sin);
 
     if (!channel->rcc || channel->queued_data >= QUEUED_DATA_LIMIT) {
         return NULL;
@@ -269,8 +266,7 @@ RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device(SpiceCharDeviceInst
         channel->pipe_item = NULL;
     }
 
-    n = sif->read(sin, msg_item->buf,
-                  sizeof(msg_item->buf));
+    n = read(msg_item->buf, sizeof(msg_item->buf));
     if (n > 0) {
         spice_debug("read from dev %d", n);
 #ifdef USE_LZ4

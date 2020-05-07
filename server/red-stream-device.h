@@ -94,14 +94,14 @@ private:
     virtual void remove_client(RedCharDeviceClientOpaque *client) override;
     virtual void port_event(uint8_t event) override;
 
-    bool partial_read(SpiceCharDeviceInstance *sin);
-    bool handle_msg_invalid(SpiceCharDeviceInstance *sin, const char *error_msg) SPICE_GNUC_WARN_UNUSED_RESULT;
-    bool handle_msg_capabilities(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
-    bool handle_msg_format(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
-    bool handle_msg_cursor_move(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
-    bool handle_msg_cursor_set(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
-    bool handle_msg_data(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
-    bool handle_msg_device_display_info(SpiceCharDeviceInstance *sin) SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool partial_read();
+    bool handle_msg_invalid(const char *error_msg) SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_capabilities() SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_format() SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_cursor_move() SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_cursor_set() SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_data() SPICE_GNUC_WARN_UNUSED_RESULT;
+    bool handle_msg_device_display_info() SPICE_GNUC_WARN_UNUSED_RESULT;
     void reset_channels();
     static void close_timer_func(StreamDevice *dev);
     static void stream_start(void *opaque, StreamMsgStartStop *start,

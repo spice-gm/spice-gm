@@ -763,7 +763,6 @@ RedPipeItem *
 RedCharDeviceVDIPort::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
 {
     RedsState *reds;
-    SpiceCharDeviceInterface *sif;
     RedVDIReadBuf *dispatch_buf;
     int n;
 
@@ -773,11 +772,10 @@ RedCharDeviceVDIPort::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
         return NULL;
     }
     spice_assert(reds->vdagent == sin);
-    sif = spice_char_device_get_interface(reds->vdagent);
     while (reds->vdagent) {
         switch (priv->read_state) {
         case VDI_PORT_READ_STATE_READ_HEADER:
-            n = sif->read(reds->vdagent, priv->receive_pos, priv->receive_len);
+            n = read(priv->receive_pos, priv->receive_len);
             if (!n) {
                 return NULL;
             }
@@ -801,7 +799,7 @@ RedCharDeviceVDIPort::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
         }
             /* fall through */
         case VDI_PORT_READ_STATE_READ_DATA: {
-            n = sif->read(reds->vdagent, priv->receive_pos, priv->receive_len);
+            n = read(priv->receive_pos, priv->receive_len);
             if (!n) {
                 return NULL;
             }

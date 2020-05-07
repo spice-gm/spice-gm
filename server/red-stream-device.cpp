@@ -47,20 +47,17 @@ fill_dev_hdr(StreamDevHeader *hdr, StreamMsgType msg_type, uint32_t msg_size)
 }
 
 bool
-StreamDevice::partial_read(SpiceCharDeviceInstance *sin)
+StreamDevice::partial_read()
 {
-    SpiceCharDeviceInterface *sif;
     int n;
     bool handled = false;
-
-    sif = spice_char_device_get_interface(sin);
 
     // in order to get in sync every time we open the device we need to discard data here.
     // Qemu keeps a buffer of data which is used only during spice_server_char_device_wakeup
     // from Qemu
     if (G_UNLIKELY(has_error)) {
         uint8_t buf[16 * 1024];
-        while (sif->read(sin, buf, sizeof(buf)) > 0) {
+        while (read(buf, sizeof(buf)) > 0) {
             continue;
         }
 
@@ -83,7 +80,7 @@ StreamDevice::partial_read(SpiceCharDeviceInstance *sin)
 
     /* read header */
     while (hdr_pos < sizeof(hdr)) {
-        n = sif->read(sin, (uint8_t *) &hdr + hdr_pos, sizeof(hdr) - hdr_pos);
+        n = read((uint8_t *) &hdr + hdr_pos, sizeof(hdr) - hdr_pos);
         if (n <= 0) {
             return false;
         }
@@ -98,40 +95,40 @@ StreamDevice::partial_read(SpiceCharDeviceInstance *sin)
     switch ((StreamMsgType) hdr.type) {
     case STREAM_TYPE_FORMAT:
         if (hdr.size != sizeof(StreamMsgFormat)) {
-            handled = handle_msg_invalid(sin, "Wrong size for StreamMsgFormat");
+            handled = handle_msg_invalid("Wrong size for StreamMsgFormat");
         } else {
-            handled = handle_msg_format(sin);
+            handled = handle_msg_format();
         }
         break;
     case STREAM_TYPE_DEVICE_DISPLAY_INFO:
         if (hdr.size > sizeof(StreamMsgDeviceDisplayInfo) + MAX_DEVICE_ADDRESS_LEN) {
-            handled = handle_msg_invalid(sin, "StreamMsgDeviceDisplayInfo too large");
+            handled = handle_msg_invalid("StreamMsgDeviceDisplayInfo too large");
         } else {
-            handled = handle_msg_device_display_info(sin);
+            handled = handle_msg_device_display_info();
         }
         break;
     case STREAM_TYPE_DATA:
         if (hdr.size > 32*1024*1024) {
-            handled = handle_msg_invalid(sin, "STREAM_DATA too large");
+            handled = handle_msg_invalid("STREAM_DATA too large");
         } else {
-            handled = handle_msg_data(sin);
+            handled = handle_msg_data();
         }
         break;
     case STREAM_TYPE_CURSOR_SET:
-        handled = handle_msg_cursor_set(sin);
+        handled = handle_msg_cursor_set();
         break;
     case STREAM_TYPE_CURSOR_MOVE:
         if (hdr.size != sizeof(StreamMsgCursorMove)) {
-            handled = handle_msg_invalid(sin, "Wrong size for StreamMsgCursorMove");
+            handled = handle_msg_invalid("Wrong size for StreamMsgCursorMove");
         } else {
-            handled = handle_msg_cursor_move(sin);
+            handled = handle_msg_cursor_move();
         }
         break;
     case STREAM_TYPE_CAPABILITIES:
-        handled = handle_msg_capabilities(sin);
+        handled = handle_msg_capabilities();
         break;
     default:
-        handled = handle_msg_invalid(sin, "Invalid message type");
+        handled = handle_msg_invalid("Invalid message type");
         break;
     }
 
@@ -161,16 +158,16 @@ StreamDevice::partial_read(SpiceCharDeviceInstance *sin)
     return false;
 }
 
-RedPipeItem* StreamDevice::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
+RedPipeItem* StreamDevice::read_one_msg_from_device(SpiceCharDeviceInstance *)
 {
-    while (partial_read(sin)) {
+    while (partial_read()) {
         continue;
     }
     return NULL;
 }
 
 bool
-StreamDevice::handle_msg_invalid(SpiceCharDeviceInstance *sin, const char *error_msg)
+StreamDevice::handle_msg_invalid(const char *error_msg)
 {
     static const char default_error_msg[] = "Protocol error";
 
@@ -203,16 +200,14 @@ StreamDevice::handle_msg_invalid(SpiceCharDeviceInstance *sin, const char *error
 }
 
 bool
-StreamDevice::handle_msg_format(SpiceCharDeviceInstance *sin)
+StreamDevice::handle_msg_format()
 {
-    SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
-
     spice_extra_assert(hdr_pos >= sizeof(StreamDevHeader));
     spice_extra_assert(hdr.type == STREAM_TYPE_FORMAT);
 
-    int n = sif->read(sin, msg->buf + msg_pos, sizeof(StreamMsgFormat) - msg_pos);
+    int n = read(msg->buf + msg_pos, sizeof(StreamMsgFormat) - msg_pos);
     if (n < 0) {
-        return handle_msg_invalid(sin, NULL);
+        return handle_msg_invalid(NULL);
     }
 
     msg_pos += n;
@@ -228,10 +223,8 @@ StreamDevice::handle_msg_format(SpiceCharDeviceInstance *sin)
 }
 
 bool
-StreamDevice::handle_msg_device_display_info(SpiceCharDeviceInstance *sin)
+StreamDevice::handle_msg_device_display_info()
 {
-    SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
-
     spice_extra_assert(hdr_pos >= sizeof(StreamDevHeader));
     spice_extra_assert(hdr.type == STREAM_TYPE_DEVICE_DISPLAY_INFO);
 
@@ -241,7 +234,7 @@ StreamDevice::handle_msg_device_display_info(SpiceCharDeviceInstance *sin)
     }
 
     /* read from device */
-    ssize_t n = sif->read(sin, msg->buf + msg_pos, hdr.size - msg_pos);
+    ssize_t n = read(msg->buf + msg_pos, hdr.size - msg_pos);
     if (n <= 0) {
         return msg_pos == hdr.size;
     }
@@ -293,20 +286,18 @@ StreamDevice::handle_msg_device_display_info(SpiceCharDeviceInstance *sin)
 }
 
 bool
-StreamDevice::handle_msg_capabilities(SpiceCharDeviceInstance *sin)
+StreamDevice::handle_msg_capabilities()
 {
-    SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
-
     spice_extra_assert(hdr_pos >= sizeof(StreamDevHeader));
     spice_extra_assert(hdr.type == STREAM_TYPE_CAPABILITIES);
 
     if (hdr.size > STREAM_MSG_CAPABILITIES_MAX_BYTES) {
-        return handle_msg_invalid(sin, "Wrong size for StreamMsgCapabilities");
+        return handle_msg_invalid("Wrong size for StreamMsgCapabilities");
     }
 
-    int n = sif->read(sin, msg->buf + msg_pos, hdr.size - msg_pos);
+    int n = read(msg->buf + msg_pos, hdr.size - msg_pos);
     if (n < 0) {
-        return handle_msg_invalid(sin, NULL);
+        return handle_msg_invalid(NULL);
     }
 
     msg_pos += n;
@@ -324,9 +315,8 @@ StreamDevice::handle_msg_capabilities(SpiceCharDeviceInstance *sin)
 }
 
 bool
-StreamDevice::handle_msg_data(SpiceCharDeviceInstance *sin)
+StreamDevice::handle_msg_data()
 {
-    SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
     int n;
 
     spice_extra_assert(hdr_pos >= sizeof(StreamDevHeader));
@@ -351,7 +341,7 @@ StreamDevice::handle_msg_data(SpiceCharDeviceInstance *sin)
     }
 
     /* read from device */
-    n = sif->read(sin, msg->buf + msg_pos, hdr.size - msg_pos);
+    n = read(msg->buf + msg_pos, hdr.size - msg_pos);
     if (n <= 0) {
         return msg_pos == hdr.size;
     }
@@ -435,7 +425,7 @@ stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_si
 }
 
 bool
-StreamDevice::handle_msg_cursor_set(SpiceCharDeviceInstance *sin)
+StreamDevice::handle_msg_cursor_set()
 {
     // Calculate the maximum size required to send the pixel data for a cursor that is the
     // maximum size using the format that requires the largest number of bits per pixel
@@ -445,12 +435,10 @@ StreamDevice::handle_msg_cursor_set(SpiceCharDeviceInstance *sin)
         (STREAM_MSG_CURSOR_SET_MAX_WIDTH * 4 + (STREAM_MSG_CURSOR_SET_MAX_WIDTH + 7)/8)
         * STREAM_MSG_CURSOR_SET_MAX_HEIGHT;
 
-    SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
-
     if (hdr.size < sizeof(StreamMsgCursorSet) || hdr.size > max_cursor_set_size) {
         // we could skip the message but on the other hand the guest
         // is buggy in any case
-        return handle_msg_invalid(sin, "Cursor size is invalid");
+        return handle_msg_invalid("Cursor size is invalid");
     }
 
     // read part of the message till we get all
@@ -458,7 +446,7 @@ StreamDevice::handle_msg_cursor_set(SpiceCharDeviceInstance *sin)
         msg = (StreamDevice::AllMessages*) g_realloc(msg, hdr.size);
         msg_len = hdr.size;
     }
-    int n = sif->read(sin, msg->buf + msg_pos, hdr.size - msg_pos);
+    int n = read(msg->buf + msg_pos, hdr.size - msg_pos);
     if (n <= 0) {
         return false;
     }
@@ -470,7 +458,7 @@ StreamDevice::handle_msg_cursor_set(SpiceCharDeviceInstance *sin)
     // transform the message to a cursor command and process it
     RedCursorCmd *cmd = stream_msg_cursor_set_to_cursor_cmd(&msg->cursor_set, msg_pos);
     if (!cmd) {
-        return handle_msg_invalid(sin, NULL);
+        return handle_msg_invalid(NULL);
     }
     cursor_channel->process_cmd(cmd);
 
@@ -478,10 +466,9 @@ StreamDevice::handle_msg_cursor_set(SpiceCharDeviceInstance *sin)
 }
 
 bool
-StreamDevice::handle_msg_cursor_move(SpiceCharDeviceInstance *sin)
+StreamDevice::handle_msg_cursor_move()
 {
-    SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
-    int n = sif->read(sin, msg->buf + msg_pos, hdr.size - msg_pos);
+    int n = read(msg->buf + msg_pos, hdr.size - msg_pos);
     if (n <= 0) {
         return false;
     }

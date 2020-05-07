@@ -98,10 +98,9 @@ static void smartcard_read_buf_prepare(RedCharDeviceSmartcard *dev, VSCMsgHeader
 }
 
 RedPipeItem*
-RedCharDeviceSmartcard::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
+RedCharDeviceSmartcard::read_one_msg_from_device(SpiceCharDeviceInstance *)
 {
     RedCharDeviceSmartcard *dev = this;
-    SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
     VSCMsgHeader *vheader = (VSCMsgHeader*)dev->priv->buf;
     int remaining;
     int actual_length;
@@ -113,7 +112,7 @@ RedCharDeviceSmartcard::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
         // read. In this case we don't need to read any byte
         if (dev->priv->buf_used < sizeof(VSCMsgHeader) ||
             dev->priv->buf_used - sizeof(VSCMsgHeader) < ntohl(vheader->length)) {
-            int n = sif->read(sin, dev->priv->buf_pos, dev->priv->buf_size - dev->priv->buf_used);
+            int n = read(dev->priv->buf_pos, dev->priv->buf_size - dev->priv->buf_used);
             if (n <= 0) {
                 break;
             }
