@@ -34,7 +34,7 @@ public:
 protected:
     ~RedCharDeviceSmartcard();
 private:
-    RedPipeItem* read_one_msg_from_device(SpiceCharDeviceInstance *sin) override;
+    RedPipeItem* read_one_msg_from_device() override;
     void send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *client) override;
     void remove_client(RedCharDeviceClientOpaque *client) override;
 public: // XXX make private

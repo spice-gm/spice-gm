@@ -59,7 +59,7 @@ struct RedCharDeviceSpiceVmc: public RedCharDevice
     RedCharDeviceSpiceVmc(SpiceCharDeviceInstance *sin, RedsState *reds, RedVmcChannel *channel);
     ~RedCharDeviceSpiceVmc();
 
-    virtual RedPipeItem* read_one_msg_from_device(SpiceCharDeviceInstance *sin) override;
+    virtual RedPipeItem* read_one_msg_from_device() override;
     virtual void remove_client(RedCharDeviceClientOpaque *opaque) override;
     virtual void on_free_self_token() override;
     virtual void port_event(uint8_t event) override;
@@ -247,7 +247,7 @@ static RedVmcPipeItem* try_compress_lz4(RedVmcChannel *channel, int n, RedVmcPip
 }
 #endif
 
-RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device(SpiceCharDeviceInstance *)
+RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device()
 {
     RedVmcPipeItem *msg_item;
     int n;

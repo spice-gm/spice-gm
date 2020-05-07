@@ -98,7 +98,7 @@ static void smartcard_read_buf_prepare(RedCharDeviceSmartcard *dev, VSCMsgHeader
 }
 
 RedPipeItem*
-RedCharDeviceSmartcard::read_one_msg_from_device(SpiceCharDeviceInstance *)
+RedCharDeviceSmartcard::read_one_msg_from_device()
 {
     RedCharDeviceSmartcard *dev = this;
     VSCMsgHeader *vheader = (VSCMsgHeader*)dev->priv->buf;

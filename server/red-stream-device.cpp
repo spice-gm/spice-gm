@@ -158,7 +158,7 @@ StreamDevice::partial_read()
     return false;
 }
 
-RedPipeItem* StreamDevice::read_one_msg_from_device(SpiceCharDeviceInstance *)
+RedPipeItem* StreamDevice::read_one_msg_from_device()
 {
     while (partial_read()) {
         continue;

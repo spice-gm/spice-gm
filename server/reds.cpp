@@ -220,7 +220,7 @@ struct RedCharDeviceVDIPort: public RedCharDevice
     RedCharDeviceVDIPort();
     ~RedCharDeviceVDIPort();
 
-    virtual RedPipeItem* read_one_msg_from_device(SpiceCharDeviceInstance *sin) override;
+    virtual RedPipeItem* read_one_msg_from_device() override;
     virtual void send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque) override;
     virtual void send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens) override;
     virtual void remove_client(RedCharDeviceClientOpaque *opaque);
@@ -760,18 +760,13 @@ static void reds_adjust_agent_capabilities(RedsState *reds, VDAgentMessage *mess
 /* reads from the device till completes reading a message that is addressed to the client,
  * or otherwise, when reading from the device fails */
 RedPipeItem *
-RedCharDeviceVDIPort::read_one_msg_from_device(SpiceCharDeviceInstance *sin)
+RedCharDeviceVDIPort::read_one_msg_from_device()
 {
     RedsState *reds;
     RedVDIReadBuf *dispatch_buf;
     int n;
 
     reds = get_server();
-    g_assert(reds->agent_dev.get() == sin->st);
-    if (!reds->vdagent) {
-        return NULL;
-    }
-    spice_assert(reds->vdagent == sin);
     while (reds->vdagent) {
         switch (priv->read_state) {
         case VDI_PORT_READ_STATE_READ_HEADER:

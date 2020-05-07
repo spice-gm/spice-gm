@@ -255,7 +255,7 @@ static bool red_char_device_read_from_device(RedCharDevice *dev)
     while ((max_send_tokens || (dev->priv->clients == NULL)) && dev->priv->running) {
         RedPipeItem *msg;
 
-        msg = dev->read_one_msg_from_device(dev->priv->sin);
+        msg = dev->read_one_msg_from_device();
         if (!msg) {
             if (dev->priv->during_read_from_device > 1) {
                 dev->priv->during_read_from_device = 1;
