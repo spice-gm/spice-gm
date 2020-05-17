@@ -197,6 +197,9 @@ GlzEncDictContext *glz_enc_dictionary_restore(GlzEncDictRestoreData *restore_dat
     }
     SharedDictionary *ret = (SharedDictionary *)glz_enc_dictionary_create(
             restore_data->size, restore_data->max_encoders, usr);
+    if (!ret) {
+        return NULL;
+    }
     ret->last_image_id = restore_data->last_image_id;
     return ((GlzEncDictContext *)ret);
 }
