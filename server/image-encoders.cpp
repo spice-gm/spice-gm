@@ -630,7 +630,7 @@ void image_encoders_free_glz_drawables_to_free(ImageEncoders* enc)
 void image_encoders_free_glz_drawables(ImageEncoders *enc)
 {
     RingItem *ring_link;
-    GlzSharedDictionary *glz_dict = enc ? enc->glz_dict : NULL;
+    GlzSharedDictionary *glz_dict = enc->glz_dict;
 
     if (!glz_dict) {
         return;
