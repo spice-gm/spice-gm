@@ -495,6 +495,9 @@ static WindowImage *glz_dictionary_window_add_image(SharedDictionary *dict, LzIm
     uint8_t* lines = first_lines;
     // alloc image info,update used head tail,  if used_head null - update  head
     WindowImage *image = __glz_dictionary_window_alloc_image(dict);
+    if (!image) {
+        dict->cur_usr->error(dict->cur_usr, "glz-dictionary failed to allocate an image\n");
+    }
     image->id = dict->last_image_id++;
     image->size = image_size;
     image->type = image_type;
