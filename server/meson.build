@@ -3,14 +3,21 @@ spice_server_include += [include_directories('.')]
 #
 # generate spice-version.h
 #
-version_info = meson.project_version().split('.')
-major = '@0@'.format(version_info[0])
-minor = '@0@'.format(version_info[1])
-micro = version_info[2].to_int()
-if not version_info.contains('git')
-  micro += 1
+if meson.project_version().startswith('UNKNOWN')
+  major = '0'
+  minor = '0'
+  micro = '1'
+else
+  version_info = meson.project_version().split('.')
+  major = '@0@'.format(version_info[0])
+  minor = '@0@'.format(version_info[1])
+  micro = version_info[2].to_int()
+  if not version_info.contains('git')
+    micro += 1
+  endif
+  micro = '@0@'.format(micro)
 endif
-micro = '@0@'.format(micro)
+
 cmd = run_command('printf', ['0x%02x%02x%02x', major, minor, micro], check : true)
 version_data = configuration_data()
 version_data.set('SPICE_SERVER_VERSION', cmd.stdout().strip())
