@@ -112,7 +112,7 @@ typedef struct GListIter {
 #define GLIST_FOREACH_REVERSED(_list, _type, _data) \
     GLIST_FOREACH_GENERIC(_list, G_PASTE(_iter_, __LINE__), _type, _data, prev)
 
-/* This macro allows to use GLib for a class hieranrchy allocation.
+/* This macro allows to use GLib for a class hierarchy allocation.
  * The aims are:
  * - do not depend on C++ runtime, just C;
  * - do not throw memory exception from a C library;
