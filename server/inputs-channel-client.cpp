@@ -69,9 +69,9 @@ void InputsChannelClient::send_migrate_data(SpiceMarshaller *m, RedPipeItem *ite
     spice_marshaller_add_uint16(m, motion_count);
 }
 
-void InputsChannelClient::handle_migrate_data(uint16_t motion_count)
+void InputsChannelClient::handle_migrate_data(uint16_t new_motion_count)
 {
-    motion_count = motion_count;
+    motion_count = new_motion_count;
 
     for (; motion_count >= SPICE_INPUT_MOTION_ACK_BUNCH;
            motion_count -= SPICE_INPUT_MOTION_ACK_BUNCH) {
