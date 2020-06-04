@@ -478,9 +478,9 @@ static QXLImage *red_replay_image(SpiceReplay *replay, uint32_t flags)
         if (qxl_flags & QXL_BITMAP_DIRECT) {
             qxl->bitmap.data = QXLPHYSICAL_FROM_PTR(red_replay_image_data_flat(replay, &bitmap_size));
         } else {
-            uint8_t *data = NULL;
-            size = red_replay_data_chunks(replay, "bitmap.data", &data, 0);
-            qxl->bitmap.data = QXLPHYSICAL_FROM_PTR(data);
+            uint8_t *bitmap_data = NULL;
+            size = red_replay_data_chunks(replay, "bitmap.data", &bitmap_data, 0);
+            qxl->bitmap.data = QXLPHYSICAL_FROM_PTR(bitmap_data);
             if (size != bitmap_size) {
                 g_warning("bad image, %" G_GSIZE_FORMAT " != %" G_GSIZE_FORMAT, size, bitmap_size);
                 return NULL;

@@ -43,6 +43,7 @@
 #define QUEUED_DATA_LIMIT (1024*1024)
 
 struct RedVmcChannel;
+class VmcChannelClient;
 
 typedef struct RedVmcPipeItem {
     RedPipeItem base;
@@ -77,7 +78,7 @@ struct RedVmcChannel: public RedChannel
     void on_connect(RedClient *client, RedStream *stream, int migration,
                     RedChannelCapabilities *caps) override;
 
-    RedChannelClient *rcc;
+    VmcChannelClient *rcc;
     RedCharDevice *chardev; /* weak */
     SpiceCharDeviceInstance *chardev_sin;
     RedVmcPipeItem *pipe_item;
@@ -619,21 +620,20 @@ void RedVmcChannel::on_connect(RedClient *client, RedStream *stream, int migrati
     vmc_channel = this;
     sin = vmc_channel->chardev_sin;
 
-    if (vmc_channel->rcc) {
+    if (rcc) {
         red_channel_warning(this,
                             "channel client (%p) already connected, refusing second connection",
-                            vmc_channel->rcc);
+                            rcc);
         // TODO: notify client in advance about the in use channel using
         // SPICE_MSG_MAIN_CHANNEL_IN_USE (for example)
         red_stream_free(stream);
         return;
     }
 
-    auto rcc = vmc_channel_client_create(this, client, stream, caps);
+    rcc = vmc_channel_client_create(this, client, stream, caps);
     if (!rcc) {
         return;
     }
-    vmc_channel->rcc = rcc;
     vmc_channel->queued_data = 0;
     rcc->ack_zero_messages_window();
 
@@ -685,9 +685,9 @@ void RedCharDeviceSpiceVmc::port_event(uint8_t event)
 }
 
 RedCharDeviceSpiceVmc::RedCharDeviceSpiceVmc(SpiceCharDeviceInstance *sin, RedsState *reds,
-                                             RedVmcChannel *channel):
+                                             RedVmcChannel *init_channel):
     RedCharDevice(reds, sin, 0, 128),
-    channel(channel)
+    channel(init_channel)
 {
     if (channel) {
         channel->chardev = this;

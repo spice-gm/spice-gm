@@ -54,7 +54,7 @@ public:
     unique_link(): p(new T())
     {
     }
-    unique_link(T* p): p(p)
+    unique_link(T* ptr): p(ptr)
     {
     }
     ~unique_link()
@@ -137,14 +137,14 @@ class shared_ptr
 {
 friend class weak_ptr<T>;
 public:
-    explicit shared_ptr(T *p=nullptr): p(p)
+    explicit shared_ptr(T *ptr=nullptr): p(ptr)
     {
         if (p) {
             shared_ptr_add_ref(p);
         }
     }
     template <class Q>
-    explicit shared_ptr(Q *p): shared_ptr(static_cast<T*>(p))
+    explicit shared_ptr(Q *ptr): shared_ptr(static_cast<T*>(ptr))
     {
     }
     shared_ptr(const shared_ptr& rhs): p(rhs.p)
@@ -218,7 +218,7 @@ public:
 private:
     T* p;
     // for weak_ptr
-    explicit shared_ptr(T *p, bool dummy): p(p)
+    explicit shared_ptr(T *ptr, bool dummy): p(ptr)
     {
     }
 };
@@ -299,7 +299,7 @@ template <typename T>
 class weak_ptr
 {
 public:
-    explicit weak_ptr(T *p=nullptr): p(p)
+    explicit weak_ptr(T *ptr=nullptr): p(ptr)
     {
         if (p) {
             weak_ptr_add_ref(p);

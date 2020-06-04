@@ -70,7 +70,7 @@ private:
     void release_keys();
     void sync_locks(uint8_t scan);
     void activate_modifiers_watch();
-    void push_keyboard_modifiers(uint8_t modifiers);
+    void push_keyboard_modifiers();
     static void key_modifiers_sender(InputsChannel *inputs);
 };
 

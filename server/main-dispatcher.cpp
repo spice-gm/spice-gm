@@ -173,9 +173,9 @@ void MainDispatcher::client_disconnect(RedClient *client)
  * Reds routines shouldn't be exposed. Instead reds.cpp should register the callbacks,
  * and the corresponding operations should be made only via main_dispatcher.
  */
-MainDispatcher::MainDispatcher(RedsState *reds):
+MainDispatcher::MainDispatcher(RedsState *init_reds):
     Dispatcher(MAIN_DISPATCHER_NUM_MESSAGES),
-    reds(reds),
+    reds(init_reds),
     thread_id(pthread_self())
 {
     set_opaque(reds);

@@ -168,6 +168,9 @@ AC_DEFUN([SPICE_COMPILE_WARNINGS],[
 
     gl_WARN_ADD([-Wno-missing-field-initializers])
 
+    # -Wshadow detects shadowing of arguments, globals and C++ attributes
+    gl_WARN_ADD([-Wshadow])
+
     WARN_CXXFLAGS="$WARN_CFLAGS"
     AC_SUBST([WARN_CXXFLAGS])
 

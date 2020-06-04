@@ -459,7 +459,7 @@ void InputsChannelClient::migrate()
     RedChannelClient::migrate();
 }
 
-void InputsChannel::push_keyboard_modifiers(uint8_t modifiers)
+void InputsChannel::push_keyboard_modifiers()
 {
     if (!is_connected() || src_during_migrate) {
         return;
@@ -472,14 +472,14 @@ SPICE_GNUC_VISIBLE int spice_server_kbd_leds(SpiceKbdInstance *sin, int leds)
     InputsChannel *inputs_channel = sin->st->inputs;
     if (inputs_channel) {
         inputs_channel->modifiers = leds;
-        inputs_channel->push_keyboard_modifiers(leds);
+        inputs_channel->push_keyboard_modifiers();
     }
     return 0;
 }
 
 void InputsChannel::key_modifiers_sender(InputsChannel *inputs)
 {
-    inputs->push_keyboard_modifiers(inputs->modifiers);
+    inputs->push_keyboard_modifiers();
 }
 
 void InputsChannelClient::handle_migrate_flush_mark()
@@ -575,13 +575,13 @@ bool InputsChannel::has_tablet() const
     return tablet != NULL;
 }
 
-void InputsChannel::detach_tablet(SpiceTabletInstance *tablet)
+void InputsChannel::detach_tablet(SpiceTabletInstance *old_tablet)
 {
-    if (tablet != NULL && tablet == this->tablet) {
-        spice_tablet_state_free(tablet->st);
-        tablet->st = NULL;
+    if (old_tablet != NULL && old_tablet == tablet) {
+        spice_tablet_state_free(old_tablet->st);
+        old_tablet->st = NULL;
     }
-    this->tablet = NULL;
+    tablet = NULL;
 }
 
 bool InputsChannel::is_src_during_migrate() const

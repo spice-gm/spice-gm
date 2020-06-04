@@ -30,8 +30,8 @@ RedClient::~RedClient()
     pthread_mutex_destroy(&lock);
 }
 
-RedClient::RedClient(RedsState *reds, bool migrated):
-    reds(reds),
+RedClient::RedClient(RedsState *init_reds, bool migrated):
+    reds(init_reds),
     during_target_migrate(migrated)
 {
     pthread_mutex_init(&lock, NULL);

@@ -131,15 +131,15 @@ static void send_data(int socket, uint32_t type, uint32_t reader_id)
     g_assert_cmpint(socket_write(socket, &msg.type, sizeof(msg)-4), ==, sizeof(msg)-4);
 }
 
-static void check_data(VmcEmu *vmc)
+static void check_data(VmcEmu *vmc_emu)
 {
     g_assert_cmpint(device_expected.offset, !=, 0);
-    if (vmc->write_pos < device_expected.offset) {
+    if (vmc_emu->write_pos < device_expected.offset) {
         return;
     }
-    g_assert_cmpint(vmc->write_pos, ==, device_expected.offset);
-    g_assert_true(memcmp(vmc->write_buf, device_expected.buffer, device_expected.offset) == 0);
-    vmc->write_pos = 0;
+    g_assert_cmpint(vmc_emu->write_pos, ==, device_expected.offset);
+    g_assert_true(memcmp(vmc_emu->write_buf, device_expected.buffer, device_expected.offset) == 0);
+    vmc_emu->write_pos = 0;
 
     next_test();
 }

@@ -199,6 +199,7 @@ spice_server_global_cxxflags += [
   '-Wno-narrowing',
   '-Wno-missing-field-initializers',
   '-Wno-deprecated-declarations',
+  '-Wshadow',
 ]
 add_project_arguments(cxx_compiler.get_supported_arguments(spice_server_global_cxxflags),
                       language : 'cpp')

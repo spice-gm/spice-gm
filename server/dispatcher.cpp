@@ -45,8 +45,8 @@ struct DispatcherMessage {
 
 struct DispatcherPrivate {
     SPICE_CXX_GLIB_ALLOCATOR
-    DispatcherPrivate(uint32_t max_message_type):
-        max_message_type(max_message_type)
+    DispatcherPrivate(uint32_t init_max_message_type):
+        max_message_type(init_max_message_type)
     {
     }
     ~DispatcherPrivate();
@@ -238,7 +238,7 @@ void DispatcherPrivate::handle_event(int fd, int event, DispatcherPrivate* priv)
     }
 }
 
-void DispatcherPrivate::send_message(const DispatcherMessage& msg, void *payload)
+void DispatcherPrivate::send_message(const DispatcherMessage& msg, void *msg_payload)
 {
     uint32_t ack;
 
@@ -248,7 +248,7 @@ void DispatcherPrivate::send_message(const DispatcherMessage& msg, void *payload
                   msg.type);
         goto unlock;
     }
-    if (write_safe(send_fd, (uint8_t*) payload, msg.size) == -1) {
+    if (write_safe(send_fd, (uint8_t*) msg_payload, msg.size) == -1) {
         g_warning("error: failed to send message body for message %d",
                   msg.type);
         goto unlock;

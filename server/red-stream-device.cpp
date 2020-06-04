@@ -186,10 +186,10 @@ StreamDevice::handle_msg_invalid(const char *error_msg)
         write_buffer_get_server(total_size, false);
     buf->buf_used = total_size;
 
-    StreamDevHeader *const hdr = (StreamDevHeader *)buf->buf;
-    fill_dev_hdr(hdr, STREAM_TYPE_NOTIFY_ERROR, msg_size);
+    StreamDevHeader *const header = (StreamDevHeader *)buf->buf;
+    fill_dev_hdr(header, STREAM_TYPE_NOTIFY_ERROR, msg_size);
 
-    StreamMsgNotifyError *const error = (StreamMsgNotifyError *)(hdr+1);
+    StreamMsgNotifyError *const error = (StreamMsgNotifyError *)(header+1);
     error->error_code = GUINT32_TO_LE(0);
     strcpy((char *) error->msg, error_msg);
 

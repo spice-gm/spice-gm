@@ -110,9 +110,9 @@ class safe_list<T>::iterator: public std::iterator<std::forward_iterator_tag, T>
     typedef typename std::forward_list<T,Mallocator<T>>::iterator wrapped;
     wrapped curr, next;
 public:
-    iterator(wrapped curr) :
-        curr(curr),
-        next(curr != wrapped() ? ++curr : wrapped())
+    iterator(wrapped init_curr) :
+        curr(init_curr),
+        next(init_curr != wrapped() ? ++init_curr : wrapped())
     {
     }
     iterator& operator++()

@@ -130,9 +130,9 @@ MainChannel::registered_new_channel(RedChannel *channel)
     pipes_add(registered_channel_item_new(channel));
 }
 
-void MainChannel::migrate_switch(RedsMigSpice *mig_target)
+void MainChannel::migrate_switch(RedsMigSpice *new_mig_target)
 {
-    main_channel_fill_mig_target(this, mig_target);
+    main_channel_fill_mig_target(this, new_mig_target);
     pipes_add_type(RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_SWITCH_HOST);
 }
 
@@ -249,9 +249,9 @@ static int main_channel_connect_seamless(MainChannel *main_channel)
     return main_channel->num_clients_mig_wait;
 }
 
-int MainChannel::migrate_connect(RedsMigSpice *mig_target, int try_seamless)
+int MainChannel::migrate_connect(RedsMigSpice *new_mig_target, int try_seamless)
 {
-    main_channel_fill_mig_target(this, mig_target);
+    main_channel_fill_mig_target(this, new_mig_target);
     num_clients_mig_wait = 0;
 
     if (!is_connected()) {

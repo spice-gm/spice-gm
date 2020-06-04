@@ -322,9 +322,8 @@ static void pipes_add_drawable_after(DisplayChannel *display,
     RedDrawablePipeItem *dpi_pos_after;
     DisplayChannelClient *dcc;
     int num_other_linked = 0;
-    GList *l;
 
-    for (l = pos_after->pipes; l != NULL; l = l->next) {
+    for (GList *l = pos_after->pipes; l != NULL; l = l->next) {
         dpi_pos_after = (RedDrawablePipeItem*) l->data;
 
         num_other_linked++;
@@ -339,8 +338,7 @@ static void pipes_add_drawable_after(DisplayChannel *display,
         spice_debug("TODO: not O(n^2)");
         FOREACH_DCC(display, dcc) {
             int sent = 0;
-            GList *l;
-            for (l = pos_after->pipes; l != NULL; l = l->next) {
+            for (GList *l = pos_after->pipes; l != NULL; l = l->next) {
                 dpi_pos_after = (RedDrawablePipeItem*) l->data;
                 if (dpi_pos_after->dcc == dcc) {
                     sent = 1;
@@ -760,9 +758,9 @@ static void exclude_region(DisplayChannel *display, Ring *ring, RingItem *ring_i
             } else if (now->type == TREE_ITEM_TYPE_CONTAINER) {
                 /* if this sibling is a container type, descend into the
                  * container's child ring and continue iterating */
-                Container *container = CONTAINER(now);
-                if ((ring_item = ring_get_head(&container->items))) {
-                    ring = &container->items;
+                Container *now_container = CONTAINER(now);
+                if ((ring_item = ring_get_head(&now_container->items))) {
+                    ring = &now_container->items;
                     spice_assert(SPICE_CONTAINEROF(ring_item, TreeItem, siblings_link)->container);
                     continue;
                 }

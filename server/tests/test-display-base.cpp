@@ -240,7 +240,8 @@ test_spice_create_update_from_bitmap(uint32_t surface_id,
     return update;
 }
 
-static SimpleSpiceUpdate *test_spice_create_update_solid(uint32_t surface_id, QXLRect bbox, uint32_t color)
+static SimpleSpiceUpdate *test_spice_create_update_solid(uint32_t surface_id, QXLRect bbox,
+                                                         uint32_t solid_color)
 {
     uint8_t *bitmap;
     uint32_t *dst;
@@ -255,7 +256,7 @@ static SimpleSpiceUpdate *test_spice_create_update_solid(uint32_t surface_id, QX
     dst = SPICE_ALIGNED_CAST(uint32_t *, bitmap);
 
     for (i = 0 ; i < bh * bw ; ++i, ++dst) {
-        *dst = color;
+        *dst = solid_color;
     }
 
     return test_spice_create_update_from_bitmap(surface_id, bbox, bitmap, 0, NULL);
@@ -882,9 +883,9 @@ void test_set_simple_command_list(Test *test, const int *simple_commands, int nu
     }
 }
 
-void test_set_command_list(Test *test, Command *commands, int num_commands)
+void test_set_command_list(Test *test, Command *new_commands, int num_commands)
 {
-    test->commands = commands;
+    test->commands = new_commands;
     test->num_commands = num_commands;
 }
 

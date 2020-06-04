@@ -291,14 +291,14 @@ void RedChannelClientPrivate::restart_ping_timer()
     start_ping_timer(timeout);
 }
 
-RedChannelClientPrivate::RedChannelClientPrivate(RedChannel *channel,
-                                                 RedClient *client,
-                                                 RedStream *stream,
+RedChannelClientPrivate::RedChannelClientPrivate(RedChannel *init_channel,
+                                                 RedClient *init_client,
+                                                 RedStream *init_stream,
                                                  RedChannelCapabilities *caps,
-                                                 bool monitor_latency):
-    channel(channel),
-    client(client), stream(stream),
-    monitor_latency(monitor_latency)
+                                                 bool init_monitor_latency):
+    channel(init_channel),
+    client(init_client), stream(init_stream),
+    monitor_latency(init_monitor_latency)
 {
     // blocks send message (maybe use send_data.blocked + block flags)
     ack_data.messages_window = ~0;

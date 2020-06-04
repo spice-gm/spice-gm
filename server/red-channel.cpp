@@ -65,15 +65,16 @@ struct RedChannelPrivate
 {
     SPICE_CXX_GLIB_ALLOCATOR
 
-    RedChannelPrivate(RedsState *reds, uint32_t type, uint32_t id, RedChannel::CreationFlags flags,
-                      SpiceCoreInterfaceInternal *core, Dispatcher *dispatcher):
-        type(type), id(id),
-        core(core ? core : reds_get_core_interface(reds)),
+    RedChannelPrivate(RedsState *init_reds, uint32_t init_type, uint32_t init_id,
+                      RedChannel::CreationFlags flags,
+                      SpiceCoreInterfaceInternal *init_core, Dispatcher *init_dispatcher):
+        type(init_type), id(init_id),
+        core(init_core ? init_core : reds_get_core_interface(init_reds)),
         handle_acks(!!(flags & RedChannel::HandleAcks)),
-        parser(spice_get_client_channel_parser(type, nullptr)),
+        parser(spice_get_client_channel_parser(init_type, nullptr)),
         migration_flags(flags & RedChannel::MigrateAll),
-        dispatcher(dispatcher),
-        reds(reds)
+        dispatcher(init_dispatcher),
+        reds(init_reds)
     {
         thread_id = pthread_self();
     }
