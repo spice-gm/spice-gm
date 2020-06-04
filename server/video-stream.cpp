@@ -70,24 +70,21 @@ StreamCreateDestroyItem::~StreamCreateDestroyItem()
     video_stream_agent_unref(display, agent);
 }
 
-static RedPipeItemPtr
-video_stream_create_destroy_item_new(VideoStreamAgent *agent, int type)
+StreamCreateDestroyItem::StreamCreateDestroyItem(VideoStreamAgent *init_agent, int init_type):
+    RedPipeItem(init_type),
+    agent(init_agent)
 {
-    auto item = red::make_shared<StreamCreateDestroyItem>(type);
-
     agent->stream->refs++;
-    item->agent = agent;
-    return item;
 }
 
 static RedPipeItemPtr video_stream_create_item_new(VideoStreamAgent *agent)
 {
-    return video_stream_create_destroy_item_new(agent, RED_PIPE_ITEM_TYPE_STREAM_CREATE);
+    return red::make_shared<StreamCreateDestroyItem>(agent, RED_PIPE_ITEM_TYPE_STREAM_CREATE);
 }
 
 static RedPipeItemPtr video_stream_destroy_item_new(VideoStreamAgent *agent)
 {
-    return video_stream_create_destroy_item_new(agent, RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
+    return red::make_shared<StreamCreateDestroyItem>(agent, RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
 }
 
 
@@ -166,22 +163,18 @@ VideoStreamClipItem::~VideoStreamClipItem()
     video_stream_agent_unref(display, stream_agent);
 }
 
-red::shared_ptr<VideoStreamClipItem> video_stream_clip_item_new(VideoStreamAgent *agent)
+VideoStreamClipItem::VideoStreamClipItem(VideoStreamAgent *agent):
+    RedPipeItem(RED_PIPE_ITEM_TYPE_STREAM_CLIP),
+    stream_agent(agent),
+    clip_type(SPICE_CLIP_TYPE_RECTS)
 {
-    auto item = red::make_shared<VideoStreamClipItem>(RED_PIPE_ITEM_TYPE_STREAM_CLIP);
-
-    item->stream_agent = agent;
     agent->stream->refs++;
 
-    item->clip_type = SPICE_CLIP_TYPE_RECTS;
-
     int n_rects = pixman_region32_n_rects(&agent->clip);
-    item->rects.reset((SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) +
-                                                 n_rects * sizeof(SpiceRect)));
-    item->rects->num_rects = n_rects;
-    region_ret_rects(&agent->clip, item->rects->rects, n_rects);
-
-    return item;
+    rects.reset((SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) +
+                                           n_rects * sizeof(SpiceRect)));
+    rects->num_rects = n_rects;
+    region_ret_rects(&agent->clip, rects->rects, n_rects);
 }
 
 static int is_stream_start(Drawable *drawable)
@@ -804,6 +797,12 @@ RedUpgradeItem::~RedUpgradeItem()
     drawable_unref(drawable);
 }
 
+RedUpgradeItem::RedUpgradeItem(Drawable *init_drawable):
+    drawable(init_drawable)
+{
+    drawable->refs++;
+}
+
 /*
  * after dcc_detach_stream_gracefully is called for all the display channel clients,
  * video_stream_detach_drawable should be called. See comment (1).
@@ -839,9 +838,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         }
         spice_debug("stream %d: upgrade by drawable. box ==>", stream_id);
         rect_debug(&stream->current->red_drawable->bbox);
-        auto upgrade_item = red::make_shared<RedUpgradeItem>();
-        upgrade_item->drawable = stream->current;
-        upgrade_item->drawable->refs++;
+        auto upgrade_item = red::make_shared<RedUpgradeItem>(stream->current);
         n_rects = pixman_region32_n_rects(&upgrade_item->drawable->tree_item.base.rgn);
         upgrade_item->rects.reset((SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) +
                                                              n_rects * sizeof(SpiceRect)));

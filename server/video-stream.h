@@ -82,17 +82,16 @@ typedef struct VideoStreamAgent {
 } VideoStreamAgent;
 
 struct VideoStreamClipItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+    VideoStreamClipItem(VideoStreamAgent *agent);
     ~VideoStreamClipItem();
+
     VideoStreamAgent *stream_agent;
     int clip_type;
     red::glib_unique_ptr<SpiceClipRects> rects;
 };
 
-red::shared_ptr<VideoStreamClipItem> video_stream_clip_item_new(VideoStreamAgent *agent);
-
 struct StreamCreateDestroyItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
+    StreamCreateDestroyItem(VideoStreamAgent *agent, int type);
     ~StreamCreateDestroyItem();
     VideoStreamAgent *agent;
 };

@@ -473,7 +473,7 @@ static void dcc_stop(DisplayChannelClient *dcc)
 
 void dcc_video_stream_agent_clip(DisplayChannelClient* dcc, VideoStreamAgent *agent)
 {
-    auto item = video_stream_clip_item_new(agent);
+    auto item = red::make_shared<VideoStreamClipItem>(agent);
 
     dcc->pipe_add(std::move(item));
 }

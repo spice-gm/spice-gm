@@ -186,6 +186,8 @@ static red::shared_ptr<RedVmcChannel> red_vmc_channel_new(RedsState *reds, uint8
 }
 
 struct RedPortInitPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_PORT_INIT> {
+    RedPortInitPipeItem(const char *name, uint8_t opened);
+
     red::glib_unique_ptr<char> name;
     uint8_t opened;
 };
@@ -273,14 +275,18 @@ RedCharDeviceSpiceVmc::read_one_msg_from_device()
     return RedPipeItemPtr();
 }
 
+RedPortInitPipeItem::RedPortInitPipeItem(const char *init_name, uint8_t init_opened):
+    name(g_strdup(init_name)),
+    opened(init_opened)
+{
+}
+
 static void spicevmc_port_send_init(VmcChannelClient *rcc)
 {
     RedVmcChannel *channel = rcc->get_channel();
     SpiceCharDeviceInstance *sin = channel->chardev_sin;
-    auto item = red::make_shared<RedPortInitPipeItem>();
+    auto item = red::make_shared<RedPortInitPipeItem>(sin->portname, channel->port_opened);
 
-    item->name.reset(g_strdup(sin->portname));
-    item->opened = channel->port_opened;
     rcc->pipe_add_push(std::move(item));
 }
 

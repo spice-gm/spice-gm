@@ -226,8 +226,9 @@ struct RedDrawablePipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_DRAW> {
 /* This item is used to send a full quality image (lossless) of the area where the stream was.
  * This to avoid the artifacts due to the lossy compression. */
 struct RedUpgradeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_UPGRADE> {
+    RedUpgradeItem(Drawable *drawable);
     ~RedUpgradeItem();
-    Drawable *drawable;
+    Drawable *const drawable;
     red::glib_unique_ptr<SpiceClipRects> rects;
 };
 
