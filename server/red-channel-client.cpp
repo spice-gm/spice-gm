@@ -239,15 +239,15 @@ static const SpiceDataHeaderOpaque mini_header_wrapper = {NULL, sizeof(SpiceMini
 #define PING_TEST_LONG_TIMEOUT_MS (MSEC_PER_SEC * 60 * 5)
 #define PING_TEST_IDLE_NET_TIMEOUT_MS (MSEC_PER_SEC / 10)
 
-typedef struct RedEmptyMsgPipeItem {
-    RedPipeItem base;
+struct RedEmptyMsgPipeItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
     int msg;
-} RedEmptyMsgPipeItem;
+};
 
-typedef struct MarkerPipeItem {
-    RedPipeItem base;
+struct MarkerPipeItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
     bool item_sent;
-} MarkerPipeItem;
+};
 
 void RedChannelClientPrivate::start_ping_timer(uint32_t timeout)
 {
@@ -488,7 +488,7 @@ void RedChannelClient::send_ping()
 
 void RedChannelClient::send_empty_msg(RedPipeItem *base)
 {
-    RedEmptyMsgPipeItem *msg_pipe_item = SPICE_UPCAST(RedEmptyMsgPipeItem, base);
+    RedEmptyMsgPipeItem *msg_pipe_item = static_cast<RedEmptyMsgPipeItem*>(base);
 
     init_send_data(msg_pipe_item->msg);
     begin_send_message();
@@ -512,7 +512,7 @@ void RedChannelClient::send_any_item(RedPipeItem *item)
             send_ping();
             break;
         case RED_PIPE_ITEM_TYPE_MARKER:
-            SPICE_UPCAST(MarkerPipeItem, item)->item_sent = true;
+            static_cast<MarkerPipeItem*>(item)->item_sent = true;
             break;
         default:
             send_item(item);
@@ -1428,19 +1428,17 @@ void RedChannelClient::pipe_add_tail(RedPipeItem *item)
 
 void RedChannelClient::pipe_add_type(int pipe_item_type)
 {
-    RedPipeItem *item = g_new(RedPipeItem, 1);
+    RedPipeItem *item = new RedPipeItem(pipe_item_type);
 
-    red_pipe_item_init(item, pipe_item_type);
     pipe_add(item);
 }
 
 RedPipeItem *RedChannelClient::new_empty_msg(int msg_type)
 {
-    RedEmptyMsgPipeItem *item = g_new(RedEmptyMsgPipeItem, 1);
+    RedEmptyMsgPipeItem *item = new RedEmptyMsgPipeItem(RED_PIPE_ITEM_TYPE_EMPTY_MSG);
 
-    red_pipe_item_init(&item->base, RED_PIPE_ITEM_TYPE_EMPTY_MSG);
     item->msg = msg_type;
-    return &item->base;
+    return item;
 }
 
 void RedChannelClient::pipe_add_empty_msg(int msg_type)
@@ -1578,12 +1576,11 @@ bool RedChannelClient::wait_pipe_item_sent(GList *item_pos, int64_t timeout)
         end_time = UINT64_MAX;
     }
 
-    MarkerPipeItem *mark_item = g_new0(MarkerPipeItem, 1);
+    MarkerPipeItem *mark_item = new MarkerPipeItem(RED_PIPE_ITEM_TYPE_MARKER);
 
-    red_pipe_item_init(&mark_item->base, RED_PIPE_ITEM_TYPE_MARKER);
     mark_item->item_sent = false;
-    red_pipe_item_ref(&mark_item->base);
-    pipe_add_before_pos(&mark_item->base, item_pos);
+    red_pipe_item_ref(mark_item);
+    pipe_add_before_pos(mark_item, item_pos);
 
     for (;;) {
         receive();
@@ -1596,7 +1593,7 @@ bool RedChannelClient::wait_pipe_item_sent(GList *item_pos, int64_t timeout)
     }
 
     item_sent = mark_item->item_sent;
-    red_pipe_item_unref(&mark_item->base);
+    red_pipe_item_unref(mark_item);
 
     if (!item_sent) {
         // still on the queue

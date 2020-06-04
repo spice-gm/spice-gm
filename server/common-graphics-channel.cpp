@@ -65,3 +65,8 @@ bool CommonGraphicsChannelClient::config_socket()
     ack_set_client_window(is_low_bandwidth ? WIDE_CLIENT_ACK_WINDOW : NARROW_CLIENT_ACK_WINDOW);
     return true;
 }
+
+RedCachePipeItem::RedCachePipeItem():
+    RedPipeItem(RED_PIPE_ITEM_TYPE_INVAL_ONE)
+{
+}

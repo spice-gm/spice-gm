@@ -76,9 +76,9 @@ static void FUNC_NAME(remove)(CHANNELCLIENT *channel_client, RedCacheItem *item)
     auto id = item->id;
     RedCachePipeItem *pipe_item = reinterpret_cast<RedCachePipeItem*>(item);
 
-    red_pipe_item_init(&pipe_item->base, RED_PIPE_ITEM_TYPE_INVAL_ONE);
+    new (pipe_item) RedCachePipeItem();
     pipe_item->inval_one.id = id;
-    channel_client->pipe_add_tail(&pipe_item->base); // for now
+    channel_client->pipe_add_tail(pipe_item); // for now
 }
 
 static int FUNC_NAME(add)(CHANNELCLIENT *channel_client, uint64_t id, size_t size)

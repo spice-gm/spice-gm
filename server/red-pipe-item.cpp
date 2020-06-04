@@ -20,31 +20,25 @@
 #include "red-channel.h"
 #include "red-pipe-item.h"
 
+RedPipeItem::RedPipeItem(int init_type):
+    type(init_type)
+{
+    // compatibility with no shared_ptr reference counting
+    shared_ptr_add_ref(this);
+}
+
 RedPipeItem *red_pipe_item_ref(RedPipeItem *item)
 {
-    g_return_val_if_fail(item->refcount > 0, NULL);
-
-    g_atomic_int_inc(&item->refcount);
+    // this call should be replaced by shared_ptr instead
+    shared_ptr_add_ref(item);
 
     return item;
 }
 
 void red_pipe_item_unref(RedPipeItem *item)
 {
-    g_return_if_fail(item->refcount > 0);
-
-    if (g_atomic_int_dec_and_test(&item->refcount)) {
-        item->free_func(item);
-    }
-}
-
-void red_pipe_item_init_full(RedPipeItem *item,
-                             gint type,
-                             red_pipe_item_free_t *free_func)
-{
-    item->type = type;
-    item->refcount = 1;
-    item->free_func = free_func ? free_func : (red_pipe_item_free_t *)g_free;
+    // this call should be replaced by shared_ptr instead
+    shared_ptr_unref(item);
 }
 
 static void marshaller_unref_pipe_item(uint8_t *, void *opaque)

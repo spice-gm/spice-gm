@@ -139,10 +139,11 @@ struct DisplayChannelPrivate
     GLIST_FOREACH((_channel ? _channel->get_clients() : NULL), \
                   DisplayChannelClient, _data)
 
-typedef struct RedMonitorsConfigItem {
-    RedPipeItem base;
+struct RedMonitorsConfigItem: public RedPipeItem {
+    RedMonitorsConfigItem(MonitorsConfig *monitors_config);
+    ~RedMonitorsConfigItem();
     MonitorsConfig *monitors_config;
-} RedMonitorsConfigItem;
+};
 
 enum {
     RED_PIPE_ITEM_TYPE_DRAW = RED_PIPE_ITEM_TYPE_COMMON_LAST,
@@ -181,10 +182,10 @@ uint32_t display_channel_generate_uid(DisplayChannel *display);
 int display_channel_get_video_stream_id(DisplayChannel *display, VideoStream *stream);
 VideoStream *display_channel_get_nth_video_stream(DisplayChannel *display, gint i);
 
-typedef struct RedSurfaceDestroyItem {
-    RedPipeItem base;
+struct RedSurfaceDestroyItem: public RedPipeItem {
+    RedSurfaceDestroyItem(uint32_t surface_id);
     SpiceMsgSurfaceDestroy surface_destroy;
-} RedSurfaceDestroyItem;
+};
 
 static inline int is_equal_path(SpicePath *path1, SpicePath *path2)
 {

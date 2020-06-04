@@ -86,15 +86,15 @@ RedsState* spice_tablet_state_get_server(SpiceTabletState *st)
     return st->reds;
 }
 
-typedef struct RedKeyModifiersPipeItem {
-    RedPipeItem base;
+struct RedKeyModifiersPipeItem: public RedPipeItem {
+    RedKeyModifiersPipeItem(uint8_t modifiers);
     uint8_t modifiers;
-} RedKeyModifiersPipeItem;
+};
 
-typedef struct RedInputsInitPipeItem {
-    RedPipeItem base;
+struct RedInputsInitPipeItem: public RedPipeItem {
+    RedInputsInitPipeItem(uint8_t modifiers);
     uint8_t modifiers;
-} RedInputsInitPipeItem;
+};
 
 
 #define KEY_MODIFIERS_TTL (MSEC_PER_SEC * 2)
@@ -194,13 +194,10 @@ static uint8_t kbd_get_leds(SpiceKbdInstance *sin)
     return sif->get_leds(sin);
 }
 
-static RedPipeItem *red_inputs_key_modifiers_item_new(uint8_t modifiers)
+RedKeyModifiersPipeItem::RedKeyModifiersPipeItem(uint8_t init_modifiers):
+    RedPipeItem(RED_PIPE_ITEM_KEY_MODIFIERS),
+    modifiers(init_modifiers)
 {
-    RedKeyModifiersPipeItem *item = g_new(RedKeyModifiersPipeItem, 1);
-
-    red_pipe_item_init(&item->base, RED_PIPE_ITEM_KEY_MODIFIERS);
-    item->modifiers = modifiers;
-    return &item->base;
 }
 
 void InputsChannelClient::send_item(RedPipeItem *base)
@@ -214,7 +211,7 @@ void InputsChannelClient::send_item(RedPipeItem *base)
 
             init_send_data(SPICE_MSG_INPUTS_KEY_MODIFIERS);
             key_modifiers.modifiers =
-                SPICE_UPCAST(RedKeyModifiersPipeItem, base)->modifiers;
+                static_cast<RedKeyModifiersPipeItem*>(base)->modifiers;
             spice_marshall_msg_inputs_key_modifiers(m, &key_modifiers);
             break;
         }
@@ -224,7 +221,7 @@ void InputsChannelClient::send_item(RedPipeItem *base)
 
             init_send_data(SPICE_MSG_INPUTS_INIT);
             inputs_init.keyboard_modifiers =
-                SPICE_UPCAST(RedInputsInitPipeItem, base)->modifiers;
+                static_cast<RedInputsInitPipeItem*>(base)->modifiers;
             spice_marshall_msg_inputs_init(m, &inputs_init);
             break;
         }
@@ -432,14 +429,16 @@ void InputsChannel::release_keys()
     }
 }
 
+RedInputsInitPipeItem::RedInputsInitPipeItem(uint8_t init_modifiers):
+    RedPipeItem(RED_PIPE_ITEM_INPUTS_INIT),
+    modifiers(init_modifiers)
+{
+}
+
 void InputsChannelClient::pipe_add_init()
 {
-    RedInputsInitPipeItem *item = g_new(RedInputsInitPipeItem, 1);
-    InputsChannel *inputs = get_channel();
-
-    red_pipe_item_init(&item->base, RED_PIPE_ITEM_INPUTS_INIT);
-    item->modifiers = kbd_get_leds(inputs->keyboard);
-    pipe_add_push(&item->base);
+    auto modifiers = kbd_get_leds(get_channel()->keyboard);
+    pipe_add_push(new RedInputsInitPipeItem(modifiers));
 }
 
 void InputsChannel::on_connect(RedClient *client, RedStream *stream, int migration,
@@ -464,7 +463,7 @@ void InputsChannel::push_keyboard_modifiers()
     if (!is_connected() || src_during_migrate) {
         return;
     }
-    pipes_add(red_inputs_key_modifiers_item_new(modifiers));
+    pipes_add(new RedKeyModifiersPipeItem(modifiers));
 }
 
 SPICE_GNUC_VISIBLE int spice_server_kbd_leds(SpiceKbdInstance *sin, int leds)

@@ -327,7 +327,7 @@ static void pipes_add_drawable_after(DisplayChannel *display,
         dpi_pos_after = (RedDrawablePipeItem*) l->data;
 
         num_other_linked++;
-        dcc_add_drawable_after(dpi_pos_after->dcc, drawable, &dpi_pos_after->base);
+        dcc_add_drawable_after(dpi_pos_after->dcc, drawable, dpi_pos_after);
     }
 
     if (num_other_linked == 0) {
@@ -387,7 +387,7 @@ static void drawable_remove_from_pipes(Drawable *drawable)
         RedChannelClient *rcc;
 
         rcc = dpi->dcc;
-        rcc->pipe_remove_and_release(&dpi->base);
+        rcc->pipe_remove_and_release(dpi);
     }
 }
 

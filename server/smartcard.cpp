@@ -67,11 +67,11 @@ struct RedCharDeviceSmartcardPrivate {
     int                  reader_added; // has reader_add been sent to the device
 };
 
-typedef struct RedMsgItem {
-    RedPipeItem base;
-
+struct RedMsgItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+    ~RedMsgItem();
     VSCMsgHeader* vheader;
-} RedMsgItem;
+};
 
 static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader);
 
@@ -138,9 +138,9 @@ RedCharDeviceSmartcard::read_one_msg_from_device()
         dev->priv->buf_used = remaining;
         if (msg_to_client) {
             if (dev->priv->scc) {
-                dev->priv->scc->pipe_add_push(&msg_to_client->base);
+                dev->priv->scc->pipe_add_push(msg_to_client);
             } else {
-                red_pipe_item_unref(&msg_to_client->base);
+                red_pipe_item_unref(msg_to_client);
             }
         }
     }
@@ -338,7 +338,7 @@ SmartCardChannelClient* smartcard_char_device_get_client(RedCharDeviceSmartcard 
 static void smartcard_channel_send_msg(RedChannelClient *rcc,
                                        SpiceMarshaller *m, RedPipeItem *item)
 {
-    RedMsgItem* msg_item = SPICE_UPCAST(RedMsgItem, item);
+    RedMsgItem* msg_item = static_cast<RedMsgItem*>(item);
 
     smartcard_channel_client_send_data(rcc, m, item, msg_item->vheader);
 }
@@ -390,19 +390,15 @@ void SmartCardChannelClient::send_item(RedPipeItem *item)
     begin_send_message();
 }
 
-static void smartcard_free_vsc_msg_item(RedPipeItem *base)
+RedMsgItem::~RedMsgItem()
 {
-    RedMsgItem *item = SPICE_UPCAST(RedMsgItem, base);
-    g_free(item->vheader);
-    g_free(item);
+    g_free(vheader);
 }
 
 static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader)
 {
-    RedMsgItem *msg_item = g_new0(RedMsgItem, 1);
+    RedMsgItem *msg_item = new RedMsgItem(RED_PIPE_ITEM_TYPE_SMARTCARD_DATA);
 
-    red_pipe_item_init_full(&msg_item->base, RED_PIPE_ITEM_TYPE_SMARTCARD_DATA,
-                            smartcard_free_vsc_msg_item);
     msg_item->vheader = (VSCMsgHeader*) g_memdup(vheader, sizeof(*vheader) + vheader->length);
     /* We patch the reader_id, since the device only knows about itself, and
      * we know about the sum of readers. */

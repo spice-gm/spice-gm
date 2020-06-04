@@ -69,8 +69,8 @@ protected:
 };
 
 /* pipe item used to release a specific cached item on the client */
-struct RedCachePipeItem {
-    RedPipeItem base;
+struct RedCachePipeItem final: public RedPipeItem {
+    RedCachePipeItem();
     SpiceMsgDisplayInvalOne inval_one;
 };
 

@@ -67,17 +67,19 @@ enum {
     RED_PIPE_ITEM_TYPE_MONITORS_CONFIG,
 };
 
-typedef struct StreamCreateItem {
-    RedPipeItem base;
+struct StreamCreateItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
     SpiceMsgDisplayStreamCreate stream_create;
-} StreamCreateItem;
+};
 
-typedef struct StreamDataItem {
-    RedPipeItem base;
+struct StreamDataItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+    ~StreamDataItem();
+
     StreamChannel *channel;
     // NOTE: this must be the last field in the structure
     SpiceMsgDisplayStreamData data;
-} StreamDataItem;
+};
 
 #define PRIMARY_SURFACE_ID 0
 
@@ -210,7 +212,7 @@ void StreamChannelClient::send_item(RedPipeItem *pipe_item)
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_CREATE: {
-        StreamCreateItem *item = SPICE_UPCAST(StreamCreateItem, pipe_item);
+        StreamCreateItem *item = static_cast<StreamCreateItem*>(pipe_item);
         stream_id = item->stream_create.id;
         init_send_data(SPICE_MSG_DISPLAY_STREAM_CREATE);
         spice_marshall_msg_display_stream_create(m, &item->stream_create);
@@ -231,7 +233,7 @@ void StreamChannelClient::send_item(RedPipeItem *pipe_item)
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_DATA: {
-        StreamDataItem *item = SPICE_UPCAST(StreamDataItem, pipe_item);
+        StreamDataItem *item = static_cast<StreamDataItem*>(pipe_item);
         init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA);
         spice_marshall_msg_display_stream_data(m, &item->data);
         pipe_item->add_to_marshaller(m, item->data.data, item->data.data_size);
@@ -424,8 +426,7 @@ StreamChannel::change_format(const StreamMsgFormat *fmt)
     stream_id = (stream_id + 1) % NUM_STREAMS;
 
     // send create stream
-    StreamCreateItem *item = g_new0(StreamCreateItem, 1);
-    red_pipe_item_init(&item->base, RED_PIPE_ITEM_TYPE_STREAM_CREATE);
+    StreamCreateItem *item = new StreamCreateItem(RED_PIPE_ITEM_TYPE_STREAM_CREATE);
     item->stream_create.id = stream_id;
     item->stream_create.flags = SPICE_STREAM_FLAGS_TOP_DOWN;
     item->stream_create.codec_type = fmt->codec;
@@ -435,7 +436,7 @@ StreamChannel::change_format(const StreamMsgFormat *fmt)
     item->stream_create.src_height = fmt->height;
     item->stream_create.dest = (SpiceRect) { 0, 0, fmt->width, fmt->height };
     item->stream_create.clip = (SpiceClip) { SPICE_CLIP_TYPE_NONE, NULL };
-    pipes_add(&item->base);
+    pipes_add(item);
 
     // activate stream report if possible
     pipes_add_type(RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
@@ -451,14 +452,9 @@ StreamChannel::update_queue_stat(int32_t num_diff, int32_t size_diff)
     }
 }
 
-void
-StreamChannel::data_item_free(RedPipeItem *base)
+StreamDataItem::~StreamDataItem()
 {
-    StreamDataItem *pipe_item = SPICE_UPCAST(StreamDataItem, base);
-
-    pipe_item->channel->update_queue_stat(-1, -pipe_item->data.data_size);
-
-    g_free(pipe_item);
+    channel->update_queue_stat(-1, -data.data_size);
 }
 
 void
@@ -471,9 +467,7 @@ StreamChannel::send_data(const void *data, size_t size, uint32_t mm_time)
         return;
     }
 
-    StreamDataItem *item = (StreamDataItem*) g_malloc(sizeof(*item) + size);
-    red_pipe_item_init_full(&item->base, RED_PIPE_ITEM_TYPE_STREAM_DATA,
-                            data_item_free);
+    StreamDataItem *item = new (size) StreamDataItem(RED_PIPE_ITEM_TYPE_STREAM_DATA);
     item->data.base.id = stream_id;
     item->data.base.multi_media_time = mm_time;
     item->data.data_size = size;
@@ -481,7 +475,7 @@ StreamChannel::send_data(const void *data, size_t size, uint32_t mm_time)
     update_queue_stat(1, size);
     // TODO try to optimize avoiding the copy
     memcpy(item->data.data, data, size);
-    pipes_add(&item->base);
+    pipes_add(item);
 }
 
 void

@@ -25,41 +25,35 @@
 #include "cursor-channel-client.h"
 #include "reds.h"
 
-typedef struct RedCursorPipeItem {
-    RedPipeItem base;
+struct RedCursorPipeItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+    ~RedCursorPipeItem();
     RedCursorCmd *red_cursor;
-} RedCursorPipeItem;
-
-static void cursor_pipe_item_free(RedPipeItem *pipe_item);
+};
 
 static RedCursorPipeItem *cursor_pipe_item_new(RedCursorCmd *cmd)
 {
-    RedCursorPipeItem *item = g_new0(RedCursorPipeItem, 1);
+    RedCursorPipeItem *item = new RedCursorPipeItem(RED_PIPE_ITEM_TYPE_CURSOR);
 
     spice_return_val_if_fail(cmd != NULL, NULL);
 
-    red_pipe_item_init_full(&item->base, RED_PIPE_ITEM_TYPE_CURSOR,
-                            cursor_pipe_item_free);
     item->red_cursor = red_cursor_cmd_ref(cmd);
 
     return item;
 }
 
-static void cursor_pipe_item_free(RedPipeItem *base)
+RedCursorPipeItem::~RedCursorPipeItem()
 {
-    RedCursorPipeItem *pipe_item = SPICE_UPCAST(RedCursorPipeItem, base);
-
-    red_cursor_cmd_unref(pipe_item->red_cursor);
-    g_free(pipe_item);
+    red_cursor_cmd_unref(red_cursor);
 }
 
 static void cursor_channel_set_item(CursorChannel *cursor, RedCursorPipeItem *item)
 {
     if (item) {
-        red_pipe_item_ref(&item->base);
+        red_pipe_item_ref(item);
     }
     if (cursor->item) {
-        red_pipe_item_unref(&cursor->item->base);
+        red_pipe_item_unref(cursor->item);
     }
     cursor->item = item;
 }
@@ -89,7 +83,7 @@ static void cursor_fill(CursorChannelClient *ccc, RedCursorPipeItem *cursor,
 
     if (red_cursor->data_size) {
         SpiceMarshaller *m2 = spice_marshaller_get_submarshaller(m);
-        cursor->base.add_to_marshaller(m2, red_cursor->data, red_cursor->data_size);
+        cursor->add_to_marshaller(m2, red_cursor->data, red_cursor->data_size);
     }
 }
 
@@ -178,10 +172,10 @@ void CursorChannelClient::send_item(RedPipeItem *pipe_item)
 
     switch (pipe_item->type) {
     case RED_PIPE_ITEM_TYPE_CURSOR:
-        red_marshall_cursor(ccc, m, SPICE_UPCAST(RedCursorPipeItem, pipe_item));
+        red_marshall_cursor(ccc, m, static_cast<RedCursorPipeItem*>(pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_INVAL_ONE:
-        red_marshall_inval(this, m, SPICE_UPCAST(RedCachePipeItem, pipe_item));
+        red_marshall_inval(this, m, static_cast<RedCachePipeItem*>(pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_CURSOR_INIT:
         reset_cursor_cache();
@@ -235,7 +229,7 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
         break;
     default:
         spice_warning("invalid cursor command %u", cursor_cmd->type);
-        red_pipe_item_unref(&cursor_pipe_item->base);
+        red_pipe_item_unref(cursor_pipe_item);
         return;
     }
 
@@ -243,9 +237,9 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
         (mouse_mode == SPICE_MOUSE_MODE_SERVER
          || cursor_cmd->type != QXL_CURSOR_MOVE
          || cursor_show)) {
-        pipes_add(&cursor_pipe_item->base);
+        pipes_add(cursor_pipe_item);
     } else {
-        red_pipe_item_unref(&cursor_pipe_item->base);
+        red_pipe_item_unref(cursor_pipe_item);
     }
 }
 
@@ -316,7 +310,7 @@ void CursorChannel::on_connect(RedClient *client, RedStream *stream, int migrati
 CursorChannel::~CursorChannel()
 {
     if (item) {
-        red_pipe_item_unref(&item->base);
+        red_pipe_item_unref(item);
     }
 }
 

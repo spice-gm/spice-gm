@@ -280,9 +280,7 @@ void RedChannel::pipes_add(RedPipeItem *item)
 
 void RedChannel::pipes_add_type(int pipe_item_type)
 {
-    RedPipeItem *item = g_new(RedPipeItem, 1);
-
-    red_pipe_item_init(item, pipe_item_type);
+    RedPipeItem *item = new RedPipeItem(pipe_item_type);
 
     pipes_add(item);
 }

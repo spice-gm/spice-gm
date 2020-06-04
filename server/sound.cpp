@@ -74,11 +74,17 @@ struct RecordChannelClient;
 struct AudioFrame;
 struct AudioFrameContainer;
 
-struct PersistentPipeItem: public RedPipeItem
+/* This pipe item is never deleted and added to the queue when messages
+ * have to be sent.
+ * This is used to have a simple item in RedChannelClient queue but to send
+ * multiple messages in a row if possible.
+ * During realtime sound transmission you usually don't want to queue too
+ * much data or having retransmission preferring instead loosing some
+ * samples.
+ */
+struct PersistentPipeItem final: public RedPipeItem
 {
     PersistentPipeItem();
-private:
-    static void item_free(RedPipeItem *item);
 };
 
 /* Connects an audio client to a Spice client */
@@ -610,21 +616,8 @@ static bool playback_send_mode(PlaybackChannelClient *playback_client)
     return true;
 }
 
-PersistentPipeItem::PersistentPipeItem()
-{
-    red_pipe_item_init_full(this, RED_PIPE_ITEM_PERSISTENT, item_free);
-}
-
-/* This function is called when the "persistent" item is removed from the
- * queue. Note that there is not free call as the item is allocated into
- * SndChannelClient.
- * This is used to have a simple item in RedChannelClient queue but to send
- * multiple messages in a row if possible.
- * During realtime sound transmission you usually don't want to queue too
- * much data or having retransmission preferring instead loosing some
- * samples.
- */
-void PersistentPipeItem::item_free(RedPipeItem *item)
+PersistentPipeItem::PersistentPipeItem():
+    RedPipeItem(RED_PIPE_ITEM_PERSISTENT)
 {
 }
 

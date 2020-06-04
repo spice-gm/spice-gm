@@ -45,15 +45,15 @@
 struct RedVmcChannel;
 class VmcChannelClient;
 
-typedef struct RedVmcPipeItem {
-    RedPipeItem base;
+struct RedVmcPipeItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
 
     SpiceDataCompressionType type;
     uint32_t uncompressed_data_size;
     /* writes which don't fit this will get split, this is not a problem */
     uint8_t buf[BUF_SIZE];
     uint32_t buf_used;
-} RedVmcPipeItem;
+};
 
 struct RedCharDeviceSpiceVmc: public RedCharDevice
 {
@@ -158,7 +158,7 @@ RedVmcChannel::~RedVmcChannel()
 {
     RedCharDevice::write_buffer_release(chardev, &recv_from_client_buf);
     if (pipe_item) {
-        red_pipe_item_unref(&pipe_item->base);
+        red_pipe_item_unref(pipe_item);
     }
 }
 
@@ -183,16 +183,19 @@ static red::shared_ptr<RedVmcChannel> red_vmc_channel_new(RedsState *reds, uint8
     return red::make_shared<RedVmcChannel>(reds, channel_type, id);
 }
 
-typedef struct RedPortInitPipeItem {
-    RedPipeItem base;
+struct RedPortInitPipeItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+    ~RedPortInitPipeItem();
+
     char* name;
     uint8_t opened;
-} RedPortInitPipeItem;
+};
 
-typedef struct RedPortEventPipeItem {
-    RedPipeItem base;
+struct RedPortEventPipeItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+
     uint8_t event;
-} RedPortEventPipeItem;
+};
 
 enum {
     RED_PIPE_ITEM_TYPE_SPICEVMC_DATA = RED_PIPE_ITEM_TYPE_CHANNEL_BASE,
@@ -225,8 +228,7 @@ static RedVmcPipeItem* try_compress_lz4(RedVmcChannel *channel, int n, RedVmcPip
         /* Client doesn't have compression cap - data will not be compressed */
         return NULL;
     }
-    msg_item_compressed = g_new0(RedVmcPipeItem, 1);
-    red_pipe_item_init(&msg_item_compressed->base, RED_PIPE_ITEM_TYPE_SPICEVMC_DATA);
+    msg_item_compressed = new RedVmcPipeItem(RED_PIPE_ITEM_TYPE_SPICEVMC_DATA);
     compressed_data_count = LZ4_compress_default((char*)&msg_item->buf,
                                                  (char*)&msg_item_compressed->buf,
                                                  n,
@@ -258,9 +260,8 @@ RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device()
     }
 
     if (!channel->pipe_item) {
-        msg_item = g_new0(RedVmcPipeItem, 1);
+        msg_item = new RedVmcPipeItem(RED_PIPE_ITEM_TYPE_SPICEVMC_DATA);
         msg_item->type = SPICE_DATA_COMPRESSION_TYPE_NONE;
-        red_pipe_item_init(&msg_item->base, RED_PIPE_ITEM_TYPE_SPICEVMC_DATA);
     } else {
         spice_assert(channel->pipe_item->buf_used == 0);
         msg_item = channel->pipe_item;
@@ -289,33 +290,28 @@ RedPipeItem* RedCharDeviceSpiceVmc::read_one_msg_from_device()
     return NULL;
 }
 
-static void red_port_init_item_free(struct RedPipeItem *base)
+RedPortInitPipeItem::~RedPortInitPipeItem()
 {
-    RedPortInitPipeItem *item = SPICE_UPCAST(RedPortInitPipeItem, base);
-
-    g_free(item->name);
-    g_free(item);
+    g_free(name);
 }
 
 static void spicevmc_port_send_init(VmcChannelClient *rcc)
 {
     RedVmcChannel *channel = rcc->get_channel();
     SpiceCharDeviceInstance *sin = channel->chardev_sin;
-    RedPortInitPipeItem *item = g_new(RedPortInitPipeItem, 1);
+    RedPortInitPipeItem *item = new RedPortInitPipeItem(RED_PIPE_ITEM_TYPE_PORT_INIT);
 
-    red_pipe_item_init_full(&item->base, RED_PIPE_ITEM_TYPE_PORT_INIT, red_port_init_item_free);
     item->name = g_strdup(sin->portname);
     item->opened = channel->port_opened;
-    rcc->pipe_add_push(&item->base);
+    rcc->pipe_add_push(item);
 }
 
 static void spicevmc_port_send_event(RedChannelClient *rcc, uint8_t event)
 {
-    RedPortEventPipeItem *item = g_new(RedPortEventPipeItem, 1);
+    RedPortEventPipeItem *item = new RedPortEventPipeItem(RED_PIPE_ITEM_TYPE_PORT_EVENT);
 
-    red_pipe_item_init(&item->base, RED_PIPE_ITEM_TYPE_PORT_EVENT);
     item->event = event;
-    rcc->pipe_add_push(&item->base);
+    rcc->pipe_add_push(item);
 }
 
 void RedCharDeviceSpiceVmc::remove_client(RedCharDeviceClientOpaque *opaque)
@@ -510,14 +506,14 @@ static void
 spicevmc_red_channel_queue_data(RedVmcChannel *channel, RedVmcPipeItem *item)
 {
     channel->queued_data += item->buf_used;
-    channel->rcc->pipe_add_push(&item->base);
+    channel->rcc->pipe_add_push(item);
 }
 
 static void spicevmc_red_channel_send_data(VmcChannelClient *rcc,
                                            SpiceMarshaller *m,
                                            RedPipeItem *item)
 {
-    RedVmcPipeItem *i = SPICE_UPCAST(RedVmcPipeItem, item);
+    RedVmcPipeItem *i = static_cast<RedVmcPipeItem*>(item);
     RedVmcChannel *channel = rcc->get_channel();
 
     /* for compatibility send using not compressed data message */
@@ -561,7 +557,7 @@ static void spicevmc_red_channel_send_port_init(RedChannelClient *rcc,
                                                 SpiceMarshaller *m,
                                                 RedPipeItem *item)
 {
-    RedPortInitPipeItem *i = SPICE_UPCAST(RedPortInitPipeItem, item);
+    RedPortInitPipeItem *i = static_cast<RedPortInitPipeItem*>(item);
     SpiceMsgPortInit init;
 
     rcc->init_send_data(SPICE_MSG_PORT_INIT);
@@ -575,7 +571,7 @@ static void spicevmc_red_channel_send_port_event(RedChannelClient *rcc,
                                                  SpiceMarshaller *m,
                                                  RedPipeItem *item)
 {
-    RedPortEventPipeItem *i = SPICE_UPCAST(RedPortEventPipeItem, item);
+    RedPortEventPipeItem *i = static_cast<RedPortEventPipeItem*>(item);
     SpiceMsgPortEvent event;
 
     rcc->init_send_data(SPICE_MSG_PORT_EVENT);

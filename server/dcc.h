@@ -96,22 +96,26 @@ typedef struct FreeList {
 
 #define DCC_TO_DC(dcc) ((DisplayChannel*) dcc->get_channel())
 
-typedef struct RedSurfaceCreateItem {
-    RedPipeItem base;
+struct RedSurfaceCreateItem: public RedPipeItem {
+    RedSurfaceCreateItem(uint32_t surface_id,
+                         uint32_t width,
+                         uint32_t height,
+                         uint32_t format,
+                         uint32_t flags);
     SpiceMsgSurfaceCreate surface_create;
-} RedSurfaceCreateItem;
+};
 
-typedef struct RedGlScanoutUnixItem {
-    RedPipeItem base;
-} RedGlScanoutUnixItem;
+struct RedGlScanoutUnixItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+};
 
-typedef struct RedGlDrawItem {
-    RedPipeItem base;
+struct RedGlDrawItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
     SpiceMsgDisplayGlDraw draw;
-} RedGlDrawItem;
+};
 
-typedef struct RedImageItem {
-    RedPipeItem base;
+struct RedImageItem final: public RedPipeItem {
+    RedImageItem();
     SpicePoint pos;
     int width;
     int height;
@@ -122,13 +126,14 @@ typedef struct RedImageItem {
     uint32_t image_flags;
     int can_lossy;
     uint8_t data[0];
-} RedImageItem;
+};
 
-typedef struct RedDrawablePipeItem {
-    RedPipeItem base;
+struct RedDrawablePipeItem: public RedPipeItem {
+    RedDrawablePipeItem();
+    ~RedDrawablePipeItem();
     Drawable *drawable;
     DisplayChannelClient *dcc;
-} RedDrawablePipeItem;
+};
 
 DisplayChannelClient*      dcc_new                                   (DisplayChannel *display,
                                                                       RedClient *client,

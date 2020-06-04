@@ -50,10 +50,12 @@ struct StreamQueueStat {
 typedef void (*stream_channel_queue_stat_proc)(void *opaque, const StreamQueueStat *stats,
                                                StreamChannel *channel);
 
+struct StreamDataItem;
 struct StreamChannelClient;
 struct StreamChannel final: public RedChannel
 {
     friend struct StreamChannelClient;
+    friend struct StreamDataItem;
     StreamChannel(RedsState *reds, uint32_t id);
 
     /**
@@ -73,7 +75,6 @@ private:
 
     inline void update_queue_stat(int32_t num_diff, int32_t size_diff);
     void request_new_stream(StreamMsgStartStop *start);
-    static void data_item_free(RedPipeItem *base);
 
     /* current video stream id, <0 if not initialized or
      * we are not sending a stream */

@@ -16,39 +16,56 @@
    License along with this library; if not, see <http://www.gnu.org/licenses/>.
 */
 
+/**
+ * @file red-pipe-item.h
+ * Generic declaration for objects contained in RedChannelClient pipe.
+ */
 #ifndef RED_PIPE_ITEM_H_
 #define RED_PIPE_ITEM_H_
 
-#include <stddef.h>
-#include <inttypes.h>
-
-#include "common/marshaller.h"
+#include "red-common.h"
+#include "utils.hpp"
 
 #include "push-visibility.h"
 
-typedef struct RedPipeItem RedPipeItem;
+/**
+ * Base class for objects contained in RedChannelClient pipe
+ */
+struct RedPipeItem: public red::shared_ptr_counted
+{
+    SPICE_CXX_GLIB_ALLOCATOR
+    void *operator new(size_t len, void *p)
+    {
+        return p;
+    }
 
-typedef void red_pipe_item_free_t(RedPipeItem *item);
+    /**
+     * Allows to allocate a pipe item with additional space at the end.
+     *
+     * Used with structures like
+     * @code{.cpp}
+     * struct NameItem: public RedPipeItem {
+     *   ...
+     *   char name[];
+     * }
+     * ...
+     * auto name_item = red::shared_ptr<NameItem>(new (6) NameItem(...));
+     * strcpy(name_item->name, "hello");
+     * @endcode
+     */
+    void *operator new(size_t size, size_t additional)
+    {
+        return g_malloc(size + additional);
+    }
 
-struct RedPipeItem {
-    int type;
+    RedPipeItem(int type);
+    const int type;
 
     void add_to_marshaller(SpiceMarshaller *m, uint8_t *data, size_t size);
-
-    /* private */
-    int refcount;
-
-    red_pipe_item_free_t *free_func;
 };
 
-void red_pipe_item_init_full(RedPipeItem *item, int type, red_pipe_item_free_t free_func);
 RedPipeItem *red_pipe_item_ref(RedPipeItem *item);
 void red_pipe_item_unref(RedPipeItem *item);
-
-static inline void red_pipe_item_init(RedPipeItem *item, int type)
-{
-    red_pipe_item_init_full(item, type, NULL);
-}
 
 #include "pop-visibility.h"
 

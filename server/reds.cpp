@@ -153,13 +153,15 @@ struct ChannelSecurityOptions {
     ChannelSecurityOptions *next;
 };
 
-typedef struct RedVDIReadBuf {
-    RedPipeItem base;
+struct RedVDIReadBuf final: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+    ~RedVDIReadBuf();
+
     RedCharDeviceVDIPort *dev;
 
     int len;
     uint8_t data[SPICE_AGENT_MAX_DATA_SIZE];
-} RedVDIReadBuf;
+};
 
 typedef enum {
     VDI_PORT_READ_STATE_READ_HEADER,
@@ -238,7 +240,6 @@ static uint32_t reds_qxl_ram_size(RedsState *reds);
 static int calc_compression_level(RedsState *reds);
 
 static RedVDIReadBuf *vdi_port_get_read_buf(RedCharDeviceVDIPort *dev);
-static red_pipe_item_free_t vdi_port_read_buf_free;
 
 static ChannelSecurityOptions *reds_find_channel_security(RedsState *reds, int id)
 {
@@ -405,7 +406,7 @@ static void reds_reset_vdp(RedsState *reds)
     dev->priv->receive_len = sizeof(dev->priv->vdi_chunk_header);
     dev->priv->message_receive_len = 0;
     if (dev->priv->current_read_buf) {
-        red_pipe_item_unref(&dev->priv->current_read_buf->base);
+        red_pipe_item_unref(dev->priv->current_read_buf);
         dev->priv->current_read_buf = NULL;
     }
     /* Reset read filter to start with clean state when the agent reconnects */
@@ -658,7 +659,7 @@ static void reds_agent_remove(RedsState *reds)
 static void vdi_port_read_buf_release(uint8_t *data, void *opaque)
 {
     RedVDIReadBuf *read_buf = (RedVDIReadBuf *)opaque;
-    red_pipe_item_unref(&read_buf->base);
+    red_pipe_item_unref(read_buf);
 }
 
 /*
@@ -681,15 +682,25 @@ static AgentMsgFilterResult vdi_port_read_buf_process(RedCharDeviceVDIPort *dev,
     }
 }
 
+RedVDIReadBuf::~RedVDIReadBuf()
+{
+    dev->priv->num_read_buf--;
+
+    /* read_one_msg_from_vdi_port may have never completed because we
+       reached buffer limit. So we call it again so it can complete its work if
+       necessary. Note that since we can be called from red_char_device_wakeup
+       this can cause recursion, but we have protection for that */
+    if (dev->priv->agent_attached) {
+       dev->wakeup();
+    }
+}
+
 static RedVDIReadBuf *vdi_read_buf_new(RedCharDeviceVDIPort *dev)
 {
-    RedVDIReadBuf *buf = g_new(RedVDIReadBuf, 1);
-
     /* Bogus pipe item type, we only need the RingItem and refcounting
      * from the base class and are not going to use the type
      */
-    red_pipe_item_init_full(&buf->base, -1,
-                            vdi_port_read_buf_free);
+    RedVDIReadBuf *buf = new RedVDIReadBuf(-1);
     buf->dev = dev;
     buf->len = 0;
     return buf;
@@ -703,23 +714,6 @@ static RedVDIReadBuf *vdi_port_get_read_buf(RedCharDeviceVDIPort *dev)
 
     dev->priv->num_read_buf++;
     return vdi_read_buf_new(dev);
-}
-
-static void vdi_port_read_buf_free(RedPipeItem *base)
-{
-    RedVDIReadBuf *buf = SPICE_UPCAST(RedVDIReadBuf, base);
-
-    g_warn_if_fail(buf->base.refcount == 0);
-    buf->dev->priv->num_read_buf--;
-
-    /* read_one_msg_from_vdi_port may have never completed because we
-       reached buffer limit. So we call it again so it can complete its work if
-       necessary. Note that since we can be called from red_char_device_wakeup
-       this can cause recursion, but we have protection for that */
-    if (buf->dev->priv->agent_attached) {
-       buf->dev->wakeup();
-    }
-    g_free(buf);
 }
 
 /* certain agent capabilities can be overridden and disabled in the server. In these cases, unset
@@ -807,14 +801,14 @@ RedCharDeviceVDIPort::read_one_msg_from_device()
             switch (vdi_port_read_buf_process(this, dispatch_buf)) {
             case AGENT_MSG_FILTER_OK:
                 reds_adjust_agent_capabilities(reds, (VDAgentMessage *) dispatch_buf->data);
-                return &dispatch_buf->base;
+                return dispatch_buf;
             case AGENT_MSG_FILTER_PROTO_ERROR:
                 reds_agent_remove(reds);
                 /* fall through */
             case AGENT_MSG_FILTER_MONITORS_CONFIG:
                 /* fall through */
             case AGENT_MSG_FILTER_DISCARD:
-                red_pipe_item_unref(&dispatch_buf->base);
+                red_pipe_item_unref(dispatch_buf);
             }
         }
         } /* END switch */
@@ -911,7 +905,7 @@ void reds_send_device_display_info(RedsState *reds)
 void RedCharDeviceVDIPort::send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque)
 {
     RedClient *client = (RedClient *) opaque;
-    RedVDIReadBuf *agent_data_buf = (RedVDIReadBuf *)msg;
+    RedVDIReadBuf *agent_data_buf = static_cast<RedVDIReadBuf*>(msg);
 
     red_pipe_item_ref(msg);
     client->get_main()->push_agent_data(agent_data_buf->data,
@@ -1283,7 +1277,7 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
         case AGENT_MSG_FILTER_MONITORS_CONFIG:
             /* fall through */
         case AGENT_MSG_FILTER_DISCARD:
-            red_pipe_item_unref(&read_buf->base);
+            red_pipe_item_unref(read_buf);
         }
 
         spice_assert(agent_dev->priv->receive_len);
@@ -4472,7 +4466,7 @@ RedCharDeviceVDIPort::~RedCharDeviceVDIPort()
     /* make sure we have no other references to RedVDIReadBuf buffers */
     reset();
     if (priv->current_read_buf) {
-        red_pipe_item_unref(&priv->current_read_buf->base);
+        red_pipe_item_unref(priv->current_read_buf);
         priv->current_read_buf = NULL;
     }
     g_free(priv->mig_data);

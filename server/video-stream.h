@@ -49,17 +49,18 @@ typedef struct VideoStream VideoStream;
 
 /* This item is used to send a full quality image (lossless) of the area where the stream was.
  * This to avoid the artifacts due to the lossy compression. */
-typedef struct RedUpgradeItem {
-    RedPipeItem base;
+struct RedUpgradeItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+    ~RedUpgradeItem();
     Drawable *drawable;
     SpiceClipRects *rects;
-} RedUpgradeItem;
+};
 
-typedef struct RedStreamActivateReportItem {
-    RedPipeItem base;
+struct RedStreamActivateReportItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
     uint32_t stream_id;
     uint32_t report_id;
-} RedStreamActivateReportItem;
+};
 
 #ifdef STREAM_STATS
 typedef struct StreamStats {
@@ -95,19 +96,21 @@ typedef struct VideoStreamAgent {
 #endif
 } VideoStreamAgent;
 
-typedef struct VideoStreamClipItem {
-    RedPipeItem base;
+struct VideoStreamClipItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+    ~VideoStreamClipItem();
     VideoStreamAgent *stream_agent;
     int clip_type;
     SpiceClipRects *rects;
-} VideoStreamClipItem;
+};
 
 VideoStreamClipItem *video_stream_clip_item_new(VideoStreamAgent *agent);
 
-typedef struct StreamCreateDestroyItem {
-    RedPipeItem base;
+struct StreamCreateDestroyItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
+    ~StreamCreateDestroyItem();
     VideoStreamAgent *agent;
-} StreamCreateDestroyItem;
+};
 
 typedef struct ItemTrace {
     red_time_t time;

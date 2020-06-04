@@ -32,11 +32,11 @@ struct SmartCardChannelClientPrivate
     bool msg_in_write_buf = false;
 };
 
-typedef struct RedErrorItem {
-    RedPipeItem base;
+struct RedErrorItem: public RedPipeItem {
+    using RedPipeItem::RedPipeItem;
     VSCMsgHeader vheader;
     VSCMsgError  error;
-} RedErrorItem;
+};
 
 SmartCardChannelClient::SmartCardChannelClient(RedChannel *channel,
                                                RedClient *client,
@@ -129,7 +129,7 @@ void smartcard_channel_client_send_data(RedChannelClient *rcc,
 
 void smartcard_channel_client_send_error(RedChannelClient *rcc, SpiceMarshaller *m, RedPipeItem *item)
 {
-    RedErrorItem* error_item = SPICE_UPCAST(RedErrorItem, item);
+    RedErrorItem* error_item = static_cast<RedErrorItem*>(item);
 
     smartcard_channel_client_send_data(rcc, m, item, &error_item->vheader);
 }
@@ -138,15 +138,13 @@ static void smartcard_channel_client_push_error(RedChannelClient *rcc,
                                                 uint32_t reader_id,
                                                 VSCErrorCode error)
 {
-    RedErrorItem *error_item = g_new0(RedErrorItem, 1);
-
-    red_pipe_item_init(&error_item->base, RED_PIPE_ITEM_TYPE_ERROR);
+    RedErrorItem *error_item = new RedErrorItem(RED_PIPE_ITEM_TYPE_ERROR);
 
     error_item->vheader.reader_id = reader_id;
     error_item->vheader.type = VSC_Error;
     error_item->vheader.length = sizeof(error_item->error);
     error_item->error.code = error;
-    rcc->pipe_add_push(&error_item->base);
+    rcc->pipe_add_push(error_item);
 }
 
 static void smartcard_channel_client_add_reader(SmartCardChannelClient *scc)

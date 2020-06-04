@@ -626,7 +626,7 @@ static bool pipe_rendered_drawables_intersect_with_areas(DisplayChannelClient *d
 
         if (pipe_item->type != RED_PIPE_ITEM_TYPE_DRAW)
             continue;
-        drawable = SPICE_UPCAST(RedDrawablePipeItem, pipe_item)->drawable;
+        drawable = static_cast<RedDrawablePipeItem*>(pipe_item)->drawable;
 
         if (ring_item_is_linked(&drawable->list_link))
             continue; // item hasn't been rendered
@@ -719,7 +719,7 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
         prev = l->prev;
         if (pipe_item->type != RED_PIPE_ITEM_TYPE_DRAW)
             continue;
-        dpi = SPICE_UPCAST(RedDrawablePipeItem, pipe_item);
+        dpi = static_cast<RedDrawablePipeItem*>(pipe_item);
         drawable = dpi->drawable;
         if (ring_item_is_linked(&drawable->list_link))
             continue; // item hasn't been rendered
@@ -1969,8 +1969,8 @@ static void red_marshall_image(DisplayChannelClient *dcc,
 
         spice_marshall_Image(src_bitmap_out, &red_image,
                              &bitmap_palette_out, &lzplt_palette_out);
-        item->base.add_to_marshaller(src_bitmap_out, item->data,
-                                     bitmap.y * bitmap.stride);
+        item->add_to_marshaller(src_bitmap_out, item->data,
+                                bitmap.y * bitmap.stride);
         region_remove(surface_lossy_region, &copy.base.box);
     }
     spice_chunks_destroy(chunks);
@@ -2286,7 +2286,7 @@ static void marshall_gl_draw(RedChannelClient *rcc,
                              SpiceMarshaller *m,
                              RedPipeItem *item)
 {
-    RedGlDrawItem *p = SPICE_UPCAST(RedGlDrawItem, item);
+    RedGlDrawItem *p = static_cast<RedGlDrawItem*>(item);
 
     rcc->init_send_data(SPICE_MSG_DISPLAY_GL_DRAW);
     spice_marshall_msg_display_gl_draw(m, &p->draw);
@@ -2335,34 +2335,34 @@ void DisplayChannelClient::send_item(RedPipeItem *pipe_item)
     ::reset_send_data(dcc);
     switch (pipe_item->type) {
     case RED_PIPE_ITEM_TYPE_DRAW: {
-        RedDrawablePipeItem *dpi = SPICE_UPCAST(RedDrawablePipeItem, pipe_item);
+        RedDrawablePipeItem *dpi = static_cast<RedDrawablePipeItem*>(pipe_item);
         marshall_qxl_drawable(this, m, dpi);
         break;
     }
     case RED_PIPE_ITEM_TYPE_INVAL_ONE:
-        marshall_inval_palette(this, m, SPICE_UPCAST(RedCachePipeItem, pipe_item));
+        marshall_inval_palette(this, m, static_cast<RedCachePipeItem*>(pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_STREAM_CREATE: {
-        StreamCreateDestroyItem *item = SPICE_UPCAST(StreamCreateDestroyItem, pipe_item);
+        StreamCreateDestroyItem *item = static_cast<StreamCreateDestroyItem*>(pipe_item);
         marshall_stream_start(this, m, item->agent);
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_CLIP:
-        marshall_stream_clip(this, m, SPICE_UPCAST(VideoStreamClipItem, pipe_item));
+        marshall_stream_clip(this, m, static_cast<VideoStreamClipItem*>(pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_STREAM_DESTROY: {
-        StreamCreateDestroyItem *item = SPICE_UPCAST(StreamCreateDestroyItem, pipe_item);
+        StreamCreateDestroyItem *item = static_cast<StreamCreateDestroyItem*>(pipe_item);
         marshall_stream_end(this, m, item->agent);
         break;
     }
     case RED_PIPE_ITEM_TYPE_UPGRADE:
-        marshall_upgrade(this, m, SPICE_UPCAST(RedUpgradeItem, pipe_item));
+        marshall_upgrade(this, m, static_cast<RedUpgradeItem*>(pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_MIGRATE_DATA:
         display_channel_marshall_migrate_data(this, m);
         break;
     case RED_PIPE_ITEM_TYPE_IMAGE:
-        red_marshall_image(this, m, SPICE_UPCAST(RedImageItem, pipe_item));
+        red_marshall_image(this, m, static_cast<RedImageItem*>(pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_PIXMAP_SYNC:
         display_channel_marshall_pixmap_sync(this, m);
@@ -2375,23 +2375,23 @@ void DisplayChannelClient::send_item(RedPipeItem *pipe_item)
         init_send_data(SPICE_MSG_DISPLAY_INVAL_ALL_PALETTES);
         break;
     case RED_PIPE_ITEM_TYPE_CREATE_SURFACE: {
-        RedSurfaceCreateItem *surface_create = SPICE_UPCAST(RedSurfaceCreateItem, pipe_item);
+        RedSurfaceCreateItem *surface_create = static_cast<RedSurfaceCreateItem*>(pipe_item);
         marshall_surface_create(this, m, &surface_create->surface_create);
         break;
     }
     case RED_PIPE_ITEM_TYPE_DESTROY_SURFACE: {
-        RedSurfaceDestroyItem *surface_destroy = SPICE_UPCAST(RedSurfaceDestroyItem, pipe_item);
+        RedSurfaceDestroyItem *surface_destroy = static_cast<RedSurfaceDestroyItem*>(pipe_item);
         marshall_surface_destroy(this, m, surface_destroy->surface_destroy.surface_id);
         break;
     }
     case RED_PIPE_ITEM_TYPE_MONITORS_CONFIG: {
-        RedMonitorsConfigItem *monconf_item = SPICE_UPCAST(RedMonitorsConfigItem, pipe_item);
+        RedMonitorsConfigItem *monconf_item = static_cast<RedMonitorsConfigItem*>(pipe_item);
         marshall_monitors_config(this, m, monconf_item->monitors_config);
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT: {
         RedStreamActivateReportItem *report_item =
-            SPICE_UPCAST(RedStreamActivateReportItem, pipe_item);
+            static_cast<RedStreamActivateReportItem*>(pipe_item);
         marshall_stream_activate_report(this, m, report_item);
         break;
     }

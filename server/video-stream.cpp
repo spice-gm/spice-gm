@@ -64,24 +64,20 @@ static void video_stream_agent_stats_print(VideoStreamAgent *agent)
 #endif
 }
 
-static void video_stream_create_destroy_item_release(RedPipeItem *base)
+StreamCreateDestroyItem::~StreamCreateDestroyItem()
 {
-    StreamCreateDestroyItem *item = SPICE_UPCAST(StreamCreateDestroyItem, base);
-    DisplayChannel *display = DCC_TO_DC(item->agent->dcc);
-    video_stream_agent_unref(display, item->agent);
-    g_free(item);
+    DisplayChannel *display = DCC_TO_DC(agent->dcc);
+    video_stream_agent_unref(display, agent);
 }
 
 static RedPipeItem *video_stream_create_destroy_item_new(VideoStreamAgent *agent,
-                                                         gint type)
+                                                         int type)
 {
-    StreamCreateDestroyItem *item = g_new0(StreamCreateDestroyItem, 1);
+    StreamCreateDestroyItem *item = new StreamCreateDestroyItem(type);
 
-    red_pipe_item_init_full(&item->base, type,
-                            video_stream_create_destroy_item_release);
     agent->stream->refs++;
     item->agent = agent;
-    return &item->base;
+    return item;
 }
 
 static RedPipeItem *video_stream_create_item_new(VideoStreamAgent *agent)
@@ -163,24 +159,17 @@ void video_stream_agent_unref(DisplayChannel *display, VideoStreamAgent *agent)
     video_stream_unref(display, agent->stream);
 }
 
-static void video_stream_clip_item_free(RedPipeItem *base)
+VideoStreamClipItem::~VideoStreamClipItem()
 {
-    g_return_if_fail(base != NULL);
-    VideoStreamClipItem *item = SPICE_UPCAST(VideoStreamClipItem, base);
-    DisplayChannel *display = DCC_TO_DC(item->stream_agent->dcc);
+    DisplayChannel *display = DCC_TO_DC(stream_agent->dcc);
 
-    g_return_if_fail(item->base.refcount == 0);
-
-    video_stream_agent_unref(display, item->stream_agent);
-    g_free(item->rects);
-    g_free(item);
+    video_stream_agent_unref(display, stream_agent);
+    g_free(rects);
 }
 
 VideoStreamClipItem *video_stream_clip_item_new(VideoStreamAgent *agent)
 {
-    VideoStreamClipItem *item = g_new(VideoStreamClipItem, 1);
-    red_pipe_item_init_full(&item->base, RED_PIPE_ITEM_TYPE_STREAM_CLIP,
-                            video_stream_clip_item_free);
+    VideoStreamClipItem *item = new VideoStreamClipItem(RED_PIPE_ITEM_TYPE_STREAM_CLIP);
 
     item->stream_agent = agent;
     agent->stream->refs++;
@@ -364,7 +353,7 @@ static void before_reattach_stream(DisplayChannel *display,
         dcc = dpi->dcc;
         agent = dcc_get_video_stream_agent(dcc, index);
 
-        if (dcc->pipe_item_is_linked(&dpi->base)) {
+        if (dcc->pipe_item_is_linked(dpi)) {
 #ifdef STREAM_STATS
             agent->stats.num_drops_pipe++;
 #endif
@@ -784,14 +773,13 @@ void dcc_create_stream(DisplayChannelClient *dcc, VideoStream *stream)
     dcc->pipe_add(video_stream_create_item_new(agent));
 
     if (dcc->test_remote_cap(SPICE_DISPLAY_CAP_STREAM_REPORT)) {
-        RedStreamActivateReportItem *report_pipe_item = g_new0(RedStreamActivateReportItem, 1);
+        RedStreamActivateReportItem *report_pipe_item =
+            new RedStreamActivateReportItem(RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
 
         agent->report_id = rand();
-        red_pipe_item_init(&report_pipe_item->base,
-                           RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
         report_pipe_item->stream_id = stream_id;
         report_pipe_item->report_id = agent->report_id;
-        dcc->pipe_add(&report_pipe_item->base);
+        dcc->pipe_add(report_pipe_item);
     }
 #ifdef STREAM_STATS
     memset(&agent->stats, 0, sizeof(StreamStats));
@@ -812,17 +800,10 @@ void video_stream_agent_stop(VideoStreamAgent *agent)
     }
 }
 
-static void red_upgrade_item_free(RedPipeItem *base)
+RedUpgradeItem::~RedUpgradeItem()
 {
-    g_return_if_fail(base != NULL);
-
-    RedUpgradeItem *item = SPICE_UPCAST(RedUpgradeItem, base);
-
-    g_return_if_fail(item->base.refcount == 0);
-
-    drawable_unref(item->drawable);
-    g_free(item->rects);
-    g_free(item);
+    drawable_unref(drawable);
+    g_free(rects);
 }
 
 /*
@@ -861,9 +842,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         }
         spice_debug("stream %d: upgrade by drawable. box ==>", stream_id);
         rect_debug(&stream->current->red_drawable->bbox);
-        upgrade_item = g_new(RedUpgradeItem, 1);
-        red_pipe_item_init_full(&upgrade_item->base, RED_PIPE_ITEM_TYPE_UPGRADE,
-                                red_upgrade_item_free);
+        upgrade_item = new RedUpgradeItem(RED_PIPE_ITEM_TYPE_UPGRADE);
         upgrade_item->drawable = stream->current;
         upgrade_item->drawable->refs++;
         n_rects = pixman_region32_n_rects(&upgrade_item->drawable->tree_item.base.rgn);
@@ -871,7 +850,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         upgrade_item->rects->num_rects = n_rects;
         region_ret_rects(&upgrade_item->drawable->tree_item.base.rgn,
                          upgrade_item->rects->rects, n_rects);
-        dcc->pipe_add(&upgrade_item->base);
+        dcc->pipe_add(upgrade_item);
 
     } else {
         SpiceRect upgrade_area;
