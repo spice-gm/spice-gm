@@ -31,9 +31,6 @@ struct RedChannelClientPrivate;
 
 class RedChannelClient: public red::shared_ptr_counted
 {
-public:
-    SPICE_CXX_GLIB_ALLOCATOR
-
     // This is made protected to avoid allocation on stack conflicting with
     // reference counting
 protected:

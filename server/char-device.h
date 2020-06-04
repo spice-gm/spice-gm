@@ -107,8 +107,6 @@ struct RedCharDeviceWriteBuffer {
 class RedCharDevice: public red::shared_ptr_counted_weak
 {
 public:
-    SPICE_CXX_GLIB_ALLOCATOR
-
     RedCharDevice(RedsState *reds, SpiceCharDeviceInstance *sin,
                   uint64_t client_tokens_interval, uint64_t num_self_tokens);
     ~RedCharDevice();
