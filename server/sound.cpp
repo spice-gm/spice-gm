@@ -76,6 +76,9 @@ struct AudioFrameContainer;
 
 struct PersistentPipeItem: public RedPipeItem
 {
+    PersistentPipeItem();
+private:
+    static void item_free(RedPipeItem *item);
 };
 
 /* Connects an audio client to a Spice client */
@@ -607,6 +610,11 @@ static bool playback_send_mode(PlaybackChannelClient *playback_client)
     return true;
 }
 
+PersistentPipeItem::PersistentPipeItem()
+{
+    red_pipe_item_init_full(this, RED_PIPE_ITEM_PERSISTENT, item_free);
+}
+
 /* This function is called when the "persistent" item is removed from the
  * queue. Note that there is not free call as the item is allocated into
  * SndChannelClient.
@@ -616,10 +624,8 @@ static bool playback_send_mode(PlaybackChannelClient *playback_client)
  * much data or having retransmission preferring instead loosing some
  * samples.
  */
-static void snd_persistent_pipe_item_free(struct RedPipeItem *item)
+void PersistentPipeItem::item_free(RedPipeItem *item)
 {
-    red_pipe_item_init_full(item, RED_PIPE_ITEM_PERSISTENT,
-                            snd_persistent_pipe_item_free);
 }
 
 static void snd_send(SndChannelClient * client)
@@ -628,8 +634,7 @@ static void snd_send(SndChannelClient * client)
         return;
     }
     // just append a dummy item and push!
-    red_pipe_item_init_full(&client->persistent_pipe_item, RED_PIPE_ITEM_PERSISTENT,
-                            snd_persistent_pipe_item_free);
+    red_pipe_item_ref(&client->persistent_pipe_item);
     client->pipe_add_push(&client->persistent_pipe_item);
 }
 
