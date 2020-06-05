@@ -172,11 +172,6 @@ static bool is_brush_lossy(DisplayChannelClient *dcc, SpiceBrush *brush,
     }
 }
 
-static GList *dcc_get_tail(DisplayChannelClient *dcc)
-{
-    return dcc->get_pipe()->tail;
-}
-
 static void red_display_add_image_to_pixmap_cache(DisplayChannelClient *dcc,
                                                   SpiceImage *image, SpiceImage *io_image,
                                                   int is_lossy)
@@ -616,17 +611,14 @@ static bool pipe_rendered_drawables_intersect_with_areas(DisplayChannelClient *d
                                                          SpiceRect *surface_areas[],
                                                          int num_surfaces)
 {
-    GList *l;
-
     spice_assert(num_surfaces);
 
-    for (l = dcc->get_pipe()->head; l != NULL; l = l->next) {
+    for (const auto &pipe_item : dcc->get_pipe()) {
         Drawable *drawable;
-        RedPipeItem *pipe_item = (RedPipeItem *) l->data;
 
         if (pipe_item->type != RED_PIPE_ITEM_TYPE_DRAW)
             continue;
-        drawable = static_cast<RedDrawablePipeItem*>(pipe_item)->drawable;
+        drawable = static_cast<RedDrawablePipeItem*>(pipe_item.get())->drawable;
 
         if (ring_item_is_linked(&drawable->list_link))
             continue; // item hasn't been rendered
@@ -701,26 +693,22 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
     int resent_surface_ids[MAX_PIPE_SIZE];
     SpiceRect resent_areas[MAX_PIPE_SIZE]; // not pointers since drawables may be released
     int num_resent;
-    GList *l, *prev;
-    GQueue *pipe;
 
     resent_surface_ids[0] = first_surface_id;
     resent_areas[0] = *first_area;
     num_resent = 1;
 
-    pipe = dcc->get_pipe();
+    auto &pipe = dcc->get_pipe();
 
     // going from the oldest to the newest
-    for (l = pipe->tail; l != NULL; l = prev) {
-        RedPipeItem *pipe_item = (RedPipeItem *) l->data;
-        Drawable *drawable;
-        RedDrawablePipeItem *dpi;
+    for (auto l = pipe.end(); l != pipe.begin(); ) {
+        --l;
+        RedPipeItem *pipe_item = l->get();
 
-        prev = l->prev;
         if (pipe_item->type != RED_PIPE_ITEM_TYPE_DRAW)
             continue;
-        dpi = static_cast<RedDrawablePipeItem*>(pipe_item);
-        drawable = dpi->drawable;
+        auto dpi = static_cast<RedDrawablePipeItem*>(pipe_item);
+        auto drawable = dpi->drawable;
         if (ring_item_is_linked(&drawable->list_link))
             continue; // item hasn't been rendered
 
@@ -741,7 +729,7 @@ static void red_pipe_replace_rendered_drawables_with_images(DisplayChannelClient
         resent_areas[num_resent] = drawable->red_drawable->bbox;
         num_resent++;
 
-        dcc->pipe_remove_and_release_pos(l);
+        l = pipe.erase(l);
     }
 }
 
@@ -788,7 +776,7 @@ static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
         // will be executed before the current drawable
         for (i = 0; i < num_deps; i++) {
             dcc_add_surface_area_image(dcc, deps_surfaces_ids[i], deps_areas[i],
-                                       dcc_get_tail(dcc), FALSE);
+                                       dcc->get_pipe().end(), FALSE);
 
         }
     } else {
@@ -809,7 +797,7 @@ static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
         }
 
         dcc_add_surface_area_image(dcc, drawable->surface_id, &drawable->bbox,
-                                   dcc_get_tail(dcc), TRUE);
+                                   dcc->get_pipe().end(), TRUE);
     }
 }
 

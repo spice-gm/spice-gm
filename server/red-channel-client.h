@@ -18,12 +18,14 @@
 #ifndef RED_CHANNEL_CLIENT_H_
 #define RED_CHANNEL_CLIENT_H_
 
+#include <list>
 #include <common/marshaller.h>
 
 #include "red-pipe-item.h"
 #include "red-stream.h"
 #include "red-channel.h"
 #include "utils.hpp"
+#include "safe-list.hpp"
 
 #include "push-visibility.h"
 
@@ -81,13 +83,14 @@ protected:
     void start_connectivity_monitoring(uint32_t timeout_ms);
 
 public:
+    typedef std::list<RedPipeItemPtr, red::Mallocator<RedPipeItemPtr>> Pipe;
+
     void pipe_add_push(RedPipeItem *item);
     void pipe_add(RedPipeItem *item);
     void pipe_add_after(RedPipeItem *item, RedPipeItem *pos);
-    void pipe_add_after_pos(RedPipeItem *item, GList *pos);
+    void pipe_add_after_pos(RedPipeItem *item, RedChannelClient::Pipe::iterator pos);
     int pipe_item_is_linked(RedPipeItem *item);
     void pipe_remove_and_release(RedPipeItem *item);
-    void pipe_remove_and_release_pos(GList *item_pos);
     void pipe_add_tail(RedPipeItem *item);
     /* for types that use this routine -> the pipe item should be freed */
     void pipe_add_type(int pipe_item_type);
@@ -95,7 +98,7 @@ public:
     void pipe_add_empty_msg(int msg_type);
     gboolean pipe_is_empty();
     uint32_t get_pipe_size();
-    GQueue* get_pipe();
+    Pipe& get_pipe();
     bool is_mini_header() const;
 
     void ack_zero_messages_window();
@@ -130,7 +133,7 @@ public:
      * Return: TRUE if waiting succeeded. FALSE if timeout expired.
      */
 
-    bool wait_pipe_item_sent(GList *item_pos, int64_t timeout);
+    bool wait_pipe_item_sent(RedChannelClient::Pipe::iterator item_pos, int64_t timeout);
     bool wait_outgoing_item(int64_t timeout);
 
     RedChannel* get_channel();
@@ -181,7 +184,7 @@ private:
     virtual void handle_migrate_flush_mark();
     void handle_migrate_data_early(uint32_t size, void *message);
     inline bool prepare_pipe_add(RedPipeItem *item);
-    void pipe_add_before_pos(RedPipeItem *item, GList *pipe_item_pos);
+    void pipe_add_before_pos(RedPipeItem *item, RedChannelClient::Pipe::iterator pipe_item_pos);
     void send_set_ack();
     void send_migrate();
     void send_empty_msg(RedPipeItem *base);

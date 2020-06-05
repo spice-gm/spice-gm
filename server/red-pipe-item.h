@@ -64,6 +64,8 @@ struct RedPipeItem: public red::shared_ptr_counted
     void add_to_marshaller(SpiceMarshaller *m, uint8_t *data, size_t size);
 };
 
+typedef red::shared_ptr<RedPipeItem> RedPipeItemPtr;
+
 RedPipeItem *red_pipe_item_ref(RedPipeItem *item);
 void red_pipe_item_unref(RedPipeItem *item);
 

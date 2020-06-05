@@ -106,21 +106,21 @@ bool dcc_drawable_is_in_pipe(DisplayChannelClient *dcc, Drawable *drawable)
 bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surface_id,
                                            int wait_if_used)
 {
-    GList *l;
     int x;
 
     spice_return_val_if_fail(dcc != NULL, TRUE);
     /* removing the newest drawables that their destination is surface_id and
        no other drawable depends on them */
 
-    for (l = dcc->get_pipe()->head; l != NULL; ) {
+    auto &pipe = dcc->get_pipe();
+    for (auto l = pipe.begin(); l != pipe.end(); ) {
         Drawable *drawable;
         RedDrawablePipeItem *dpi = NULL;
         int depend_found = FALSE;
-        RedPipeItem *item = (RedPipeItem *) l->data;
-        GList *item_pos = l;
+        RedPipeItem *item = l->get();
+        auto item_pos = l;
 
-        l = l->next;
+        ++l;
         if (item->type == RED_PIPE_ITEM_TYPE_DRAW) {
             dpi = static_cast<RedDrawablePipeItem*>(item);
             drawable = dpi->drawable;
@@ -131,7 +131,7 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
         }
 
         if (drawable->surface_id == surface_id) {
-            dcc->pipe_remove_and_release_pos(item_pos);
+            l = pipe.erase(item_pos);
             continue;
         }
 
@@ -197,7 +197,8 @@ RedImageItem::RedImageItem():
 // adding the pipe item after pos. If pos == NULL, adding to head.
 void
 dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
-                           SpiceRect *area, GList *pipe_item_pos, int can_lossy)
+                           SpiceRect *area, RedChannelClient::Pipe::iterator pipe_item_pos,
+                           int can_lossy)
 {
     DisplayChannel *display = DCC_TO_DC(dcc);
     RedSurface *surface = &display->priv->surfaces[surface_id];
@@ -244,7 +245,7 @@ dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
         }
     }
 
-    if (pipe_item_pos) {
+    if (pipe_item_pos != dcc->get_pipe().end()) {
         dcc->pipe_add_after_pos(item, pipe_item_pos);
     } else {
         dcc->pipe_add(item);
@@ -272,7 +273,7 @@ void dcc_push_surface_image(DisplayChannelClient *dcc, int surface_id)
 
     /* not allowing lossy compression because probably, especially if it is a primary surface,
        it combines both "picture-like" areas with areas that are more "artificial"*/
-    dcc_add_surface_area_image(dcc, surface_id, &area, NULL, FALSE);
+    dcc_add_surface_area_image(dcc, surface_id, &area, dcc->get_pipe().end(), FALSE);
 }
 
 static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *drawable)

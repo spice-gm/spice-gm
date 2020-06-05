@@ -864,7 +864,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         } else {
             display_channel_draw(display, &upgrade_area, 0);
         }
-        dcc_add_surface_area_image(dcc, 0, &upgrade_area, NULL, FALSE);
+        dcc_add_surface_area_image(dcc, 0, &upgrade_area, dcc->get_pipe().end(), FALSE);
     }
 clear_vis_region:
     region_clear(&agent->vis_region);

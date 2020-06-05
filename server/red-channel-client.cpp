@@ -156,7 +156,7 @@ struct RedChannelClientPrivate
 
     bool block_read;
     bool during_send;
-    GQueue pipe;
+    RedChannelClient::Pipe pipe;
 
     RedChannelCapabilities remote_caps;
     bool is_mini_header;
@@ -173,7 +173,7 @@ struct RedChannelClientPrivate
     RedStatCounter out_messages;
     RedStatCounter out_bytes;
 
-    inline RedPipeItem *pipe_item_get();
+    inline RedPipeItemPtr pipe_item_get();
     inline bool pipe_remove(RedPipeItem *item);
     void handle_pong(SpiceMsgPing *ping);
     inline void set_message_serial(uint64_t serial);
@@ -306,8 +306,6 @@ RedChannelClientPrivate::RedChannelClientPrivate(RedChannel *init_channel,
     send_data.urgent.marshaller = spice_marshaller_new();
 
     send_data.marshaller = send_data.main.marshaller;
-
-    g_queue_init(&pipe);
 
     red_channel_capabilities_reset(&remote_caps);
     red_channel_capabilities_init(&remote_caps, caps);
@@ -550,7 +548,7 @@ void RedChannelClient::msg_sent()
         spice_assert(priv->send_data.header.data != NULL);
         begin_send_message();
     } else {
-        if (g_queue_is_empty(&priv->pipe)) {
+        if (priv->pipe.empty()) {
             /* It is possible that the socket will become idle, so we may be able to test latency */
             priv->restart_ping_timer();
         }
@@ -558,9 +556,23 @@ void RedChannelClient::msg_sent()
 
 }
 
+static RedChannelClient::Pipe::iterator
+find_pipe_item(RedChannelClient::Pipe &pipe, const RedPipeItem *item)
+{
+    return std::find_if(pipe.begin(), pipe.end(),
+                        [=](const RedPipeItemPtr& p) -> bool {
+                            return p.get() == item;
+    });
+}
+
 bool RedChannelClientPrivate::pipe_remove(RedPipeItem *item)
 {
-    return g_queue_remove(&pipe, item);
+    auto i = find_pipe_item(pipe, item);
+    if (i != pipe.end()) {
+        pipe.erase(i);
+        return true;
+    }
+    return false;
 }
 
 bool RedChannelClient::test_remote_common_cap(uint32_t cap) const
@@ -1111,17 +1123,21 @@ void RedChannelClient::send()
     handle_outgoing();
 }
 
-inline RedPipeItem *RedChannelClientPrivate::pipe_item_get()
+inline RedPipeItemPtr RedChannelClientPrivate::pipe_item_get()
 {
-    if (send_data.blocked || waiting_for_ack()) {
-        return NULL;
+    RedPipeItemPtr ret;
+
+    if (send_data.blocked || waiting_for_ack() || pipe.empty()) {
+        return ret;
     }
-    return (RedPipeItem*) g_queue_pop_tail(&pipe);
+    ret = std::move(pipe.back());
+    pipe.pop_back();
+    return ret;
 }
 
 void RedChannelClient::push()
 {
-    RedPipeItem *pipe_item;
+    RedPipeItemPtr pipe_item;
 
     if (priv->during_send) {
         return;
@@ -1140,7 +1156,7 @@ void RedChannelClient::push()
     }
 
     while ((pipe_item = priv->pipe_item_get())) {
-        send_any_item(pipe_item);
+        send_any_item(pipe_item.get());
     }
     /* prepare_pipe_add() will reenable WRITE events when the priv->pipe is empty
      * ack_zero_messages_window() will reenable WRITE events
@@ -1149,7 +1165,7 @@ void RedChannelClient::push()
      * notified that we can write and we then exit (see pipe_item_get) as we
      * are waiting for the ack consuming CPU in a tight loop
      */
-    if ((no_item_being_sent() && g_queue_is_empty(&priv->pipe)) ||
+    if ((no_item_being_sent() && priv->pipe.empty()) ||
         priv->waiting_for_ack()) {
         priv->watch_update_mask(SPICE_WATCH_EVENT_READ);
 
@@ -1357,7 +1373,7 @@ inline bool RedChannelClient::prepare_pipe_add(RedPipeItem *item)
         red_pipe_item_unref(item);
         return false;
     }
-    if (g_queue_is_empty(&priv->pipe)) {
+    if (priv->pipe.empty()) {
         priv->watch_update_mask(SPICE_WATCH_EVENT_READ | SPICE_WATCH_EVENT_WRITE);
     }
     return true;
@@ -1365,11 +1381,10 @@ inline bool RedChannelClient::prepare_pipe_add(RedPipeItem *item)
 
 void RedChannelClient::pipe_add(RedPipeItem *item)
 {
-
     if (!prepare_pipe_add(item)) {
         return;
     }
-    g_queue_push_head(&priv->pipe, item);
+    priv->pipe.push_front(RedPipeItemPtr(item));
 }
 
 void RedChannelClient::pipe_add_push(RedPipeItem *item)
@@ -1379,41 +1394,40 @@ void RedChannelClient::pipe_add_push(RedPipeItem *item)
 }
 
 void RedChannelClient::pipe_add_after_pos(RedPipeItem *item,
-                                          GList *pipe_item_pos)
+                                          Pipe::iterator pipe_item_pos)
 {
-    spice_assert(pipe_item_pos);
+    spice_assert(pipe_item_pos != priv->pipe.end());
     if (!prepare_pipe_add(item)) {
         return;
     }
 
-    g_queue_insert_after(&priv->pipe, pipe_item_pos, item);
+    ++pipe_item_pos;
+    priv->pipe.insert(pipe_item_pos, RedPipeItemPtr(item));
 }
 
 void
-RedChannelClient::pipe_add_before_pos(RedPipeItem *item, GList *pipe_item_pos)
+RedChannelClient::pipe_add_before_pos(RedPipeItem *item, Pipe::iterator pipe_item_pos)
 {
-    spice_assert(pipe_item_pos);
+    spice_assert(pipe_item_pos != priv->pipe.end());
     if (!prepare_pipe_add(item)) {
         return;
     }
 
-    g_queue_insert_before(&priv->pipe, pipe_item_pos, item);
+    priv->pipe.insert(pipe_item_pos, RedPipeItemPtr(item));
 }
 
 void RedChannelClient::pipe_add_after(RedPipeItem *item, RedPipeItem *pos)
 {
-    GList *prev;
-
     spice_assert(pos);
-    prev = g_queue_find(&priv->pipe, pos);
-    g_return_if_fail(prev != NULL);
+    auto prev = find_pipe_item(priv->pipe, pos);
+    g_return_if_fail(prev != priv->pipe.end());
 
     pipe_add_after_pos(item, prev);
 }
 
 int RedChannelClient::pipe_item_is_linked(RedPipeItem *item)
 {
-    return g_queue_find(&priv->pipe, item) != NULL;
+    return find_pipe_item(priv->pipe, item) != priv->pipe.end();
 }
 
 void RedChannelClient::pipe_add_tail(RedPipeItem *item)
@@ -1421,7 +1435,7 @@ void RedChannelClient::pipe_add_tail(RedPipeItem *item)
     if (!prepare_pipe_add(item)) {
         return;
     }
-    g_queue_push_tail(&priv->pipe, item);
+    priv->pipe.push_back(RedPipeItemPtr(item));
 }
 
 void RedChannelClient::pipe_add_type(int pipe_item_type)
@@ -1446,17 +1460,17 @@ void RedChannelClient::pipe_add_empty_msg(int msg_type)
 
 gboolean RedChannelClient::pipe_is_empty()
 {
-    return g_queue_is_empty(&priv->pipe);
+    return priv->pipe.empty();
 }
 
 uint32_t RedChannelClient::get_pipe_size()
 {
-    return g_queue_get_length(&priv->pipe);
+    return priv->pipe.size();
 }
 
-GQueue* RedChannelClient::get_pipe()
+RedChannelClient::Pipe& RedChannelClient::get_pipe()
 {
-    return &priv->pipe;
+    return priv->pipe;
 }
 
 bool RedChannelClient::is_mini_header() const
@@ -1481,12 +1495,8 @@ void RedChannelClientPrivate::clear_sent_item()
 // are we reading from an fd here? arghh
 void RedChannelClientPrivate::pipe_clear()
 {
-    RedPipeItem *item;
-
     clear_sent_item();
-    while ((item = (RedPipeItem*) g_queue_pop_head(&pipe)) != NULL) {
-        red_pipe_item_unref(item);
-    }
+    pipe.clear();
 }
 
 void RedChannelClient::ack_zero_messages_window()
@@ -1561,7 +1571,7 @@ void RedChannelClient::set_header_sub_list(uint32_t sub_list)
 }
 
 /* TODO: more evil sync stuff. anything with the word wait in it's name. */
-bool RedChannelClient::wait_pipe_item_sent(GList *item_pos, int64_t timeout)
+bool RedChannelClient::wait_pipe_item_sent(Pipe::iterator item_pos, int64_t timeout)
 {
     uint64_t end_time;
 
@@ -1636,14 +1646,6 @@ void RedChannelClient::pipe_remove_and_release(RedPipeItem *item)
     if (priv->pipe_remove(item)) {
         red_pipe_item_unref(item);
     }
-}
-
-void RedChannelClient::pipe_remove_and_release_pos(GList *item_pos)
-{
-    RedPipeItem *item = (RedPipeItem*) item_pos->data;
-
-    g_queue_delete_link(&priv->pipe, item_pos);
-    red_pipe_item_unref(item);
 }
 
 /* client mutex should be locked before this call */

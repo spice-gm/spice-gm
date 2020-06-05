@@ -186,7 +186,8 @@ int                        dcc_compress_image                        (DisplayCha
                                                                       compress_send_data_t* o_comp_data);
 
 void dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
-                                SpiceRect *area, GList *pipe_item_pos, int can_lossy);
+                                SpiceRect *area, RedChannelClient::Pipe::iterator pipe_item_pos,
+                                int can_lossy);
 VideoStreamAgent *dcc_get_video_stream_agent(DisplayChannelClient *dcc, int stream_id);
 ImageEncoders *dcc_get_encoders(DisplayChannelClient *dcc);
 spice_wan_compression_t    dcc_get_jpeg_state                        (DisplayChannelClient *dcc);
