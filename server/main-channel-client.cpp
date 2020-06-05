@@ -684,8 +684,7 @@ static void main_channel_marshall_agent_data(RedChannelClient *rcc,
 {
     rcc->init_send_data(SPICE_MSG_MAIN_AGENT_DATA);
     /* since pipe item owns the data, keep it alive until it's sent */
-    red_pipe_item_ref(&item->base);
-    spice_marshaller_add_by_ref_full(m, item->data, item->len, marshaller_unref_pipe_item, item);
+    item->base.add_to_marshaller(m, item->data, item->len);
 }
 
 static void main_channel_marshall_migrate_data_item(RedChannelClient *rcc,

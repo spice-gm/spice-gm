@@ -47,8 +47,15 @@ void red_pipe_item_init_full(RedPipeItem *item,
     item->free_func = free_func ? free_func : (red_pipe_item_free_t *)g_free;
 }
 
-void marshaller_unref_pipe_item(uint8_t *data G_GNUC_UNUSED, void *opaque)
+static void marshaller_unref_pipe_item(uint8_t *, void *opaque)
 {
     RedPipeItem *item = (RedPipeItem*) opaque;
     red_pipe_item_unref(item);
+}
+
+void RedPipeItem::add_to_marshaller(SpiceMarshaller *m, uint8_t *data, size_t size)
+{
+    red_pipe_item_ref(this);
+    spice_marshaller_add_by_ref_full(m, data, size,
+                                     marshaller_unref_pipe_item, this);
 }

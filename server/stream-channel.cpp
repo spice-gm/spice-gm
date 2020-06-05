@@ -234,9 +234,7 @@ void StreamChannelClient::send_item(RedPipeItem *pipe_item)
         StreamDataItem *item = SPICE_UPCAST(StreamDataItem, pipe_item);
         init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA);
         spice_marshall_msg_display_stream_data(m, &item->data);
-        red_pipe_item_ref(pipe_item);
-        spice_marshaller_add_by_ref_full(m, item->data.data, item->data.data_size,
-                                         marshaller_unref_pipe_item, pipe_item);
+        pipe_item->add_to_marshaller(m, item->data.data, item->data.data_size);
         record(stream_channel_data, "Stream data packet size %u mm_time %u",
                item->data.data_size, item->data.base.multi_media_time);
         break;

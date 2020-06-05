@@ -1969,10 +1969,8 @@ static void red_marshall_image(DisplayChannelClient *dcc,
 
         spice_marshall_Image(src_bitmap_out, &red_image,
                              &bitmap_palette_out, &lzplt_palette_out);
-        red_pipe_item_ref(&item->base);
-        spice_marshaller_add_by_ref_full(src_bitmap_out, item->data,
-                                         bitmap.y * bitmap.stride,
-                                         marshaller_unref_pipe_item, item);
+        item->base.add_to_marshaller(src_bitmap_out, item->data,
+                                     bitmap.y * bitmap.stride);
         region_remove(surface_lossy_region, &copy.base.box);
     }
     spice_chunks_destroy(chunks);

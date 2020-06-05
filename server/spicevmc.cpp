@@ -532,9 +532,7 @@ static void spicevmc_red_channel_send_data(VmcChannelClient *rcc,
         };
         spice_marshall_SpiceMsgCompressedData(m, &compressed_msg);
     }
-    red_pipe_item_ref(item);
-    spice_marshaller_add_by_ref_full(m, i->buf, i->buf_used,
-                                     marshaller_unref_pipe_item, item);
+    item->add_to_marshaller(m, i->buf, i->buf_used);
 
     // account for sent data and wake up device if was blocked
     uint32_t old_queued_data = channel->queued_data;

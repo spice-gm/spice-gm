@@ -89,9 +89,7 @@ static void cursor_fill(CursorChannelClient *ccc, RedCursorPipeItem *cursor,
 
     if (red_cursor->data_size) {
         SpiceMarshaller *m2 = spice_marshaller_get_submarshaller(m);
-        red_pipe_item_ref(&cursor->base);
-        spice_marshaller_add_by_ref_full(m2, red_cursor->data, red_cursor->data_size,
-                                         marshaller_unref_pipe_item, &cursor->base);
+        cursor->base.add_to_marshaller(m2, red_cursor->data, red_cursor->data_size);
     }
 }
 

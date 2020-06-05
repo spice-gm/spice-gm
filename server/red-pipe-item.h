@@ -22,7 +22,9 @@
 #include <stddef.h>
 #include <inttypes.h>
 
-SPICE_BEGIN_DECLS
+#include "common/marshaller.h"
+
+#include "push-visibility.h"
 
 typedef struct RedPipeItem RedPipeItem;
 
@@ -30,6 +32,8 @@ typedef void red_pipe_item_free_t(RedPipeItem *item);
 
 struct RedPipeItem {
     int type;
+
+    void add_to_marshaller(SpiceMarshaller *m, uint8_t *data, size_t size);
 
     /* private */
     int refcount;
@@ -46,9 +50,6 @@ static inline void red_pipe_item_init(RedPipeItem *item, int type)
     red_pipe_item_init_full(item, type, NULL);
 }
 
-/* a convenience function for unreffing a pipe item after it has been sent */
-void marshaller_unref_pipe_item(uint8_t *data, void *opaque);
-
-SPICE_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* RED_PIPE_ITEM_H_ */

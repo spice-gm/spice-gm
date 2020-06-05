@@ -121,12 +121,10 @@ void smartcard_channel_client_send_data(RedChannelClient *rcc,
 {
     spice_assert(rcc);
     spice_assert(vheader);
+    rcc->init_send_data(SPICE_MSG_SMARTCARD_DATA);
     /* NOTE: 'vheader' is assumed to be owned by 'item' so we keep the pipe
      * item valid until the message is actually sent. */
-    red_pipe_item_ref(item);
-    rcc->init_send_data(SPICE_MSG_SMARTCARD_DATA);
-    spice_marshaller_add_by_ref_full(m, (uint8_t*)vheader, sizeof(VSCMsgHeader) + vheader->length,
-                                     marshaller_unref_pipe_item, item);
+    item->add_to_marshaller(m, (uint8_t*)vheader, sizeof(VSCMsgHeader) + vheader->length);
 }
 
 void smartcard_channel_client_send_error(RedChannelClient *rcc, SpiceMarshaller *m, RedPipeItem *item)
