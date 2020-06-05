@@ -76,7 +76,6 @@ struct AudioFrameContainer;
 
 struct PersistentPipeItem: public RedPipeItem
 {
-    SndChannelClient *client;
 };
 
 /* Connects an audio client to a Spice client */
@@ -91,8 +90,6 @@ public:
     uint32_t command;
 
     PersistentPipeItem persistent_pipe_item;
-
-    virtual void on_message_done() {};
 
     inline SndChannel* get_channel();
 
@@ -149,9 +146,10 @@ public:
     uint32_t latency = 0;
     SndCodec codec = nullptr;
     uint8_t  encode_buf[SND_CODEC_MAX_COMPRESSED_BYTES];
+
+    static void on_message_marshalled(uint8_t *data, void *opaque);
 protected:
     virtual void send_item(RedPipeItem *item) override;
-    virtual void on_message_done() override;
 };
 
 typedef struct SpiceVolumeState {
@@ -243,14 +241,16 @@ static void snd_playback_free_frame(PlaybackChannelClient *playback_client, Audi
     playback_client->free_frames = frame;
 }
 
-void PlaybackChannelClient::on_message_done()
+void PlaybackChannelClient::on_message_marshalled(uint8_t *, void *opaque)
 {
-    if (in_progress) {
-        snd_playback_free_frame(this, in_progress);
-        in_progress = NULL;
-        if (pending_frame) {
-            command |= SND_PLAYBACK_PCM_MASK;
-            snd_send(this);
+    PlaybackChannelClient *client = reinterpret_cast<PlaybackChannelClient*>(opaque);
+
+    if (client->in_progress) {
+        snd_playback_free_frame(client, client->in_progress);
+        client->in_progress = NULL;
+        if (client->pending_frame) {
+            client->command |= SND_PLAYBACK_PCM_MASK;
+            snd_send(client);
         }
     }
 }
@@ -559,7 +559,6 @@ static bool snd_playback_send_write(PlaybackChannelClient *playback_client)
     SpiceMarshaller *m = rcc->get_marshaller();
     AudioFrame *frame;
     SpiceMsgPlaybackPacket msg;
-    RedPipeItem *pipe_item = &playback_client->persistent_pipe_item;
 
     rcc->init_send_data(SPICE_MSG_PLAYBACK_DATA);
 
@@ -572,7 +571,8 @@ static bool snd_playback_send_write(PlaybackChannelClient *playback_client)
         spice_marshaller_add_by_ref_full(m, (uint8_t *)frame->samples,
                                          snd_codec_frame_size(playback_client->codec) *
                                          sizeof(frame->samples[0]),
-                                         marshaller_unref_pipe_item, pipe_item);
+                                         PlaybackChannelClient::on_message_marshalled,
+                                         playback_client);
     }
     else {
         int n = sizeof(playback_client->encode_buf);
@@ -584,7 +584,8 @@ static bool snd_playback_send_write(PlaybackChannelClient *playback_client)
             return false;
         }
         spice_marshaller_add_by_ref_full(m, playback_client->encode_buf, n,
-                                         marshaller_unref_pipe_item, pipe_item);
+                                         PlaybackChannelClient::on_message_marshalled,
+                                         playback_client);
     }
 
     rcc->begin_send_message();
@@ -617,12 +618,8 @@ static bool playback_send_mode(PlaybackChannelClient *playback_client)
  */
 static void snd_persistent_pipe_item_free(struct RedPipeItem *item)
 {
-    SndChannelClient *client = static_cast<PersistentPipeItem*>(item)->client;
-
     red_pipe_item_init_full(item, RED_PIPE_ITEM_PERSISTENT,
                             snd_persistent_pipe_item_free);
-
-    client->on_message_done();
 }
 
 static void snd_send(SndChannelClient * client)
@@ -633,7 +630,6 @@ static void snd_send(SndChannelClient * client)
     // just append a dummy item and push!
     red_pipe_item_init_full(&client->persistent_pipe_item, RED_PIPE_ITEM_PERSISTENT,
                             snd_persistent_pipe_item_free);
-    client->persistent_pipe_item.client = client;
     client->pipe_add_push(&client->persistent_pipe_item);
 }
 
