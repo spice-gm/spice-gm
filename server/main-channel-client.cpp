@@ -541,23 +541,23 @@ MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient 
     return mcc.get();
 }
 
-int MainChannelClient::is_network_info_initialized()
+bool MainChannelClient::is_network_info_initialized() const
 {
     return priv->net_test_stage == NET_TEST_STAGE_COMPLETE;
 }
 
-int MainChannelClient::is_low_bandwidth()
+bool MainChannelClient::is_low_bandwidth() const
 {
     // TODO: configurable?
     return priv->bitrate_per_sec < 10 * 1024 * 1024;
 }
 
-uint64_t MainChannelClient::get_bitrate_per_sec()
+uint64_t MainChannelClient::get_bitrate_per_sec() const
 {
     return priv->bitrate_per_sec;
 }
 
-uint64_t MainChannelClient::get_roundtrip_ms()
+uint64_t MainChannelClient::get_roundtrip_ms() const
 {
     return priv->latency / 1000;
 }
@@ -600,7 +600,7 @@ void MainChannelClient::connect_seamless()
     priv->mig_connect_ok = FALSE;
 }
 
-uint32_t MainChannelClient::get_connection_id()
+uint32_t MainChannelClient::get_connection_id() const
 {
     return priv->connection_id;
 }

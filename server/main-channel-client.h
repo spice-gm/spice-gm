@@ -58,15 +58,15 @@ public:
      * return TRUE if network test had been completed successfully.
      * If FALSE, bitrate_per_sec is set to MAX_UINT64 and the roundtrip is set to 0
      */
-    int is_network_info_initialized();
-    int is_low_bandwidth();
-    uint64_t get_bitrate_per_sec();
-    uint64_t get_roundtrip_ms();
+    bool is_network_info_initialized() const;
+    bool is_low_bandwidth() const;
+    uint64_t get_bitrate_per_sec() const;
+    uint64_t get_roundtrip_ms() const;
 
     void push_name(const char *name);
     void push_uuid(const uint8_t uuid[16]);
 
-    uint32_t get_connection_id();
+    uint32_t get_connection_id() const;
 
     MainChannelClient(MainChannel *channel,
                       RedClient *client,
