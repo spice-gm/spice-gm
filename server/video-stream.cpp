@@ -70,22 +70,22 @@ StreamCreateDestroyItem::~StreamCreateDestroyItem()
     video_stream_agent_unref(display, agent);
 }
 
-static RedPipeItem *video_stream_create_destroy_item_new(VideoStreamAgent *agent,
-                                                         int type)
+static RedPipeItemPtr
+video_stream_create_destroy_item_new(VideoStreamAgent *agent, int type)
 {
-    StreamCreateDestroyItem *item = new StreamCreateDestroyItem(type);
+    auto item = red::make_shared<StreamCreateDestroyItem>(type);
 
     agent->stream->refs++;
     item->agent = agent;
     return item;
 }
 
-static RedPipeItem *video_stream_create_item_new(VideoStreamAgent *agent)
+static RedPipeItemPtr video_stream_create_item_new(VideoStreamAgent *agent)
 {
     return video_stream_create_destroy_item_new(agent, RED_PIPE_ITEM_TYPE_STREAM_CREATE);
 }
 
-static RedPipeItem *video_stream_destroy_item_new(VideoStreamAgent *agent)
+static RedPipeItemPtr video_stream_destroy_item_new(VideoStreamAgent *agent)
 {
     return video_stream_create_destroy_item_new(agent, RED_PIPE_ITEM_TYPE_STREAM_DESTROY);
 }
@@ -166,9 +166,9 @@ VideoStreamClipItem::~VideoStreamClipItem()
     video_stream_agent_unref(display, stream_agent);
 }
 
-VideoStreamClipItem *video_stream_clip_item_new(VideoStreamAgent *agent)
+red::shared_ptr<VideoStreamClipItem> video_stream_clip_item_new(VideoStreamAgent *agent)
 {
-    VideoStreamClipItem *item = new VideoStreamClipItem(RED_PIPE_ITEM_TYPE_STREAM_CLIP);
+    auto item = red::make_shared<VideoStreamClipItem>(RED_PIPE_ITEM_TYPE_STREAM_CLIP);
 
     item->stream_agent = agent;
     agent->stream->refs++;
@@ -773,8 +773,8 @@ void dcc_create_stream(DisplayChannelClient *dcc, VideoStream *stream)
     dcc->pipe_add(video_stream_create_item_new(agent));
 
     if (dcc->test_remote_cap(SPICE_DISPLAY_CAP_STREAM_REPORT)) {
-        RedStreamActivateReportItem *report_pipe_item =
-            new RedStreamActivateReportItem(RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
+        auto report_pipe_item =
+            red::make_shared<RedStreamActivateReportItem>(RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
 
         agent->report_id = rand();
         report_pipe_item->stream_id = stream_id;
@@ -828,7 +828,6 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
 
     if (stream->current &&
         region_contains(&stream->current->tree_item.base.rgn, &agent->vis_region)) {
-        RedUpgradeItem *upgrade_item;
         int n_rects;
 
         /* (1) The caller should detach the drawable from the stream. This will
@@ -841,7 +840,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         }
         spice_debug("stream %d: upgrade by drawable. box ==>", stream_id);
         rect_debug(&stream->current->red_drawable->bbox);
-        upgrade_item = new RedUpgradeItem(RED_PIPE_ITEM_TYPE_UPGRADE);
+        auto upgrade_item = red::make_shared<RedUpgradeItem>(RED_PIPE_ITEM_TYPE_UPGRADE);
         upgrade_item->drawable = stream->current;
         upgrade_item->drawable->refs++;
         n_rects = pixman_region32_n_rects(&upgrade_item->drawable->tree_item.base.rgn);
@@ -850,7 +849,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         upgrade_item->rects->num_rects = n_rects;
         region_ret_rects(&upgrade_item->drawable->tree_item.base.rgn,
                          upgrade_item->rects->rects, n_rects);
-        dcc->pipe_add(upgrade_item);
+        dcc->pipe_add(std::move(upgrade_item));
 
     } else {
         SpiceRect upgrade_area;

@@ -78,7 +78,7 @@ static void FUNC_NAME(remove)(CHANNELCLIENT *channel_client, RedCacheItem *item)
 
     new (pipe_item) RedCachePipeItem();
     pipe_item->inval_one.id = id;
-    channel_client->pipe_add_tail(pipe_item); // for now
+    channel_client->pipe_add_tail(RedPipeItemPtr(pipe_item)); // for now
 }
 
 static int FUNC_NAME(add)(CHANNELCLIENT *channel_client, uint64_t id, size_t size)

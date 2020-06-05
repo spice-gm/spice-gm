@@ -71,7 +71,8 @@ struct RedMsgItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_SMARTCARD_DATA> {
     red::glib_unique_ptr<VSCMsgHeader> vheader;
 };
 
-static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader);
+static red::shared_ptr<RedMsgItem>
+smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader);
 
 static struct Readers {
     uint32_t num;
@@ -80,8 +81,8 @@ static struct Readers {
 
 static int smartcard_char_device_add_to_readers(RedsState *reds, SpiceCharDeviceInstance *sin);
 
-static RedMsgItem *smartcard_char_device_on_message_from_device(
-    RedCharDeviceSmartcard *dev, VSCMsgHeader *header);
+static red::shared_ptr<RedMsgItem>
+smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard *dev, VSCMsgHeader *header);
 static void smartcard_init(RedsState *reds);
 
 static void smartcard_read_buf_prepare(RedCharDeviceSmartcard *dev, VSCMsgHeader *vheader)
@@ -95,7 +96,7 @@ static void smartcard_read_buf_prepare(RedCharDeviceSmartcard *dev, VSCMsgHeader
     }
 }
 
-RedPipeItem*
+RedPipeItemPtr
 RedCharDeviceSmartcard::read_one_msg_from_device()
 {
     RedCharDeviceSmartcard *dev = this;
@@ -104,8 +105,6 @@ RedCharDeviceSmartcard::read_one_msg_from_device()
     int actual_length;
 
     while (true) {
-        RedMsgItem *msg_to_client;
-
         // it's possible we already got a full message from a previous partial
         // read. In this case we don't need to read any byte
         if (dev->priv->buf_used < sizeof(VSCMsgHeader) ||
@@ -127,22 +126,18 @@ RedCharDeviceSmartcard::read_one_msg_from_device()
         if (dev->priv->buf_used - sizeof(VSCMsgHeader) < actual_length) {
             continue;
         }
-        msg_to_client = smartcard_char_device_on_message_from_device(dev, vheader);
+        auto msg_to_client = smartcard_char_device_on_message_from_device(dev, vheader);
         remaining = dev->priv->buf_used - sizeof(VSCMsgHeader) - actual_length;
         if (remaining > 0) {
             memmove(dev->priv->buf, dev->priv->buf_pos - remaining, remaining);
         }
         dev->priv->buf_pos = dev->priv->buf + remaining;
         dev->priv->buf_used = remaining;
-        if (msg_to_client) {
-            if (dev->priv->scc) {
-                dev->priv->scc->pipe_add_push(msg_to_client);
-            } else {
-                red_pipe_item_unref(msg_to_client);
-            }
+        if (msg_to_client && dev->priv->scc) {
+            dev->priv->scc->pipe_add_push(std::move(msg_to_client));
         }
     }
-    return NULL;
+    return RedPipeItemPtr();
 }
 
 void RedCharDeviceSmartcard::remove_client(RedCharDeviceClientOpaque *opaque)
@@ -153,15 +148,16 @@ void RedCharDeviceSmartcard::remove_client(RedCharDeviceClientOpaque *opaque)
     scc->shutdown();
 }
 
-RedMsgItem *smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard *dev,
-                                                         VSCMsgHeader *vheader)
+red::shared_ptr<RedMsgItem>
+smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard *dev,
+                                             VSCMsgHeader *vheader)
 {
     vheader->type = ntohl(vheader->type);
     vheader->length = ntohl(vheader->length);
     vheader->reader_id = ntohl(vheader->reader_id);
 
     if (vheader->type == VSC_Init) {
-        return NULL;
+        return red::shared_ptr<RedMsgItem>();
     }
     /* We pass any VSC_Error right now - might need to ignore some? */
     if (dev->priv->reader_id == VSCARD_UNDEFINED_READER_ID) {
@@ -170,7 +166,7 @@ RedMsgItem *smartcard_char_device_on_message_from_device(RedCharDeviceSmartcard 
                             vheader->type);
     }
     if (dev->priv->scc == NULL) {
-        return NULL;
+        return red::shared_ptr<RedMsgItem>();
     }
     return smartcard_new_vsc_msg_item(dev->priv->reader_id, vheader);
 }
@@ -388,9 +384,10 @@ void SmartCardChannelClient::send_item(RedPipeItem *item)
     begin_send_message();
 }
 
-static RedMsgItem *smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader)
+static red::shared_ptr<RedMsgItem>
+smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader)
 {
-    RedMsgItem *msg_item = new RedMsgItem();
+    auto msg_item = red::make_shared<RedMsgItem>();
 
     msg_item->vheader.reset((VSCMsgHeader*) g_memdup(vheader, sizeof(*vheader) + vheader->length));
     /* We patch the reader_id, since the device only knows about itself, and

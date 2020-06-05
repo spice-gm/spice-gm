@@ -253,9 +253,7 @@ static bool red_char_device_read_from_device(RedCharDevice *dev)
      * All messages will be discarded if no client is attached to the device
      */
     while ((max_send_tokens || (dev->priv->clients == NULL)) && dev->priv->running) {
-        RedPipeItem *msg;
-
-        msg = dev->read_one_msg_from_device();
+        auto msg = dev->read_one_msg_from_device();
         if (!msg) {
             if (dev->priv->during_read_from_device > 1) {
                 dev->priv->during_read_from_device = 1;
@@ -265,8 +263,7 @@ static bool red_char_device_read_from_device(RedCharDevice *dev)
             break;
         }
         did_read = TRUE;
-        red_char_device_send_msg_to_clients(dev, msg);
-        red_pipe_item_unref(msg);
+        red_char_device_send_msg_to_clients(dev, msg.get());
         max_send_tokens--;
     }
     dev->priv->during_read_from_device = 0;

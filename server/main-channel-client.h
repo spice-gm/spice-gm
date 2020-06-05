@@ -38,7 +38,7 @@ class MainChannelClient final: public RedChannelClient
 {
 public:
     void push_agent_tokens(uint32_t num_tokens);
-    void push_agent_data(RedAgentDataPipeItem *item);
+    void push_agent_data(red::shared_ptr<RedAgentDataPipeItem>&& item);
     // TODO: huge. Consider making a reds_* interface for these functions
     // and calling from main.
     void push_init(int display_channels_hint, SpiceMouseMode current_mouse_mode,
@@ -120,11 +120,11 @@ struct RedAgentDataPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_AGENT
     uint8_t data[SPICE_AGENT_MAX_DATA_SIZE];
 };
 
-RedPipeItem *main_mouse_mode_item_new(SpiceMouseMode current_mode, int is_client_mouse_allowed);
+RedPipeItemPtr main_mouse_mode_item_new(SpiceMouseMode current_mode, int is_client_mouse_allowed);
 
-RedPipeItem *main_multi_media_time_item_new(uint32_t mm_time);
+RedPipeItemPtr main_multi_media_time_item_new(uint32_t mm_time);
 
-RedPipeItem *registered_channel_item_new(RedChannel *channel);
+RedPipeItemPtr registered_channel_item_new(RedChannel *channel);
 
 #include "pop-visibility.h"
 

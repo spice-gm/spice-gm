@@ -424,7 +424,7 @@ StreamChannel::change_format(const StreamMsgFormat *fmt)
     stream_id = (stream_id + 1) % NUM_STREAMS;
 
     // send create stream
-    StreamCreateItem *item = new StreamCreateItem();
+    auto item = red::make_shared<StreamCreateItem>();
     item->stream_create.id = stream_id;
     item->stream_create.flags = SPICE_STREAM_FLAGS_TOP_DOWN;
     item->stream_create.codec_type = fmt->codec;
@@ -434,7 +434,7 @@ StreamChannel::change_format(const StreamMsgFormat *fmt)
     item->stream_create.src_height = fmt->height;
     item->stream_create.dest = (SpiceRect) { 0, 0, fmt->width, fmt->height };
     item->stream_create.clip = (SpiceClip) { SPICE_CLIP_TYPE_NONE, NULL };
-    pipes_add(item);
+    pipes_add(std::move(item));
 
     // activate stream report if possible
     pipes_add_type(RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
@@ -473,7 +473,7 @@ StreamChannel::send_data(const void *data, size_t size, uint32_t mm_time)
     update_queue_stat(1, size);
     // TODO try to optimize avoiding the copy
     memcpy(item->data.data, data, size);
-    pipes_add(item);
+    pipes_add(red::shared_ptr<StreamDataItem>(item));
 }
 
 void

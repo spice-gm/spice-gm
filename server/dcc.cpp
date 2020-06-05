@@ -166,7 +166,6 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
 {
     DisplayChannel *display;
     RedSurface *surface;
-    RedSurfaceCreateItem *create;
     uint32_t flags;
 
     if (!dcc) {
@@ -182,11 +181,11 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
         return;
     }
     surface = &display->priv->surfaces[surface_id];
-    create = new RedSurfaceCreateItem(surface_id, surface->context.width,
-                                      surface->context.height,
-                                      surface->context.format, flags);
+    auto create = red::make_shared<RedSurfaceCreateItem>(surface_id, surface->context.width,
+                                                         surface->context.height,
+                                                         surface->context.format, flags);
     dcc->priv->surface_client_created[surface_id] = TRUE;
-    dcc->pipe_add(create);
+    dcc->pipe_add(std::move(create));
 }
 
 RedImageItem::RedImageItem():
@@ -203,7 +202,6 @@ dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
     DisplayChannel *display = DCC_TO_DC(dcc);
     RedSurface *surface = &display->priv->surfaces[surface_id];
     SpiceCanvas *canvas = surface->context.canvas;
-    RedImageItem *item;
     int stride;
     int width;
     int height;
@@ -217,7 +215,7 @@ dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
     bpp = SPICE_SURFACE_FMT_DEPTH(surface->context.format) / 8;
     stride = width * bpp;
 
-    item = new (height * stride) RedImageItem();
+    red::shared_ptr<RedImageItem> item(new (height * stride) RedImageItem());
 
     item->surface_id = surface_id;
     item->image_format =
@@ -246,9 +244,9 @@ dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
     }
 
     if (pipe_item_pos != dcc->get_pipe().end()) {
-        dcc->pipe_add_after_pos(item, pipe_item_pos);
+        dcc->pipe_add_after_pos(std::move(item), pipe_item_pos);
     } else {
-        dcc->pipe_add(item);
+        dcc->pipe_add(std::move(item));
     }
 }
 
@@ -315,41 +313,39 @@ RedDrawablePipeItem::~RedDrawablePipeItem()
     drawable_unref(drawable);
 }
 
-static RedDrawablePipeItem *red_drawable_pipe_item_new(DisplayChannelClient *dcc,
-                                                       Drawable *drawable)
+static red::shared_ptr<RedDrawablePipeItem>
+red_drawable_pipe_item_new(DisplayChannelClient *dcc, Drawable *drawable)
 {
-    RedDrawablePipeItem *dpi;
-
-    dpi = new RedDrawablePipeItem;
+    auto dpi = red::make_shared<RedDrawablePipeItem>();
     dpi->drawable = drawable;
     dpi->dcc = dcc;
-    drawable->pipes = g_list_prepend(drawable->pipes, dpi);
+    drawable->pipes = g_list_prepend(drawable->pipes, dpi.get());
     drawable->refs++;
     return dpi;
 }
 
 void dcc_prepend_drawable(DisplayChannelClient *dcc, Drawable *drawable)
 {
-    RedDrawablePipeItem *dpi = red_drawable_pipe_item_new(dcc, drawable);
+    auto dpi = red_drawable_pipe_item_new(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
-    dcc->pipe_add(dpi);
+    dcc->pipe_add(std::move(dpi));
 }
 
 void dcc_append_drawable(DisplayChannelClient *dcc, Drawable *drawable)
 {
-    RedDrawablePipeItem *dpi = red_drawable_pipe_item_new(dcc, drawable);
+    auto dpi = red_drawable_pipe_item_new(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
-    dcc->pipe_add_tail(dpi);
+    dcc->pipe_add_tail(std::move(dpi));
 }
 
 void dcc_add_drawable_after(DisplayChannelClient *dcc, Drawable *drawable, RedPipeItem *pos)
 {
-    RedDrawablePipeItem *dpi = red_drawable_pipe_item_new(dcc, drawable);
+    auto dpi = red_drawable_pipe_item_new(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
-    dcc->pipe_add_after(dpi, pos);
+    dcc->pipe_add_after(std::move(dpi), pos);
 }
 
 static void dcc_init_stream_agents(DisplayChannelClient *dcc)
@@ -491,9 +487,9 @@ static void dcc_stop(DisplayChannelClient *dcc)
 
 void dcc_video_stream_agent_clip(DisplayChannelClient* dcc, VideoStreamAgent *agent)
 {
-    VideoStreamClipItem *item = video_stream_clip_item_new(agent);
+    auto item = video_stream_clip_item_new(agent);
 
-    dcc->pipe_add(item);
+    dcc->pipe_add(std::move(item));
 }
 
 RedMonitorsConfigItem::~RedMonitorsConfigItem()
@@ -510,7 +506,6 @@ void dcc_push_monitors_config(DisplayChannelClient *dcc)
 {
     DisplayChannel *dc = DCC_TO_DC(dcc);
     MonitorsConfig *monitors_config = dc->priv->monitors_config;
-    RedMonitorsConfigItem *mci;
 
     if (monitors_config == NULL) {
         spice_warning("monitors_config is NULL");
@@ -521,8 +516,8 @@ void dcc_push_monitors_config(DisplayChannelClient *dcc)
         return;
     }
 
-    mci = new RedMonitorsConfigItem(monitors_config);
-    dcc->pipe_add(mci);
+    auto mci = red::make_shared<RedMonitorsConfigItem>(monitors_config);
+    dcc->pipe_add(std::move(mci));
 }
 
 RedSurfaceDestroyItem::RedSurfaceDestroyItem(uint32_t surface_id)
@@ -530,7 +525,7 @@ RedSurfaceDestroyItem::RedSurfaceDestroyItem(uint32_t surface_id)
     surface_destroy.surface_id = surface_id;
 }
 
-RedPipeItem *dcc_gl_scanout_item_new(RedChannelClient *rcc, void *data, int num)
+RedPipeItemPtr dcc_gl_scanout_item_new(RedChannelClient *rcc, void *data, int num)
 {
     /* FIXME: on !unix peer, start streaming with a video codec */
     if (!red_stream_is_plain_unix(rcc->get_stream()) ||
@@ -538,30 +533,29 @@ RedPipeItem *dcc_gl_scanout_item_new(RedChannelClient *rcc, void *data, int num)
         red_channel_warning(rcc->get_channel(),
                             "FIXME: client does not support GL scanout");
         rcc->disconnect();
-        return NULL;
+        return RedPipeItemPtr();
     }
 
-    return new RedGlScanoutUnixItem(RED_PIPE_ITEM_TYPE_GL_SCANOUT);
+    return red::make_shared<RedGlScanoutUnixItem>(RED_PIPE_ITEM_TYPE_GL_SCANOUT);
 }
 
 XXX_CAST(RedChannelClient, DisplayChannelClient, DISPLAY_CHANNEL_CLIENT);
 
-RedPipeItem *dcc_gl_draw_item_new(RedChannelClient *rcc, void *data, int num)
+RedPipeItemPtr dcc_gl_draw_item_new(RedChannelClient *rcc, void *data, int num)
 {
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
     const SpiceMsgDisplayGlDraw *draw = (const SpiceMsgDisplayGlDraw *) data;
-    RedGlDrawItem *item;
 
     if (!red_stream_is_plain_unix(rcc->get_stream()) ||
         !rcc->test_remote_cap(SPICE_DISPLAY_CAP_GL_SCANOUT)) {
         red_channel_warning(rcc->get_channel(),
                             "FIXME: client does not support GL scanout");
         rcc->disconnect();
-        return NULL;
+        return RedPipeItemPtr();
     }
 
     dcc->priv->gl_draw_ongoing = TRUE;
-    item = new RedGlDrawItem(RED_PIPE_ITEM_TYPE_GL_DRAW);
+    auto item = red::make_shared<RedGlDrawItem>(RED_PIPE_ITEM_TYPE_GL_DRAW);
     item->draw = *draw;
 
     return item;
@@ -570,7 +564,6 @@ RedPipeItem *dcc_gl_draw_item_new(RedChannelClient *rcc, void *data, int num)
 void dcc_destroy_surface(DisplayChannelClient *dcc, uint32_t surface_id)
 {
     DisplayChannel *display;
-    RedSurfaceDestroyItem *destroy;
 
     if (!dcc) {
         return;
@@ -584,8 +577,8 @@ void dcc_destroy_surface(DisplayChannelClient *dcc, uint32_t surface_id)
     }
 
     dcc->priv->surface_client_created[surface_id] = FALSE;
-    destroy = new RedSurfaceDestroyItem(surface_id);
-    dcc->pipe_add(destroy);
+    auto destroy = red::make_shared<RedSurfaceDestroyItem>(surface_id);
+    dcc->pipe_add(std::move(destroy));
 }
 
 #define MIN_DIMENSION_TO_QUIC 3

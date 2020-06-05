@@ -175,10 +175,6 @@ bool                       dcc_clear_surface_drawables_from_pipe     (DisplayCha
                                                                       int wait_if_used);
 bool                       dcc_drawable_is_in_pipe                   (DisplayChannelClient *dcc,
                                                                       Drawable *drawable);
-RedPipeItem *              dcc_gl_scanout_item_new                   (RedChannelClient *rcc,
-                                                                      void *data, int num);
-RedPipeItem *              dcc_gl_draw_item_new                      (RedChannelClient *rcc,
-                                                                      void *data, int num);
 
 int                        dcc_compress_image                        (DisplayChannelClient *dcc,
                                                                       SpiceImage *dest, SpiceBitmap *src, Drawable *drawable,
@@ -188,6 +184,8 @@ int                        dcc_compress_image                        (DisplayCha
 void dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
                                 SpiceRect *area, RedChannelClient::Pipe::iterator pipe_item_pos,
                                 int can_lossy);
+RedPipeItemPtr dcc_gl_scanout_item_new(RedChannelClient *rcc, void *data, int num);
+RedPipeItemPtr dcc_gl_draw_item_new(RedChannelClient *rcc, void *data, int num);
 VideoStreamAgent *dcc_get_video_stream_agent(DisplayChannelClient *dcc, int stream_id);
 ImageEncoders *dcc_get_encoders(DisplayChannelClient *dcc);
 spice_wan_compression_t    dcc_get_jpeg_state                        (DisplayChannelClient *dcc);

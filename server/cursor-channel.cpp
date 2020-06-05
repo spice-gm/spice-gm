@@ -191,17 +191,16 @@ cursor_channel_new(RedsState *server, int id,
 
 void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
 {
-    RedCursorPipeItem *cursor_pipe_item;
     bool cursor_show = false;
 
     spice_return_if_fail(cursor_cmd);
 
-    cursor_pipe_item = new RedCursorPipeItem(cursor_cmd);
+    auto cursor_pipe_item = red::make_shared<RedCursorPipeItem>(cursor_cmd);
 
     switch (cursor_cmd->type) {
     case QXL_CURSOR_SET:
         cursor_visible = !!cursor_cmd->u.set.visible;
-        cursor_channel_set_item(this, cursor_pipe_item);
+        cursor_channel_set_item(this, cursor_pipe_item.get());
         break;
     case QXL_CURSOR_MOVE:
         cursor_show = !cursor_visible;
@@ -217,7 +216,6 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
         break;
     default:
         spice_warning("invalid cursor command %u", cursor_cmd->type);
-        red_pipe_item_unref(cursor_pipe_item);
         return;
     }
 
@@ -225,9 +223,7 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
         (mouse_mode == SPICE_MOUSE_MODE_SERVER
          || cursor_cmd->type != QXL_CURSOR_MOVE
          || cursor_show)) {
-        pipes_add(cursor_pipe_item);
-    } else {
-        red_pipe_item_unref(cursor_pipe_item);
+        pipes_add(std::move(cursor_pipe_item));
     }
 }
 

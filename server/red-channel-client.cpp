@@ -174,7 +174,7 @@ struct RedChannelClientPrivate
     RedStatCounter out_bytes;
 
     inline RedPipeItemPtr pipe_item_get();
-    inline bool pipe_remove(RedPipeItem *item);
+    inline void pipe_remove(RedPipeItem *item);
     void handle_pong(SpiceMsgPing *ping);
     inline void set_message_serial(uint64_t serial);
     void pipe_clear();
@@ -514,7 +514,6 @@ void RedChannelClient::send_any_item(RedPipeItem *item)
             send_item(item);
             break;
     }
-    red_pipe_item_unref(item);
 }
 
 inline void RedChannelClientPrivate::restore_main_sender()
@@ -565,14 +564,12 @@ find_pipe_item(RedChannelClient::Pipe &pipe, const RedPipeItem *item)
     });
 }
 
-bool RedChannelClientPrivate::pipe_remove(RedPipeItem *item)
+void RedChannelClientPrivate::pipe_remove(RedPipeItem *item)
 {
     auto i = find_pipe_item(pipe, item);
     if (i != pipe.end()) {
         pipe.erase(i);
-        return true;
     }
-    return false;
 }
 
 bool RedChannelClient::test_remote_common_cap(uint32_t cap) const
@@ -1137,8 +1134,6 @@ inline RedPipeItemPtr RedChannelClientPrivate::pipe_item_get()
 
 void RedChannelClient::push()
 {
-    RedPipeItemPtr pipe_item;
-
     if (priv->during_send) {
         return;
     }
@@ -1155,7 +1150,7 @@ void RedChannelClient::push()
                             "ERROR: an item waiting to be sent and not blocked");
     }
 
-    while ((pipe_item = priv->pipe_item_get())) {
+    while (auto pipe_item = priv->pipe_item_get()) {
         send_any_item(pipe_item.get());
     }
     /* prepare_pipe_add() will reenable WRITE events when the priv->pipe is empty
@@ -1370,7 +1365,6 @@ inline bool RedChannelClient::prepare_pipe_add(RedPipeItem *item)
     spice_assert(item);
     if (SPICE_UNLIKELY(!is_connected())) {
         spice_debug("rcc is disconnected %p", this);
-        red_pipe_item_unref(item);
         return false;
     }
     if (priv->pipe.empty()) {
@@ -1379,50 +1373,50 @@ inline bool RedChannelClient::prepare_pipe_add(RedPipeItem *item)
     return true;
 }
 
-void RedChannelClient::pipe_add(RedPipeItem *item)
+void RedChannelClient::pipe_add(RedPipeItemPtr&& item)
 {
-    if (!prepare_pipe_add(item)) {
+    if (!prepare_pipe_add(item.get())) {
         return;
     }
-    priv->pipe.push_front(RedPipeItemPtr(item));
+    priv->pipe.push_front(std::move(item));
 }
 
-void RedChannelClient::pipe_add_push(RedPipeItem *item)
+void RedChannelClient::pipe_add_push(RedPipeItemPtr&& item)
 {
-    pipe_add(item);
+    pipe_add(std::move(item));
     push();
 }
 
-void RedChannelClient::pipe_add_after_pos(RedPipeItem *item,
+void RedChannelClient::pipe_add_after_pos(RedPipeItemPtr&& item,
                                           Pipe::iterator pipe_item_pos)
 {
     spice_assert(pipe_item_pos != priv->pipe.end());
-    if (!prepare_pipe_add(item)) {
+    if (!prepare_pipe_add(item.get())) {
         return;
     }
 
     ++pipe_item_pos;
-    priv->pipe.insert(pipe_item_pos, RedPipeItemPtr(item));
+    priv->pipe.insert(pipe_item_pos, std::move(item));
 }
 
 void
-RedChannelClient::pipe_add_before_pos(RedPipeItem *item, Pipe::iterator pipe_item_pos)
+RedChannelClient::pipe_add_before_pos(RedPipeItemPtr&& item, Pipe::iterator pipe_item_pos)
 {
     spice_assert(pipe_item_pos != priv->pipe.end());
-    if (!prepare_pipe_add(item)) {
+    if (!prepare_pipe_add(item.get())) {
         return;
     }
 
-    priv->pipe.insert(pipe_item_pos, RedPipeItemPtr(item));
+    priv->pipe.insert(pipe_item_pos, std::move(item));
 }
 
-void RedChannelClient::pipe_add_after(RedPipeItem *item, RedPipeItem *pos)
+void RedChannelClient::pipe_add_after(RedPipeItemPtr&& item, RedPipeItem *pos)
 {
     spice_assert(pos);
     auto prev = find_pipe_item(priv->pipe, pos);
     g_return_if_fail(prev != priv->pipe.end());
 
-    pipe_add_after_pos(item, prev);
+    pipe_add_after_pos(std::move(item), prev);
 }
 
 int RedChannelClient::pipe_item_is_linked(RedPipeItem *item)
@@ -1430,24 +1424,24 @@ int RedChannelClient::pipe_item_is_linked(RedPipeItem *item)
     return find_pipe_item(priv->pipe, item) != priv->pipe.end();
 }
 
-void RedChannelClient::pipe_add_tail(RedPipeItem *item)
+void RedChannelClient::pipe_add_tail(RedPipeItemPtr&& item)
 {
-    if (!prepare_pipe_add(item)) {
+    if (!prepare_pipe_add(item.get())) {
         return;
     }
-    priv->pipe.push_back(RedPipeItemPtr(item));
+    priv->pipe.push_back(std::move(item));
 }
 
 void RedChannelClient::pipe_add_type(int pipe_item_type)
 {
-    RedPipeItem *item = new RedPipeItem(pipe_item_type);
+    auto item = red::make_shared<RedPipeItem>(pipe_item_type);
 
-    pipe_add(item);
+    pipe_add(std::move(item));
 }
 
-RedPipeItem *RedChannelClient::new_empty_msg(int msg_type)
+RedPipeItemPtr RedChannelClient::new_empty_msg(int msg_type)
 {
-    RedEmptyMsgPipeItem *item = new RedEmptyMsgPipeItem();
+    auto item = red::make_shared<RedEmptyMsgPipeItem>();
 
     item->msg = msg_type;
     return item;
@@ -1586,7 +1580,7 @@ bool RedChannelClient::wait_pipe_item_sent(Pipe::iterator item_pos, int64_t time
     auto mark_item = red::make_shared<MarkerPipeItem>();
 
     mark_item->item_sent = false;
-    pipe_add_before_pos(mark_item.get(), item_pos);
+    pipe_add_before_pos(RedPipeItemPtr(mark_item), item_pos);
 
     for (;;) {
         receive();
@@ -1643,9 +1637,7 @@ bool RedChannelClient::no_item_being_sent() const
 
 void RedChannelClient::pipe_remove_and_release(RedPipeItem *item)
 {
-    if (priv->pipe_remove(item)) {
-        red_pipe_item_unref(item);
-    }
+    priv->pipe_remove(item);
 }
 
 /* client mutex should be locked before this call */

@@ -23,8 +23,6 @@
 RedPipeItem::RedPipeItem(int init_type):
     type(init_type)
 {
-    // compatibility with no shared_ptr reference counting
-    shared_ptr_add_ref(this);
 }
 
 RedPipeItem *red_pipe_item_ref(RedPipeItem *item)

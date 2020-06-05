@@ -109,7 +109,7 @@ struct RedChannel: public red::shared_ptr_counted
     bool test_remote_cap(uint32_t cap);
 
     // helper to push a new item to all channels
-    typedef RedPipeItem *(*new_pipe_item_t)(RedChannelClient *rcc, void *data, int num);
+    typedef RedPipeItemPtr (*new_pipe_item_t)(RedChannelClient *rcc, void *data, int num);
     int pipes_new_add(new_pipe_item_t creator, void *data);
 
     void pipes_add_type(int pipe_item_type);
@@ -120,7 +120,7 @@ struct RedChannel: public red::shared_ptr_counted
      * The same item is shared between all clients.
      * Function will take ownership of the item.
      */
-    void pipes_add(RedPipeItem *item);
+    void pipes_add(RedPipeItemPtr&& item);
 
     /* return TRUE if all of the connected clients to this channel are blocked */
     bool all_blocked();

@@ -190,7 +190,8 @@ public:
 
     /* reads from the device till reaching a msg that should be sent to the client,
      * or till the reading fails */
-    virtual RedPipeItem* read_one_msg_from_device() = 0;
+    virtual RedPipeItemPtr read_one_msg_from_device() = 0;
+
     /* After this call, the message is unreferenced.
      * Can be NULL. */
     virtual void send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *client) {};

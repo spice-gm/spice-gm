@@ -158,12 +158,12 @@ StreamDevice::partial_read()
     return false;
 }
 
-RedPipeItem* StreamDevice::read_one_msg_from_device()
+RedPipeItemPtr StreamDevice::read_one_msg_from_device()
 {
     while (partial_read()) {
         continue;
     }
-    return NULL;
+    return RedPipeItemPtr();
 }
 
 bool

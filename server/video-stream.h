@@ -104,7 +104,7 @@ struct VideoStreamClipItem: public RedPipeItem {
     red::glib_unique_ptr<SpiceClipRects> rects;
 };
 
-VideoStreamClipItem *video_stream_clip_item_new(VideoStreamAgent *agent);
+red::shared_ptr<VideoStreamClipItem> video_stream_clip_item_new(VideoStreamAgent *agent);
 
 struct StreamCreateDestroyItem: public RedPipeItem {
     using RedPipeItem::RedPipeItem;

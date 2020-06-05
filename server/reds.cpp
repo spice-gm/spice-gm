@@ -182,7 +182,7 @@ struct RedCharDeviceVDIPortPrivate {
     uint32_t message_receive_len;
     uint8_t *receive_pos;
     uint32_t receive_len;
-    RedVDIReadBuf *current_read_buf;
+    red::shared_ptr<RedVDIReadBuf> current_read_buf;
     AgentMsgFilter read_filter;
 
     VDIChunkHeader vdi_chunk_header;
@@ -210,7 +210,7 @@ struct RedCharDeviceVDIPort: public RedCharDevice
     RedCharDeviceVDIPort();
     ~RedCharDeviceVDIPort();
 
-    virtual RedPipeItem* read_one_msg_from_device() override;
+    virtual RedPipeItemPtr read_one_msg_from_device() override;
     virtual void send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque) override;
     virtual void send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens) override;
     virtual void remove_client(RedCharDeviceClientOpaque *opaque);
@@ -235,7 +235,7 @@ static void reds_set_mouse_mode(RedsState *reds, SpiceMouseMode mode);
 static uint32_t reds_qxl_ram_size(RedsState *reds);
 static int calc_compression_level(RedsState *reds);
 
-static RedVDIReadBuf *vdi_port_get_read_buf(RedCharDeviceVDIPort *dev);
+static red::shared_ptr<RedVDIReadBuf> vdi_port_get_read_buf(RedCharDeviceVDIPort *dev);
 
 static ChannelSecurityOptions *reds_find_channel_security(RedsState *reds, int id)
 {
@@ -401,10 +401,8 @@ static void reds_reset_vdp(RedsState *reds)
     dev->priv->receive_pos = (uint8_t *)&dev->priv->vdi_chunk_header;
     dev->priv->receive_len = sizeof(dev->priv->vdi_chunk_header);
     dev->priv->message_receive_len = 0;
-    if (dev->priv->current_read_buf) {
-        red_pipe_item_unref(dev->priv->current_read_buf);
-        dev->priv->current_read_buf = NULL;
-    }
+    dev->priv->current_read_buf.reset();
+
     /* Reset read filter to start with clean state when the agent reconnects */
     agent_msg_filter_init(&dev->priv->read_filter, reds->config->agent_copypaste,
                           reds->config->agent_file_xfer,
@@ -659,11 +657,11 @@ static void reds_agent_remove(RedsState *reds)
         other values can be discarded
 */
 static AgentMsgFilterResult vdi_port_read_buf_process(RedCharDeviceVDIPort *dev,
-                                                      RedVDIReadBuf *buf)
+                                                      RedVDIReadBuf& buf)
 {
     switch (dev->priv->vdi_chunk_header.port) {
     case VDP_CLIENT_PORT:
-        return agent_msg_filter_process_data(&dev->priv->read_filter, buf->data, buf->len);
+        return agent_msg_filter_process_data(&dev->priv->read_filter, buf.data, buf.len);
     case VDP_SERVER_PORT:
         return AGENT_MSG_FILTER_DISCARD;
     default:
@@ -685,17 +683,17 @@ RedVDIReadBuf::~RedVDIReadBuf()
     }
 }
 
-static RedVDIReadBuf *vdi_read_buf_new(RedCharDeviceVDIPort *dev)
+static red::shared_ptr<RedVDIReadBuf> vdi_read_buf_new(RedCharDeviceVDIPort *dev)
 {
-    RedVDIReadBuf *buf = new RedVDIReadBuf();
+    auto buf = red::make_shared<RedVDIReadBuf>();
     buf->dev = dev;
     return buf;
 }
 
-static RedVDIReadBuf *vdi_port_get_read_buf(RedCharDeviceVDIPort *dev)
+static red::shared_ptr<RedVDIReadBuf> vdi_port_get_read_buf(RedCharDeviceVDIPort *dev)
 {
     if (dev->priv->num_read_buf >= REDS_VDI_PORT_NUM_RECEIVE_BUFFS) {
-        return NULL;
+        return red::shared_ptr<RedVDIReadBuf>();
     }
 
     dev->priv->num_read_buf++;
@@ -731,11 +729,10 @@ static void reds_adjust_agent_capabilities(RedsState *reds, VDAgentMessage *mess
 
 /* reads from the device till completes reading a message that is addressed to the client,
  * or otherwise, when reading from the device fails */
-RedPipeItem *
+RedPipeItemPtr
 RedCharDeviceVDIPort::read_one_msg_from_device()
 {
     RedsState *reds;
-    RedVDIReadBuf *dispatch_buf;
     int n;
 
     reds = get_server();
@@ -744,18 +741,18 @@ RedCharDeviceVDIPort::read_one_msg_from_device()
         case VDI_PORT_READ_STATE_READ_HEADER:
             n = read(priv->receive_pos, priv->receive_len);
             if (!n) {
-                return NULL;
+                return RedPipeItemPtr();
             }
             if ((priv->receive_len -= n)) {
                 priv->receive_pos += n;
-                return NULL;
+                return RedPipeItemPtr();
             }
             priv->message_receive_len = priv->vdi_chunk_header.size;
             priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
             /* fall through */
         case VDI_PORT_READ_STATE_GET_BUFF: {
             if (!(priv->current_read_buf = vdi_port_get_read_buf(this))) {
-                return NULL;
+                return RedPipeItemPtr();
             }
             priv->receive_pos = priv->current_read_buf->data;
             priv->receive_len = MIN(priv->message_receive_len,
@@ -768,14 +765,13 @@ RedCharDeviceVDIPort::read_one_msg_from_device()
         case VDI_PORT_READ_STATE_READ_DATA: {
             n = read(priv->receive_pos, priv->receive_len);
             if (!n) {
-                return NULL;
+                return RedPipeItemPtr();
             }
             if ((priv->receive_len -= n)) {
                 priv->receive_pos += n;
                 break;
             }
-            dispatch_buf = priv->current_read_buf;
-            priv->current_read_buf = NULL;
+            auto dispatch_buf = std::move(priv->current_read_buf);
             priv->receive_pos = NULL;
             if (priv->message_receive_len == 0) {
                 priv->read_state = VDI_PORT_READ_STATE_READ_HEADER;
@@ -784,7 +780,7 @@ RedCharDeviceVDIPort::read_one_msg_from_device()
             } else {
                 priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
             }
-            switch (vdi_port_read_buf_process(this, dispatch_buf)) {
+            switch (vdi_port_read_buf_process(this, *dispatch_buf)) {
             case AGENT_MSG_FILTER_OK:
                 reds_adjust_agent_capabilities(reds, (VDAgentMessage *) dispatch_buf->data);
                 return dispatch_buf;
@@ -794,12 +790,12 @@ RedCharDeviceVDIPort::read_one_msg_from_device()
             case AGENT_MSG_FILTER_MONITORS_CONFIG:
                 /* fall through */
             case AGENT_MSG_FILTER_DISCARD:
-                red_pipe_item_unref(dispatch_buf);
+                dispatch_buf.reset();
             }
         }
         } /* END switch */
     } /* END while */
-    return NULL;
+    return RedPipeItemPtr();
 }
 
 void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
@@ -893,8 +889,7 @@ void RedCharDeviceVDIPort::send_msg_to_client(RedPipeItem *msg, RedCharDeviceCli
     RedClient *client = (RedClient *) opaque;
     RedVDIReadBuf *agent_data_buf = static_cast<RedVDIReadBuf*>(msg);
 
-    red_pipe_item_ref(msg);
-    client->get_main()->push_agent_data(agent_data_buf);
+    client->get_main()->push_agent_data(red::shared_ptr<RedAgentDataPipeItem>(agent_data_buf));
 }
 
 void RedCharDeviceVDIPort::send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens)
@@ -1242,16 +1237,16 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
 
     if (agent_dev->priv->read_filter.msg_data_to_read ||
         read_data_len > sizeof(VDAgentMessage)) { /* msg header has been read */
-        RedVDIReadBuf *read_buf = agent_dev->priv->current_read_buf;
+        red::shared_ptr<RedVDIReadBuf> read_buf = std::move(agent_dev->priv->current_read_buf);
 
         spice_debug("push partial read %u (msg first chunk? %d)", read_data_len,
                     !agent_dev->priv->read_filter.msg_data_to_read);
 
         read_buf->len = read_data_len;
-        switch (vdi_port_read_buf_process(agent_dev, read_buf)) {
+        switch (vdi_port_read_buf_process(agent_dev, *read_buf)) {
         case AGENT_MSG_FILTER_OK:
             reds_adjust_agent_capabilities(reds, (VDAgentMessage *)read_buf->data);
-            mcc->push_agent_data(read_buf);
+            mcc->push_agent_data(std::move(read_buf));
             break;
         case AGENT_MSG_FILTER_PROTO_ERROR:
             reds_agent_remove(reds);
@@ -1259,13 +1254,12 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
         case AGENT_MSG_FILTER_MONITORS_CONFIG:
             /* fall through */
         case AGENT_MSG_FILTER_DISCARD:
-            red_pipe_item_unref(read_buf);
+            read_buf.reset();
         }
 
         spice_assert(agent_dev->priv->receive_len);
         agent_dev->priv->message_receive_len += agent_dev->priv->receive_len;
         agent_dev->priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
-        agent_dev->priv->current_read_buf = NULL;
         agent_dev->priv->receive_pos = NULL;
     }
 }
@@ -1395,7 +1389,7 @@ static int reds_agent_state_restore(RedsState *reds, SpiceMigrateDataMain *mig_d
         }
     } else {
             agent_dev->priv->read_state = VDI_PORT_READ_STATE_GET_BUFF;
-            agent_dev->priv->current_read_buf = NULL;
+            agent_dev->priv->current_read_buf.reset();
             agent_dev->priv->receive_pos = NULL;
             agent_dev->priv->read_filter.msg_data_to_read = mig_data->agent2client.msg_remaining;
             agent_dev->priv->read_filter.result = (AgentMsgFilterResult) mig_data->agent2client.msg_filter_result;
@@ -4447,10 +4441,7 @@ RedCharDeviceVDIPort::~RedCharDeviceVDIPort()
 {
     /* make sure we have no other references to RedVDIReadBuf buffers */
     reset();
-    if (priv->current_read_buf) {
-        red_pipe_item_unref(priv->current_read_buf);
-        priv->current_read_buf = NULL;
-    }
+    priv->current_read_buf.reset(); // needed to pass the assert below
     g_free(priv->mig_data);
     spice_extra_assert(priv->num_read_buf == 0);
 }

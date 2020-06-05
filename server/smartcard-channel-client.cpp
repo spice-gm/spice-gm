@@ -137,7 +137,7 @@ static void smartcard_channel_client_push_error(RedChannelClient *rcc,
                                                 uint32_t reader_id,
                                                 VSCErrorCode error)
 {
-    RedErrorItem *error_item = new RedErrorItem();
+    auto error_item = red::make_shared<RedErrorItem>();
 
     error_item->vheader.reader_id = reader_id;
     error_item->vheader.type = VSC_Error;

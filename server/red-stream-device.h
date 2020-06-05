@@ -90,7 +90,7 @@ private:
     StreamDeviceDisplayInfo device_display_info;
 
 private:
-    virtual RedPipeItem* read_one_msg_from_device() override;
+    virtual RedPipeItemPtr read_one_msg_from_device() override;
     virtual void remove_client(RedCharDeviceClientOpaque *client) override;
     virtual void port_event(uint8_t event) override;
 

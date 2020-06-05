@@ -85,16 +85,17 @@ protected:
 public:
     typedef std::list<RedPipeItemPtr, red::Mallocator<RedPipeItemPtr>> Pipe;
 
-    void pipe_add_push(RedPipeItem *item);
-    void pipe_add(RedPipeItem *item);
-    void pipe_add_after(RedPipeItem *item, RedPipeItem *pos);
-    void pipe_add_after_pos(RedPipeItem *item, RedChannelClient::Pipe::iterator pos);
+    void pipe_add_push(RedPipeItemPtr&& item);
+    void pipe_add(RedPipeItemPtr&& item);
+    void pipe_add_after(RedPipeItemPtr&& item, RedPipeItem *pos);
+    void pipe_add_after_pos(RedPipeItemPtr&& item,
+                            RedChannelClient::Pipe::iterator pos);
     int pipe_item_is_linked(RedPipeItem *item);
     void pipe_remove_and_release(RedPipeItem *item);
-    void pipe_add_tail(RedPipeItem *item);
+    void pipe_add_tail(RedPipeItemPtr&& item);
     /* for types that use this routine -> the pipe item should be freed */
     void pipe_add_type(int pipe_item_type);
-    static RedPipeItem *new_empty_msg(int msg_type);
+    static RedPipeItemPtr new_empty_msg(int msg_type);
     void pipe_add_empty_msg(int msg_type);
     gboolean pipe_is_empty();
     uint32_t get_pipe_size();
@@ -184,7 +185,7 @@ private:
     virtual void handle_migrate_flush_mark();
     void handle_migrate_data_early(uint32_t size, void *message);
     inline bool prepare_pipe_add(RedPipeItem *item);
-    void pipe_add_before_pos(RedPipeItem *item, RedChannelClient::Pipe::iterator pipe_item_pos);
+    void pipe_add_before_pos(RedPipeItemPtr&& item, RedChannelClient::Pipe::iterator pipe_item_pos);
     void send_set_ack();
     void send_migrate();
     void send_empty_msg(RedPipeItem *base);

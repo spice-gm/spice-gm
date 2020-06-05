@@ -436,7 +436,7 @@ RedInputsInitPipeItem::RedInputsInitPipeItem(uint8_t init_modifiers):
 void InputsChannelClient::pipe_add_init()
 {
     auto modifiers = kbd_get_leds(get_channel()->keyboard);
-    pipe_add_push(new RedInputsInitPipeItem(modifiers));
+    pipe_add_push(red::make_shared<RedInputsInitPipeItem>(modifiers));
 }
 
 void InputsChannel::on_connect(RedClient *client, RedStream *stream, int migration,
@@ -461,7 +461,7 @@ void InputsChannel::push_keyboard_modifiers()
     if (!is_connected() || src_during_migrate) {
         return;
     }
-    pipes_add(new RedKeyModifiersPipeItem(modifiers));
+    pipes_add(red::make_shared<RedKeyModifiersPipeItem>(modifiers));
 }
 
 SPICE_GNUC_VISIBLE int spice_server_kbd_leds(SpiceKbdInstance *sin, int leds)

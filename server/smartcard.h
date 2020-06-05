@@ -34,7 +34,7 @@ public:
 protected:
     ~RedCharDeviceSmartcard();
 private:
-    RedPipeItem* read_one_msg_from_device() override;
+    RedPipeItemPtr read_one_msg_from_device() override;
     void remove_client(RedCharDeviceClientOpaque *client) override;
 public: // XXX make private
     red::unique_link<RedCharDeviceSmartcardPrivate> priv;

@@ -266,23 +266,20 @@ void RedChannel::push()
     red_channel_foreach_client(this, &RedChannelClient::push);
 }
 
-void RedChannel::pipes_add(RedPipeItem *item)
+void RedChannel::pipes_add(RedPipeItemPtr&& item)
 {
     RedChannelClient *rcc;
 
     FOREACH_CLIENT(this, rcc) {
-        red_pipe_item_ref(item);
-        rcc->pipe_add(item);
+        rcc->pipe_add(RedPipeItemPtr(item));
     }
-
-    red_pipe_item_unref(item);
 }
 
 void RedChannel::pipes_add_type(int pipe_item_type)
 {
-    RedPipeItem *item = new RedPipeItem(pipe_item_type);
+    auto item = red::make_shared<RedPipeItem>(pipe_item_type);
 
-    pipes_add(item);
+    pipes_add(std::move(item));
 }
 
 void RedChannel::pipes_add_empty_msg(int msg_type)
@@ -437,15 +434,14 @@ static bool red_channel_no_item_being_sent(RedChannel *channel)
 int RedChannel::pipes_new_add(new_pipe_item_t creator, void *data)
 {
     RedChannelClient *rcc;
-    RedPipeItem *item;
     int num = 0, n = 0;
 
     spice_assert(creator != NULL);
 
     FOREACH_CLIENT(this, rcc) {
-        item = (*creator)(rcc, data, num++);
+        auto item = (*creator)(rcc, data, num++);
         if (item) {
-            rcc->pipe_add(item);
+            rcc->pipe_add(std::move(item));
             n++;
         }
     }

@@ -142,9 +142,9 @@ void MainChannelClient::on_disconnect()
 
 static void main_channel_client_push_ping(MainChannelClient *mcc, int size);
 
-static RedPipeItem *main_notify_item_new(const char *msg, int num)
+static RedPipeItemPtr main_notify_item_new(const char *msg, int num)
 {
-    RedNotifyPipeItem *item = new RedNotifyPipeItem();
+    auto item = red::make_shared<RedNotifyPipeItem>();
 
     item->msg.reset(g_strdup(msg));
     return item;
@@ -169,9 +169,9 @@ void MainChannelClient::start_net_test(int test_rate)
     main_channel_client_push_ping(this, NET_TEST_BYTES);
 }
 
-static RedPipeItem *red_ping_item_new(int size)
+static RedPipeItemPtr red_ping_item_new(int size)
 {
-    RedPingPipeItem *item = new RedPingPipeItem();
+    auto item = red::make_shared<RedPingPipeItem>();
 
     item->size = size;
     return item;
@@ -179,13 +179,13 @@ static RedPipeItem *red_ping_item_new(int size)
 
 static void main_channel_client_push_ping(MainChannelClient *mcc, int size)
 {
-    RedPipeItem *item = red_ping_item_new(size);
-    mcc->pipe_add_push(item);
+    auto item = red_ping_item_new(size);
+    mcc->pipe_add_push(std::move(item));
 }
 
-static RedPipeItem *main_agent_tokens_item_new(uint32_t num_tokens)
+static RedPipeItemPtr main_agent_tokens_item_new(uint32_t num_tokens)
 {
-    RedTokensPipeItem *item = new RedTokensPipeItem();
+    auto item = red::make_shared<RedTokensPipeItem>();
 
     item->tokens = num_tokens;
     return item;
@@ -194,24 +194,25 @@ static RedPipeItem *main_agent_tokens_item_new(uint32_t num_tokens)
 
 void MainChannelClient::push_agent_tokens(uint32_t num_tokens)
 {
-    RedPipeItem *item = main_agent_tokens_item_new(num_tokens);
+    auto item = main_agent_tokens_item_new(num_tokens);
 
-    pipe_add_push(item);
+    pipe_add_push(std::move(item));
 }
 
-void MainChannelClient::push_agent_data(RedAgentDataPipeItem *item)
+void MainChannelClient::push_agent_data(red::shared_ptr<RedAgentDataPipeItem>&& item)
 {
-    pipe_add_push(item);
+    pipe_add_push(std::move(item));
 }
 
-static RedPipeItem *main_init_item_new(int connection_id,
-                                       int display_channels_hint,
-                                       SpiceMouseMode current_mouse_mode,
-                                       int is_client_mouse_allowed,
-                                       int multi_media_time,
-                                       int ram_hint)
+static RedPipeItemPtr
+main_init_item_new(int connection_id,
+                   int display_channels_hint,
+                   SpiceMouseMode current_mouse_mode,
+                   int is_client_mouse_allowed,
+                   int multi_media_time,
+                   int ram_hint)
 {
-    RedInitPipeItem *item = new RedInitPipeItem();
+    auto item = red::make_shared<RedInitPipeItem>();
 
     item->connection_id = connection_id;
     item->display_channels_hint = display_channels_hint;
@@ -227,37 +228,33 @@ void MainChannelClient::push_init(int display_channels_hint,
                                   int is_client_mouse_allowed,
                                   int multi_media_time, int ram_hint)
 {
-    RedPipeItem *item;
-
-    item = main_init_item_new(priv->connection_id, display_channels_hint,
-                              current_mouse_mode, is_client_mouse_allowed,
-                              multi_media_time, ram_hint);
-    pipe_add_push(item);
+    auto item = main_init_item_new(priv->connection_id, display_channels_hint,
+                                   current_mouse_mode, is_client_mouse_allowed,
+                                   multi_media_time, ram_hint);
+    pipe_add_push(std::move(item));
 }
 
-static RedPipeItem *main_name_item_new(const char *name)
+static RedPipeItemPtr main_name_item_new(const char *name)
 {
     RedNamePipeItem *item = new (strlen(name) + 1) RedNamePipeItem();
     item->msg.name_len = strlen(name) + 1;
     memcpy(&item->msg.name, name, item->msg.name_len);
 
-    return item;
+    return RedPipeItemPtr(item);
 }
 
 void MainChannelClient::push_name(const char *name)
 {
-    RedPipeItem *item;
-
     if (!test_remote_cap(SPICE_MAIN_CAP_NAME_AND_UUID))
         return;
 
-    item = main_name_item_new(name);
-    pipe_add_push(item);
+    auto item = main_name_item_new(name);
+    pipe_add_push(std::move(item));
 }
 
-static RedPipeItem *main_uuid_item_new(const uint8_t uuid[16])
+static RedPipeItemPtr main_uuid_item_new(const uint8_t uuid[16])
 {
-    RedUuidPipeItem *item = new RedUuidPipeItem();
+    auto item = red::make_shared<RedUuidPipeItem>();
 
     memcpy(item->msg.uuid, uuid, sizeof(item->msg.uuid));
 
@@ -266,44 +263,41 @@ static RedPipeItem *main_uuid_item_new(const uint8_t uuid[16])
 
 void MainChannelClient::push_uuid(const uint8_t uuid[16])
 {
-    RedPipeItem *item;
-
     if (!test_remote_cap(SPICE_MAIN_CAP_NAME_AND_UUID))
         return;
 
-    item = main_uuid_item_new(uuid);
-    pipe_add_push(item);
+    auto item = main_uuid_item_new(uuid);
+    pipe_add_push(std::move(item));
 }
 
 void MainChannelClient::push_notify(const char *msg)
 {
-    RedPipeItem *item = main_notify_item_new(msg, 1);
-    pipe_add_push(item);
+    auto item = main_notify_item_new(msg, 1);
+    pipe_add_push(std::move(item));
 }
 
-RedPipeItem *main_mouse_mode_item_new(SpiceMouseMode current_mode, int is_client_mouse_allowed)
+RedPipeItemPtr
+main_mouse_mode_item_new(SpiceMouseMode current_mode, int is_client_mouse_allowed)
 {
-    RedMouseModePipeItem *item = new RedMouseModePipeItem();
+    auto item = red::make_shared<RedMouseModePipeItem>();
 
     item->current_mode = current_mode;
     item->is_client_mouse_allowed = is_client_mouse_allowed;
     return item;
 }
 
-RedPipeItem *main_multi_media_time_item_new(uint32_t mm_time)
+RedPipeItemPtr
+main_multi_media_time_item_new(uint32_t mm_time)
 {
-    RedMultiMediaTimePipeItem *item;
-
-    item = new RedMultiMediaTimePipeItem();
+    auto item = red::make_shared<RedMultiMediaTimePipeItem>();
     item->time = mm_time;
     return item;
 }
 
-RedPipeItem *registered_channel_item_new(RedChannel *channel)
+RedPipeItemPtr
+registered_channel_item_new(RedChannel *channel)
 {
-    RedRegisteredChannelPipeItem *item;
-
-    item = new RedRegisteredChannelPipeItem();
+    auto item = red::make_shared<RedRegisteredChannelPipeItem>();
 
     item->channel_type = channel->type();
     item->channel_id = channel->id();

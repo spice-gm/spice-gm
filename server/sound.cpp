@@ -618,6 +618,8 @@ static bool playback_send_mode(PlaybackChannelClient *playback_client)
 
 PersistentPipeItem::PersistentPipeItem()
 {
+    // force this item to stay alive
+    shared_ptr_add_ref(this);
 }
 
 static void snd_send(SndChannelClient * client)
@@ -626,8 +628,8 @@ static void snd_send(SndChannelClient * client)
         return;
     }
     // just append a dummy item and push!
-    red_pipe_item_ref(&client->persistent_pipe_item);
-    client->pipe_add_push(&client->persistent_pipe_item);
+    RedPipeItemPtr item(&client->persistent_pipe_item);
+    client->pipe_add_push(std::move(item));
 }
 
 XXX_CAST(RedChannelClient, PlaybackChannelClient, PLAYBACK_CHANNEL_CLIENT)
