@@ -48,13 +48,7 @@ RedCursorPipeItem::~RedCursorPipeItem()
 
 static void cursor_channel_set_item(CursorChannel *cursor, RedCursorPipeItem *item)
 {
-    if (item) {
-        red_pipe_item_ref(item);
-    }
-    if (cursor->item) {
-        red_pipe_item_unref(cursor->item);
-    }
-    cursor->item = item;
+    cursor->item.reset(item);
 }
 
 static void cursor_fill(CursorChannelClient *ccc, RedCursorPipeItem *cursor,
@@ -101,7 +95,7 @@ static void red_marshall_cursor_init(CursorChannelClient *ccc, SpiceMarshaller *
     msg.trail_length = cursor_channel->cursor_trail_length;
     msg.trail_frequency = cursor_channel->cursor_trail_frequency;
 
-    cursor_fill(ccc, cursor_channel->item, &msg.cursor, base_marshaller);
+    cursor_fill(ccc, cursor_channel->item.get(), &msg.cursor, base_marshaller);
     spice_marshall_msg_cursor_init(base_marshaller, &msg);
 }
 
@@ -308,9 +302,6 @@ void CursorChannel::on_connect(RedClient *client, RedStream *stream, int migrati
 
 CursorChannel::~CursorChannel()
 {
-    if (item) {
-        red_pipe_item_unref(item);
-    }
 }
 
 CursorChannel::CursorChannel(RedsState *reds, uint32_t id,

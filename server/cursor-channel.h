@@ -43,7 +43,7 @@ struct CursorChannel final: public CommonGraphicsChannel
     void on_connect(RedClient *client, RedStream *stream, int migration,
                     RedChannelCapabilities *caps) override;
 
-    RedCursorPipeItem *item;
+    red::shared_ptr<RedCursorPipeItem> item;
     bool cursor_visible = true;
     SpicePoint16 cursor_position;
     uint16_t cursor_trail_length;

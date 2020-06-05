@@ -1564,7 +1564,6 @@ void RedChannelClient::set_header_sub_list(uint32_t sub_list)
 bool RedChannelClient::wait_pipe_item_sent(GList *item_pos, int64_t timeout)
 {
     uint64_t end_time;
-    bool item_sent;
 
     spice_debug("trace");
 
@@ -1574,11 +1573,10 @@ bool RedChannelClient::wait_pipe_item_sent(GList *item_pos, int64_t timeout)
         end_time = UINT64_MAX;
     }
 
-    MarkerPipeItem *mark_item = new MarkerPipeItem();
+    auto mark_item = red::make_shared<MarkerPipeItem>();
 
     mark_item->item_sent = false;
-    red_pipe_item_ref(mark_item);
-    pipe_add_before_pos(mark_item, item_pos);
+    pipe_add_before_pos(mark_item.get(), item_pos);
 
     for (;;) {
         receive();
@@ -1590,15 +1588,11 @@ bool RedChannelClient::wait_pipe_item_sent(GList *item_pos, int64_t timeout)
         usleep(CHANNEL_BLOCKED_SLEEP_DURATION);
     }
 
-    item_sent = mark_item->item_sent;
-    red_pipe_item_unref(mark_item);
-
-    if (!item_sent) {
+    if (!mark_item->item_sent) {
         // still on the queue
         spice_warning("timeout");
-        return FALSE;
     }
-    return TRUE;
+    return mark_item->item_sent;
 }
 
 bool RedChannelClient::wait_outgoing_item(int64_t timeout)
