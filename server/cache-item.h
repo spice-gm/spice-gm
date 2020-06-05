@@ -23,17 +23,16 @@
 
 #include "red-pipe-item.h"
 
-typedef struct RedCacheItem RedCacheItem;
+/* pipe item used to release a specific cached item on the client */
+struct RedCachePipeItem {
+    RedPipeItem base;
+    uint64_t id;
+};
 
 struct RedCacheItem {
-    union {
-        RedPipeItem pipe_data;
-        struct {
-            RingItem lru_link;
-            RedCacheItem *next;
-            size_t size;
-        } cache_data;
-    } u;
+    RingItem lru_link;
+    RedCacheItem *next;
+    size_t size;
     uint64_t id;
 };
 

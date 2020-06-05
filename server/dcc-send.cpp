@@ -1740,7 +1740,7 @@ static bool red_marshall_stream_data(DisplayChannelClient *dcc,
 
 static inline void marshall_inval_palette(RedChannelClient *rcc,
                                           SpiceMarshaller *base_marshaller,
-                                          RedCacheItem *cache_item)
+                                          RedCachePipeItem *cache_item)
 {
     SpiceMsgDisplayInvalOne inval_one;
 
@@ -2345,7 +2345,7 @@ void DisplayChannelClient::send_item(RedPipeItem *pipe_item)
         break;
     }
     case RED_PIPE_ITEM_TYPE_INVAL_ONE:
-        marshall_inval_palette(this, m, SPICE_CONTAINEROF(pipe_item, RedCacheItem, u.pipe_data));
+        marshall_inval_palette(this, m, SPICE_UPCAST(RedCachePipeItem, pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_STREAM_CREATE: {
         StreamCreateDestroyItem *item = SPICE_UPCAST(StreamCreateDestroyItem, pipe_item);

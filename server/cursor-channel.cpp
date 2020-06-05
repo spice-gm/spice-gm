@@ -166,12 +166,12 @@ static void red_marshall_cursor(CursorChannelClient *ccc,
 
 static inline void red_marshall_inval(RedChannelClient *rcc,
                                       SpiceMarshaller *base_marshaller,
-                                      RedCacheItem *cach_item)
+                                      RedCachePipeItem *cache_item)
 {
     SpiceMsgDisplayInvalOne inval_one;
 
     rcc->init_send_data(SPICE_MSG_CURSOR_INVAL_ONE);
-    inval_one.id = cach_item->id;
+    inval_one.id = cache_item->id;
 
     spice_marshall_msg_cursor_inval_one(base_marshaller, &inval_one);
 }
@@ -186,7 +186,7 @@ void CursorChannelClient::send_item(RedPipeItem *pipe_item)
         red_marshall_cursor(ccc, m, SPICE_UPCAST(RedCursorPipeItem, pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_INVAL_ONE:
-        red_marshall_inval(this, m, SPICE_CONTAINEROF(pipe_item, RedCacheItem, u.pipe_data));
+        red_marshall_inval(this, m, SPICE_UPCAST(RedCachePipeItem, pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_CURSOR_INIT:
         reset_cursor_cache();

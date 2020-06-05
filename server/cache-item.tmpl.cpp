@@ -46,11 +46,11 @@ static RedCacheItem *FUNC_NAME(find)(CHANNELCLIENT *channel_client, uint64_t id)
 
     while (item) {
         if (item->id == id) {
-            ring_remove(&item->u.cache_data.lru_link);
-            ring_add(&channel_client->priv->VAR_NAME(lru), &item->u.cache_data.lru_link);
+            ring_remove(&item->lru_link);
+            ring_add(&channel_client->priv->VAR_NAME(lru), &item->lru_link);
             break;
         }
-        item = item->u.cache_data.next;
+        item = item->next;
     }
     return item;
 }
@@ -64,16 +64,21 @@ static void FUNC_NAME(remove)(CHANNELCLIENT *channel_client, RedCacheItem *item)
     for (;;) {
         spice_assert(*now);
         if (*now == item) {
-            *now = item->u.cache_data.next;
+            *now = item->next;
             break;
         }
-        now = &(*now)->u.cache_data.next;
+        now = &(*now)->next;
     }
-    ring_remove(&item->u.cache_data.lru_link);
-    channel_client->priv->VAR_NAME(available) += item->u.cache_data.size;
+    ring_remove(&item->lru_link);
+    channel_client->priv->VAR_NAME(available) += item->size;
 
-    red_pipe_item_init(&item->u.pipe_data, RED_PIPE_ITEM_TYPE_INVAL_ONE);
-    channel_client->pipe_add_tail(&item->u.pipe_data); // for now
+    // see "Optimization" comment on add function below
+    auto id = item->id;
+    RedCachePipeItem *pipe_item = reinterpret_cast<RedCachePipeItem*>(item);
+
+    red_pipe_item_init(&pipe_item->base, RED_PIPE_ITEM_TYPE_INVAL_ONE);
+    pipe_item->id = id;
+    channel_client->pipe_add_tail(&pipe_item->base); // for now
 }
 
 static int FUNC_NAME(add)(CHANNELCLIENT *channel_client, uint64_t id, size_t size)
@@ -81,13 +86,20 @@ static int FUNC_NAME(add)(CHANNELCLIENT *channel_client, uint64_t id, size_t siz
     RedCacheItem *item;
     int key;
 
-    item = g_new(RedCacheItem, 1);
+    /* Optimization: allocate memory in order to be able to store
+     * both cache item and pipe item to be able to reuse it when
+     * we need to remove cache telling client */
+    union RedCachePoolItem {
+        RedCacheItem cache_item;
+        RedCachePipeItem pipe_item;
+    };
+    item = (RedCacheItem *) g_new(RedCachePoolItem, 1);
 
     channel_client->priv->VAR_NAME(available) -= size;
-    SPICE_VERIFY(SPICE_OFFSETOF(RedCacheItem, u.cache_data.lru_link) == 0);
+    SPICE_VERIFY(SPICE_OFFSETOF(RedCacheItem, lru_link) == 0);
     while (channel_client->priv->VAR_NAME(available) < 0) {
         RedCacheItem *tail = SPICE_CONTAINEROF(ring_get_tail(&channel_client->priv->VAR_NAME(lru)),
-                                                             RedCacheItem, u.cache_data.lru_link);
+                                                             RedCacheItem, lru_link);
         if (!tail) {
             channel_client->priv->VAR_NAME(available) += size;
             g_free(item);
@@ -95,12 +107,12 @@ static int FUNC_NAME(add)(CHANNELCLIENT *channel_client, uint64_t id, size_t siz
         }
         FUNC_NAME(remove)(channel_client, tail);
     }
-    item->u.cache_data.next = channel_client->priv->CACHE_NAME[(key = CACHE_HASH_KEY(id))];
+    item->next = channel_client->priv->CACHE_NAME[(key = CACHE_HASH_KEY(id))];
     channel_client->priv->CACHE_NAME[key] = item;
-    ring_item_init(&item->u.cache_data.lru_link);
-    ring_add(&channel_client->priv->VAR_NAME(lru), &item->u.cache_data.lru_link);
+    ring_item_init(&item->lru_link);
+    ring_add(&channel_client->priv->VAR_NAME(lru), &item->lru_link);
     item->id = id;
-    item->u.cache_data.size = size;
+    item->size = size;
     return TRUE;
 }
 
@@ -111,7 +123,7 @@ static void FUNC_NAME(reset)(CHANNELCLIENT *channel_client, long size)
     for (i = 0; i < CACHE_HASH_SIZE; i++) {
         while (channel_client->priv->CACHE_NAME[i]) {
             RedCacheItem *item = channel_client->priv->CACHE_NAME[i];
-            channel_client->priv->CACHE_NAME[i] = item->u.cache_data.next;
+            channel_client->priv->CACHE_NAME[i] = item->next;
             g_free(item);
         }
     }
