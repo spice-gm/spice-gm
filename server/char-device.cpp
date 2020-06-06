@@ -44,18 +44,28 @@ struct RedCharDeviceWriteBufferPrivate {
     uint32_t refs;
 };
 
-typedef struct RedCharDeviceClient RedCharDeviceClient;
 struct RedCharDeviceClient {
-    RedCharDevice *dev;
-    RedCharDeviceClientOpaque *client;
-    int do_flow_control;
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    RedCharDeviceClient(RedCharDevice *dev,
+                        RedsState *reds,
+                        RedCharDeviceClientOpaque *client,
+                        bool do_flow_control,
+                        uint32_t max_send_queue_size,
+                        uint32_t num_client_tokens,
+                        uint32_t num_send_tokens);
+    ~RedCharDeviceClient();
+
+    RedCharDevice *const dev;
+    RedCharDeviceClientOpaque *const client;
+    const bool do_flow_control;
     uint64_t num_client_tokens;
     uint64_t num_client_tokens_free; /* client messages that were consumed by the device */
     uint64_t num_send_tokens; /* send to client */
     SpiceTimer *wait_for_tokens_timer;
     int wait_for_tokens_started;
     GQueue *send_queue;
-    uint32_t max_send_queue_size;
+    const uint32_t max_send_queue_size;
 };
 
 struct RedCharDevicePrivate {
@@ -138,7 +148,7 @@ static void red_char_device_client_free(RedCharDevice *dev,
     }
 
     dev->priv->clients = g_list_remove(dev->priv->clients, dev_client);
-    g_free(dev_client);
+    delete dev_client;
 }
 
 static void red_char_device_handle_client_overflow(RedCharDeviceClient *dev_client)
@@ -589,36 +599,35 @@ void RedCharDevice::reset_dev_instance(SpiceCharDeviceInstance *sin)
     }
 }
 
-static RedCharDeviceClient *
-red_char_device_client_new(RedsState *reds,
-                           RedCharDeviceClientOpaque *client,
-                           int do_flow_control,
-                           uint32_t max_send_queue_size,
-                           uint32_t num_client_tokens,
-                           uint32_t num_send_tokens)
+RedCharDeviceClient::RedCharDeviceClient(RedCharDevice *init_dev,
+                                         RedsState *reds,
+                                         RedCharDeviceClientOpaque *init_client,
+                                         bool init_do_flow_control,
+                                         uint32_t init_max_send_queue_size,
+                                         uint32_t init_num_client_tokens,
+                                         uint32_t init_num_send_tokens):
+    dev(init_dev),
+    client(init_client),
+    do_flow_control(init_do_flow_control),
+    send_queue(g_queue_new()),
+    max_send_queue_size(init_max_send_queue_size)
 {
-    RedCharDeviceClient *dev_client;
-
-    dev_client = g_new0(RedCharDeviceClient, 1);
-    dev_client->client = client;
-    dev_client->send_queue = g_queue_new();
-    dev_client->max_send_queue_size = max_send_queue_size;
-    dev_client->do_flow_control = do_flow_control;
     if (do_flow_control) {
-        dev_client->wait_for_tokens_timer =
-            reds_core_timer_add(reds, device_client_wait_for_tokens_timeout,
-                                dev_client);
-        if (!dev_client->wait_for_tokens_timer) {
+        wait_for_tokens_timer =
+            reds_core_timer_add(reds, device_client_wait_for_tokens_timeout, this);
+        if (!wait_for_tokens_timer) {
             spice_error("failed to create wait for tokens timer");
         }
-        dev_client->num_client_tokens = num_client_tokens;
-        dev_client->num_send_tokens = num_send_tokens;
+        num_client_tokens = init_num_client_tokens;
+        num_send_tokens = init_num_send_tokens;
     } else {
-        dev_client->num_client_tokens = ~0;
-        dev_client->num_send_tokens = ~0;
+        num_client_tokens = ~0;
+        num_send_tokens = ~0;
     }
+}
 
-    return dev_client;
+RedCharDeviceClient::~RedCharDeviceClient()
+{
 }
 
 bool RedCharDevice::client_add(RedCharDeviceClientOpaque *client,
@@ -642,13 +651,13 @@ bool RedCharDevice::client_add(RedCharDeviceClientOpaque *client,
     priv->wait_for_migrate_data = wait_for_migrate_data;
 
     spice_debug("char device %p, client %p", this, client);
-    dev_client = red_char_device_client_new(priv->reds,
-                                            client,
-                                            do_flow_control,
-                                            max_send_queue_size,
-                                            num_client_tokens,
-                                            num_send_tokens);
-    dev_client->dev = this;
+    dev_client = new RedCharDeviceClient(this,
+                                         priv->reds,
+                                         client,
+                                         !!do_flow_control,
+                                         max_send_queue_size,
+                                         num_client_tokens,
+                                         num_send_tokens);
     priv->clients = g_list_prepend(priv->clients, dev_client);
     /* Now that we have a client, forward any pending device data */
     wakeup();
