@@ -25,29 +25,15 @@ RedPipeItem::RedPipeItem(int init_type):
 {
 }
 
-RedPipeItem *red_pipe_item_ref(RedPipeItem *item)
-{
-    // this call should be replaced by shared_ptr instead
-    shared_ptr_add_ref(item);
-
-    return item;
-}
-
-void red_pipe_item_unref(RedPipeItem *item)
-{
-    // this call should be replaced by shared_ptr instead
-    shared_ptr_unref(item);
-}
-
 static void marshaller_unref_pipe_item(uint8_t *, void *opaque)
 {
     RedPipeItem *item = (RedPipeItem*) opaque;
-    red_pipe_item_unref(item);
+    shared_ptr_unref(item);
 }
 
 void RedPipeItem::add_to_marshaller(SpiceMarshaller *m, uint8_t *data, size_t size)
 {
-    red_pipe_item_ref(this);
+    shared_ptr_add_ref(this);
     spice_marshaller_add_by_ref_full(m, data, size,
                                      marshaller_unref_pipe_item, this);
 }
