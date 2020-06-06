@@ -152,11 +152,6 @@ void                       dcc_create_surface                        (DisplayCha
                                                                       int surface_id);
 void                       dcc_push_surface_image                    (DisplayChannelClient *dcc,
                                                                       int surface_id);
-RedImageItem *             dcc_add_surface_area_image                (DisplayChannelClient *dcc,
-                                                                      int surface_id,
-                                                                      SpiceRect *area,
-                                                                      GList *pipe_item_pos,
-                                                                      int can_lossy);
 void                       dcc_palette_cache_reset                   (DisplayChannelClient *dcc);
 void                       dcc_palette_cache_palette                 (DisplayChannelClient *dcc,
                                                                       SpicePalette *palette,
@@ -185,6 +180,8 @@ int                        dcc_compress_image                        (DisplayCha
                                                                       int can_lossy,
                                                                       compress_send_data_t* o_comp_data);
 
+void dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
+                                SpiceRect *area, GList *pipe_item_pos, int can_lossy);
 VideoStreamAgent *dcc_get_video_stream_agent(DisplayChannelClient *dcc, int stream_id);
 ImageEncoders *dcc_get_encoders(DisplayChannelClient *dcc);
 spice_wan_compression_t    dcc_get_jpeg_state                        (DisplayChannelClient *dcc);

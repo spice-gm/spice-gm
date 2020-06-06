@@ -198,11 +198,9 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
 }
 
 // adding the pipe item after pos. If pos == NULL, adding to head.
-RedImageItem *dcc_add_surface_area_image(DisplayChannelClient *dcc,
-                                         int surface_id,
-                                         SpiceRect *area,
-                                         GList *pipe_item_pos,
-                                         int can_lossy)
+void
+dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
+                           SpiceRect *area, GList *pipe_item_pos, int can_lossy)
 {
     DisplayChannel *display = DCC_TO_DC(dcc);
     RedSurface *surface = &display->priv->surfaces[surface_id];
@@ -256,8 +254,6 @@ RedImageItem *dcc_add_surface_area_image(DisplayChannelClient *dcc,
     } else {
         dcc->pipe_add(&item->base);
     }
-
-    return item;
 }
 
 void dcc_push_surface_image(DisplayChannelClient *dcc, int surface_id)
