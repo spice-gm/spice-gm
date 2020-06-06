@@ -22,9 +22,11 @@
 
 #include <config.h>
 #include <inttypes.h>
+#include <list>
 
 #include "char-device.h"
 #include "reds.h"
+#include "safe-list.hpp"
 
 #define CHAR_DEVICE_WRITE_TO_TIMEOUT 100
 #define RED_CHAR_DEVICE_WAIT_TOKENS_TIMEOUT 30000
@@ -46,6 +48,7 @@ struct RedCharDeviceWriteBufferPrivate {
 
 struct RedCharDeviceClient {
     SPICE_CXX_GLIB_ALLOCATOR
+    typedef std::list<RedPipeItemPtr, red::Mallocator<RedPipeItemPtr>> Queue;
 
     RedCharDeviceClient(RedCharDevice *dev,
                         RedsState *reds,
@@ -64,7 +67,7 @@ struct RedCharDeviceClient {
     uint64_t num_send_tokens; /* send to client */
     SpiceTimer *wait_for_tokens_timer;
     int wait_for_tokens_started;
-    GQueue *send_queue;
+    Queue send_queue;
     const uint32_t max_send_queue_size;
 };
 
@@ -124,7 +127,7 @@ static void red_char_device_client_free(RedCharDevice *dev,
     red_timer_remove(dev_client->wait_for_tokens_timer);
     dev_client->wait_for_tokens_timer = NULL;
 
-    g_queue_free_full(dev_client->send_queue, (GDestroyNotify)red_pipe_item_unref);
+    dev_client->send_queue.clear();
 
     /* remove write buffers that are associated with the client */
     spice_debug("write_queue_is_empty %d", g_queue_is_empty(&dev->priv->write_queue) && !dev->priv->cur_write_buf);
@@ -205,13 +208,12 @@ static uint64_t red_char_device_max_send_tokens(RedCharDevice *dev)
 static void red_char_device_add_msg_to_client_queue(RedCharDeviceClient *dev_client,
                                                     RedPipeItem *msg)
 {
-    if (g_queue_get_length(dev_client->send_queue) >= dev_client->max_send_queue_size) {
+    if (dev_client->send_queue.size() >= dev_client->max_send_queue_size) {
         red_char_device_handle_client_overflow(dev_client);
         return;
     }
 
-    red_pipe_item_ref(msg);
-    g_queue_push_head(dev_client->send_queue, msg);
+    dev_client->send_queue.push_front(RedPipeItemPtr(msg));
     if (!dev_client->wait_for_tokens_started) {
         red_timer_start(dev_client->wait_for_tokens_timer,
                         RED_CHAR_DEVICE_WAIT_TOKENS_TIMEOUT);
@@ -227,7 +229,7 @@ static void red_char_device_send_msg_to_clients(RedCharDevice *dev,
     GLIST_FOREACH(dev->priv->clients, RedCharDeviceClient, dev_client) {
         if (red_char_device_can_send_to_client(dev_client)) {
             dev_client->num_send_tokens--;
-            spice_assert(g_queue_is_empty(dev_client->send_queue));
+            spice_assert(dev_client->send_queue.empty());
             dev->send_msg_to_client(msg, dev_client->client);
 
             /* don't refer to dev_client anymore, it may have been released */
@@ -285,13 +287,13 @@ static bool red_char_device_read_from_device(RedCharDevice *dev)
 
 static void red_char_device_client_send_queue_push(RedCharDeviceClient *dev_client)
 {
-    while (!g_queue_is_empty(dev_client->send_queue) &&
+    while (!dev_client->send_queue.empty() &&
            red_char_device_can_send_to_client(dev_client)) {
-        RedPipeItem *msg = (RedPipeItem *) g_queue_pop_tail(dev_client->send_queue);
-        g_assert(msg != NULL);
+        RedPipeItemPtr msg = std::move(dev_client->send_queue.back());
+        dev_client->send_queue.pop_back();
+        g_assert(msg);
         dev_client->num_send_tokens--;
-        dev_client->dev->send_msg_to_client(msg, dev_client->client);
-        red_pipe_item_unref(msg);
+        dev_client->dev->send_msg_to_client(msg.get(), dev_client->client);
     }
 }
 
@@ -315,7 +317,7 @@ red_char_device_send_to_client_tokens_absorb(RedCharDevice *dev,
     }
     dev_client->num_send_tokens += tokens;
 
-    if (g_queue_get_length(dev_client->send_queue)) {
+    if (dev_client->send_queue.size()) {
         spice_assert(dev_client->num_send_tokens == tokens);
         red_char_device_client_send_queue_push(dev_client);
     }
@@ -324,7 +326,7 @@ red_char_device_send_to_client_tokens_absorb(RedCharDevice *dev,
         red_timer_cancel(dev_client->wait_for_tokens_timer);
         dev_client->wait_for_tokens_started = FALSE;
         red_char_device_read_from_device(dev_client->dev);
-    } else if (!g_queue_is_empty(dev_client->send_queue)) {
+    } else if (!dev_client->send_queue.empty()) {
         red_timer_start(dev_client->wait_for_tokens_timer,
                         RED_CHAR_DEVICE_WAIT_TOKENS_TIMEOUT);
         dev_client->wait_for_tokens_started = TRUE;
@@ -609,7 +611,6 @@ RedCharDeviceClient::RedCharDeviceClient(RedCharDevice *init_dev,
     dev(init_dev),
     client(init_client),
     do_flow_control(init_do_flow_control),
-    send_queue(g_queue_new()),
     max_send_queue_size(init_max_send_queue_size)
 {
     if (do_flow_control) {
@@ -720,10 +721,9 @@ void RedCharDevice::reset()
     write_buffer_release(&priv->cur_write_buf);
 
     GLIST_FOREACH(priv->clients, RedCharDeviceClient, dev_client) {
-        spice_debug("send_queue_empty %d", g_queue_is_empty(dev_client->send_queue));
-        dev_client->num_send_tokens += g_queue_get_length(dev_client->send_queue);
-        g_queue_free_full(dev_client->send_queue, (GDestroyNotify)red_pipe_item_unref);
-        dev_client->send_queue = g_queue_new();
+        spice_debug("send_queue_empty %d", dev_client->send_queue.empty());
+        dev_client->num_send_tokens += dev_client->send_queue.size();
+        dev_client->send_queue.clear();
 
         /* If device is reset, we must reset the tokens counters as well as we
          * don't hold any data from client and upon agent's reconnection we send
@@ -777,7 +777,7 @@ void RedCharDevice::migrate_data_marshall(SpiceMarshaller *m)
     /* FIXME: if there were more than one client before the marshalling,
      * it is possible that the send_queue length > 0, and the send data
      * should be migrated as well */
-    spice_assert(g_queue_is_empty(dev_client->send_queue));
+    spice_assert(dev_client->send_queue.empty());
     spice_marshaller_add_uint32(m, SPICE_MIGRATE_DATA_CHAR_DEVICE_VERSION);
     spice_marshaller_add_uint8(m, 1); /* connected */
     spice_marshaller_add_uint32(m, dev_client->num_client_tokens);
