@@ -76,7 +76,7 @@ struct MainChannel final: public RedChannel
     void on_connect(RedClient *client, RedStream *stream, int migration,
                     RedChannelCapabilities *caps) override {};
 
-    // TODO: add refs and release (afrer all clients completed migration in one way or the other?)
+    // TODO: add refs and release (after all clients completed migration in one way or the other?)
     RedsMigSpice mig_target;
     int num_clients_mig_wait;
 };
