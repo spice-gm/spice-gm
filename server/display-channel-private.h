@@ -187,6 +187,42 @@ struct RedSurfaceDestroyItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_DESTROY_S
     SpiceMsgSurfaceDestroy surface_destroy;
 };
 
+struct RedSurfaceCreateItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_CREATE_SURFACE> {
+    RedSurfaceCreateItem(uint32_t surface_id,
+                         uint32_t width,
+                         uint32_t height,
+                         uint32_t format,
+                         uint32_t flags);
+    SpiceMsgSurfaceCreate surface_create;
+};
+
+struct RedGlScanoutUnixItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_GL_SCANOUT> {
+};
+
+struct RedGlDrawItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_GL_DRAW> {
+    SpiceMsgDisplayGlDraw draw;
+};
+
+struct RedImageItem final: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_IMAGE> {
+    SpicePoint pos;
+    int width;
+    int height;
+    int stride;
+    int top_down;
+    int surface_id;
+    int image_format;
+    uint32_t image_flags;
+    int can_lossy;
+    uint8_t data[0];
+};
+
+struct RedDrawablePipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_DRAW> {
+    RedDrawablePipeItem(DisplayChannelClient *dcc, Drawable *drawable);
+    ~RedDrawablePipeItem();
+    Drawable *const drawable;
+    DisplayChannelClient *const dcc;
+};
+
 static inline int is_equal_path(SpicePath *path1, SpicePath *path2)
 {
     SpicePathSeg *seg1, *seg2;

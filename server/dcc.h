@@ -96,45 +96,6 @@ typedef struct FreeList {
 
 #define DCC_TO_DC(dcc) ((DisplayChannel*) dcc->get_channel())
 
-struct RedSurfaceCreateItem: public RedPipeItem {
-    RedSurfaceCreateItem(uint32_t surface_id,
-                         uint32_t width,
-                         uint32_t height,
-                         uint32_t format,
-                         uint32_t flags);
-    SpiceMsgSurfaceCreate surface_create;
-};
-
-struct RedGlScanoutUnixItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
-};
-
-struct RedGlDrawItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
-    SpiceMsgDisplayGlDraw draw;
-};
-
-struct RedImageItem final: public RedPipeItem {
-    RedImageItem();
-    SpicePoint pos;
-    int width;
-    int height;
-    int stride;
-    int top_down;
-    int surface_id;
-    int image_format;
-    uint32_t image_flags;
-    int can_lossy;
-    uint8_t data[0];
-};
-
-struct RedDrawablePipeItem: public RedPipeItem {
-    RedDrawablePipeItem(DisplayChannelClient *dcc, Drawable *drawable);
-    ~RedDrawablePipeItem();
-    Drawable *const drawable;
-    DisplayChannelClient *const dcc;
-};
-
 DisplayChannelClient*      dcc_new                                   (DisplayChannel *display,
                                                                       RedClient *client,
                                                                       RedStream *stream,

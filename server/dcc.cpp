@@ -74,8 +74,7 @@ RedSurfaceCreateItem::RedSurfaceCreateItem(uint32_t surface_id,
                                            uint32_t width,
                                            uint32_t height,
                                            uint32_t format,
-                                           uint32_t flags):
-    RedPipeItem(RED_PIPE_ITEM_TYPE_CREATE_SURFACE)
+                                           uint32_t flags)
 {
     surface_create.surface_id = surface_id;
     surface_create.width = width;
@@ -188,11 +187,6 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
     dcc->pipe_add(std::move(create));
 }
 
-RedImageItem::RedImageItem():
-    RedPipeItem(RED_PIPE_ITEM_TYPE_IMAGE)
-{
-}
-
 // adding the pipe item after pos. If pos == NULL, adding to head.
 void
 dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
@@ -303,7 +297,6 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
 }
 
 RedDrawablePipeItem::RedDrawablePipeItem(DisplayChannelClient *init_dcc, Drawable *init_drawable):
-    RedPipeItem(RED_PIPE_ITEM_TYPE_DRAW),
     drawable(init_drawable),
     dcc(init_dcc)
 {
@@ -529,7 +522,7 @@ RedPipeItemPtr dcc_gl_scanout_item_new(RedChannelClient *rcc, void *data, int nu
         return RedPipeItemPtr();
     }
 
-    return red::make_shared<RedGlScanoutUnixItem>(RED_PIPE_ITEM_TYPE_GL_SCANOUT);
+    return red::make_shared<RedGlScanoutUnixItem>();
 }
 
 XXX_CAST(RedChannelClient, DisplayChannelClient, DISPLAY_CHANNEL_CLIENT);
@@ -548,7 +541,7 @@ RedPipeItemPtr dcc_gl_draw_item_new(RedChannelClient *rcc, void *data, int num)
     }
 
     dcc->priv->gl_draw_ongoing = TRUE;
-    auto item = red::make_shared<RedGlDrawItem>(RED_PIPE_ITEM_TYPE_GL_DRAW);
+    auto item = red::make_shared<RedGlDrawItem>();
     item->draw = *draw;
 
     return item;
