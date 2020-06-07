@@ -153,16 +153,10 @@ struct ChannelSecurityOptions {
     ChannelSecurityOptions *next;
 };
 
-/* Bogus pipe item type, we only need the RingItem and refcounting
- * from the base class and are not going to use the type
- */
-struct RedVDIReadBuf final: public RedPipeItemNum<-1> {
+struct RedVDIReadBuf final: public RedAgentDataPipeItem {
     ~RedVDIReadBuf();
 
     RedCharDeviceVDIPort *dev;
-
-    int len;
-    uint8_t data[SPICE_AGENT_MAX_DATA_SIZE];
 };
 
 typedef enum {
@@ -658,12 +652,6 @@ static void reds_agent_remove(RedsState *reds)
     }
 }
 
-static void vdi_port_read_buf_release(uint8_t *data, void *opaque)
-{
-    RedVDIReadBuf *read_buf = (RedVDIReadBuf *)opaque;
-    red_pipe_item_unref(read_buf);
-}
-
 /*
     returns the #AgentMsgFilterResult value:
         AGENT_MSG_FILTER_OK if the buffer can be forwarded,
@@ -701,7 +689,6 @@ static RedVDIReadBuf *vdi_read_buf_new(RedCharDeviceVDIPort *dev)
 {
     RedVDIReadBuf *buf = new RedVDIReadBuf();
     buf->dev = dev;
-    buf->len = 0;
     return buf;
 }
 
@@ -907,10 +894,7 @@ void RedCharDeviceVDIPort::send_msg_to_client(RedPipeItem *msg, RedCharDeviceCli
     RedVDIReadBuf *agent_data_buf = static_cast<RedVDIReadBuf*>(msg);
 
     red_pipe_item_ref(msg);
-    client->get_main()->push_agent_data(agent_data_buf->data,
-                                        agent_data_buf->len,
-                                        vdi_port_read_buf_release,
-                                        agent_data_buf);
+    client->get_main()->push_agent_data(agent_data_buf);
 }
 
 void RedCharDeviceVDIPort::send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens)
@@ -1267,8 +1251,7 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
         switch (vdi_port_read_buf_process(agent_dev, read_buf)) {
         case AGENT_MSG_FILTER_OK:
             reds_adjust_agent_capabilities(reds, (VDAgentMessage *)read_buf->data);
-            mcc->push_agent_data(read_buf->data, read_buf->len,
-                                 vdi_port_read_buf_release, read_buf);
+            mcc->push_agent_data(read_buf);
             break;
         case AGENT_MSG_FILTER_PROTO_ERROR:
             reds_agent_remove(reds);

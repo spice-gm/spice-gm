@@ -32,13 +32,13 @@ MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient 
                                               RedStream *stream, uint32_t connection_id,
                                               RedChannelCapabilities *caps);
 
+struct RedAgentDataPipeItem;
 
 class MainChannelClient final: public RedChannelClient
 {
 public:
     void push_agent_tokens(uint32_t num_tokens);
-    void push_agent_data(uint8_t *data, size_t len,
-                         spice_marshaller_item_free_func free_data, void *opaque);
+    void push_agent_data(RedAgentDataPipeItem *item);
     // TODO: huge. Consider making a reds_* interface for these functions
     // and calling from main.
     void push_init(int display_channels_hint, SpiceMouseMode current_mouse_mode,
@@ -113,6 +113,11 @@ enum {
     RED_PIPE_ITEM_TYPE_MAIN_UUID,
     RED_PIPE_ITEM_TYPE_MAIN_AGENT_CONNECTED_TOKENS,
     RED_PIPE_ITEM_TYPE_MAIN_REGISTERED_CHANNEL,
+};
+
+struct RedAgentDataPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_AGENT_DATA> {
+    int len = 0;
+    uint8_t data[SPICE_AGENT_MAX_DATA_SIZE];
 };
 
 RedPipeItem *main_mouse_mode_item_new(SpiceMouseMode current_mode, int is_client_mouse_allowed);

@@ -69,14 +69,6 @@ struct RedTokensPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_AGENT_TO
     int tokens;
 };
 
-struct RedAgentDataPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_AGENT_DATA> {
-    ~RedAgentDataPipeItem();
-    uint8_t* data;
-    size_t len;
-    spice_marshaller_item_free_func free_data;
-    void *opaque;
-};
-
 struct RedInitPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_MAIN_INIT> {
     int connection_id;
     int display_channels_hint;
@@ -213,31 +205,8 @@ void MainChannelClient::push_agent_tokens(uint32_t num_tokens)
     pipe_add_push(item);
 }
 
-RedAgentDataPipeItem::~RedAgentDataPipeItem()
+void MainChannelClient::push_agent_data(RedAgentDataPipeItem *item)
 {
-    free_data(data, opaque);
-}
-
-static RedPipeItem *main_agent_data_item_new(uint8_t* data, size_t len,
-                                             spice_marshaller_item_free_func free_data,
-                                             void *opaque)
-{
-    RedAgentDataPipeItem *item = new RedAgentDataPipeItem();
-
-    item->data = data;
-    item->len = len;
-    item->free_data = free_data;
-    item->opaque = opaque;
-    return item;
-}
-
-void MainChannelClient::push_agent_data(uint8_t *data, size_t len,
-                                        spice_marshaller_item_free_func free_data,
-                                        void *opaque)
-{
-    RedPipeItem *item;
-
-    item = main_agent_data_item_new(data, len, free_data, opaque);
     pipe_add_push(item);
 }
 
