@@ -223,6 +223,21 @@ struct RedDrawablePipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_DRAW> {
     DisplayChannelClient *const dcc;
 };
 
+/* This item is used to send a full quality image (lossless) of the area where the stream was.
+ * This to avoid the artifacts due to the lossy compression. */
+struct RedUpgradeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_UPGRADE> {
+    ~RedUpgradeItem();
+    Drawable *drawable;
+    red::glib_unique_ptr<SpiceClipRects> rects;
+};
+
+struct RedStreamActivateReportItem:
+    public RedPipeItemNum<RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT>
+{
+    uint32_t stream_id;
+    uint32_t report_id;
+};
+
 static inline int is_equal_path(SpicePath *path1, SpicePath *path2)
 {
     SpicePathSeg *seg1, *seg2;

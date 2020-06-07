@@ -773,8 +773,7 @@ void dcc_create_stream(DisplayChannelClient *dcc, VideoStream *stream)
     dcc->pipe_add(video_stream_create_item_new(agent));
 
     if (dcc->test_remote_cap(SPICE_DISPLAY_CAP_STREAM_REPORT)) {
-        auto report_pipe_item =
-            red::make_shared<RedStreamActivateReportItem>(RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);
+        auto report_pipe_item = red::make_shared<RedStreamActivateReportItem>();
 
         agent->report_id = rand();
         report_pipe_item->stream_id = stream_id;
@@ -840,7 +839,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         }
         spice_debug("stream %d: upgrade by drawable. box ==>", stream_id);
         rect_debug(&stream->current->red_drawable->bbox);
-        auto upgrade_item = red::make_shared<RedUpgradeItem>(RED_PIPE_ITEM_TYPE_UPGRADE);
+        auto upgrade_item = red::make_shared<RedUpgradeItem>();
         upgrade_item->drawable = stream->current;
         upgrade_item->drawable->refs++;
         n_rects = pixman_region32_n_rects(&upgrade_item->drawable->tree_item.base.rgn);

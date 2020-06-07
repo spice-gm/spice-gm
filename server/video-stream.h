@@ -47,21 +47,6 @@ SPICE_BEGIN_DECLS
 
 typedef struct VideoStream VideoStream;
 
-/* This item is used to send a full quality image (lossless) of the area where the stream was.
- * This to avoid the artifacts due to the lossy compression. */
-struct RedUpgradeItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
-    ~RedUpgradeItem();
-    Drawable *drawable;
-    red::glib_unique_ptr<SpiceClipRects> rects;
-};
-
-struct RedStreamActivateReportItem: public RedPipeItem {
-    using RedPipeItem::RedPipeItem;
-    uint32_t stream_id;
-    uint32_t report_id;
-};
-
 #ifdef STREAM_STATS
 typedef struct StreamStats {
     uint64_t num_drops_pipe;
