@@ -26,19 +26,14 @@
 #include "reds.h"
 
 struct RedCursorPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_CURSOR> {
+    RedCursorPipeItem(RedCursorCmd *cmd);
     ~RedCursorPipeItem();
     RedCursorCmd *red_cursor;
 };
 
-static RedCursorPipeItem *cursor_pipe_item_new(RedCursorCmd *cmd)
+RedCursorPipeItem::RedCursorPipeItem(RedCursorCmd *cmd):
+    red_cursor(red_cursor_cmd_ref(cmd))
 {
-    RedCursorPipeItem *item = new RedCursorPipeItem();
-
-    spice_return_val_if_fail(cmd != NULL, NULL);
-
-    item->red_cursor = red_cursor_cmd_ref(cmd);
-
-    return item;
 }
 
 RedCursorPipeItem::~RedCursorPipeItem()
@@ -201,7 +196,7 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
 
     spice_return_if_fail(cursor_cmd);
 
-    cursor_pipe_item = cursor_pipe_item_new(cursor_cmd);
+    cursor_pipe_item = new RedCursorPipeItem(cursor_cmd);
 
     switch (cursor_cmd->type) {
     case QXL_CURSOR_SET:
