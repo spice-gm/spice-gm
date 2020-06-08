@@ -54,10 +54,10 @@ class VmcChannelClient;
 
 struct RedVmcPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_SPICEVMC_DATA> {
     SpiceDataCompressionType type;
-    uint32_t uncompressed_data_size;
+    uint32_t uncompressed_data_size = 0;
     /* writes which don't fit this will get split, this is not a problem */
     uint8_t buf[BUF_SIZE];
-    uint32_t buf_used;
+    uint32_t buf_used = 0;
 };
 
 struct RedCharDeviceSpiceVmc: public RedCharDevice
@@ -194,32 +194,31 @@ struct RedPortEventPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_PORT_EVENT
     uint8_t event;
 };
 
-/* n is the data size (uncompressed)
- * msg_item -- the current pipe item with the uncompressed data
+/* msg_item -- the current pipe item with the uncompressed data
  * This function returns:
- *  - NULL upon failure.
- *  - a new pipe item with the compressed data in it upon success
+ *  - false upon failure.
+ *  - true if compression succeeded
  */
-#ifdef USE_LZ4
-static red::shared_ptr<RedVmcPipeItem>
-try_compress_lz4(RedVmcChannel *channel, int n, RedVmcPipeItem *msg_item)
+static bool
+try_compress_lz4(RedVmcChannel *channel, red::shared_ptr<RedVmcPipeItem>& msg_item)
 {
-    red::shared_ptr<RedVmcPipeItem> msg_item_compressed;
+#ifdef USE_LZ4
     int compressed_data_count;
+    auto n = msg_item->buf_used;
 
     if (red_stream_get_family(channel->rcc->get_stream()) == AF_UNIX) {
         /* AF_LOCAL - data will not be compressed */
-        return msg_item_compressed;
+        return false;
     }
     if (n <= COMPRESS_THRESHOLD) {
         /* n <= threshold - data will not be compressed */
-        return msg_item_compressed;
+        return false;
     }
     if (!channel->rcc->test_remote_cap(SPICE_SPICEVMC_CAP_DATA_COMPRESS_LZ4)) {
         /* Client doesn't have compression cap - data will not be compressed */
-        return msg_item_compressed;
+        return false;
     }
-    msg_item_compressed = red::make_shared<RedVmcPipeItem>();
+    auto msg_item_compressed = red::make_shared<RedVmcPipeItem>();
     compressed_data_count = LZ4_compress_default((char*)&msg_item->buf,
                                                  (char*)&msg_item_compressed->buf,
                                                  n,
@@ -231,14 +230,14 @@ try_compress_lz4(RedVmcChannel *channel, int n, RedVmcPipeItem *msg_item)
         msg_item_compressed->type = SPICE_DATA_COMPRESSION_TYPE_LZ4;
         msg_item_compressed->uncompressed_data_size = n;
         msg_item_compressed->buf_used = compressed_data_count;
-        return msg_item_compressed;
+        msg_item = std::move(msg_item_compressed);
+        return true;
     }
 
     /* LZ4 compression failed or did non compress, fallback a non-compressed data is to be sent */
-    msg_item_compressed.reset();
-    return msg_item_compressed;
-}
 #endif
+    return false;
+}
 
 RedPipeItemPtr
 RedCharDeviceSpiceVmc::read_one_msg_from_device()
@@ -261,18 +260,12 @@ RedCharDeviceSpiceVmc::read_one_msg_from_device()
     n = read(msg_item->buf, sizeof(msg_item->buf));
     if (n > 0) {
         spice_debug("read from dev %d", n);
-#ifdef USE_LZ4
-        red::shared_ptr<RedVmcPipeItem> msg_item_compressed;
-
-        msg_item_compressed = try_compress_lz4(channel.get(), n, msg_item.get());
-        if (msg_item_compressed) {
-            spicevmc_red_channel_queue_data(channel.get(), std::move(msg_item_compressed));
-            return RedPipeItemPtr();
-        }
-#endif
-        stat_inc_counter(channel->out_data, n);
         msg_item->uncompressed_data_size = n;
         msg_item->buf_used = n;
+
+        if (!try_compress_lz4(channel.get(), msg_item)) {
+            stat_inc_counter(channel->out_data, n);
+        }
         spicevmc_red_channel_queue_data(channel.get(), std::move(msg_item));
         return RedPipeItemPtr();
     }
