@@ -4502,16 +4502,14 @@ RedCharDeviceVDIPort::RedCharDeviceVDIPort(RedsState *reds):
 
 RedCharDeviceVDIPort::~RedCharDeviceVDIPort()
 {
-    RedCharDeviceVDIPort *dev = this;
-
     /* make sure we have no other references to RedVDIReadBuf buffers */
-    dev->reset();
-    if (dev->priv->current_read_buf) {
-        red_pipe_item_unref(&dev->priv->current_read_buf->base);
-        dev->priv->current_read_buf = NULL;
+    reset();
+    if (priv->current_read_buf) {
+        red_pipe_item_unref(&priv->current_read_buf->base);
+        priv->current_read_buf = NULL;
     }
-    g_free(dev->priv->mig_data);
-    spice_extra_assert(dev->priv->num_read_buf == 0);
+    g_free(priv->mig_data);
+    spice_extra_assert(priv->num_read_buf == 0);
 }
 
 RedRecord *reds_get_record(RedsState *reds)
