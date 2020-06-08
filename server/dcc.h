@@ -129,10 +129,10 @@ struct RedImageItem final: public RedPipeItem {
 };
 
 struct RedDrawablePipeItem: public RedPipeItem {
-    RedDrawablePipeItem();
+    RedDrawablePipeItem(DisplayChannelClient *dcc, Drawable *drawable);
     ~RedDrawablePipeItem();
-    Drawable *drawable;
-    DisplayChannelClient *dcc;
+    Drawable *const drawable;
+    DisplayChannelClient *const dcc;
 };
 
 DisplayChannelClient*      dcc_new                                   (DisplayChannel *display,

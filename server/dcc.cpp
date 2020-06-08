@@ -302,9 +302,13 @@ static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *dra
     dcc_push_surface_image(dcc, drawable->surface_id);
 }
 
-RedDrawablePipeItem::RedDrawablePipeItem():
-    RedPipeItem(RED_PIPE_ITEM_TYPE_DRAW)
+RedDrawablePipeItem::RedDrawablePipeItem(DisplayChannelClient *init_dcc, Drawable *init_drawable):
+    RedPipeItem(RED_PIPE_ITEM_TYPE_DRAW),
+    drawable(init_drawable),
+    dcc(init_dcc)
 {
+    drawable->pipes = g_list_prepend(drawable->pipes, this);
+    drawable->refs++;
 }
 
 RedDrawablePipeItem::~RedDrawablePipeItem()
@@ -313,20 +317,9 @@ RedDrawablePipeItem::~RedDrawablePipeItem()
     drawable_unref(drawable);
 }
 
-static red::shared_ptr<RedDrawablePipeItem>
-red_drawable_pipe_item_new(DisplayChannelClient *dcc, Drawable *drawable)
-{
-    auto dpi = red::make_shared<RedDrawablePipeItem>();
-    dpi->drawable = drawable;
-    dpi->dcc = dcc;
-    drawable->pipes = g_list_prepend(drawable->pipes, dpi.get());
-    drawable->refs++;
-    return dpi;
-}
-
 void dcc_prepend_drawable(DisplayChannelClient *dcc, Drawable *drawable)
 {
-    auto dpi = red_drawable_pipe_item_new(dcc, drawable);
+    auto dpi = red::make_shared<RedDrawablePipeItem>(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
     dcc->pipe_add(std::move(dpi));
@@ -334,7 +327,7 @@ void dcc_prepend_drawable(DisplayChannelClient *dcc, Drawable *drawable)
 
 void dcc_append_drawable(DisplayChannelClient *dcc, Drawable *drawable)
 {
-    auto dpi = red_drawable_pipe_item_new(dcc, drawable);
+    auto dpi = red::make_shared<RedDrawablePipeItem>(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
     dcc->pipe_add_tail(std::move(dpi));
@@ -342,7 +335,7 @@ void dcc_append_drawable(DisplayChannelClient *dcc, Drawable *drawable)
 
 void dcc_add_drawable_after(DisplayChannelClient *dcc, Drawable *drawable, RedPipeItem *pos)
 {
-    auto dpi = red_drawable_pipe_item_new(dcc, drawable);
+    auto dpi = red::make_shared<RedDrawablePipeItem>(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
     dcc->pipe_add_after(std::move(dpi), pos);
