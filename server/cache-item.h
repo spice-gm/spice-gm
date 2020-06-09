@@ -23,12 +23,6 @@
 
 #include "red-pipe-item.h"
 
-/* pipe item used to release a specific cached item on the client */
-struct RedCachePipeItem {
-    RedPipeItem base;
-    uint64_t id;
-};
-
 struct RedCacheItem {
     RingItem lru_link;
     RedCacheItem *next;

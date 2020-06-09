@@ -68,6 +68,12 @@ protected:
     virtual bool config_socket() override;
 };
 
+/* pipe item used to release a specific cached item on the client */
+struct RedCachePipeItem {
+    RedPipeItem base;
+    uint64_t id;
+};
+
 #include "pop-visibility.h"
 
 #endif /* COMMON_GRAPHICS_CHANNEL_H_ */
