@@ -168,12 +168,9 @@ static inline void red_marshall_inval(RedChannelClient *rcc,
                                       SpiceMarshaller *base_marshaller,
                                       RedCachePipeItem *cache_item)
 {
-    SpiceMsgDisplayInvalOne inval_one;
-
     rcc->init_send_data(SPICE_MSG_CURSOR_INVAL_ONE);
-    inval_one.id = cache_item->id;
 
-    spice_marshall_msg_cursor_inval_one(base_marshaller, &inval_one);
+    spice_marshall_msg_cursor_inval_one(base_marshaller, &cache_item->inval_one);
 }
 
 void CursorChannelClient::send_item(RedPipeItem *pipe_item)

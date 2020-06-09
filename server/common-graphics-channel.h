@@ -71,7 +71,7 @@ protected:
 /* pipe item used to release a specific cached item on the client */
 struct RedCachePipeItem {
     RedPipeItem base;
-    uint64_t id;
+    SpiceMsgDisplayInvalOne inval_one;
 };
 
 #include "pop-visibility.h"
