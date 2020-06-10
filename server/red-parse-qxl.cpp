@@ -1566,6 +1566,10 @@ static bool red_get_cursor(RedMemSlotInfo *slots, int group_id,
     } else {
         red->data = (uint8_t*) g_memdup(data, size);
     }
+    // Arrived here we could note that we are not going to use anymore cursor data
+    // and we could be tempted to release resource back to QXL. Don't do that!
+    // If machine is migrated we will get cursor data back so we need to hold this
+    // data for migration
     return true;
 }
 
