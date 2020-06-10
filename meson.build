@@ -227,3 +227,5 @@ endif
 
 configure_file(output : 'config.h',
                configuration : spice_server_config_data)
+
+run_target('doxy', command : './doxygen.sh')
