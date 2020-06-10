@@ -15,7 +15,9 @@
    License along with this library; if not, see <http://www.gnu.org/licenses/>.
 */
 
-/* Generic utilities for C++
+/**
+ * @file utils.hpp
+ * Generic utilities for C++
  */
 #pragma once
 
@@ -37,7 +39,8 @@ inline T* add_ref(T* p)
 }
 
 
-/* Smart pointer allocated once
+/**
+ * Smart pointer allocated once
  *
  * It just keep the pointer passed to constructor and delete
  * the object in the destructor. No copy or move allowed.
@@ -85,11 +88,20 @@ struct GLibDeleter {
     }
 };
 
+/**
+ * Allows to define a variable holding objects allocated with
+ * g_malloc().
+ *
+ * @code{.cpp}
+ * red::glib_unique_ptr<char> s = g_strdup("hello");
+ * @endcode
+ */
 template <typename T>
 using glib_unique_ptr = std::unique_ptr<T, GLibDeleter<T>>;
 
 
-/* Returns the size of an array.
+/**
+ * @brief Returns the size of an array.
  * Introduced in C++17 but lacking in C++11
  */
 template <class T, size_t N>
@@ -102,7 +114,8 @@ constexpr size_t size(const T (&array)[N]) noexcept
 template <typename T>
 class weak_ptr;
 
-/* Basic shared pointer for internal reference
+/**
+ * Basic shared pointer for internal reference
  *
  * Similar to STL version but using intrusive. This to allow creating multiple
  * shared pointers from the raw pointer without problems having the object
@@ -113,11 +126,11 @@ class weak_ptr;
  * This class is inspired to boost::intrusive_ptr.
  *
  * To allow to reference and unrefered any object the object should
- * define shared_ptr_add_ref and shared_ptr_unref, both taking a pointer and incrementing and
+ * define shared_ptr_add_ref() and shared_ptr_unref(), both taking a pointer and incrementing and
  * decrementing respectively. You should not call these function yourselves.
  *
- * It's recommended that you create the object with make_shared provided below. This to make sure
- * that there is at least one strong reference to the object.
+ * It's recommended that you create the object with red::make_shared() provided below. This to makes
+ * sure that there is at least one strong reference to the object.
  */
 template <typename T>
 class shared_ptr
@@ -222,18 +235,26 @@ inline bool operator!=(const shared_ptr<T>& a, const shared_ptr<O>& b)
     return a.get() != b.get();
 }
 
+/**
+ * Allows to create and object and wrap into a smart pointer at the same
+ * time.
+ * You should try to allocated any shared pointer managed object with this
+ * function.
+ */
 template<typename T, typename... Args>
 inline shared_ptr<T> make_shared(Args&&... args)
 {
     return shared_ptr<T>(new T(args...));
 }
 
-/* Utility to help implementing shared_ptr requirement
+/**
+ * Utility to help implementing shared_ptr requirements.
  *
  * You should inherit publicly this class in order to have base internal reference counting
  * implementation.
  *
  * This class uses atomic operations and virtual destructor so it's not really light.
+ * @see simple_ptr_counted
  */
 class shared_ptr_counted
 {
@@ -266,12 +287,13 @@ inline void shared_ptr_unref(shared_ptr_counted* p)
     }
 }
 
-/* Basic weak pointer for internal reference
+/**
+ * Basic weak pointer for internal reference
  *
  * Similar to STL version like shared_ptr here.
  *
- * In order to support weak_ptr for an object weak_ptr_add_ref,
- * weak_ptr_unref and weak_ptr_lock should be implemented. See below.
+ * In order to support weak_ptr for an object weak_ptr_add_ref(),
+ * weak_ptr_unref() and weak_ptr_lock() should be implemented. See below.
  */
 template <typename T>
 class weak_ptr
@@ -336,7 +358,8 @@ private:
 };
 
 
-/* Utility to help implementing shared ptr with weak semantic too
+/**
+ * Utility to help implementing shared ptr with weak semantic too
  *
  * Similar to shared_ptr_counted but you can use weak pointers too.
  */
