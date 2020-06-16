@@ -165,8 +165,9 @@ static uint64_t extract_length(const uint8_t *buf, int *used)
     case LENGTH_64BIT:
         *used += 8;
         outlen = 0;
-        for (i = 56; i >= 0; i -= 8) {
-            outlen |= (*buf++) << i;
+        for (i = 0; i < 8; ++i) {
+            outlen <<= 8;
+            outlen |= *buf++;
         }
         break;
 
