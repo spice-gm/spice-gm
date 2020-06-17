@@ -146,7 +146,10 @@ main(int argc, char **argv)
     }
 
     int enable = 1;
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+                   (const void *) &enable, sizeof(enable)) < 0) {
+        err(1, "setsockopt reuseaddr");
+    }
 
     if (non_blocking) {
         red_socket_set_non_blocking(sock, true);
@@ -200,7 +203,10 @@ handle_client(int new_sock)
     }
 
     int enable = 1;
-    setsockopt(new_sock, IPPROTO_TCP, TCP_NODELAY, (const void *) &enable, sizeof(enable));
+    if (setsockopt(new_sock, IPPROTO_TCP, TCP_NODELAY,
+                   (const void *) &enable, sizeof(enable)) < 0) {
+        err(1, "setsockopt nodelay");
+    }
 
     // wait header
     wait_for(new_sock, POLLIN);
