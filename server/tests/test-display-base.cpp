@@ -963,7 +963,7 @@ static void init_automated(void)
 {
 }
 
-static __attribute__((noreturn))
+static SPICE_GNUC_NORETURN
 void usage(const char *argv0, const int exitcode)
 {
     const char *autoopt=" [--automated-tests]";
