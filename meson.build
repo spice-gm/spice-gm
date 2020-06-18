@@ -108,7 +108,9 @@ if host_machine.system() != 'windows'
     spice_server_deps += compiler.find_library(dep)
   endforeach
 else
-  spice_server_deps += compiler.find_library('ws2_32')
+  foreach dep : ['ws2_32', 'shlwapi']
+    spice_server_deps += compiler.find_library(dep)
+  endforeach
 endif
 
 #
