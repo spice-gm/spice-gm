@@ -2470,8 +2470,7 @@ static void reds_accept_ssl_connection(int fd, int event, void *data)
     }
 
     if (!(link = reds_init_client_ssl_connection(reds, socket))) {
-        close(socket);
-        return;
+        socket_close(socket);
     }
 }
 
@@ -2486,8 +2485,9 @@ static void reds_accept(int fd, int event, void *data)
         return;
     }
 
-    if (spice_server_add_client(reds, socket, 0) < 0)
-        close(socket);
+    if (spice_server_add_client(reds, socket, 0) < 0) {
+        socket_close(socket);
+    }
 }
 
 
