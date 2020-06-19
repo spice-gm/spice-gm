@@ -198,14 +198,9 @@ inline RedChannel::CreationFlags operator|(RedChannel::CreationFlags a, RedChann
                         id_, &*channel_, ## __VA_ARGS__);                                \
     } while (0)
 
-#define red_channel_warning(channel, format, ...)                                        \
-        red_channel_log_generic(g_warning, channel, format, ## __VA_ARGS__);
-
-#define red_channel_message(channel, format, ...)                                        \
-        red_channel_log_generic(g_message, channel, format, ## __VA_ARGS__);
-
-#define red_channel_debug(channel, format, ...)                                          \
-        red_channel_log_generic(g_debug, channel, format, ## __VA_ARGS__);
+#define red_channel_warning(...) red_channel_log_generic(g_warning, __VA_ARGS__)
+#define red_channel_message(...) red_channel_log_generic(g_message, __VA_ARGS__)
+#define red_channel_debug(...) red_channel_log_generic(g_debug, __VA_ARGS__)
 
 #include "pop-visibility.h"
 

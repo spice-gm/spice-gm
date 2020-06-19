@@ -229,9 +229,9 @@ static const SpiceDataHeaderOpaque mini_header_wrapper = {NULL, sizeof(SpiceMini
  * When an error occurs over a channel, we treat it as a warning
  * for spice-server and shutdown the channel.
  */
-#define spice_channel_client_error(rcc, format, ...)                                     \
+#define spice_channel_client_error(rcc, ...)                                             \
     do {                                                                                 \
-        red_channel_warning(rcc->priv->channel, format, ## __VA_ARGS__);                 \
+        red_channel_warning(rcc->priv->channel, __VA_ARGS__);                            \
         rcc->shutdown();                                                                 \
     } while (0)
 
