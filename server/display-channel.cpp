@@ -21,8 +21,6 @@
 #include "display-channel-private.h"
 #include "red-qxl.h"
 
-XXX_CAST(RedChannel, DisplayChannel, DISPLAY_CHANNEL);
-
 DisplayChannel::~DisplayChannel()
 {
     display_channel_destroy_surfaces(this);
@@ -2491,7 +2489,7 @@ void DisplayChannel::on_connect(RedClient *client,
 
 void DisplayChannelClient::disconnect()
 {
-    DisplayChannel *display = DISPLAY_CHANNEL(get_channel());
+    DisplayChannel *display = DCC_TO_DC(this);
 
     guest_set_client_capabilities(display);
 
@@ -2500,7 +2498,7 @@ void DisplayChannelClient::disconnect()
 
 void DisplayChannelClient::migrate()
 {
-    DisplayChannel *display = DISPLAY_CHANNEL(get_channel());
+    DisplayChannel *display = DCC_TO_DC(this);
 
     /* We need to stop the streams, and to send upgrade_items to the client.
      * Otherwise, (1) the client might display lossy regions that we don't track

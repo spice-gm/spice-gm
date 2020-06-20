@@ -177,14 +177,11 @@ static GList *dcc_get_tail(DisplayChannelClient *dcc)
     return dcc->get_pipe()->tail;
 }
 
-XXX_CAST(RedChannel, DisplayChannel, DISPLAY_CHANNEL);
-
 static void red_display_add_image_to_pixmap_cache(DisplayChannelClient *dcc,
                                                   SpiceImage *image, SpiceImage *io_image,
                                                   int is_lossy)
 {
-    DisplayChannel *display_channel G_GNUC_UNUSED =
-        DISPLAY_CHANNEL(dcc->get_channel());
+    DisplayChannel *display_channel G_GNUC_UNUSED = DCC_TO_DC(dcc);
 
     if ((image->descriptor.flags & SPICE_IMAGE_FLAGS_CACHE_ME)) {
         spice_assert(image->descriptor.width * image->descriptor.height > 0);
@@ -1794,7 +1791,7 @@ static void display_channel_marshall_migrate_data(DisplayChannelClient *dcc,
     SpiceMigrateDataDisplay display_data = {0,};
     GlzEncDictRestoreData glz_dict_data;
 
-    display_channel = DISPLAY_CHANNEL(dcc->get_channel());
+    display_channel = DCC_TO_DC(dcc);
 
     dcc->init_send_data(SPICE_MSG_MIGRATE_DATA);
     spice_marshaller_add_uint32(base_marshaller, SPICE_MIGRATE_DATA_DISPLAY_MAGIC);
@@ -2099,8 +2096,7 @@ static void marshall_qxl_drawable(DisplayChannelClient *dcc,
     spice_return_if_fail(dcc);
 
     Drawable *item = dpi->drawable;
-    DisplayChannel *display =
-        DISPLAY_CHANNEL(dcc->get_channel());
+    DisplayChannel *display = DCC_TO_DC(dcc);
 
     spice_return_if_fail(display);
     /* allow sized frames to be streamed, even if they where replaced by another frame, since
