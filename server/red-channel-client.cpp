@@ -127,7 +127,7 @@ struct RedChannelClientPrivate
     red::shared_ptr<RedChannel> channel;
     RedClient *const client;
     RedStream *const stream;
-    gboolean monitor_latency;
+    bool monitor_latency;
 
     struct {
         uint32_t generation;
@@ -297,7 +297,8 @@ RedChannelClientPrivate::RedChannelClientPrivate(RedChannel *channel,
                                                  RedChannelCapabilities *caps,
                                                  bool monitor_latency):
     channel(channel),
-    client(client), stream(stream)
+    client(client), stream(stream),
+    monitor_latency(monitor_latency)
 {
     // blocks send message (maybe use send_data.blocked + block flags)
     ack_data.messages_window = ~0;
