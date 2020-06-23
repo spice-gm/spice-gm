@@ -35,7 +35,7 @@ One aspect to take into consideration is the event scheduling. SPICE uses some
 `SpiceCoreInterface` to handle events. As the events will be handled from a
 thread based on the core interface you have to use the correct core. Each
 channel has an associated core interface which can be retrieved using
-`red_channel_get_core_interface`. There's also a main core interface you can get
+`RedChannel::get_core_interface`. There's also a main core interface you can get
 using `reds_get_core_interface`. `reds_core_timer_*` and `reds_core_watch_*`
 functions use the main core interface.
 Even though multiple channel types run in the main thread and so could use
@@ -73,8 +73,8 @@ same RedClient are automatically disconnected.
 Who owns RedClient? RedClient is released when the MainChannelClient attached
 to it is disconnected. In this case a request is scheduled in the main thread
 (even if MainChannelClient runs on the main thread too) and
-red_client_disconnect is called which calls red_client_destroy which uses
-g_object_unref to free the object.
+reds_client_disconnect is called which calls RedClient::destroy which uses
+RedClient::unref to free the object.
 
 Where is the MainChannelClient freed? On disconnection like other channel
 clients, currently before RedClient which will have a dangling pointer.
