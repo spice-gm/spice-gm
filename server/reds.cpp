@@ -2386,11 +2386,11 @@ static RedLinkInfo *reds_init_client_connection(RedsState *reds, int socket)
     RedLinkInfo *link;
 
     if (!red_socket_set_non_blocking(socket, TRUE)) {
-       goto error;
+        return NULL;
     }
 
     if (!red_socket_set_no_delay(socket, TRUE)) {
-       goto error;
+        return NULL;
     }
 
     red_socket_set_keepalive(socket, TRUE, KEEPALIVE_TIMEOUT);
@@ -2407,9 +2407,6 @@ static RedLinkInfo *reds_init_client_connection(RedsState *reds, int socket)
     openssl_init(link);
 
     return link;
-
-error:
-    return NULL;
 }
 
 
