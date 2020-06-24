@@ -48,18 +48,11 @@ private:
     void handle_migrate_data(uint16_t motion_count);
     void pipe_add_init();
 
-    // TODO: RECEIVE_BUF_SIZE used to be the same for inputs_channel and main_channel
-    // since it was defined once in reds.c which contained both.
-    // Now that they are split we can give a more fitting value for inputs - what
-    // should it be?
     enum {
-        AGENT_WINDOW_SIZE = 10,
-        NUM_INTERNAL_AGENT_MESSAGES = 1,
-
         // approximate max receive message size
-        RECEIVE_BUF_SIZE =
-            (4096 + (AGENT_WINDOW_SIZE + NUM_INTERNAL_AGENT_MESSAGES) *
-                     SPICE_AGENT_MAX_DATA_SIZE)
+        // The largest message from client is "key_scancode" which contains
+        // key pressed or released. 2K is more then enough.
+        RECEIVE_BUF_SIZE = 2048
     };
 
     uint8_t recv_buf[RECEIVE_BUF_SIZE];
