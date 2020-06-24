@@ -629,7 +629,7 @@ static uint64_t get_initial_bit_rate(DisplayChannelClient *dcc, VideoStream *str
 
         errno = 0;
         env_bit_rate = strtod(env_bit_rate_str, NULL);
-        if (errno == 0) {
+        if (errno == 0 && env_bit_rate > 0) {
             bit_rate = env_bit_rate * 1024 * 1024;
         } else {
             spice_warning("error parsing SPICE_BIT_RATE: %s", strerror(errno));
