@@ -430,6 +430,68 @@ inline bool weak_ptr_lock(shared_ptr_counted_weak* p)
 }
 
 
+/**
+ * Utility to help implementing shared_ptr requirements.
+ *
+ * You should inherit publicly this class in order to have base internal reference counting
+ * implementation.
+ *
+ * This class does not use atomic operations and virtual destructor so it's more light than
+ * shared_ptr_counted.
+ *
+ * To avoid issues with inheritance not calling proper destructor the derived objects should
+ * follow this pattern (note the final):
+ *
+ * @code{.cpp}
+ * class Name final: public simple_ptr_counted<Name> {
+ *    ...
+ * }
+ * @endcode
+ *
+ * or
+ *
+ * @code{.cpp}
+ * class Name: public simple_ptr_counted<Name> {
+ *    ...
+ *    virtual ~Name();
+ *    ...
+ * }
+ * @endcode
+ */
+template <typename T>
+class simple_ptr_counted
+{
+public:
+    SPICE_CXX_GLIB_ALLOCATOR
+
+    simple_ptr_counted(): ref_count(0)
+    {
+    }
+private:
+    mutable int ref_count;
+    simple_ptr_counted(const simple_ptr_counted<T>& rhs)=delete;
+    void operator=(const simple_ptr_counted<T>& rhs)=delete;
+    template <typename Q>
+    friend inline void shared_ptr_add_ref(const simple_ptr_counted<Q>*);
+    template <typename Q>
+    friend inline void shared_ptr_unref(const simple_ptr_counted<Q>*);
+};
+
+template <typename T>
+inline void shared_ptr_add_ref(const simple_ptr_counted<T>* p)
+{
+    ++p->ref_count;
+}
+
+template <typename T>
+inline void shared_ptr_unref(const simple_ptr_counted<T>* p)
+{
+    if (--p->ref_count == 0) {
+        delete const_cast<T*>(static_cast<const T*>(p));
+    }
+}
+
+
 } // namespace red
 
 #include "pop-visibility.h"
