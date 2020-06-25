@@ -102,7 +102,7 @@ struct VideoEncoder {
      *                 report.
      * @end_frame_delay: This indicates how long in advance the client
      *                 received the last frame before having to display it.
-     * @audio delay:   The latency of the audio playback or MAX_UINT if it
+     * @audio_delay:   The latency of the audio playback or MAX_UINT if it
      *                 is not tracked.
      */
     void (*client_stream_report)(VideoEncoder *encoder,
