@@ -1428,8 +1428,8 @@ push_raw_frame(SpiceGstEncoder *encoder,
 }
 
 /* A helper for spice_gst_encoder_encode_frame() */
-static int pull_compressed_buffer(SpiceGstEncoder *encoder,
-                                  VideoBuffer **outbuf)
+static VideoEncodeResults
+pull_compressed_buffer(SpiceGstEncoder *encoder, VideoBuffer **outbuf)
 {
     pthread_mutex_lock(&encoder->outbuf_mutex);
     while (!encoder->outbuf) {
@@ -1534,7 +1534,7 @@ spice_gst_encoder_encode_frame(VideoEncoder *video_encoder,
     }
 
     uint64_t start = spice_get_monotonic_time_ns();
-    int rc = push_raw_frame(encoder, bitmap, src, top_down, bitmap_opaque);
+    VideoEncodeResults rc = push_raw_frame(encoder, bitmap, src, top_down, bitmap_opaque);
     if (rc == VIDEO_ENCODER_FRAME_ENCODE_DONE) {
         rc = pull_compressed_buffer(encoder, outbuf);
         if (rc != VIDEO_ENCODER_FRAME_ENCODE_DONE) {
