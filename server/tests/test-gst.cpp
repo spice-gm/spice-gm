@@ -120,7 +120,7 @@ gst_buffer_new_wrapped_full(int flags SPICE_GNUC_UNUSED, gpointer data, gsize ma
 #define BGRx_CAPS "caps=video/x-raw,format=BGRx"
 #endif
 
-typedef void (*SampleProc)(GstSample *sample, void *param);
+typedef GstFlowReturn (*SampleProc)(GstSample *sample, void *param);
 
 typedef struct {
     GstAppSrc *appsrc;
@@ -166,6 +166,9 @@ static pthread_cond_t eos_cond = PTHREAD_COND_INITIALIZER;
 static gdouble minimum_psnr = 25;
 static uint64_t starting_bit_rate = 3000000;
 
+// error to return from main()
+static int global_test_error = 0;
+
 static void compute_clipping_rect(GstSample *sample);
 static void parse_clipping(const char *clipping);
 static TestFrame *gst_to_spice_frame(GstSample *sample);
@@ -187,7 +190,7 @@ static double compute_psnr(SpiceBitmap *bitmap1, int32_t x1, int32_t y1,
                            int32_t w, int32_t h);
 
 // handle output frames from input pipeline
-static void
+static GstFlowReturn
 input_frames(GstSample *sample, void *param)
 {
     unsigned curr_frame_index = input_frame_index++;
@@ -251,10 +254,11 @@ input_frames(GstSample *sample, void *param)
     // TODO call client_stream_report to simulate this report from the client
 
     frame_unref(frame);
+    return GST_FLOW_OK;
 }
 
 // handle output frames from output pipeline
-static void
+static GstFlowReturn
 output_frames(GstSample *sample, void *param)
 {
     TestFrame *curr_frame = gst_to_spice_frame(sample);
@@ -266,7 +270,7 @@ output_frames(GstSample *sample, void *param)
     pthread_mutex_unlock(&frame_queue_mtx);
     if (!expected_frame) {
         g_printerr("Frame not present in the queue but arrived in output!\n");
-        exit(1);
+        return GST_FLOW_EOS;
     }
 
     // TODO try to understand if this is correct
@@ -287,11 +291,12 @@ output_frames(GstSample *sample, void *param)
     // check is more or less the same
     if (psnr < minimum_psnr) {
         g_printerr("Frame PSNR too low, got %g minimum %g\n", psnr, minimum_psnr);
-        exit(1);
+        return GST_FLOW_EOS;
     }
 
     frame_unref(expected_frame);
     frame_unref(curr_frame);
+    return GST_FLOW_OK;
 }
 
 static const EncoderInfo encoder_infos[] = {
@@ -448,7 +453,7 @@ int main(int argc, char *argv[])
     g_free(clipping);
     g_option_context_free(context);
 
-    return 0;
+    return global_test_error;
 }
 
 static void
@@ -559,13 +564,17 @@ static GstFlowReturn
 new_sample(GstAppSink *gstappsink, gpointer test_pipeline)
 {
     TestPipeline *pipeline = (TestPipeline*) test_pipeline;
+    GstFlowReturn res = GST_FLOW_OK;
 
     GstSample *sample = gst_app_sink_pull_sample(pipeline->appsink);
     if (sample) {
-        pipeline->sample_proc(sample, pipeline->sample_param);
+        res = pipeline->sample_proc(sample, pipeline->sample_param);
+        if (res != GST_FLOW_OK) {
+            global_test_error = 1;
+        }
         gst_sample_unref(sample);
     }
-    return GST_FLOW_OK;
+    return res;
 }
 
 static GstBusSyncReply
