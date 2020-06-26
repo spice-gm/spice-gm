@@ -17,8 +17,6 @@
 */
 #include <config.h>
 
-#include <common/ring.h>
-
 #include "red-common.h"
 #include "reds.h"
 #include "red-channel-client.h"

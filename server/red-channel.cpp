@@ -20,8 +20,6 @@
 */
 #include <config.h>
 
-#include <common/ring.h>
-
 #include "red-channel.h"
 #include "red-channel-client.h"
 #include "reds.h"

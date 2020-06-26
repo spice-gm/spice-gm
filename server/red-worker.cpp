@@ -36,7 +36,6 @@
 #include <common/lz.h>
 #include <common/rect.h>
 #include <common/region.h>
-#include <common/ring.h>
 
 #include "display-channel.h"
 #include "video-stream.h"
