@@ -2072,7 +2072,7 @@ static void reds_handle_ticket(void *opaque)
                       RSA_size(link->tiTicketing.rsa), SPICE_MAX_PASSWORD_LENGTH);
     }
 
-    password = g_new0(char, RSA_size(link->tiTicketing.rsa) + 1);
+    password = (char *) alloca(RSA_size(link->tiTicketing.rsa) + 1);
     password_size = RSA_private_decrypt(link->tiTicketing.rsa_size,
                                         link->tiTicketing.encrypted_ticket.encrypted_data,
                                         (unsigned char *)password,
@@ -2110,14 +2110,11 @@ static void reds_handle_ticket(void *opaque)
     }
 
     reds_handle_link(link);
-    goto end;
+    return;
 
 error:
     reds_send_link_result(link, SPICE_LINK_ERR_PERMISSION_DENIED);
     reds_link_free(link);
-
-end:
-    g_free(password);
 }
 
 static void reds_get_spice_ticket(RedLinkInfo *link)
