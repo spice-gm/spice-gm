@@ -88,13 +88,6 @@ static void reds_set_video_codecs(RedsState *reds, GArray *video_codecs);
  * server */
 #define SPICE_DEBUG_ALLOW_MC_ENV "SPICE_DEBUG_ALLOW_MC"
 
-#define MIGRATION_NOTIFY_SPICE_KEY "spice_mig_ext"
-
-#define REDS_MIG_VERSION 3
-#define REDS_MIG_CONTINUE 1
-#define REDS_MIG_ABORT 2
-#define REDS_MIG_DIFF_VERSION 3
-
 #define REDS_TOKENS_TO_SEND 5
 #define REDS_VDI_PORT_NUM_RECEIVE_BUFFS 5
 
@@ -1871,16 +1864,6 @@ static void reds_handle_main_link(RedsState *reds, RedLinkInfo *link)
     }
 }
 
-#define RED_MOUSE_STATE_TO_LOCAL(state)     \
-    ((state & SPICE_MOUSE_BUTTON_MASK_LEFT) |          \
-     ((state & SPICE_MOUSE_BUTTON_MASK_MIDDLE) << 1) |   \
-     ((state & SPICE_MOUSE_BUTTON_MASK_RIGHT) >> 1))
-
-#define RED_MOUSE_BUTTON_STATE_TO_AGENT(state)                      \
-    (((state & SPICE_MOUSE_BUTTON_MASK_LEFT) ? VD_AGENT_LBUTTON_MASK : 0) |    \
-     ((state & SPICE_MOUSE_BUTTON_MASK_MIDDLE) ? VD_AGENT_MBUTTON_MASK : 0) |    \
-     ((state & SPICE_MOUSE_BUTTON_MASK_RIGHT) ? VD_AGENT_RBUTTON_MASK : 0))
-
 static void openssl_init(RedLinkInfo *link)
 {
     unsigned long f4 = RSA_F4;
@@ -2941,8 +2924,6 @@ static void reds_set_one_channel_security(RedsState *reds, int id, uint32_t secu
     security_options->next = reds->config->channels_security;
     reds->config->channels_security = security_options;
 }
-
-#define REDS_SAVE_VERSION 1
 
 static void reds_mig_release(RedServerConfig *config)
 {
