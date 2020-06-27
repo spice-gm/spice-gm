@@ -298,7 +298,7 @@ static SpiceWatch *watch_add(const SpiceCoreInterfaceInternal *iface,
     watch->spice_base.funcs = &glib_core_funcs;
     watch->fd = fd;
 
-    g_source_set_callback(&watch->source, (GSourceFunc)(void*)(SpiceWatchFunc) func, opaque, NULL);
+    g_source_set_callback(&watch->source, (GSourceFunc)(void*) func, opaque, NULL);
 
     g_source_attach(&watch->source, iface->main_context);
 
