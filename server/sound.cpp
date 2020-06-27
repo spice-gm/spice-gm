@@ -340,8 +340,8 @@ bool RecordChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         mode_time = msg_mode->time;
         if (msg_mode->mode != SPICE_AUDIO_DATA_MODE_RAW) {
             if (snd_codec_is_capable((SpiceAudioDataMode) msg_mode->mode, channel->frequency)) {
-                if (snd_codec_create(&codec, msg_mode->mode, channel->frequency,
-                                     SND_CODEC_DECODE) == SND_CODEC_OK) {
+                if (snd_codec_create(&codec, (SpiceAudioDataMode) msg_mode->mode,
+                                     channel->frequency, SND_CODEC_DECODE) == SND_CODEC_OK) {
                     mode = msg_mode->mode;
                 } else {
                     red_channel_warning(channel, "create decoder failed");
@@ -1004,7 +1004,7 @@ PlaybackChannelClient::PlaybackChannelClient(PlaybackChannel *channel,
         reds_config_get_playback_compression(channel->get_server());
     int desired_mode = snd_desired_audio_mode(playback_compression, channel->frequency, client_can_opus);
     if (desired_mode != SPICE_AUDIO_DATA_MODE_RAW) {
-        if (snd_codec_create(&codec, desired_mode, channel->frequency,
+        if (snd_codec_create(&codec, (SpiceAudioDataMode) desired_mode, channel->frequency,
                              SND_CODEC_ENCODE) == SND_CODEC_OK) {
             mode = desired_mode;
         } else {
