@@ -88,8 +88,6 @@ typedef struct VideoStreamAgent {
     VideoEncoder *video_encoder;
     DisplayChannelClient *dcc;
 
-    int fps;
-
     uint32_t report_id;
     uint32_t client_required_latency;
 #ifdef STREAM_STATS

@@ -771,7 +771,6 @@ void dcc_create_stream(DisplayChannelClient *dcc, VideoStream *stream)
         region_clone(&agent->vis_region, &stream->current->tree_item.base.rgn);
         region_clone(&agent->clip, &agent->vis_region);
     }
-    agent->fps = MAX_FPS;
     agent->dcc = dcc;
 
     VideoEncoderRateControlCbs video_cbs;
