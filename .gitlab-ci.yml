@@ -159,8 +159,10 @@ makecheck-windows:
 websocket-autobahn:
   script:
   - >
-    dnf install python2 python2-pip python2-devel python-unversioned-command
+    dnf install python27 python-unversioned-command curl
     -y
+  - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  - python2 get-pip.py
   - pip2 install autobahntestsuite
   - wstest -a
   - >
