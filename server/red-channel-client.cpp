@@ -1652,13 +1652,13 @@ void RedChannelClient::pipe_remove_and_release(RedPipeItem *item)
 /* client mutex should be locked before this call */
 bool RedChannelClient::set_migration_seamless()
 {
-    gboolean ret = FALSE;
+    bool ret = false;
     uint32_t flags;
 
     flags = priv->channel->migration_flags();
     if (flags & SPICE_MIGRATE_NEED_DATA_TRANSFER) {
         priv->wait_migrate_data = TRUE;
-        ret = TRUE;
+        ret = true;
     }
     red_channel_debug(priv->channel, "rcc %p wait data %d", this,
                       priv->wait_migrate_data);
