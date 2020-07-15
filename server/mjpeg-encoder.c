@@ -363,10 +363,10 @@ static uint32_t get_max_fps(uint64_t frame_size, uint64_t bytes_per_sec)
     return frame_size ? bytes_per_sec / frame_size : MJPEG_MAX_FPS;
 }
 
-static inline void mjpeg_encoder_reset_quality(MJpegEncoder *encoder,
-                                               int quality_id,
-                                               uint32_t fps,
-                                               uint64_t frame_enc_size)
+static void mjpeg_encoder_reset_quality(MJpegEncoder *encoder,
+                                        int quality_id,
+                                        uint32_t fps,
+                                        uint64_t frame_enc_size)
 {
     MJpegEncoderRateControl *rate_control = &encoder->rate_control;
     double fps_ratio;
