@@ -90,7 +90,7 @@ public:
     void pipe_add_after(RedPipeItemPtr&& item, RedPipeItem *pos);
     void pipe_add_after_pos(RedPipeItemPtr&& item,
                             RedChannelClient::Pipe::iterator pos);
-    int pipe_item_is_linked(RedPipeItem *item);
+    bool pipe_item_is_linked(RedPipeItem *item) const;
     void pipe_remove_and_release(RedPipeItem *item);
     void pipe_add_tail(RedPipeItemPtr&& item);
     /* for types that use this routine -> the pipe item should be freed */

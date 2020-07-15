@@ -564,6 +564,15 @@ find_pipe_item(RedChannelClient::Pipe &pipe, const RedPipeItem *item)
     });
 }
 
+static RedChannelClient::Pipe::const_iterator
+find_pipe_item(const RedChannelClient::Pipe &pipe, const RedPipeItem *item)
+{
+    return std::find_if(pipe.begin(), pipe.end(),
+                        [=](const RedPipeItemPtr& p) -> bool {
+                            return p.get() == item;
+    });
+}
+
 void RedChannelClientPrivate::pipe_remove(RedPipeItem *item)
 {
     auto i = find_pipe_item(pipe, item);
@@ -1419,7 +1428,7 @@ void RedChannelClient::pipe_add_after(RedPipeItemPtr&& item, RedPipeItem *pos)
     pipe_add_after_pos(std::move(item), prev);
 }
 
-int RedChannelClient::pipe_item_is_linked(RedPipeItem *item)
+bool RedChannelClient::pipe_item_is_linked(RedPipeItem *item) const
 {
     return find_pipe_item(priv->pipe, item) != priv->pipe.end();
 }
