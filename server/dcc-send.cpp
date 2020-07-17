@@ -172,6 +172,11 @@ static bool is_brush_lossy(DisplayChannelClient *dcc, SpiceBrush *brush,
     }
 }
 
+static RedChannelClient::Pipe::iterator get_pipe_tail(RedChannelClient::Pipe& pipe)
+{
+    return pipe.empty() ? pipe.end() : --pipe.end();
+}
+
 static void red_display_add_image_to_pixmap_cache(DisplayChannelClient *dcc,
                                                   SpiceImage *image, SpiceImage *io_image,
                                                   int is_lossy)
@@ -776,7 +781,7 @@ static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
         // will be executed before the current drawable
         for (i = 0; i < num_deps; i++) {
             dcc_add_surface_area_image(dcc, deps_surfaces_ids[i], deps_areas[i],
-                                       dcc->get_pipe().end(), FALSE);
+                                       get_pipe_tail(dcc->get_pipe()), FALSE);
 
         }
     } else {
@@ -797,7 +802,7 @@ static void red_add_lossless_drawable_dependencies(DisplayChannelClient *dcc,
         }
 
         dcc_add_surface_area_image(dcc, drawable->surface_id, &drawable->bbox,
-                                   dcc->get_pipe().end(), TRUE);
+                                   get_pipe_tail(dcc->get_pipe()), TRUE);
     }
 }
 
