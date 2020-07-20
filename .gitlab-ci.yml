@@ -154,6 +154,7 @@ makecheck-windows:
   - NOCONFIGURE=yes ./autogen.sh
   - mingw64-configure
   - mingw64-make
+  - export G_TLS_GNUTLS_PRIORITY="NORMAL:%COMPAT"
   - mingw64-make LOG_COMPILE=wine -C server check || (cat server/tests/test-suite.log && exit 1)
 
 websocket-autobahn:
