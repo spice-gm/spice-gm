@@ -1111,10 +1111,12 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
 {
     const unsigned int MAX_NUM_MONITORS = 256;
     const unsigned int MAX_MONITOR_CONFIG_SIZE =
-       sizeof(VDAgentMonitorsConfig) + MAX_NUM_MONITORS * sizeof(VDAgentMonConfig);
+        sizeof(VDAgentMonitorsConfig) +
+        MAX_NUM_MONITORS * (sizeof(VDAgentMonConfig) + sizeof(VDAgentMonitorMM));
 
     VDAgentMessage *msg_header;
     VDAgentMonitorsConfig *monitors_config;
+    size_t monitor_size = sizeof(VDAgentMonConfig);
     SpiceBuffer *cmc = &reds->client_monitors_config;
     uint32_t max_monitors;
 
@@ -1140,9 +1142,15 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
         goto overflow;
     }
     monitors_config = (VDAgentMonitorsConfig *)(cmc->buffer + sizeof(*msg_header));
+    /* filter out not known flags */
+    monitors_config->flags &= ~(VD_AGENT_CONFIG_MONITORS_FLAG_USE_POS |
+        VD_AGENT_CONFIG_MONITORS_FLAG_PHYSICAL_SIZE);
+    if ((monitors_config->flags & VD_AGENT_CONFIG_MONITORS_FLAG_PHYSICAL_SIZE) != 0) {
+        monitor_size += sizeof(VDAgentMonitorMM);
+    }
     // limit the monitor number to avoid buffer overflows
     max_monitors = (msg_header->size - sizeof(VDAgentMonitorsConfig)) /
-                   sizeof(VDAgentMonConfig);
+                   monitor_size;
     if (monitors_config->num_of_monitors > max_monitors) {
         goto overflow;
     }

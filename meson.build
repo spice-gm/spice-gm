@@ -50,7 +50,7 @@ spice_server_include = [include_directories('.')]
 spice_server_deps = [dependency('threads')]
 spice_server_link_args = []
 spice_server_requires = ''
-spice_protocol_version='0.14.0'
+spice_protocol_version='0.14.3'
 
 #
 # Spice common subproject

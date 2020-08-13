@@ -164,7 +164,7 @@ AM_CONDITIONAL(HAVE_SASL, test "x$have_sasl" = "xyes")
 
 dnl =========================================================================
 dnl Check deps
-m4_define([SPICE_PROTOCOL_MIN_VER],[0.14.0])
+m4_define([SPICE_PROTOCOL_MIN_VER],[0.14.3])
 m4_include([subprojects/spice-common/m4/common.m4])
 
 AC_CHECK_LIBM
