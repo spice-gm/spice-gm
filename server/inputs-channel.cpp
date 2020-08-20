@@ -117,15 +117,16 @@ const VDAgentMouseState *InputsChannel::get_mouse_state()
     return &mouse_state;
 }
 
-#define RED_MOUSE_STATE_TO_LOCAL(state)     \
-    ((state & SPICE_MOUSE_BUTTON_MASK_LEFT) |          \
-     ((state & SPICE_MOUSE_BUTTON_MASK_MIDDLE) << 1) |   \
+// middle and right states are inverted
+// all buttons from SPICE_MOUSE_BUTTON_MASK_SIDE are mapped a bit higher
+// to avoid conflicting with some internal Qemu bit
+#define RED_MOUSE_STATE_TO_LOCAL(state)                           \
+    ((state & SPICE_MOUSE_BUTTON_MASK_LEFT) |                     \
+     ((state & (SPICE_MOUSE_BUTTON_MASK_MIDDLE|0xffe0)) << 1) |   \
      ((state & SPICE_MOUSE_BUTTON_MASK_RIGHT) >> 1))
 
-#define RED_MOUSE_BUTTON_STATE_TO_AGENT(state)                      \
-    (((state & SPICE_MOUSE_BUTTON_MASK_LEFT) ? VD_AGENT_LBUTTON_MASK : 0) |    \
-     ((state & SPICE_MOUSE_BUTTON_MASK_MIDDLE) ? VD_AGENT_MBUTTON_MASK : 0) |    \
-     ((state & SPICE_MOUSE_BUTTON_MASK_RIGHT) ? VD_AGENT_RBUTTON_MASK : 0))
+// mouse button constants are defined to be off-one between agent and SPICE protocol
+#define RED_MOUSE_BUTTON_STATE_TO_AGENT(state) ((state) << 1)
 
 void InputsChannel::activate_modifiers_watch()
 {
