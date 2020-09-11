@@ -213,8 +213,8 @@ struct RedCharDeviceVDIPort: public RedCharDevice
     virtual RedPipeItemPtr read_one_msg_from_device() override;
     virtual void send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque) override;
     virtual void send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens) override;
-    virtual void remove_client(RedCharDeviceClientOpaque *opaque);
-    virtual void on_free_self_token();
+    virtual void remove_client(RedCharDeviceClientOpaque *opaque) override;
+    virtual void on_free_self_token() override;
 
     RedCharDeviceVDIPortPrivate priv[1];
 };
