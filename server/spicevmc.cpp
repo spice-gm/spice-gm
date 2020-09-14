@@ -98,23 +98,6 @@ struct RedVmcChannel: public RedChannel
     RedStatCounter out_uncompressed;
 };
 
-struct RedVmcChannelUsbredir final: public RedVmcChannel
-{
-    RedVmcChannelUsbredir();
-};
-
-
-struct RedVmcChannelWebdav final: public RedVmcChannel
-{
-    RedVmcChannelWebdav();
-};
-
-
-struct RedVmcChannelPort final: public RedVmcChannel
-{
-    RedVmcChannelPort();
-};
-
 
 class VmcChannelClient final: public RedChannelClient
 {
