@@ -1143,8 +1143,8 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
     }
     monitors_config = (VDAgentMonitorsConfig *)(cmc->buffer + sizeof(*msg_header));
     /* filter out not known flags */
-    monitors_config->flags &= ~(VD_AGENT_CONFIG_MONITORS_FLAG_USE_POS |
-        VD_AGENT_CONFIG_MONITORS_FLAG_PHYSICAL_SIZE);
+    monitors_config->flags &= VD_AGENT_CONFIG_MONITORS_FLAG_USE_POS |
+        VD_AGENT_CONFIG_MONITORS_FLAG_PHYSICAL_SIZE;
     if ((monitors_config->flags & VD_AGENT_CONFIG_MONITORS_FLAG_PHYSICAL_SIZE) != 0) {
         monitor_size += sizeof(VDAgentMonitorMM);
     }
