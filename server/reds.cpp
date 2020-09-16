@@ -51,6 +51,7 @@
 #include <spice/stats.h>
 
 #include <common/generated_server_marshallers.h>
+#include <common/agent.h>
 
 #include "spice-wrapped.h"
 #include "reds.h"
@@ -1116,9 +1117,7 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
 
     VDAgentMessage *msg_header;
     VDAgentMonitorsConfig *monitors_config;
-    size_t monitor_size = sizeof(VDAgentMonConfig);
     SpiceBuffer *cmc = &reds->client_monitors_config;
-    uint32_t max_monitors;
     uint32_t msg_size;
 
     // limit size of message sent by the client as this can cause a DoS through
@@ -1140,9 +1139,6 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
         spice_debug("not enough data yet. %" G_GSSIZE_FORMAT, cmc->offset);
         return;
     }
-    if (msg_size < sizeof(VDAgentMonitorsConfig)) {
-        goto overflow;
-    }
 
     // convert VDAgentMessage endianness
     msg_header->protocol = GUINT32_FROM_LE(msg_header->protocol);
@@ -1151,16 +1147,8 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
     msg_header->size = GUINT32_FROM_LE(msg_header->size);
 
     monitors_config = (VDAgentMonitorsConfig *)(cmc->buffer + sizeof(*msg_header));
-    /* filter out not known flags */
-    monitors_config->flags &= VD_AGENT_CONFIG_MONITORS_FLAG_USE_POS |
-        VD_AGENT_CONFIG_MONITORS_FLAG_PHYSICAL_SIZE;
-    if ((monitors_config->flags & VD_AGENT_CONFIG_MONITORS_FLAG_PHYSICAL_SIZE) != 0) {
-        monitor_size += sizeof(VDAgentMonitorMM);
-    }
-    // limit the monitor number to avoid buffer overflows
-    max_monitors = (msg_size - sizeof(VDAgentMonitorsConfig)) /
-                   monitor_size;
-    if (monitors_config->num_of_monitors > max_monitors) {
+    if (agent_check_message(msg_header, (uint8_t *) monitors_config,
+                            NULL, 0) != AGENT_CHECK_NO_ERROR) {
         goto overflow;
     }
     spice_debug("monitors_config->num_of_monitors: %d", monitors_config->num_of_monitors);
