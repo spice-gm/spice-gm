@@ -70,6 +70,9 @@ data_to_read:
         return AGENT_MSG_FILTER_PROTO_ERROR;
     }
     memcpy(&msg_header, data, sizeof(msg_header));
+    msg_header.protocol = GUINT32_FROM_LE(msg_header.protocol);
+    msg_header.type = GUINT32_FROM_LE(msg_header.type);
+    msg_header.size = GUINT32_FROM_LE(msg_header.size);
     len -= sizeof(msg_header);
 
     if (msg_header.protocol != VD_AGENT_PROTOCOL) {

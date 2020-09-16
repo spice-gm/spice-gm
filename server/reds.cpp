@@ -1119,6 +1119,7 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
     size_t monitor_size = sizeof(VDAgentMonConfig);
     SpiceBuffer *cmc = &reds->client_monitors_config;
     uint32_t max_monitors;
+    uint32_t msg_size;
 
     // limit size of message sent by the client as this can cause a DoS through
     // memory exhaustion, or potentially some integer overflows
@@ -1131,16 +1132,24 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
         return;
     }
     msg_header = (VDAgentMessage *)cmc->buffer;
-    if (msg_header->size > MAX_MONITOR_CONFIG_SIZE) {
+    msg_size = GUINT32_FROM_LE(msg_header->size);
+    if (msg_size > MAX_MONITOR_CONFIG_SIZE) {
         goto overflow;
     }
-    if (msg_header->size > cmc->offset - sizeof(VDAgentMessage)) {
+    if (msg_size > cmc->offset - sizeof(VDAgentMessage)) {
         spice_debug("not enough data yet. %" G_GSSIZE_FORMAT, cmc->offset);
         return;
     }
-    if (msg_header->size < sizeof(VDAgentMonitorsConfig)) {
+    if (msg_size < sizeof(VDAgentMonitorsConfig)) {
         goto overflow;
     }
+
+    // convert VDAgentMessage endianness
+    msg_header->protocol = GUINT32_FROM_LE(msg_header->protocol);
+    msg_header->type = GUINT32_FROM_LE(msg_header->type);
+    msg_header->opaque = GUINT64_FROM_LE(msg_header->opaque);
+    msg_header->size = GUINT32_FROM_LE(msg_header->size);
+
     monitors_config = (VDAgentMonitorsConfig *)(cmc->buffer + sizeof(*msg_header));
     /* filter out not known flags */
     monitors_config->flags &= VD_AGENT_CONFIG_MONITORS_FLAG_USE_POS |
@@ -1149,7 +1158,7 @@ static void reds_on_main_agent_monitors_config(RedsState *reds,
         monitor_size += sizeof(VDAgentMonitorMM);
     }
     // limit the monitor number to avoid buffer overflows
-    max_monitors = (msg_header->size - sizeof(VDAgentMonitorsConfig)) /
+    max_monitors = (msg_size - sizeof(VDAgentMonitorsConfig)) /
                    monitor_size;
     if (monitors_config->num_of_monitors > max_monitors) {
         goto overflow;
