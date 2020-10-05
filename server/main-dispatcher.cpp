@@ -78,8 +78,8 @@ struct MainDispatcherClientDisconnectMessage {
 static void main_dispatcher_handle_channel_event(void *opaque,
                                                  void *payload)
 {
-    RedsState *reds = (RedsState*) opaque;
-    MainDispatcherChannelEventMessage *channel_event = (MainDispatcherChannelEventMessage*) payload;
+    auto reds = (RedsState*) opaque;
+    auto channel_event = (MainDispatcherChannelEventMessage*) payload;
 
     reds_handle_channel_event(reds, channel_event->event, channel_event->info);
 }
@@ -101,8 +101,8 @@ void MainDispatcher::channel_event(int event, SpiceChannelEventInfo *info)
 static void main_dispatcher_handle_migrate_complete(void *opaque,
                                                     void *payload)
 {
-    RedsState *reds = (RedsState*) opaque;
-    MainDispatcherMigrateSeamlessDstCompleteMessage *mig_complete = (MainDispatcherMigrateSeamlessDstCompleteMessage*) payload;
+    auto reds = (RedsState*) opaque;
+    auto mig_complete = (MainDispatcherMigrateSeamlessDstCompleteMessage*) payload;
 
     reds_on_client_seamless_migrate_complete(reds, mig_complete->client);
     mig_complete->client->unref();
@@ -111,8 +111,8 @@ static void main_dispatcher_handle_migrate_complete(void *opaque,
 static void main_dispatcher_handle_mm_time_latency(void *opaque,
                                                    void *payload)
 {
-    RedsState *reds = (RedsState*) opaque;
-    MainDispatcherMmTimeLatencyMessage *msg = (MainDispatcherMmTimeLatencyMessage*) payload;
+    auto reds = (RedsState*) opaque;
+    auto msg = (MainDispatcherMmTimeLatencyMessage*) payload;
     reds_set_client_mm_time_latency(reds, msg->client, msg->latency);
     msg->client->unref();
 }
@@ -120,8 +120,8 @@ static void main_dispatcher_handle_mm_time_latency(void *opaque,
 static void main_dispatcher_handle_client_disconnect(void *opaque,
                                                      void *payload)
 {
-    RedsState *reds = (RedsState*) opaque;
-    MainDispatcherClientDisconnectMessage *msg = (MainDispatcherClientDisconnectMessage*) payload;
+    auto reds = (RedsState*) opaque;
+    auto msg = (MainDispatcherClientDisconnectMessage*) payload;
 
     spice_debug("client=%p", msg->client);
     reds_client_disconnect(reds, msg->client);

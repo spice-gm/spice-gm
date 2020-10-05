@@ -482,7 +482,7 @@ void RedChannelClient::send_ping()
 
 void RedChannelClient::send_empty_msg(RedPipeItem *base)
 {
-    RedEmptyMsgPipeItem *msg_pipe_item = static_cast<RedEmptyMsgPipeItem*>(base);
+    auto msg_pipe_item = static_cast<RedEmptyMsgPipeItem*>(base);
 
     init_send_data(msg_pipe_item->msg);
     begin_send_message();

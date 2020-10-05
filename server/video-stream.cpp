@@ -341,7 +341,7 @@ static void before_reattach_stream(DisplayChannel *display,
 
     index = display_channel_get_video_stream_id(display, stream);
     for (dpi_link = stream->current->pipes; dpi_link; dpi_link = dpi_next) {
-        RedDrawablePipeItem *dpi = (RedDrawablePipeItem*) dpi_link->data;
+        auto dpi = (RedDrawablePipeItem*) dpi_link->data;
         dpi_next = dpi_link->next;
         dcc = dpi->dcc;
         agent = dcc_get_video_stream_agent(dcc, index);
@@ -649,7 +649,7 @@ static uint64_t get_initial_bit_rate(DisplayChannelClient *dcc, VideoStream *str
 
 static uint32_t get_roundtrip_ms(void *opaque)
 {
-    VideoStreamAgent *agent = (VideoStreamAgent*) opaque;
+    auto agent = (VideoStreamAgent*) opaque;
     int roundtrip;
     RedChannelClient *rcc = agent->dcc;
 
@@ -670,14 +670,14 @@ static uint32_t get_roundtrip_ms(void *opaque)
 
 static uint32_t get_source_fps(void *opaque)
 {
-    VideoStreamAgent *agent = (VideoStreamAgent*) opaque;
+    auto agent = (VideoStreamAgent*) opaque;
 
     return agent->stream->input_fps;
 }
 
 static void update_client_playback_delay(void *opaque, uint32_t delay_ms)
 {
-    VideoStreamAgent *agent = (VideoStreamAgent*) opaque;
+    auto agent = (VideoStreamAgent*) opaque;
     DisplayChannelClient *dcc = agent->dcc;
     RedClient *client = dcc->get_client();
     RedsState *reds = client->get_server();
@@ -694,13 +694,13 @@ static void update_client_playback_delay(void *opaque, uint32_t delay_ms)
 
 static void bitmap_ref(gpointer data)
 {
-    RedDrawable *red_drawable = (RedDrawable*)data;
+    auto red_drawable = (RedDrawable*)data;
     red_drawable_ref(red_drawable);
 }
 
 static void bitmap_unref(gpointer data)
 {
-    RedDrawable *red_drawable = (RedDrawable*)data;
+    auto red_drawable = (RedDrawable*)data;
     red_drawable_unref(red_drawable);
 }
 

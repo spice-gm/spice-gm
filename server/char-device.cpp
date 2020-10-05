@@ -133,7 +133,7 @@ static void red_char_device_client_free(RedCharDevice *dev,
     spice_debug("write_queue_is_empty %d", g_queue_is_empty(&dev->priv->write_queue) && !dev->priv->cur_write_buf);
     l = g_queue_peek_head_link(&dev->priv->write_queue);
     while (l) {
-        RedCharDeviceWriteBuffer *write_buf = (RedCharDeviceWriteBuffer *) l->data;
+        auto write_buf = (RedCharDeviceWriteBuffer *) l->data;
         next = l->next;
 
         if (write_buf->priv->origin == WRITE_BUFFER_ORIGIN_CLIENT &&
@@ -755,7 +755,7 @@ void RedCharDevice::migrate_data_marshall_empty(SpiceMarshaller *m)
 
 static void migrate_data_marshaller_write_buffer_free(uint8_t *data, void *opaque)
 {
-    RedCharDeviceWriteBuffer *write_buf = (RedCharDeviceWriteBuffer *)opaque;
+    auto write_buf = (RedCharDeviceWriteBuffer *)opaque;
 
     red_char_device_write_buffer_unref(write_buf);
 }
@@ -800,7 +800,7 @@ void RedCharDevice::migrate_data_marshall(SpiceMarshaller *m)
     }
 
     for (item = g_queue_peek_tail_link(&priv->write_queue); item != NULL; item = item->prev) {
-        RedCharDeviceWriteBuffer *write_buf = (RedCharDeviceWriteBuffer *) item->data;
+        auto write_buf = (RedCharDeviceWriteBuffer *) item->data;
 
         spice_marshaller_add_by_ref_full(m2, write_buf->buf, write_buf->buf_used,
                                          migrate_data_marshaller_write_buffer_free,
@@ -915,7 +915,7 @@ RedCharDevice::~RedCharDevice()
     priv->cur_write_buf = NULL;
 
     while (priv->clients != NULL) {
-        RedCharDeviceClient *dev_client = (RedCharDeviceClient *) priv->clients->data;
+        auto dev_client = (RedCharDeviceClient *) priv->clients->data;
         red_char_device_client_free(this, dev_client);
     }
     priv->running = FALSE;

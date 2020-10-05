@@ -27,7 +27,7 @@ RedPipeItem::RedPipeItem(int init_type):
 
 static void marshaller_unref_pipe_item(uint8_t *, void *opaque)
 {
-    RedPipeItem *item = (RedPipeItem*) opaque;
+    auto item = (RedPipeItem*) opaque;
     shared_ptr_unref(item);
 }
 

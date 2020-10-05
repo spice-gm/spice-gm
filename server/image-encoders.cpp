@@ -387,7 +387,7 @@ static void image_encoders_init_lz(ImageEncoders *enc)
 static void glz_usr_free_image(GlzEncoderUsrContext *usr, GlzUsrImageContext *image)
 {
     GlzData *lz_data = SPICE_CONTAINEROF(usr, GlzData, usr);
-    GlzDrawableInstanceItem *glz_drawable_instance = (GlzDrawableInstanceItem *)image;
+    auto glz_drawable_instance = (GlzDrawableInstanceItem *)image;
     ImageEncoders *drawable_enc = glz_drawable_instance->glz_drawable->encoders;
     ImageEncoders *this_enc = SPICE_CONTAINEROF(lz_data, ImageEncoders, glz_data);
     if (this_enc == drawable_enc) {
@@ -688,7 +688,7 @@ static GlzSharedDictionary *glz_shared_dictionary_new(RedClient *client, uint8_t
 {
     spice_return_val_if_fail(dict != NULL, NULL);
 
-    GlzSharedDictionary *shared_dict = g_new0(GlzSharedDictionary, 1);
+    auto shared_dict = g_new0(GlzSharedDictionary, 1);
 
     shared_dict->dict = dict;
     shared_dict->id = id;
@@ -709,7 +709,7 @@ static GlzSharedDictionary *find_glz_dictionary(RedClient *client, uint8_t dict_
     GlzSharedDictionary *ret = NULL;
 
     for (l = glz_dictionary_list; l != NULL; l = l->next) {
-        GlzSharedDictionary *dict = (GlzSharedDictionary *) l->data;
+        auto dict = (GlzSharedDictionary *) l->data;
         if ((dict->client == client) && (dict->id == dict_id)) {
             ret = dict;
             break;

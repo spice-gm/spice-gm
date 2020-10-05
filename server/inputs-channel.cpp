@@ -51,7 +51,7 @@ struct SpiceKbdState {
 
 static SpiceKbdState* spice_kbd_state_new(InputsChannel *inputs)
 {
-    SpiceKbdState *st = g_new0(SpiceKbdState, 1);
+    auto st = g_new0(SpiceKbdState, 1);
     st->inputs = inputs;
     return st;
 }
@@ -71,7 +71,7 @@ struct SpiceTabletState {
 
 static SpiceTabletState* spice_tablet_state_new(RedsState* reds)
 {
-    SpiceTabletState *st = g_new0(SpiceTabletState, 1);
+    auto st = g_new0(SpiceTabletState, 1);
     st->reds = reds;
     return st;
 }
@@ -247,12 +247,12 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
 
     switch (type) {
     case SPICE_MSGC_INPUTS_KEY_DOWN: {
-        SpiceMsgcKeyDown *key_down = (SpiceMsgcKeyDown *) message;
+        auto key_down = (SpiceMsgcKeyDown *) message;
         inputs_channel->sync_locks(key_down->code);
     }
         /* fallthrough */
     case SPICE_MSGC_INPUTS_KEY_UP: {
-        SpiceMsgcKeyUp *key_up = (SpiceMsgcKeyUp *) message;
+        auto key_up = (SpiceMsgcKeyUp *) message;
         for (i = 0; i < 4; i++) {
             uint8_t code = (key_up->code >> (i * 8)) & 0xff;
             if (code == 0) {
@@ -264,7 +264,7 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         break;
     }
     case SPICE_MSGC_INPUTS_KEY_SCANCODE: {
-        uint8_t *code = (uint8_t *) message;
+        auto code = (uint8_t *) message;
         for (i = 0; i < size; i++) {
             kbd_push_scan(inputs_channel->keyboard, code[i]);
             inputs_channel->sync_locks(code[i]);
@@ -273,7 +273,7 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
     }
     case SPICE_MSGC_INPUTS_MOUSE_MOTION: {
         SpiceMouseInstance *mouse = inputs_channel->mouse;
-        SpiceMsgcMouseMotion *mouse_motion = (SpiceMsgcMouseMotion *) message;
+        auto mouse_motion = (SpiceMsgcMouseMotion *) message;
 
         on_mouse_motion();
         if (mouse && reds_get_mouse_mode(reds) == SPICE_MOUSE_MODE_SERVER) {
@@ -286,7 +286,7 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         break;
     }
     case SPICE_MSGC_INPUTS_MOUSE_POSITION: {
-        SpiceMsgcMousePosition *pos = (SpiceMsgcMousePosition *) message;
+        auto pos = (SpiceMsgcMousePosition *) message;
         SpiceTabletInstance *tablet = inputs_channel->tablet;
 
         on_mouse_motion();
@@ -309,7 +309,7 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         break;
     }
     case SPICE_MSGC_INPUTS_MOUSE_PRESS: {
-        SpiceMsgcMousePress *mouse_press = (SpiceMsgcMousePress *) message;
+        auto mouse_press = (SpiceMsgcMousePress *) message;
         int dz = 0;
         if (mouse_press->button == SPICE_MOUSE_BUTTON_UP) {
             dz = -1;
@@ -340,7 +340,7 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         break;
     }
     case SPICE_MSGC_INPUTS_MOUSE_RELEASE: {
-        SpiceMsgcMouseRelease *mouse_release = (SpiceMsgcMouseRelease *) message;
+        auto mouse_release = (SpiceMsgcMouseRelease *) message;
         if (reds_get_mouse_mode(reds) == SPICE_MOUSE_MODE_CLIENT) {
             if (reds_config_get_agent_mouse(reds) && reds_has_vdagent(reds)) {
                 inputs_channel->mouse_state.buttons =
@@ -363,7 +363,7 @@ bool InputsChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         break;
     }
     case SPICE_MSGC_INPUTS_KEY_MODIFIERS: {
-        SpiceMsgcKeyModifiers *modifiers = (SpiceMsgcKeyModifiers *) message;
+        auto modifiers = (SpiceMsgcKeyModifiers *) message;
         uint8_t leds;
         SpiceKbdInstance *keyboard = inputs_channel->keyboard;
 

@@ -182,10 +182,10 @@ StreamDevice::handle_msg_invalid(const char *error_msg)
         write_buffer_get_server(total_size, false);
     buf->buf_used = total_size;
 
-    StreamDevHeader *const header = (StreamDevHeader *)buf->buf;
+    auto const header = (StreamDevHeader *)buf->buf;
     fill_dev_hdr(header, STREAM_TYPE_NOTIFY_ERROR, msg_size);
 
-    StreamMsgNotifyError *const error = (StreamMsgNotifyError *)(header+1);
+    auto const error = (StreamMsgNotifyError *)(header+1);
     error->error_code = GUINT32_TO_LE(0);
     strcpy((char *) error->msg, error_msg);
 
@@ -380,7 +380,7 @@ get_cursor_type_bits(unsigned int cursor_type)
 static RedCursorCmd *
 stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_size)
 {
-    RedCursorCmd *cmd = g_new0(RedCursorCmd, 1);
+    auto cmd = g_new0(RedCursorCmd, 1);
     cmd->type = QXL_CURSOR_SET;
     cmd->u.set.position.x = 0; // TODO
     cmd->u.set.position.y = 0; // TODO
@@ -477,7 +477,7 @@ StreamDevice::handle_msg_cursor_move()
     move->x = GINT32_FROM_LE(move->x);
     move->y = GINT32_FROM_LE(move->y);
 
-    RedCursorCmd *cmd = g_new0(RedCursorCmd, 1);
+    auto cmd = g_new0(RedCursorCmd, 1);
     cmd->type = QXL_CURSOR_MOVE;
     cmd->u.position.x = move->x;
     cmd->u.position.y = move->y;
@@ -495,7 +495,7 @@ void
 StreamDevice::stream_start(void *opaque, StreamMsgStartStop *start,
                            StreamChannel *stream_channel G_GNUC_UNUSED)
 {
-    StreamDevice *dev = (StreamDevice *) opaque;
+    auto dev = (StreamDevice *) opaque;
 
     if (!dev->opened) {
         return;
@@ -508,7 +508,7 @@ StreamDevice::stream_start(void *opaque, StreamMsgStartStop *start,
         dev->write_buffer_get_server(total_size, false);
     buf->buf_used = total_size;
 
-    StreamDevHeader *hdr = (StreamDevHeader *)buf->buf;
+    auto hdr = (StreamDevHeader *)buf->buf;
     fill_dev_hdr(hdr, STREAM_TYPE_START_STOP, msg_size);
 
     memcpy(&hdr[1], start, msg_size);
@@ -520,7 +520,7 @@ void
 StreamDevice::stream_queue_stat(void *opaque, const StreamQueueStat *stats G_GNUC_UNUSED,
                                 StreamChannel *stream_channel G_GNUC_UNUSED)
 {
-    StreamDevice *dev = (StreamDevice *) opaque;
+    auto dev = (StreamDevice *) opaque;
 
     if (!dev->opened) {
         return;
@@ -632,10 +632,10 @@ send_capabilities(RedCharDevice *char_dev)
         char_dev->write_buffer_get_server(total_size, false);
     buf->buf_used = total_size;
 
-    StreamDevHeader *const hdr = (StreamDevHeader *)buf->buf;
+    auto const hdr = (StreamDevHeader *)buf->buf;
     fill_dev_hdr(hdr, STREAM_TYPE_CAPABILITIES, msg_size);
 
-    StreamMsgCapabilities *const caps = (StreamMsgCapabilities *)(hdr+1);
+    auto const caps = (StreamMsgCapabilities *)(hdr+1);
     memset(caps, 0, msg_size);
 
     char_dev->write_buffer_add(buf);

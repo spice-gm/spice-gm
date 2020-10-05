@@ -1807,7 +1807,7 @@ static void surface_update_dest(RedSurface *surface, const SpiceRect *area)
 {
     SpiceCanvas *canvas = surface->context.canvas;
     int stride = surface->context.stride;
-    uint8_t *line_0 = (uint8_t*) surface->context.line_0;
+    auto line_0 = (uint8_t*) surface->context.line_0;
 
     if (surface->context.canvas_draws_on_surface)
         return;
@@ -2099,7 +2099,7 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
     surface->context.stride = stride;
     surface->context.line_0 = line_0;
     if (!data_is_valid) {
-        char *data = (char*) line_0;
+        auto data = (char*) line_0;
         if (stride < 0) {
             data -= abs(stride) * (height - 1);
         }

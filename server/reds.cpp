@@ -453,7 +453,7 @@ static RedCharDeviceWriteBuffer *vdagent_new_write_buffer(RedCharDeviceVDIPort *
     }
 
     char_dev_buf->buf_used = total_msg_size;
-    VDInternalBuf *internal_buf = (VDInternalBuf *)char_dev_buf->buf;
+    auto internal_buf = (VDInternalBuf *)char_dev_buf->buf;
     internal_buf->chunk_header.port = VDP_SERVER_PORT;
     internal_buf->chunk_header.size = sizeof(VDAgentMessage) + size;
     internal_buf->header.protocol = VD_AGENT_PROTOCOL;
@@ -505,7 +505,7 @@ void reds_client_disconnect(RedsState *reds, RedClient *client)
 
     /* note that client might be NULL, if the vdagent was once
      * up and than was removed */
-    RedCharDeviceClientOpaque *client_opaque = (RedCharDeviceClientOpaque *) client;
+    auto client_opaque = (RedCharDeviceClientOpaque *) client;
     if (reds->agent_dev->client_exists(client_opaque)) {
         reds->agent_dev->client_remove(client_opaque);
     }
@@ -868,7 +868,7 @@ void reds_send_device_display_info(RedsState *reds)
         return;
     }
 
-    VDInternalBuf *internal_buf = (VDInternalBuf *)char_dev_buf->buf;
+    auto internal_buf = (VDInternalBuf *)char_dev_buf->buf;
 
     int free_info;
     size_t len_info;
@@ -887,15 +887,15 @@ void reds_send_device_display_info(RedsState *reds)
 /* after calling this, we unref the message, and the ref is in the instance side */
 void RedCharDeviceVDIPort::send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque)
 {
-    RedClient *client = (RedClient *) opaque;
-    RedVDIReadBuf *agent_data_buf = static_cast<RedVDIReadBuf*>(msg);
+    auto client = (RedClient *) opaque;
+    auto agent_data_buf = static_cast<RedVDIReadBuf*>(msg);
 
     client->get_main()->push_agent_data(red::shared_ptr<RedAgentDataPipeItem>(agent_data_buf));
 }
 
 void RedCharDeviceVDIPort::send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens)
 {
-    RedClient *client = (RedClient *) opaque;
+    auto client = (RedClient *) opaque;
     client->get_main()->push_agent_tokens(tokens);
 }
 
@@ -916,7 +916,7 @@ void RedCharDeviceVDIPort::on_free_self_token()
 
 void RedCharDeviceVDIPort::remove_client(RedCharDeviceClientOpaque *opaque)
 {
-    RedClient *client = (RedClient *) opaque;
+    auto client = (RedClient *) opaque;
     client->get_main()->shutdown();
 }
 
@@ -945,7 +945,7 @@ void reds_handle_agent_mouse_event(RedsState *reds, const VDAgentMouseState *mou
 
     reds->pending_mouse_event = FALSE;
 
-    VDInternalBuf *internal_buf = (VDInternalBuf *)char_dev_buf->buf;
+    auto internal_buf = (VDInternalBuf *)char_dev_buf->buf;
     internal_buf->u.mouse_state = *mouse_state;
 
     reds->agent_dev->write_buffer_add(char_dev_buf);
@@ -1020,7 +1020,7 @@ void reds_on_main_agent_start(RedsState *reds, MainChannelClient *mcc, uint32_t 
      * and vice versa, the sending from the server to the client won't have
      * flow control, but will have no other problem.
      */
-    RedCharDeviceClientOpaque *client_opaque = (RedCharDeviceClientOpaque *) client;
+    auto client_opaque = (RedCharDeviceClientOpaque *) client;
     if (!dev_state->client_exists(client_opaque)) {
         int client_added;
 
@@ -1463,7 +1463,7 @@ bool reds_handle_migrate_data(RedsState *reds, MainChannelClient *mcc,
     } else {
         spice_debug("agent was not attached on the source host");
         if (reds->vdagent) {
-            RedCharDeviceClientOpaque *client_opaque =
+            auto client_opaque =
                 (RedCharDeviceClientOpaque *) mcc->get_client();
             /* red_char_device_client_remove disables waiting for migration data */
             agent_dev->client_remove(client_opaque);
@@ -1487,7 +1487,7 @@ static void reds_channel_init_auth_caps(RedLinkInfo *link, RedChannel *channel)
 
 static const uint32_t *red_link_info_get_caps(const RedLinkInfo *link)
 {
-    const uint8_t *caps_start = (const uint8_t *)link->link_mess;
+    const auto caps_start = (const uint8_t *)link->link_mess;
 
     return (const uint32_t *)(caps_start + link->link_mess->caps_offset);
 }
@@ -1657,7 +1657,7 @@ static RedsMigTargetClient* reds_mig_target_client_find(RedsState *reds, RedClie
     GList *l;
 
     for (l = reds->mig_target_clients; l != NULL; l = l->next) {
-        RedsMigTargetClient *mig_client = (RedsMigTargetClient*) l->data;
+        auto mig_client = (RedsMigTargetClient*) l->data;
 
         if (mig_client->client == client) {
             return mig_client;
@@ -1890,7 +1890,7 @@ static bool reds_link_mig_target_channels(RedsState *reds, RedClient *client)
     /* Each channel should check if we are during migration, and
      * act accordingly. */
     for(item = mig_client->pending_links; item != NULL; item = item->next) {
-        RedsMigPendingLink *mig_link = (RedsMigPendingLink*) item->data;
+        auto mig_link = (RedsMigPendingLink*) item->data;
         RedChannel *channel;
 
         channel = reds_find_channel(reds, mig_link->link_msg->channel_type,
@@ -2018,7 +2018,7 @@ static void reds_handle_link(RedLinkInfo *link)
 
 static void reds_handle_ticket(void *opaque)
 {
-    RedLinkInfo *link = (RedLinkInfo *)opaque;
+    auto link = (RedLinkInfo *)opaque;
     RedsState *reds = link->reds;
     char *password;
     int password_size;
@@ -2113,7 +2113,7 @@ static void reds_start_auth_sasl(RedLinkInfo *link)
 
 static void reds_handle_auth_mechanism(void *opaque)
 {
-    RedLinkInfo *link = (RedLinkInfo *)opaque;
+    auto link = (RedLinkInfo *)opaque;
     RedsState *reds = link->reds;
 
     spice_debug("Auth method: %d", link->auth_mechanism.auth_mechanism);
@@ -2149,7 +2149,7 @@ static int reds_security_check(RedLinkInfo *link)
 
 static void reds_handle_read_link_done(void *opaque)
 {
-    RedLinkInfo *link = (RedLinkInfo *)opaque;
+    auto link = (RedLinkInfo *)opaque;
     RedsState *reds = link->reds;
     SpiceLinkMess *link_mess = link->link_mess;
     uint32_t num_caps;
@@ -2223,7 +2223,7 @@ static void reds_handle_read_link_done(void *opaque)
 
 static void reds_handle_link_error(void *opaque, int err)
 {
-    RedLinkInfo *link = (RedLinkInfo *)opaque;
+    auto link = (RedLinkInfo *)opaque;
     switch (err) {
     case 0:
     case EPIPE:
@@ -2238,7 +2238,7 @@ static void reds_handle_link_error(void *opaque, int err)
 static void reds_handle_new_link(RedLinkInfo *link);
 static void reds_handle_read_header_done(void *opaque)
 {
-    RedLinkInfo *link = (RedLinkInfo *)opaque;
+    auto link = (RedLinkInfo *)opaque;
     SpiceLinkHeader *header = &link->link_header;
 
     header->major_version = GUINT32_FROM_LE(header->major_version);
@@ -2274,7 +2274,7 @@ static void reds_handle_read_header_done(void *opaque)
 
 static void reds_handle_read_magic_done(void *opaque)
 {
-    RedLinkInfo *link = (RedLinkInfo *)opaque;
+    auto link = (RedLinkInfo *)opaque;
     const SpiceLinkHeader *header = &link->link_header;
 
     if (header->magic != SPICE_MAGIC) {
@@ -2314,7 +2314,7 @@ static void reds_handle_new_link(RedLinkInfo *link)
 
 static void reds_handle_ssl_accept(int fd, int event, void *data)
 {
-    RedLinkInfo *link = (RedLinkInfo *)data;
+    auto link = (RedLinkInfo *)data;
     RedStreamSslStatus return_code = red_stream_ssl_accept(link->stream);
 
     switch (return_code) {
@@ -2404,7 +2404,7 @@ error:
 
 static void reds_accept_ssl_connection(int fd, int event, void *data)
 {
-    RedsState *reds = (RedsState*) data;
+    auto reds = (RedsState*) data;
     RedLinkInfo *link;
     int socket;
 
@@ -2421,7 +2421,7 @@ static void reds_accept_ssl_connection(int fd, int event, void *data)
 
 static void reds_accept(int fd, int event, void *data)
 {
-    RedsState *reds = (RedsState*) data;
+    auto reds = (RedsState*) data;
     int socket;
 
     if ((socket = accept(fd, NULL, 0)) == -1) {
@@ -2674,7 +2674,7 @@ static int load_dh_params(SSL_CTX *ctx, char *file)
 /*The password code is not thread safe*/
 static int ssl_password_cb(char *buf, int size, int flags, void *userdata)
 {
-    RedsState *reds = (RedsState*) userdata;
+    auto reds = (RedsState*) userdata;
     char *pass = reds->config->ssl_parameters.keyfile_password;
     int len = g_strlcpy(buf, pass, size);
     if (len >= size) {
@@ -2837,7 +2837,7 @@ SPICE_DESTRUCTOR_FUNC(reds_exit)
 
     pthread_mutex_lock(&global_reds_lock);
     for (l = servers; l != NULL; l = l->next) {
-        RedsState *reds = (RedsState*) l->data;
+        auto reds = (RedsState*) l->data;
         reds_cleanup(reds);
     }
     pthread_mutex_unlock(&global_reds_lock);
@@ -3047,7 +3047,7 @@ attach_to_red_agent(RedsState *reds, SpiceCharDeviceInstance *sin)
          * 2.b If this happens second ==> we already have spice migrate data
          *     then restore state
          */
-        RedCharDeviceClientOpaque *client_opaque =
+        auto client_opaque =
             (RedCharDeviceClientOpaque *) reds_get_client(reds);
         if (!dev->client_exists(client_opaque)) {
             int client_added;
@@ -3438,7 +3438,7 @@ static const char default_video_codecs[] = "spice:mjpeg;" GSTREAMER_CODECS;
 SPICE_GNUC_VISIBLE SpiceServer *spice_server_new(void)
 {
     const char *record_filename;
-    RedsState *reds = new RedsState;
+    auto reds = new RedsState;
 
     reds->config = g_new0(RedServerConfig, 1);
     reds->config->default_channel_security =

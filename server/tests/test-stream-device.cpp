@@ -309,7 +309,7 @@ static void test_stream_device_format_after_data(TestFixture *fixture, gconstpoi
 // check empty message
 static void test_stream_device_empty(TestFixture *fixture, gconstpointer user_data)
 {
-    const StreamMsgType msg_type = (StreamMsgType) GPOINTER_TO_INT(user_data);
+    const auto msg_type = (StreamMsgType) GPOINTER_TO_INT(user_data);
     uint8_t *p = vmc->message;
 
     // add some messages into device buffer

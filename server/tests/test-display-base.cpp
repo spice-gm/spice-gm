@@ -65,7 +65,7 @@ static void test_spice_destroy_update(SimpleSpiceUpdate *update)
         return;
     }
     if (update->drawable.clip.type != SPICE_CLIP_TYPE_NONE) {
-        uint8_t *ptr = (uint8_t*)(uintptr_t)update->drawable.clip.data;
+        auto ptr = (uint8_t*)(uintptr_t)update->drawable.clip.data;
         g_free(ptr);
     }
     g_free(update->bitmap);
@@ -357,7 +357,7 @@ static int format_to_bpp(int format)
 
 static SimpleSurfaceCmd *create_surface(int surface_id, int format, int width, int height, uint8_t *data)
 {
-    SimpleSurfaceCmd *simple_cmd = g_new0(SimpleSurfaceCmd, 1);
+    auto simple_cmd = g_new0(SimpleSurfaceCmd, 1);
     QXLSurfaceCmd *surface_cmd = &simple_cmd->surface_cmd;
     int bpp = format_to_bpp(format);
 
@@ -376,7 +376,7 @@ static SimpleSurfaceCmd *create_surface(int surface_id, int format, int width, i
 
 static SimpleSurfaceCmd *destroy_surface(int surface_id)
 {
-    SimpleSurfaceCmd *simple_cmd = g_new0(SimpleSurfaceCmd, 1);
+    auto simple_cmd = g_new0(SimpleSurfaceCmd, 1);
     QXLSurfaceCmd *surface_cmd = &simple_cmd->surface_cmd;
 
     set_cmd(&simple_cmd->ext, QXL_CMD_SURFACE, (intptr_t)surface_cmd);
@@ -637,7 +637,7 @@ static int req_cmd_notification(QXLInstance *qin)
 
 static void do_wakeup(void *opaque)
 {
-    Test *test = (Test*) opaque;
+    auto test = (Test*) opaque;
     int notify;
 
     test->cursor_notify = NOTIFY_CURSOR_BATCH;
@@ -654,7 +654,7 @@ static void do_wakeup(void *opaque)
 static void release_resource(SPICE_GNUC_UNUSED QXLInstance *qin,
                              struct QXLReleaseInfoExt release_info)
 {
-    QXLCommandExt *ext = (QXLCommandExt*)(uintptr_t)release_info.info->id;
+    auto ext = (QXLCommandExt*)(uintptr_t)release_info.info->id;
     //printf("%s\n", __func__);
     spice_assert(release_info.group_id == MEM_SLOT_GROUP_ID);
     switch (ext->cmd.type) {
@@ -665,7 +665,7 @@ static void release_resource(SPICE_GNUC_UNUSED QXLInstance *qin,
             g_free(ext);
             break;
         case QXL_CMD_CURSOR: {
-            QXLCursorCmd *cmd = (QXLCursorCmd *)(uintptr_t)ext->cmd.data;
+            auto cmd = (QXLCursorCmd *)(uintptr_t)ext->cmd.data;
             if (cmd->type == QXL_CURSOR_SET || cmd->type == QXL_CURSOR_MOVE) {
                 g_free(cmd);
             }
@@ -914,7 +914,7 @@ static gboolean ignore_in_use_failures(const gchar *log_domain,
 
 Test* test_new(SpiceCoreInterface* core)
 {
-    Test *test = g_new0(Test, 1);
+    auto test = g_new0(Test, 1);
     int port = -1;
 
     test->qxl_instance.base.sif = &display_sif.base;

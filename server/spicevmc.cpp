@@ -283,7 +283,7 @@ static void spicevmc_port_send_event(RedChannelClient *rcc, uint8_t event)
 
 void RedCharDeviceSpiceVmc::remove_client(RedCharDeviceClientOpaque *opaque)
 {
-    RedClient *client = (RedClient *) opaque;
+    auto client = (RedClient *) opaque;
 
     spice_assert(channel->rcc &&
                  channel->rcc->get_client() == client);
@@ -480,7 +480,7 @@ static void spicevmc_red_channel_send_data(VmcChannelClient *rcc,
                                            SpiceMarshaller *m,
                                            RedPipeItem *item)
 {
-    RedVmcPipeItem *i = static_cast<RedVmcPipeItem*>(item);
+    auto i = static_cast<RedVmcPipeItem*>(item);
     RedVmcChannel *channel = rcc->get_channel();
 
     /* for compatibility send using not compressed data message */
@@ -524,7 +524,7 @@ static void spicevmc_red_channel_send_port_init(RedChannelClient *rcc,
                                                 SpiceMarshaller *m,
                                                 RedPipeItem *item)
 {
-    RedPortInitPipeItem *i = static_cast<RedPortInitPipeItem*>(item);
+    auto i = static_cast<RedPortInitPipeItem*>(item);
     SpiceMsgPortInit init;
 
     rcc->init_send_data(SPICE_MSG_PORT_INIT);
@@ -538,7 +538,7 @@ static void spicevmc_red_channel_send_port_event(RedChannelClient *rcc,
                                                  SpiceMarshaller *m,
                                                  RedPipeItem *item)
 {
-    RedPortEventPipeItem *i = static_cast<RedPortEventPipeItem*>(item);
+    auto i = static_cast<RedPortEventPipeItem*>(item);
     SpiceMsgPortEvent event;
 
     rcc->init_send_data(SPICE_MSG_PORT_EVENT);

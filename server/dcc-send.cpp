@@ -338,7 +338,7 @@ static void marshaller_add_compressed(SpiceMarshaller *m,
 
 static void marshaller_unref_drawable(uint8_t *data, void *opaque)
 {
-    Drawable *drawable = (Drawable *) opaque;
+    auto drawable = (Drawable *) opaque;
     drawable_unref(drawable);
 }
 
@@ -1634,7 +1634,7 @@ static void red_lossy_marshall_qxl_draw_text(DisplayChannelClient *dcc,
 
 static void red_release_video_encoder_buffer(uint8_t *data, void *opaque)
 {
-    VideoBuffer *buffer = (VideoBuffer*)opaque;
+    auto buffer = (VideoBuffer*)opaque;
     buffer->free(buffer);
 }
 
@@ -2224,7 +2224,7 @@ static void marshall_monitors_config(RedChannelClient *rcc, SpiceMarshaller *bas
 {
     int heads_size = sizeof(SpiceHead) * monitors_config->count;
     int i;
-    SpiceMsgDisplayMonitorsConfig *msg = (SpiceMsgDisplayMonitorsConfig *) g_malloc0(sizeof(*msg) + heads_size);
+    auto msg = (SpiceMsgDisplayMonitorsConfig *) g_malloc0(sizeof(SpiceMsgDisplayMonitorsConfig) + heads_size);
     int count = 0; // ignore monitors_config->count, it may contain zero width monitors, remove them now
 
     rcc->init_send_data(SPICE_MSG_DISPLAY_MONITORS_CONFIG);
@@ -2279,7 +2279,7 @@ static void marshall_gl_draw(RedChannelClient *rcc,
                              SpiceMarshaller *m,
                              RedPipeItem *item)
 {
-    RedGlDrawItem *p = static_cast<RedGlDrawItem*>(item);
+    auto p = static_cast<RedGlDrawItem*>(item);
 
     rcc->init_send_data(SPICE_MSG_DISPLAY_GL_DRAW);
     spice_marshall_msg_display_gl_draw(m, &p->draw);
@@ -2328,7 +2328,7 @@ void DisplayChannelClient::send_item(RedPipeItem *pipe_item)
     ::reset_send_data(dcc);
     switch (pipe_item->type) {
     case RED_PIPE_ITEM_TYPE_DRAW: {
-        RedDrawablePipeItem *dpi = static_cast<RedDrawablePipeItem*>(pipe_item);
+        auto dpi = static_cast<RedDrawablePipeItem*>(pipe_item);
         marshall_qxl_drawable(this, m, dpi);
         break;
     }
@@ -2336,7 +2336,7 @@ void DisplayChannelClient::send_item(RedPipeItem *pipe_item)
         marshall_inval_palette(this, m, static_cast<RedCachePipeItem*>(pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_STREAM_CREATE: {
-        StreamCreateDestroyItem *item = static_cast<StreamCreateDestroyItem*>(pipe_item);
+        auto item = static_cast<StreamCreateDestroyItem*>(pipe_item);
         marshall_stream_start(this, m, item->agent);
         break;
     }
@@ -2344,7 +2344,7 @@ void DisplayChannelClient::send_item(RedPipeItem *pipe_item)
         marshall_stream_clip(this, m, static_cast<VideoStreamClipItem*>(pipe_item));
         break;
     case RED_PIPE_ITEM_TYPE_STREAM_DESTROY: {
-        StreamCreateDestroyItem *item = static_cast<StreamCreateDestroyItem*>(pipe_item);
+        auto item = static_cast<StreamCreateDestroyItem*>(pipe_item);
         marshall_stream_end(this, m, item->agent);
         break;
     }
@@ -2368,22 +2368,22 @@ void DisplayChannelClient::send_item(RedPipeItem *pipe_item)
         init_send_data(SPICE_MSG_DISPLAY_INVAL_ALL_PALETTES);
         break;
     case RED_PIPE_ITEM_TYPE_CREATE_SURFACE: {
-        RedSurfaceCreateItem *surface_create = static_cast<RedSurfaceCreateItem*>(pipe_item);
+        auto surface_create = static_cast<RedSurfaceCreateItem*>(pipe_item);
         marshall_surface_create(this, m, &surface_create->surface_create);
         break;
     }
     case RED_PIPE_ITEM_TYPE_DESTROY_SURFACE: {
-        RedSurfaceDestroyItem *surface_destroy = static_cast<RedSurfaceDestroyItem*>(pipe_item);
+        auto surface_destroy = static_cast<RedSurfaceDestroyItem*>(pipe_item);
         marshall_surface_destroy(this, m, surface_destroy->surface_destroy.surface_id);
         break;
     }
     case RED_PIPE_ITEM_TYPE_MONITORS_CONFIG: {
-        RedMonitorsConfigItem *monconf_item = static_cast<RedMonitorsConfigItem*>(pipe_item);
+        auto monconf_item = static_cast<RedMonitorsConfigItem*>(pipe_item);
         marshall_monitors_config(this, m, monconf_item->monitors_config);
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT: {
-        RedStreamActivateReportItem *report_item =
+        auto report_item =
             static_cast<RedStreamActivateReportItem*>(pipe_item);
         marshall_stream_activate_report(this, m, report_item);
         break;

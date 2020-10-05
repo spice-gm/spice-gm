@@ -114,7 +114,7 @@ struct DumpItem {
 
 static void dump_item(TreeItem *item, void *data)
 {
-    DumpItem *di = (DumpItem*) data;
+    auto di = (DumpItem*) data;
     const char *item_prefix = "|--";
     int i;
 
@@ -193,7 +193,7 @@ Shadow* shadow_new(DrawItem *item, const SpicePoint *delta)
         return NULL;
     }
 
-    Shadow *shadow = g_new(Shadow, 1);
+    auto shadow = g_new(Shadow, 1);
 
     shadow->base.type = TREE_ITEM_TYPE_SHADOW;
     shadow->base.container = NULL;
@@ -213,7 +213,7 @@ Shadow* shadow_new(DrawItem *item, const SpicePoint *delta)
  * container */
 Container* container_new(DrawItem *item)
 {
-    Container *container = g_new(Container, 1);
+    auto container = g_new(Container, 1);
 
     container->base.type = TREE_ITEM_TYPE_CONTAINER;
     container->base.container = item->base.container;
@@ -246,7 +246,7 @@ void container_cleanup(Container *container)
         Container *next = container->base.container;
         if (container->items.next != &container->items) {
             SPICE_VERIFY(SPICE_OFFSETOF(TreeItem, siblings_link) == 0);
-            TreeItem *item = (TreeItem *)ring_get_head(&container->items);
+            auto item = (TreeItem *)ring_get_head(&container->items);
             spice_assert(item);
             ring_remove(&item->siblings_link);
             ring_add_after(&item->siblings_link, &container->base.siblings_link);

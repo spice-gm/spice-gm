@@ -252,7 +252,7 @@ static void snd_playback_free_frame(PlaybackChannelClient *playback_client, Audi
 
 void PlaybackChannelClient::on_message_marshalled(uint8_t *, void *opaque)
 {
-    PlaybackChannelClient *client = reinterpret_cast<PlaybackChannelClient*>(opaque);
+    auto client = reinterpret_cast<PlaybackChannelClient*>(opaque);
 
     if (client->in_progress) {
         snd_playback_free_frame(client, client->in_progress);
@@ -335,7 +335,7 @@ bool RecordChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
     case SPICE_MSGC_RECORD_DATA:
         return snd_record_handle_write(this, size, message);
     case SPICE_MSGC_RECORD_MODE: {
-        SpiceMsgcRecordMode *msg_mode = (SpiceMsgcRecordMode *)message;
+        auto msg_mode = (SpiceMsgcRecordMode *)message;
         SndChannel *channel = get_channel();
         mode_time = msg_mode->time;
         if (msg_mode->mode != SPICE_AUDIO_DATA_MODE_RAW) {
@@ -362,7 +362,7 @@ bool RecordChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
     }
 
     case SPICE_MSGC_RECORD_START_MARK: {
-        SpiceMsgcRecordStartMark *mark = (SpiceMsgcRecordStartMark *)message;
+        auto mark = (SpiceMsgcRecordStartMark *)message;
         start_time = mark->time;
         break;
     }
@@ -941,13 +941,13 @@ void snd_set_playback_latency(RedClient *client, uint32_t latency)
     GList *l;
 
     for (l = snd_channels; l != NULL; l = l->next) {
-        SndChannel *now = (SndChannel*) l->data;
+        auto now = (SndChannel*) l->data;
         SndChannelClient *scc = snd_channel_get_client(now);
         if (now->type() == SPICE_CHANNEL_PLAYBACK && scc &&
             scc->get_client() == client) {
 
             if (scc->test_remote_cap(SPICE_PLAYBACK_CAP_LATENCY)) {
-                PlaybackChannelClient* playback = (PlaybackChannelClient*)scc;
+                auto  playback = (PlaybackChannelClient*)scc;
 
                 playback->latency = latency;
                 snd_set_command(scc, SND_PLAYBACK_LATENCY_MASK);
@@ -1277,7 +1277,7 @@ void snd_set_playback_compression(bool on)
     GList *l;
 
     for (l = snd_channels; l != NULL; l = l->next) {
-        SndChannel *now = (SndChannel*) l->data;
+        auto now = (SndChannel*) l->data;
         SndChannelClient *client = snd_channel_get_client(now);
         if (now->type() == SPICE_CHANNEL_PLAYBACK && client) {
             PlaybackChannelClient* playback = PLAYBACK_CHANNEL_CLIENT(client);

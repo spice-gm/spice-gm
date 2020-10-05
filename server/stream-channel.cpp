@@ -210,7 +210,7 @@ void StreamChannelClient::send_item(RedPipeItem *pipe_item)
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_CREATE: {
-        StreamCreateItem *item = static_cast<StreamCreateItem*>(pipe_item);
+        auto item = static_cast<StreamCreateItem*>(pipe_item);
         stream_id = item->stream_create.id;
         init_send_data(SPICE_MSG_DISPLAY_STREAM_CREATE);
         spice_marshall_msg_display_stream_create(m, &item->stream_create);
@@ -231,7 +231,7 @@ void StreamChannelClient::send_item(RedPipeItem *pipe_item)
         break;
     }
     case RED_PIPE_ITEM_TYPE_STREAM_DATA: {
-        StreamDataItem *item = static_cast<StreamDataItem*>(pipe_item);
+        auto item = static_cast<StreamDataItem*>(pipe_item);
         init_send_data(SPICE_MSG_DISPLAY_STREAM_DATA);
         spice_marshall_msg_display_stream_data(m, &item->data);
         pipe_item->add_to_marshaller(m, item->data.data, item->data.data_size);
@@ -465,7 +465,7 @@ StreamChannel::send_data(const void *data, size_t size, uint32_t mm_time)
         return;
     }
 
-    StreamDataItem *item = new (size) StreamDataItem();
+    auto item = new (size) StreamDataItem();
     item->data.base.id = stream_id;
     item->data.base.multi_media_time = mm_time;
     item->data.data_size = size;

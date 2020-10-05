@@ -1244,7 +1244,7 @@ RedDrawable *red_drawable_new(QXLInstance *qxl, RedMemSlotInfo *slots,
                               int group_id, QXLPHYSICAL addr,
                               uint32_t flags)
 {
-    RedDrawable *red = g_new0(RedDrawable, 1);
+    auto red = g_new0(RedDrawable, 1);
 
     red->refs = 1;
 

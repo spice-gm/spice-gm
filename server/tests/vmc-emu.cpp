@@ -84,7 +84,7 @@ static const SpiceCharDeviceInterface vmc_interface = {
 
 VmcEmu *vmc_emu_new(const char *subtype, const char *portname)
 {
-    VmcEmu *vmc = g_new0(VmcEmu, 1);
+    auto vmc = g_new0(VmcEmu, 1);
     vmc->vmc_interface = vmc_interface;
     vmc->instance.base.sif = &vmc->vmc_interface.base;
     vmc->instance.subtype = g_strdup(subtype);

@@ -236,7 +236,7 @@ void MainChannelClient::push_init(int display_channels_hint,
 
 static RedPipeItemPtr main_name_item_new(const char *name)
 {
-    RedNamePipeItem *item = new (strlen(name) + 1) RedNamePipeItem();
+    auto item = new (strlen(name) + 1) RedNamePipeItem();
     item->msg.name_len = strlen(name) + 1;
     memcpy(&item->msg.name, name, item->msg.name_len);
 

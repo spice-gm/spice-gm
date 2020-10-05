@@ -137,7 +137,7 @@ static SpiceTimer *waked_up_timer;
 // timer waiting we get data again
 static void timer_wakeup(void *opaque)
 {
-    SpiceCoreInterface *core = (SpiceCoreInterface*) opaque;
+    auto core = (SpiceCoreInterface*) opaque;
 
     // check we are receiving data again
     size_t got_data = 0;
@@ -159,7 +159,7 @@ static void timer_wakeup(void *opaque)
 // if we arrive here it means we didn't receive too many watch events
 static void timeout_watch_count(void *opaque)
 {
-    SpiceCoreInterface *core = (SpiceCoreInterface*) opaque;
+    auto core = (SpiceCoreInterface*) opaque;
 
     // get all pending data
     alarm(1);

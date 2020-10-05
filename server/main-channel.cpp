@@ -82,7 +82,7 @@ bool MainChannelClient::handle_migrate_data(uint32_t size, void *message)
 {
     RedChannel *channel = get_channel();
     MainChannelClient *mcc = this;
-    SpiceMigrateDataHeader *header = (SpiceMigrateDataHeader *)message;
+    auto header = (SpiceMigrateDataHeader *)message;
 
     /* not supported with multi-clients */
     spice_assert(channel->get_n_clients() == 1);

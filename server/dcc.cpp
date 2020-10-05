@@ -530,7 +530,7 @@ XXX_CAST(RedChannelClient, DisplayChannelClient, DISPLAY_CHANNEL_CLIENT);
 RedPipeItemPtr dcc_gl_draw_item_new(RedChannelClient *rcc, void *data, int num)
 {
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-    const SpiceMsgDisplayGlDraw *draw = (const SpiceMsgDisplayGlDraw *) data;
+    auto draw = (const SpiceMsgDisplayGlDraw *) data;
 
     if (!red_stream_is_plain_unix(rcc->get_stream()) ||
         !rcc->test_remote_cap(SPICE_DISPLAY_CAP_GL_SCANOUT)) {
@@ -928,9 +928,9 @@ static gint sort_video_codecs_by_client_preference(gconstpointer a_pointer,
                                                    gconstpointer b_pointer,
                                                    gpointer user_data)
 {
-    const RedVideoCodec *a = (const RedVideoCodec *) a_pointer;
-    const RedVideoCodec *b = (const RedVideoCodec *) b_pointer;
-    GArray *client_pref = (GArray *) user_data;
+    auto a = (const RedVideoCodec *) a_pointer;
+    auto b = (const RedVideoCodec *) b_pointer;
+    auto client_pref = (GArray *) user_data;
 
     return (g_array_index(client_pref, gint, a->type) -
             g_array_index(client_pref, gint, b->type));
@@ -1097,8 +1097,8 @@ bool DisplayChannelClient::handle_migrate_data(uint32_t size, void *message)
     DisplayChannelClient *dcc = this;
     DisplayChannel *display = DCC_TO_DC(dcc);
     int surfaces_restored = FALSE;
-    SpiceMigrateDataHeader *header = (SpiceMigrateDataHeader *)message;
-    SpiceMigrateDataDisplay *migrate_data = (SpiceMigrateDataDisplay *)(header + 1);
+    auto header = (SpiceMigrateDataHeader *)message;
+    auto migrate_data = (SpiceMigrateDataDisplay *)(header + 1);
     uint8_t *surfaces;
     int i;
 

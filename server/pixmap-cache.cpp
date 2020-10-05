@@ -90,7 +90,7 @@ static Ring pixmap_cache_list = {&pixmap_cache_list, &pixmap_cache_list};
 
 static PixmapCache *pixmap_cache_new(RedClient *client, uint8_t id, int64_t size)
 {
-    PixmapCache *cache = g_new0(PixmapCache, 1);
+    auto cache = g_new0(PixmapCache, 1);
 
     ring_item_init(&cache->base);
     pthread_mutex_init(&cache->lock, NULL);
