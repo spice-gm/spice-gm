@@ -30,7 +30,7 @@ static ImageCacheItem *image_cache_find(ImageCache *cache, uint64_t id)
         }
         item = item->next;
     }
-    return NULL;
+    return nullptr;
 }
 
 static bool image_cache_hit(ImageCache *cache, uint64_t id)
@@ -163,9 +163,9 @@ void image_cache_localize(ImageCache *cache, SpiceImage **image_ptr,
 {
     SpiceImage *image = *image_ptr;
 
-    if (image == NULL) {
-        spice_assert(drawable != NULL);
-        spice_assert(drawable->red_drawable->self_bitmap_image != NULL);
+    if (image == nullptr) {
+        spice_assert(drawable != nullptr);
+        spice_assert(drawable->red_drawable->self_bitmap_image != nullptr);
         *image_ptr = drawable->red_drawable->self_bitmap_image;
         return;
     }
@@ -204,13 +204,13 @@ void image_cache_localize(ImageCache *cache, SpiceImage **image_ptr,
 void image_cache_localize_brush(ImageCache *cache, SpiceBrush *brush, SpiceImage *image_store)
 {
     if (brush->type == SPICE_BRUSH_TYPE_PATTERN) {
-        image_cache_localize(cache, &brush->u.pattern.pat, image_store, NULL);
+        image_cache_localize(cache, &brush->u.pattern.pat, image_store, nullptr);
     }
 }
 
 void image_cache_localize_mask(ImageCache *cache, SpiceQMask *mask, SpiceImage *image_store)
 {
     if (mask->bitmap) {
-        image_cache_localize(cache, &mask->bitmap, image_store, NULL);
+        image_cache_localize(cache, &mask->bitmap, image_store, nullptr);
     }
 }

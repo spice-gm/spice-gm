@@ -119,7 +119,7 @@ uint8_t *MainChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 
     if (size > sizeof(priv->recv_buf)) {
         /* message too large, caller will log a message and close the connection */
-        return NULL;
+        return nullptr;
     }
 
     return priv->recv_buf;
@@ -683,7 +683,7 @@ static void main_channel_fill_migrate_dst_info(MainChannel *main_channel,
         dst_info->cert_subject_data = (uint8_t *)mig_dst->cert_subject;
     } else {
         dst_info->cert_subject_size = 0;
-        dst_info->cert_subject_data = NULL;
+        dst_info->cert_subject_data = nullptr;
     }
 }
 
@@ -740,7 +740,7 @@ static void main_channel_marshall_migrate_switch(SpiceMarshaller *m, MainChannel
         migrate.cert_subject_data = (uint8_t *)mig_target->cert_subject;
     } else {
         migrate.cert_subject_size = 0;
-        migrate.cert_subject_data = NULL;
+        migrate.cert_subject_data = nullptr;
     }
     spice_marshall_msg_main_migrate_switch_host(m, &migrate);
 }

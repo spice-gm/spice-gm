@@ -212,7 +212,7 @@ static ssize_t stream_ssl_read_cb(RedStream *s, void *buf, size_t size)
 void red_stream_remove_watch(RedStream* s)
 {
     red_watch_remove(s->watch);
-    s->watch = NULL;
+    s->watch = nullptr;
 }
 
 #if HAVE_SASL
@@ -299,7 +299,7 @@ ssize_t red_stream_write(RedStream *s, const void *buf, size_t nbyte)
 
 int red_stream_get_family(const RedStream *s)
 {
-    spice_return_val_if_fail(s != NULL, -1);
+    spice_return_val_if_fail(s != nullptr, -1);
 
     if (s->socket == -1)
         return -1;
@@ -309,7 +309,7 @@ int red_stream_get_family(const RedStream *s)
 
 bool red_stream_is_plain_unix(const RedStream *s)
 {
-    spice_return_val_if_fail(s != NULL, false);
+    spice_return_val_if_fail(s != nullptr, false);
 
     if (red_stream_get_family(s) != AF_UNIX) {
         return false;
@@ -348,7 +348,7 @@ int red_stream_get_no_delay(RedStream *stream)
 #ifndef _WIN32
 int red_stream_send_msgfd(RedStream *stream, int fd)
 {
-    struct msghdr msgh = { 0, };
+    struct msghdr msgh = { nullptr, };
     struct iovec iov;
     int r;
 
@@ -396,7 +396,7 @@ ssize_t red_stream_writev(RedStream *s, const struct iovec *iov, int iovcnt)
     int n;
     ssize_t ret = 0;
 
-    if (s->priv->writev != NULL && iovcnt > 1) {
+    if (s->priv->writev != nullptr && iovcnt > 1) {
         return s->priv->writev(s, iov, iovcnt);
     }
 
@@ -503,12 +503,12 @@ void red_stream_set_core_interface(RedStream *stream, SpiceCoreInterfaceInternal
 
 bool red_stream_is_ssl(RedStream *stream)
 {
-    return (stream->priv->ssl != NULL);
+    return (stream->priv->ssl != nullptr);
 }
 
 static void red_stream_disable_writev(RedStream *stream)
 {
-    stream->priv->writev = NULL;
+    stream->priv->writev = nullptr;
 }
 
 RedStreamSslStatus red_stream_ssl_accept(RedStream *stream)
@@ -538,7 +538,7 @@ RedStreamSslStatus red_stream_ssl_accept(RedStream *stream)
     red_dump_openssl_errors();
     spice_warning("SSL_accept failed, error=%d", ssl_error);
     SSL_free(stream->priv->ssl);
-    stream->priv->ssl = NULL;
+    stream->priv->ssl = nullptr;
 
     return RED_STREAM_SSL_STATUS_ERROR;
 }
@@ -579,8 +579,8 @@ static inline void async_read_clear_handlers(RedStream *stream)
 {
     AsyncRead *async = &stream->priv->async_read;
     red_stream_remove_watch(stream);
-    async->now = NULL;
-    async->end = NULL;
+    async->now = nullptr;
+    async->end = nullptr;
 }
 
 static void async_read_handler(G_GNUC_UNUSED int fd,
@@ -632,7 +632,7 @@ void red_stream_async_read(RedStream *stream,
 {
     AsyncRead *async = &stream->priv->async_read;
 
-    g_return_if_fail(async->now == NULL && async->end == NULL);
+    g_return_if_fail(async->now == nullptr && async->end == nullptr);
     if (size == 0) {
         read_done_cb(opaque);
         return;

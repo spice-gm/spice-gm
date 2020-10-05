@@ -94,7 +94,7 @@ static gboolean red_process_cursor_cmd(RedWorker *worker, const QXLCommandExt *e
 
     cursor_cmd = red_cursor_cmd_new(worker->qxl, &worker->mem_slots,
                                     ext->group_id, ext->cmd.data);
-    if (cursor_cmd == NULL) {
+    if (cursor_cmd == nullptr) {
         return FALSE;
     }
 
@@ -152,7 +152,7 @@ static gboolean red_process_surface_cmd(RedWorker *worker, QXLCommandExt *ext, g
 
     surface_cmd = red_surface_cmd_new(worker->qxl, &worker->mem_slots,
                                       ext->group_id, ext->cmd.data);
-    if (surface_cmd == NULL) {
+    if (surface_cmd == nullptr) {
         return false;
     }
     display_channel_process_surface_cmd(worker->display_channel, surface_cmd, loadvm);
@@ -202,7 +202,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
                                             ext_cmd.group_id, ext_cmd.cmd.data,
                                             ext_cmd.flags); // returns with 1 ref
 
-            if (red_drawable != NULL) {
+            if (red_drawable != nullptr) {
                 display_channel_process_draw(worker->display_channel, red_drawable,
                                              worker->process_display_generation);
                 red_drawable_unref(red_drawable);
@@ -214,7 +214,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
 
             update = red_update_cmd_new(worker->qxl, &worker->mem_slots,
                                         ext_cmd.group_id, ext_cmd.cmd.data);
-            if (update == NULL) {
+            if (update == nullptr) {
                 break;
             }
             if (!display_channel_validate_surface(worker->display_channel, update->surface_id)) {
@@ -231,7 +231,7 @@ static int red_process_display(RedWorker *worker, int *ring_is_empty)
 
             message = red_message_new(worker->qxl, &worker->mem_slots,
                                       ext_cmd.group_id, ext_cmd.cmd.data);
-            if (message == NULL) {
+            if (message == nullptr) {
                 break;
             }
 #ifdef DEBUG
@@ -333,7 +333,7 @@ static void handle_dev_update_async(void *opaque, void *payload)
 {
     auto worker = (RedWorker*) opaque;
     auto msg = (RedWorkerMessageUpdateAsync*) payload;
-    QXLRect *qxl_dirty_rects = NULL;
+    QXLRect *qxl_dirty_rects = nullptr;
     uint32_t num_dirty_rects = 0;
 
     spice_return_if_fail(red_qxl_is_running(worker->qxl));
@@ -362,7 +362,7 @@ static void handle_dev_update(void *opaque, void *payload)
     display_channel_update(worker->display_channel,
                            msg->surface_id, msg->qxl_area, msg->clear_dirty_region,
                            &qxl_dirty_rects, &msg->num_dirty_rects);
-    if (msg->qxl_dirty_rects == NULL) {
+    if (msg->qxl_dirty_rects == nullptr) {
         g_free(qxl_dirty_rects);
     }
 }
@@ -419,7 +419,7 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
     line_0 = (uint8_t*)memslot_get_virt(&worker->mem_slots, surface.mem,
                                         surface.height * abs(surface.stride),
                                         surface.group_id);
-    if (line_0 == NULL) {
+    if (line_0 == nullptr) {
         return;
     }
     if (worker->record) {
@@ -642,7 +642,7 @@ static void handle_dev_monitors_config_async(void *opaque, void *payload)
                                              qxl_monitors_config_size(1),
                                              msg->group_id);
 
-    if (dev_monitors_config == NULL) {
+    if (dev_monitors_config == nullptr) {
         /* TODO: raise guest bug (requires added QXL interface) */
         goto async_complete;
     }
@@ -665,7 +665,7 @@ static void handle_dev_monitors_config_async(void *opaque, void *payload)
         (QXLMonitorsConfig*)memslot_get_virt(&worker->mem_slots, msg->monitors_config,
                                              qxl_monitors_config_size(count),
                                              msg->group_id);
-    if (dev_monitors_config == NULL) {
+    if (dev_monitors_config == nullptr) {
         /* TODO: raise guest bug (requires added QXL interface) */
         goto async_complete;
     }
@@ -1041,14 +1041,14 @@ RedWorker* red_worker_new(QXLInstance *qxl)
     worker->driver_cap_monitors_config = false;
     char worker_str[SPICE_STAT_NODE_NAME_MAX];
     snprintf(worker_str, sizeof(worker_str), "display[%d]", worker->qxl->id & 0xff);
-    stat_init_node(&worker->stat, reds, NULL, worker_str, TRUE);
+    stat_init_node(&worker->stat, reds, nullptr, worker_str, TRUE);
     stat_init_counter(&worker->wakeup_counter, reds, &worker->stat, "wakeups", TRUE);
     stat_init_counter(&worker->command_counter, reds, &worker->stat, "commands", TRUE);
     stat_init_counter(&worker->full_loop_counter, reds, &worker->stat, "full_loops", TRUE);
     stat_init_counter(&worker->total_loop_counter, reds, &worker->stat, "total_loops", TRUE);
 
     worker->dispatch_watch = dispatcher->create_watch(&worker->core);
-    spice_assert(worker->dispatch_watch != NULL);
+    spice_assert(worker->dispatch_watch != nullptr);
 
     GSource *source = g_source_new(&worker_source_funcs, sizeof(RedWorkerSource));
     SPICE_CONTAINEROF(source, RedWorkerSource, source)->worker = worker;
@@ -1101,9 +1101,9 @@ static void *red_worker_main(void *arg)
     worker->loop = loop;
     g_main_loop_run(loop);
     g_main_loop_unref(loop);
-    worker->loop = NULL;
+    worker->loop = nullptr;
 
-    return NULL;
+    return nullptr;
 }
 
 bool red_worker_run(RedWorker *worker)
@@ -1124,11 +1124,11 @@ bool red_worker_run(RedWorker *worker)
     sigdelset(&thread_sig_mask, SIGSEGV);
     pthread_sigmask(SIG_SETMASK, &thread_sig_mask, &curr_sig_mask);
 #endif
-    if ((r = pthread_create(&worker->thread, NULL, red_worker_main, worker))) {
+    if ((r = pthread_create(&worker->thread, nullptr, red_worker_main, worker))) {
         spice_error("create thread failed %d", r);
     }
 #ifndef _WIN32
-    pthread_sigmask(SIG_SETMASK, &curr_sig_mask, NULL);
+    pthread_sigmask(SIG_SETMASK, &curr_sig_mask, nullptr);
 #endif
 #if !defined(__APPLE__)
     pthread_setname_np(worker->thread, "SPICE Worker");
@@ -1150,12 +1150,12 @@ static void red_worker_close_channel(RedChannel *channel)
  */
 void red_worker_free(RedWorker *worker)
 {
-    pthread_join(worker->thread, NULL);
+    pthread_join(worker->thread, nullptr);
 
     red_worker_close_channel(worker->cursor_channel);
-    worker->cursor_channel = NULL;
+    worker->cursor_channel = nullptr;
     red_worker_close_channel(worker->display_channel);
-    worker->display_channel = NULL;
+    worker->display_channel = nullptr;
 
     if (worker->dispatch_watch) {
         red_watch_remove(worker->dispatch_watch);

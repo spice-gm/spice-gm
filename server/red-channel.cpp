@@ -287,7 +287,7 @@ void RedChannel::pipes_add_empty_msg(int msg_type)
 
 int RedChannel::is_connected()
 {
-    return priv->clients != NULL;
+    return priv->clients != nullptr;
 }
 
 const char *RedChannel::get_name() const
@@ -309,7 +309,7 @@ void RedChannel::remove_client(RedChannelClient *rcc)
                             (void*) priv->thread_id, (void*) pthread_self());
     }
     link = g_list_find(priv->clients, rcc);
-    spice_return_if_fail(link != NULL);
+    spice_return_if_fail(link != nullptr);
 
     priv->clients = g_list_delete_link(priv->clients, link);
     // TODO: should we set rcc->channel to NULL???
@@ -434,7 +434,7 @@ int RedChannel::pipes_new_add(new_pipe_item_t creator, void *data)
     RedChannelClient *rcc;
     int num = 0, n = 0;
 
-    spice_assert(creator != NULL);
+    spice_assert(creator != nullptr);
 
     FOREACH_CLIENT(this, rcc) {
         auto item = (*creator)(rcc, data, num++);

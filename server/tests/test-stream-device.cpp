@@ -174,11 +174,11 @@ static void test_stream_device_teardown(TestFixture *fixture, gconstpointer user
     g_assert_nonnull(test);
 
     vmc_emu_destroy(vmc);
-    vmc = NULL;
+    vmc = nullptr;
     test_destroy(test);
-    test = NULL;
+    test = nullptr;
     basic_event_loop_destroy();
-    core = NULL;
+    core = nullptr;
 }
 
 static void test_kick()
@@ -459,22 +459,22 @@ int main(int argc, char *argv[])
     g_test_init(&argc, &argv, NULL);
 
     test_add("/server/stream-device",
-             test_stream_device, NULL);
+             test_stream_device, nullptr);
     test_add("/server/stream-device-unfinished",
-             test_stream_device_unfinished, NULL);
+             test_stream_device_unfinished, nullptr);
     test_add("/server/stream-device-multiple",
-             test_stream_device_multiple, NULL);
+             test_stream_device_multiple, nullptr);
     test_add("/server/stream-device-format-after-data",
-             test_stream_device_format_after_data, NULL);
+             test_stream_device_format_after_data, nullptr);
     test_add("/server/stream-device-empty-capabilities",
              test_stream_device_empty, GINT_TO_POINTER(STREAM_TYPE_CAPABILITIES));
     test_add("/server/stream-device-empty-data",
              test_stream_device_empty, GINT_TO_POINTER(STREAM_TYPE_DATA));
     test_add("/server/stream-device-huge-data",
-             test_stream_device_huge_data, NULL);
+             test_stream_device_huge_data, nullptr);
     test_add("/server/stream-device-data-message",
-             test_stream_device_data_message, NULL);
-    test_add("/server/display-info", test_display_info, NULL);
+             test_stream_device_data_message, nullptr);
+    test_add("/server/display-info", test_display_info, nullptr);
 
     return g_test_run();
 }

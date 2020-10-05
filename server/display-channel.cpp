@@ -45,7 +45,7 @@ DisplayChannel::~DisplayChannel()
         spice_assert(ring_is_empty(&priv->streams));
 
         for (count = 0; count < NUM_SURFACES; ++count) {
-            spice_assert(priv->surfaces[count].context.canvas == NULL);
+            spice_assert(priv->surfaces[count].context.canvas == nullptr);
         }
     }
 
@@ -59,7 +59,7 @@ static Drawable *display_channel_drawable_try_new(DisplayChannel *display,
 
 uint32_t display_channel_generate_uid(DisplayChannel *display)
 {
-    spice_return_val_if_fail(display != NULL, 0);
+    spice_return_val_if_fail(display != nullptr, 0);
 
     return ++display->priv->bits_unique;
 }
@@ -241,17 +241,17 @@ void display_channel_surface_unref(DisplayChannel *display, uint32_t surface_id)
     spice_assert(surface->context.canvas);
 
     surface->context.canvas->ops->destroy(surface->context.canvas);
-    if (surface->create_cmd != NULL) {
+    if (surface->create_cmd != nullptr) {
         red_surface_cmd_unref(surface->create_cmd);
-        surface->create_cmd = NULL;
+        surface->create_cmd = nullptr;
     }
-    if (surface->destroy_cmd != NULL) {
+    if (surface->destroy_cmd != nullptr) {
         red_surface_cmd_unref(surface->destroy_cmd);
-        surface->destroy_cmd = NULL;
+        surface->destroy_cmd = nullptr;
     }
 
     region_destroy(&surface->draw_dirty_region);
-    surface->context.canvas = NULL;
+    surface->context.canvas = nullptr;
     FOREACH_DCC(display, dcc) {
         dcc_destroy_surface(dcc, surface_id);
     }
@@ -263,7 +263,7 @@ void display_channel_surface_unref(DisplayChannel *display, uint32_t surface_id)
 gboolean display_channel_surface_has_canvas(DisplayChannel *display,
                                             uint32_t surface_id)
 {
-    return display->priv->surfaces[surface_id].context.canvas != NULL;
+    return display->priv->surfaces[surface_id].context.canvas != nullptr;
 }
 
 static void streams_update_visible_region(DisplayChannel *display, Drawable *drawable)
@@ -310,7 +310,7 @@ static void pipes_add_drawable(DisplayChannel *display, Drawable *drawable)
 {
     DisplayChannelClient *dcc;
 
-    spice_warn_if_fail(drawable->pipes == NULL);
+    spice_warn_if_fail(drawable->pipes == nullptr);
     FOREACH_DCC(display, dcc) {
         dcc_prepend_drawable(dcc, drawable);
     }
@@ -323,7 +323,7 @@ static void pipes_add_drawable_after(DisplayChannel *display,
     DisplayChannelClient *dcc;
     int num_other_linked = 0;
 
-    for (GList *l = pos_after->pipes; l != NULL; l = l->next) {
+    for (GList *l = pos_after->pipes; l != nullptr; l = l->next) {
         dpi_pos_after = (RedDrawablePipeItem*) l->data;
 
         num_other_linked++;
@@ -338,7 +338,7 @@ static void pipes_add_drawable_after(DisplayChannel *display,
         spice_debug("TODO: not O(n^2)");
         FOREACH_DCC(display, dcc) {
             int sent = 0;
-            for (GList *l = pos_after->pipes; l != NULL; l = l->next) {
+            for (GList *l = pos_after->pipes; l != nullptr; l = l->next) {
                 dpi_pos_after = (RedDrawablePipeItem*) l->data;
                 if (dpi_pos_after->dcc == dcc) {
                     sent = 1;
@@ -821,7 +821,7 @@ static bool current_add_with_shadow(DisplayChannel *display, Ring *ring, Drawabl
 
     // only primary surface streams are supported
     if (is_primary_surface(display, item->surface_id)) {
-        video_stream_detach_behind(display, &shadow->base.rgn, NULL);
+        video_stream_detach_behind(display, &shadow->base.rgn, nullptr);
     }
 
     /* Prepend the shadow to the beginning of the current ring */
@@ -837,7 +837,7 @@ static bool current_add_with_shadow(DisplayChannel *display, Ring *ring, Drawabl
          * items already in the tree.  Start iterating through the tree
          * starting with the shadow item to avoid excluding the new item
          * itself */
-        exclude_region(display, ring, &shadow->base.siblings_link, &exclude_rgn, NULL, NULL);
+        exclude_region(display, ring, &shadow->base.siblings_link, &exclude_rgn, nullptr, nullptr);
         region_destroy(&exclude_rgn);
         streams_update_visible_region(display, item);
     } else {
@@ -856,7 +856,7 @@ static bool current_add(DisplayChannel *display, Ring *ring, Drawable *drawable)
     DrawItem *item = &drawable->tree_item;
     RingItem *now;
     QRegion exclude_rgn;
-    RingItem *exclude_base = NULL;
+    RingItem *exclude_base = nullptr;
     stat_start(&display->priv->add_stat, start_time);
 
     spice_assert(!region_is_empty(&item->base.rgn));
@@ -924,13 +924,13 @@ static bool current_add(DisplayChannel *display, Ring *ring, Drawable *drawable)
                          * item is obscured and has a shadow. -jjongsma
                          */
                         TreeItem *next = sibling;
-                        exclude_region(display, ring, exclude_base, &exclude_rgn, &next, NULL);
+                        exclude_region(display, ring, exclude_base, &exclude_rgn, &next, nullptr);
                         if (next != sibling) {
                             /* the @next param is only changed if the given item
                              * was removed as a side-effect of calling
                              * exclude_region(), so update our loop variable */
-                            now = next ? &next->siblings_link : NULL;
-                            exclude_base = NULL;
+                            now = next ? &next->siblings_link : nullptr;
+                            exclude_base = nullptr;
                             continue;
                         }
                     }
@@ -971,9 +971,9 @@ static bool current_add(DisplayChannel *display, Ring *ring, Drawable *drawable)
                  * this loop may have added various Shadow::on_hold regions to
                  * it. */
                 if (exclude_base) {
-                    exclude_region(display, ring, exclude_base, &exclude_rgn, NULL, NULL);
+                    exclude_region(display, ring, exclude_base, &exclude_rgn, nullptr, nullptr);
                     region_clear(&exclude_rgn);
-                    exclude_base = NULL;
+                    exclude_base = nullptr;
                 }
                 if (sibling->type == TREE_ITEM_TYPE_CONTAINER) {
                     container = CONTAINER(sibling);
@@ -1021,7 +1021,7 @@ static bool current_add(DisplayChannel *display, Ring *ring, Drawable *drawable)
          * Shadows that were associated with DrawItems that were removed from
          * the tree.  Add the new item's region to that */
         region_or(&exclude_rgn, &item->base.rgn);
-        exclude_region(display, ring, exclude_base, &exclude_rgn, NULL, drawable);
+        exclude_region(display, ring, exclude_base, &exclude_rgn, nullptr, drawable);
         video_stream_trace_update(display, drawable);
         streams_update_visible_region(display, drawable);
         /*
@@ -1067,7 +1067,7 @@ static bool drawable_can_stream(DisplayChannel *display, Drawable *drawable)
     }
 
     image = red_drawable->u.copy.src_bitmap;
-    if (image == NULL ||
+    if (image == nullptr ||
         image->descriptor.type != SPICE_IMAGE_TYPE_BITMAP) {
         return FALSE;
     }
@@ -1167,7 +1167,7 @@ static void handle_self_bitmap(DisplayChannel *display, Drawable *drawable)
     image->u.bitmap.stride = dest_stride;
     image->descriptor.width = image->u.bitmap.x = width;
     image->descriptor.height = image->u.bitmap.y = height;
-    image->u.bitmap.palette = NULL;
+    image->u.bitmap.palette = nullptr;
 
     dest = (uint8_t *)spice_malloc_n(height, dest_stride);
     image->u.bitmap.data = spice_chunks_new_linear(dest, height * dest_stride);
@@ -1198,7 +1198,7 @@ static void surface_add_reverse_dependency(DisplayChannel *display, int surface_
     RedSurface *surface;
 
     if (surface_id == -1) {
-        depend_item->drawable = NULL;
+        depend_item->drawable = nullptr;
         return;
     }
 
@@ -1223,7 +1223,7 @@ static bool handle_surface_deps(DisplayChannel *display, Drawable *drawable)
                 QRegion depend_region;
                 region_init(&depend_region);
                 region_add(&depend_region, &drawable->red_drawable->surfaces_rects[x]);
-                video_stream_detach_behind(display, &depend_region, NULL);
+                video_stream_detach_behind(display, &depend_region, nullptr);
             }
         }
     }
@@ -1293,18 +1293,18 @@ static Drawable *display_channel_get_drawable(DisplayChannel *display, uint8_t e
      * to avoid invalid updates if we find an invalid id.
      */
     if (!validate_drawable_bbox(display, red_drawable)) {
-        return NULL;
+        return nullptr;
     }
     for (x = 0; x < 3; ++x) {
         if (red_drawable->surface_deps[x] != -1
             && !display_channel_validate_surface(display, red_drawable->surface_deps[x])) {
-            return NULL;
+            return nullptr;
         }
     }
 
     drawable = display_channel_drawable_try_new(display, process_commands_generation);
     if (!drawable) {
-        return NULL;
+        return nullptr;
     }
 
     drawable->tree_item.effect = effect;
@@ -1528,7 +1528,7 @@ static Drawable* drawable_try_new(DisplayChannel *display)
     Drawable *drawable;
 
     if (!display->priv->free_drawables)
-        return NULL;
+        return nullptr;
 
     drawable = &display->priv->free_drawables->u.drawable;
     display->priv->free_drawables = display->priv->free_drawables->u.next;
@@ -1547,7 +1547,7 @@ static void drawables_init(DisplayChannel *display)
 {
     int i;
 
-    display->priv->free_drawables = NULL;
+    display->priv->free_drawables = nullptr;
     for (i = 0; i < NUM_DRAWABLES; i++) {
         drawable_free(display, &display->priv->drawables[i].u.drawable);
     }
@@ -1565,7 +1565,7 @@ static Drawable *display_channel_drawable_try_new(DisplayChannel *display,
 
     while (!(drawable = drawable_try_new(display))) {
         if (!free_one_drawable(display, FALSE))
-            return NULL;
+            return nullptr;
     }
 
     memset(drawable, 0, sizeof(Drawable));
@@ -1591,7 +1591,7 @@ static void depended_item_remove(DependItem *item)
     spice_return_if_fail(item->drawable);
     spice_return_if_fail(ring_item_is_linked(&item->ring_item));
 
-    item->drawable = NULL;
+    item->drawable = nullptr;
     ring_remove(&item->ring_item);
 }
 
@@ -1630,7 +1630,7 @@ void drawable_unref(Drawable *drawable)
         return;
 
     spice_warn_if_fail(!drawable->tree_item.shadow);
-    spice_warn_if_fail(drawable->pipes == NULL);
+    spice_warn_if_fail(drawable->pipes == nullptr);
 
     if (drawable->stream) {
         video_stream_detach_drawable(drawable->stream);
@@ -1859,12 +1859,12 @@ static Drawable* current_find_intersects_rect(Ring *current, RingItem *from,
 {
     RingItem *it;
     QRegion rgn;
-    Drawable *last = NULL;
+    Drawable *last = nullptr;
 
     region_init(&rgn);
     region_add(&rgn, area);
 
-    for (it = from ? from : ring_next(current, current); it != NULL; it = ring_next(current, it)) {
+    for (it = from ? from : ring_next(current, current); it != nullptr; it = ring_next(current, it)) {
         Drawable *now = SPICE_CONTAINEROF(it, Drawable, surface_list_link);
         if (region_intersects(&rgn, &now->tree_item.base.rgn)) {
             last = now;
@@ -1885,7 +1885,7 @@ void display_channel_draw_until(DisplayChannel *display, const SpiceRect *area, 
                                Drawable *last)
 {
     RedSurface *surface;
-    Drawable *surface_last = NULL;
+    Drawable *surface_last = nullptr;
     Ring *ring;
     RingItem *ring_item;
     Drawable *now;
@@ -1937,7 +1937,7 @@ void display_channel_draw(DisplayChannel *display, const SpiceRect *area, int su
 
     surface = &display->priv->surfaces[surface_id];
 
-    last = current_find_intersects_rect(&surface->current_list, NULL, area);
+    last = current_find_intersects_rect(&surface->current_list, nullptr, area);
     if (last)
         draw_until(display, surface, last);
 
@@ -1977,7 +1977,7 @@ void display_channel_update(DisplayChannel *display,
     display_channel_draw(display, &rect, surface_id);
 
     surface = &display->priv->surfaces[surface_id];
-    if (*qxl_dirty_rects == NULL) {
+    if (*qxl_dirty_rects == nullptr) {
         *num_dirty_rects = pixman_region32_n_rects(&surface->draw_dirty_region);
         *qxl_dirty_rects = g_new0(QXLRect, *num_dirty_rects);
     }
@@ -2074,7 +2074,7 @@ create_canvas_for_surface(DisplayChannel *display, RedSurface *surface, uint32_t
         canvas = canvas_create_for_data(surface->context.width, surface->context.height, surface->context.format,
                                         (uint8_t*) surface->context.line_0, surface->context.stride,
                                         &display->priv->image_cache.base,
-                                        &display->priv->image_surfaces, NULL, NULL, NULL);
+                                        &display->priv->image_surfaces, nullptr, nullptr, nullptr);
         surface->context.top_down = TRUE;
         surface->context.canvas_draws_on_surface = TRUE;
         return canvas;
@@ -2082,7 +2082,7 @@ create_canvas_for_surface(DisplayChannel *display, RedSurface *surface, uint32_t
         spice_warn_if_reached();
     };
 
-    return NULL;
+    return nullptr;
 }
 
 void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id, uint32_t width,
@@ -2106,8 +2106,8 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
         }
         memset(data, 0, height*abs(stride));
     }
-    g_warn_if_fail(surface->create_cmd == NULL);
-    g_warn_if_fail(surface->destroy_cmd == NULL);
+    g_warn_if_fail(surface->create_cmd == nullptr);
+    g_warn_if_fail(surface->destroy_cmd == nullptr);
     ring_init(&surface->current);
     ring_init(&surface->current_list);
     ring_init(&surface->depend_on_me);
@@ -2309,7 +2309,7 @@ static void display_channel_update_compression(DisplayChannel *display, DisplayC
 
 void display_channel_gl_scanout(DisplayChannel *display)
 {
-    display->pipes_new_add(dcc_gl_scanout_item_new, NULL);
+    display->pipes_new_add(dcc_gl_scanout_item_new, nullptr);
 }
 
 static void set_gl_draw_async_count(DisplayChannel *display, int num)

@@ -570,16 +570,16 @@ int InputsChannel::set_tablet(SpiceTabletInstance *new_tablet)
 
 bool InputsChannel::has_tablet() const
 {
-    return tablet != NULL;
+    return tablet != nullptr;
 }
 
 void InputsChannel::detach_tablet(SpiceTabletInstance *old_tablet)
 {
-    if (old_tablet != NULL && old_tablet == tablet) {
+    if (old_tablet != nullptr && old_tablet == tablet) {
         spice_tablet_state_free(old_tablet->st);
-        old_tablet->st = NULL;
+        old_tablet->st = nullptr;
     }
-    tablet = NULL;
+    tablet = nullptr;
 }
 
 bool InputsChannel::is_src_during_migrate() const

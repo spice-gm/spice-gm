@@ -229,7 +229,7 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
 
 void CursorChannel::reset()
 {
-    cursor_channel_set_item(this, NULL);
+    cursor_channel_set_item(this, nullptr);
     cursor_visible = true;
     cursor_position.x = cursor_position.y = 0;
     cursor_trail_length = cursor_trail_frequency = 0;
@@ -261,7 +261,7 @@ static void cursor_channel_init_client(CursorChannel *cursor, CursorChannelClien
 
 void CursorChannel::do_init()
 {
-    cursor_channel_init_client(this, NULL);
+    cursor_channel_init_client(this, nullptr);
 }
 
 void CursorChannel::set_mouse_mode(uint32_t mode)
@@ -281,7 +281,7 @@ void CursorChannel::on_connect(RedClient *client, RedStream *stream, int migrati
     ccc = cursor_channel_client_new(this, client, stream,
                                     migration,
                                     caps);
-    if (ccc == NULL) {
+    if (ccc == nullptr) {
         return;
     }
 

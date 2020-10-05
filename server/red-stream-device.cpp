@@ -203,7 +203,7 @@ StreamDevice::handle_msg_format()
 
     int n = read(msg->buf + msg_pos, sizeof(StreamMsgFormat) - msg_pos);
     if (n < 0) {
-        return handle_msg_invalid(NULL);
+        return handle_msg_invalid(nullptr);
     }
 
     msg_pos += n;
@@ -293,7 +293,7 @@ StreamDevice::handle_msg_capabilities()
 
     int n = read(msg->buf + msg_pos, hdr.size - msg_pos);
     if (n < 0) {
-        return handle_msg_invalid(NULL);
+        return handle_msg_invalid(nullptr);
     }
 
     msg_pos += n;
@@ -397,13 +397,13 @@ stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_si
     if (cursor->header.width > STREAM_MSG_CURSOR_SET_MAX_WIDTH ||
         cursor->header.height > STREAM_MSG_CURSOR_SET_MAX_HEIGHT) {
         g_free(cmd);
-        return NULL;
+        return nullptr;
     }
 
     const unsigned int cursor_bits = get_cursor_type_bits(cursor->header.type);
     if (cursor_bits == 0) {
         g_free(cmd);
-        return NULL;
+        return nullptr;
     }
 
     /* Check that enough data has been sent for the cursor.
@@ -413,7 +413,7 @@ stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_si
     size_required = SPICE_ALIGN(size_required * cursor_bits, 8) / 8u;
     if (msg_size < sizeof(StreamMsgCursorSet) + size_required) {
         g_free(cmd);
-        return NULL;
+        return nullptr;
     }
     cursor->data_size = size_required;
     cursor->data = (uint8_t*) g_memdup(msg->data, size_required);
@@ -454,7 +454,7 @@ StreamDevice::handle_msg_cursor_set()
     // transform the message to a cursor command and process it
     RedCursorCmd *cmd = stream_msg_cursor_set_to_cursor_cmd(&msg->cursor_set, msg_pos);
     if (!cmd) {
-        return handle_msg_invalid(NULL);
+        return handle_msg_invalid(nullptr);
     }
     cursor_channel->process_cmd(cmd);
 
@@ -595,7 +595,7 @@ StreamDevice::create_channel()
     g_return_if_fail(id >= 0);
 
     stream_channel = stream_channel_new(reds, id);
-    cursor_channel = cursor_channel_new(reds, id, core, NULL);
+    cursor_channel = cursor_channel_new(reds, id, core, nullptr);
 
     stream_channel->register_start_cb(stream_start, this);
     stream_channel->register_queue_stat_cb(stream_queue_stat, this);
@@ -614,7 +614,7 @@ char_device_set_state(RedCharDevice *char_dev, int state)
 {
     SpiceCharDeviceInstance *sin;
     sin = char_dev->get_device_instance();
-    spice_assert(sin != NULL);
+    spice_assert(sin != nullptr);
 
     SpiceCharDeviceInterface *sif = spice_char_device_get_interface(sin);
     if (sif->state) {

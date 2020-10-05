@@ -136,12 +136,12 @@ static void dump_item(TreeItem *item, void *data)
             printf("  ");
         }
         printf(item_prefix, 0);
-        show_red_drawable(drawable->red_drawable, NULL);
+        show_red_drawable(drawable->red_drawable, nullptr);
         for (i = 0; i < di->level; i++) {
             printf("  ");
         }
         printf("|  ");
-        show_draw_item(&drawable->tree_item, NULL);
+        show_draw_item(&drawable->tree_item, nullptr);
         indent_str_len = MIN(max_indent, strlen(item_prefix) + di->level * 2);
         memset(indent_str, ' ', indent_str_len);
         indent_str[indent_str_len] = 0;
@@ -179,7 +179,7 @@ void tree_item_dump(TreeItem *item)
 {
     DumpItem di = { 0, };
 
-    spice_return_if_fail(item != NULL);
+    spice_return_if_fail(item != nullptr);
     tree_foreach(item, dump_item, &di);
 }
 
@@ -188,15 +188,15 @@ void tree_item_dump(TreeItem *item)
  * DrawItem represents the destination region for the operation */
 Shadow* shadow_new(DrawItem *item, const SpicePoint *delta)
 {
-    spice_return_val_if_fail(item->shadow == NULL, NULL);
+    spice_return_val_if_fail(item->shadow == nullptr, NULL);
     if (!delta->x && !delta->y) {
-        return NULL;
+        return nullptr;
     }
 
     auto shadow = g_new(Shadow, 1);
 
     shadow->base.type = TREE_ITEM_TYPE_SHADOW;
-    shadow->base.container = NULL;
+    shadow->base.container = nullptr;
     region_clone(&shadow->base.rgn, &item->base.rgn);
     region_offset(&shadow->base.rgn, delta->x, delta->y);
     ring_item_init(&shadow->base.siblings_link);
@@ -263,12 +263,12 @@ Shadow* tree_item_find_shadow(TreeItem *item)
     while (item->type == TREE_ITEM_TYPE_CONTAINER) {
         SPICE_VERIFY(SPICE_OFFSETOF(TreeItem, siblings_link) == 0);
         if (!(item = (TreeItem *)ring_get_tail(&CONTAINER(item)->items))) {
-            return NULL;
+            return nullptr;
         }
     }
 
     if (item->type != TREE_ITEM_TYPE_DRAWABLE) {
-        return NULL;
+        return nullptr;
     }
 
     return DRAW_ITEM(item)->shadow;
@@ -302,7 +302,7 @@ void draw_item_remove_shadow(DrawItem *item)
         return;
     }
     shadow = item->shadow;
-    item->shadow = NULL;
+    item->shadow = nullptr;
     ring_remove(&shadow->base.siblings_link);
     region_destroy(&shadow->base.rgn);
     region_destroy(&shadow->on_hold);

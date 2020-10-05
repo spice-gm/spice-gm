@@ -100,7 +100,7 @@ static void child_exited(GPid pid, gint status, gpointer user_data)
 static void regression_test()
 {
     GPid pid;
-    GError *error = NULL;
+    GError *error = nullptr;
     gboolean retval;
     gchar **argv;
 
@@ -115,13 +115,13 @@ static void regression_test()
     }
 
     argv = g_strsplit("./regression-test.py", " ", -1);
-    retval = g_spawn_async(NULL, argv, NULL, (GSpawnFlags) (G_SPAWN_SEARCH_PATH|G_SPAWN_DO_NOT_REAP_CHILD),
-                           NULL, NULL, &pid, &error);
+    retval = g_spawn_async(nullptr, argv, nullptr, (GSpawnFlags) (G_SPAWN_SEARCH_PATH|G_SPAWN_DO_NOT_REAP_CHILD),
+                           nullptr, nullptr, &pid, &error);
     g_strfreev(argv);
     g_assert(retval);
 
     GSource *source = g_child_watch_source_new(pid);
-    g_source_set_callback(source, (GSourceFunc)(void*)child_exited, NULL, NULL);
+    g_source_set_callback(source, (GSourceFunc)(void*)child_exited, nullptr, nullptr);
     guint id = g_source_attach(source, basic_event_loop_get_context());
     g_assert(id != 0);
     g_source_unref(source);
@@ -259,7 +259,7 @@ static SimpleSpiceUpdate *test_spice_create_update_solid(uint32_t surface_id, QX
         *dst = solid_color;
     }
 
-    return test_spice_create_update_from_bitmap(surface_id, bbox, bitmap, 0, NULL);
+    return test_spice_create_update_from_bitmap(surface_id, bbox, bitmap, 0, nullptr);
 }
 
 static SimpleSpiceUpdate *test_spice_create_update_draw(Test *test, uint32_t surface_id, int t)
@@ -299,7 +299,7 @@ static SimpleSpiceUpdate *test_spice_create_update_draw(Test *test, uint32_t sur
 
     bbox.left = left; bbox.top = top;
     bbox.right = left + bw; bbox.bottom = top + bh;
-    return test_spice_create_update_from_bitmap(surface_id, bbox, bitmap, 0, NULL);
+    return test_spice_create_update_from_bitmap(surface_id, bbox, bitmap, 0, nullptr);
 }
 
 static SimpleSpiceUpdate *test_spice_create_update_copy_bits(Test *test, uint32_t surface_id)
@@ -484,7 +484,7 @@ static int get_num_commands()
 static struct QXLCommandExt *get_simple_command()
 {
     pthread_mutex_lock(&command_mutex);
-    struct QXLCommandExt *ret = NULL;
+    struct QXLCommandExt *ret = nullptr;
     if (get_num_commands() > 0) {
         ret = commands[commands_start % COMMANDS_SIZE];
         commands_start++;
@@ -537,7 +537,7 @@ static void produce_command(Test *test)
                 .right = (test->target_surface == 0 ? test->primary_width : test->width),
             };
             if (rect.right > 0 && rect.bottom > 0) {
-                spice_qxl_update_area(&test->qxl_instance, test->target_surface, &rect, NULL, 0, 1);
+                spice_qxl_update_area(&test->qxl_instance, test->target_surface, &rect, nullptr, 0, 1);
             }
             break;
         }
@@ -800,7 +800,7 @@ static QXLInterface display_sif = {
     },
     { .attached_worker = attached_worker },
     .set_compression_level = set_compression_level,
-    .set_mm_time = NULL,
+    .set_mm_time = nullptr,
     .get_init_info = get_init_info,
 
     /* the callbacks below are called from spice server thread context */
@@ -811,8 +811,8 @@ static QXLInterface display_sif = {
     .req_cursor_notification = req_cursor_notification,
     .notify_update = notify_update,
     .flush_resources = flush_resources,
-    .async_complete = NULL,
-    .update_area_complete = NULL,
+    .async_complete = nullptr,
+    .update_area_complete = nullptr,
     .set_client_capabilities = set_client_capabilities,
     .client_monitors_config = client_monitors_config,
 };
@@ -900,9 +900,9 @@ static gboolean ignore_in_use_failures(const gchar *log_domain,
     if ((log_level & G_LOG_LEVEL_WARNING) == 0)  {
         return true;
     }
-    if (strstr(message, "reds_init_socket: binding socket to ") == NULL && // bind failure
-        strstr(message, "reds_init_socket: listen: ") == NULL && // listen failure
-        strstr(message, "Failed to open SPICE sockets") == NULL) { // global
+    if (strstr(message, "reds_init_socket: binding socket to ") == nullptr && // bind failure
+        strstr(message, "reds_init_socket: listen: ") == nullptr && // listen failure
+        strstr(message, "Failed to open SPICE sockets") == nullptr) { // global
         g_print("XXX [%s]\n", message);
         return true;
     }
@@ -926,7 +926,7 @@ Test* test_new(SpiceCoreInterface* core)
     // some common initialization for all display tests
     port = BASE_PORT;
 
-    g_test_log_set_fatal_handler(ignore_in_use_failures, NULL);
+    g_test_log_set_fatal_handler(ignore_in_use_failures, nullptr);
     for (port = BASE_PORT; port < BASE_PORT + 10; port++) {
         SpiceServer* server = spice_server_new();
         spice_server_set_noauth(server);
@@ -941,7 +941,7 @@ Test* test_new(SpiceCoreInterface* core)
     g_assert_nonnull(test->server);
 
     printf("TESTER: listening on port %d (unsecure)\n", port);
-    g_test_log_set_fatal_handler(NULL, NULL);
+    g_test_log_set_fatal_handler(nullptr, nullptr);
 
     cursor_init();
     path_init(&path, 0, angle_parts);
@@ -977,7 +977,7 @@ void spice_test_config_parse_args(int argc, char **argv)
 {
     struct option options[] = {
         {"automated-tests", no_argument, &has_automated_tests, 1},
-        {NULL, 0, NULL, 0},
+        {nullptr, 0, nullptr, 0},
     };
     int option_index;
     int val;

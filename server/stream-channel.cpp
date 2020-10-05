@@ -134,7 +134,7 @@ StreamChannelClient::fill_base(SpiceMarshaller *m, const StreamChannel *channel)
 
     base.surface_id = PRIMARY_SURFACE_ID;
     base.box = (SpiceRect) { 0, 0, channel->width, channel->height };
-    base.clip = (SpiceClip) { SPICE_CLIP_TYPE_NONE, NULL };
+    base.clip = (SpiceClip) { SPICE_CLIP_TYPE_NONE, nullptr };
 
     spice_marshall_DisplayBase(m, &base);
 }
@@ -204,7 +204,7 @@ void StreamChannelClient::send_item(RedPipeItem *pipe_item)
         SpiceFill fill;
         fill.brush = (SpiceBrush) { SPICE_BRUSH_TYPE_SOLID, { .color = 0 } };
         fill.rop_descriptor = SPICE_ROPD_OP_PUT;
-        fill.mask = (SpiceQMask) { 0, { 0, 0 }, NULL };
+        fill.mask = (SpiceQMask) { 0, { 0, 0 }, nullptr };
         SpiceMarshaller *brush_pat_out, *mask_bitmap_out;
         spice_marshall_Fill(m, &fill, &brush_pat_out, &mask_bitmap_out);
         break;
@@ -353,10 +353,10 @@ void StreamChannel::on_connect(RedClient *red_client, RedStream *stream,
     } start_msg;
     StreamMsgStartStop *const start = &start_msg.base;
 
-    spice_return_if_fail(stream != NULL);
+    spice_return_if_fail(stream != nullptr);
 
     client = stream_channel_client_new(this, red_client, stream, migration, caps);
-    if (client == NULL) {
+    if (client == nullptr) {
         return;
     }
 
@@ -433,7 +433,7 @@ StreamChannel::change_format(const StreamMsgFormat *fmt)
     item->stream_create.src_width = fmt->width;
     item->stream_create.src_height = fmt->height;
     item->stream_create.dest = (SpiceRect) { 0, 0, fmt->width, fmt->height };
-    item->stream_create.clip = (SpiceClip) { SPICE_CLIP_TYPE_NONE, NULL };
+    item->stream_create.clip = (SpiceClip) { SPICE_CLIP_TYPE_NONE, nullptr };
     pipes_add(std::move(item));
 
     // activate stream report if possible

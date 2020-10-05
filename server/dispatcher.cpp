@@ -85,7 +85,7 @@ Dispatcher::Dispatcher(uint32_t max_message_type):
         spice_error("socketpair failed %s", strerror(errno));
         return;
     }
-    pthread_mutex_init(&priv->lock, NULL);
+    pthread_mutex_init(&priv->lock, nullptr);
     priv->recv_fd = channels[0];
     priv->send_fd = channels[1];
 
@@ -290,7 +290,7 @@ void Dispatcher::register_handler(uint32_t message_type,
     DispatcherMessage *msg;
 
     assert(message_type < priv->max_message_type);
-    assert(priv->messages[message_type].handler == NULL);
+    assert(priv->messages[message_type].handler == nullptr);
     msg = &priv->messages[message_type];
     msg->handler = handler;
     msg->size = size;

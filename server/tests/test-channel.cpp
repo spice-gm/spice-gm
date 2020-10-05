@@ -89,8 +89,8 @@ RedTestChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *ms
  */
 typedef SpiceWatch *watch_add_t(const SpiceCoreInterfaceInternal *iface,
                                 int fd, int event_mask, SpiceWatchFunc func, void *opaque);
-static watch_add_t *old_watch_add = NULL;
-static SpiceWatchFunc old_watch_func = NULL;
+static watch_add_t *old_watch_add = nullptr;
+static SpiceWatchFunc old_watch_func = nullptr;
 
 static int watch_called_countdown = 5;
 
@@ -229,7 +229,7 @@ static void channel_loop()
     g_assert(main_channel);
 
     MainChannelClient *mcc;
-    mcc = main_channel_link(main_channel.get(), client, create_dummy_stream(server, NULL),
+    mcc = main_channel_link(main_channel.get(), client, create_dummy_stream(server, nullptr),
                             0, FALSE, &caps);
     g_assert_nonnull(mcc);
 

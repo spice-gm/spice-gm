@@ -36,7 +36,7 @@ RedClient *MainChannel::get_client_by_link_id(uint32_t connection_id)
             return rcc->get_client();
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 static void main_channel_push_channels(MainChannelClient *mcc)
@@ -116,7 +116,7 @@ static void main_channel_fill_mig_target(MainChannel *main_channel, RedsMigSpice
     if (mig_target->cert_subject) {
         main_channel->mig_target.cert_subject = g_strdup(mig_target->cert_subject);
     } else {
-        main_channel->mig_target.cert_subject = NULL;
+        main_channel->mig_target.cert_subject = nullptr;
     }
     main_channel->mig_target.port = mig_target->port;
     main_channel->mig_target.sport = mig_target->sport;

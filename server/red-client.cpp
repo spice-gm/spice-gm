@@ -34,7 +34,7 @@ RedClient::RedClient(RedsState *init_reds, bool migrated):
     reds(init_reds),
     during_target_migrate(migrated)
 {
-    pthread_mutex_init(&lock, NULL);
+    pthread_mutex_init(&lock, nullptr);
     thread_id = pthread_self();
 }
 
@@ -136,7 +136,7 @@ RedChannelClient *RedClient::get_channel(int type, int id)
             return rcc.get();
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 gboolean RedClient::add_channel(RedChannelClient *rcc, char **error)

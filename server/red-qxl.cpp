@@ -410,7 +410,7 @@ SpiceMsgDisplayGlScanoutUnix *red_qxl_get_gl_scanout(QXLInstance *qxl)
         return &qxl->st->scanout;
     }
     pthread_mutex_unlock(&qxl->st->scanout_mutex);
-    return NULL;
+    return nullptr;
 }
 
 void red_qxl_put_gl_scanout(QXLInstance *qxl, SpiceMsgDisplayGlScanoutUnix *scanout)
@@ -428,7 +428,7 @@ void spice_qxl_gl_scanout(QXLInstance *qxl,
                           int y_0_top)
 {
     RedWorkerMessageGlScanout payload = { /* empty */ };
-    spice_return_if_fail(qxl != NULL);
+    spice_return_if_fail(qxl != nullptr);
 
     QXLState *qxl_state = qxl->st;
     spice_return_if_fail(qxl_state->gl_draw_cookie == GL_DRAW_COOKIE_INVALID);
@@ -472,7 +472,7 @@ void spice_qxl_gl_draw_async(QXLInstance *qxl,
         },
     };
 
-    spice_return_if_fail(qxl != NULL);
+    spice_return_if_fail(qxl != nullptr);
     qxl_state = qxl->st;
     if (qxl_state->scanout.drm_dma_buf_fd < 0) {
         spice_warning("called spice_qxl_gl_draw_async without a buffer");
@@ -499,7 +499,7 @@ void spice_qxl_set_device_info(QXLInstance *instance,
                                uint32_t device_display_id_start,
                                uint32_t device_display_id_count)
 {
-    g_return_if_fail(device_address != NULL);
+    g_return_if_fail(device_address != nullptr);
 
     size_t da_len = strnlen(device_address, MAX_DEVICE_ADDRESS_LEN);
     if (da_len >= MAX_DEVICE_ADDRESS_LEN) {
@@ -565,12 +565,12 @@ void red_qxl_init(RedsState *reds, QXLInstance *qxl)
 {
     QXLState *qxl_state;
 
-    spice_return_if_fail(qxl != NULL);
+    spice_return_if_fail(qxl != nullptr);
 
     qxl_state = new QXLState();
     qxl_state->reds = reds;
     qxl_state->qxl = qxl;
-    pthread_mutex_init(&qxl_state->scanout_mutex, NULL);
+    pthread_mutex_init(&qxl_state->scanout_mutex, nullptr);
     qxl_state->scanout.drm_dma_buf_fd = -1;
     qxl_state->gl_draw_cookie = GL_DRAW_COOKIE_INVALID;
     qxl_state->dispatcher = red::make_shared<Dispatcher>(RED_WORKER_MESSAGE_COUNT);
@@ -585,7 +585,7 @@ void red_qxl_init(RedsState *reds, QXLInstance *qxl)
 
 void red_qxl_destroy(QXLInstance *qxl)
 {
-    spice_return_if_fail(qxl->st != NULL && qxl->st->dispatcher);
+    spice_return_if_fail(qxl->st != nullptr && qxl->st->dispatcher);
 
     QXLState *qxl_state = qxl->st;
 
@@ -594,7 +594,7 @@ void red_qxl_destroy(QXLInstance *qxl)
     qxl_state->dispatcher->send_message(RED_WORKER_MESSAGE_CLOSE_WORKER, &message);
     red_worker_free(qxl_state->worker);
     /* this must be done after calling red_worker_free */
-    qxl->st = NULL;
+    qxl->st = nullptr;
     pthread_mutex_destroy(&qxl_state->scanout_mutex);
     delete qxl_state;
 }
@@ -606,7 +606,7 @@ Dispatcher *red_qxl_get_dispatcher(QXLInstance *qxl)
 
 void red_qxl_clear_pending(QXLState *qxl_state, int pending)
 {
-    spice_return_if_fail(qxl_state != NULL);
+    spice_return_if_fail(qxl_state != nullptr);
 
     clear_bit(pending, &qxl_state->pending);
 }

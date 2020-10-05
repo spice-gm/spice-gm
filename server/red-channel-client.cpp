@@ -202,7 +202,7 @@ static void full_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t
 static uint16_t full_header_get_msg_type(SpiceDataHeaderOpaque *header);
 static uint32_t full_header_get_msg_size(SpiceDataHeaderOpaque *header);
 
-static const SpiceDataHeaderOpaque full_header_wrapper = {NULL, sizeof(SpiceDataHeader),
+static const SpiceDataHeaderOpaque full_header_wrapper = {nullptr, sizeof(SpiceDataHeader),
                                                           full_header_set_msg_type,
                                                           full_header_set_msg_size,
                                                           full_header_set_msg_serial,
@@ -217,7 +217,7 @@ static void mini_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t
 static uint16_t mini_header_get_msg_type(SpiceDataHeaderOpaque *header);
 static uint32_t mini_header_get_msg_size(SpiceDataHeaderOpaque *header);
 
-static const SpiceDataHeaderOpaque mini_header_wrapper = {NULL, sizeof(SpiceMiniDataHeader),
+static const SpiceDataHeaderOpaque mini_header_wrapper = {nullptr, sizeof(SpiceMiniDataHeader),
                                                           mini_header_set_msg_type,
                                                           mini_header_set_msg_size,
                                                           mini_header_set_msg_serial,
@@ -334,10 +334,10 @@ RedChannelClientPrivate::RedChannelClientPrivate(RedChannel *init_channel,
 RedChannelClientPrivate::~RedChannelClientPrivate()
 {
     red_timer_remove(latency_monitor.timer);
-    latency_monitor.timer = NULL;
+    latency_monitor.timer = nullptr;
 
     red_timer_remove(connectivity_monitor.timer);
-    connectivity_monitor.timer = NULL;
+    connectivity_monitor.timer = nullptr;
 
     red_stream_free(stream);
 
@@ -542,7 +542,7 @@ void RedChannelClient::msg_sent()
 
     if (priv->urgent_marshaller_is_active()) {
         priv->restore_main_sender();
-        spice_assert(priv->send_data.header.data != NULL);
+        spice_assert(priv->send_data.header.data != nullptr);
         begin_send_message();
     } else {
         if (priv->pipe.empty()) {
@@ -708,7 +708,7 @@ void RedChannelClient::start_connectivity_monitoring(uint32_t timeout_ms)
      * channel-client even if there are no ongoing channel specific messages
      * on this channel.
      */
-    if (priv->latency_monitor.timer == NULL) {
+    if (priv->latency_monitor.timer == nullptr) {
         priv->latency_monitor.timer =
             core->timer_new(ping_timer, this);
         priv->latency_monitor.roundtrip = -1;
@@ -719,7 +719,7 @@ void RedChannelClient::start_connectivity_monitoring(uint32_t timeout_ms)
     if (!priv->client->during_migrate_at_target()) {
         priv->start_ping_timer(PING_TEST_IDLE_NET_TIMEOUT_MS);
     }
-    if (priv->connectivity_monitor.timer == NULL) {
+    if (priv->connectivity_monitor.timer == nullptr) {
         priv->connectivity_monitor.state = CONNECTIVITY_STATE_CONNECTED;
         priv->connectivity_monitor.timer =
             core->timer_new(connectivity_timer, this);
@@ -804,7 +804,7 @@ static void mini_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t
 
 bool RedChannelClient::init()
 {
-    char *local_error = NULL;
+    char *local_error = nullptr;
     SpiceCoreInterfaceInternal *core;
 
     if (!priv->stream) {
@@ -851,7 +851,7 @@ cleanup:
                             local_error);
         g_free(local_error);
     }
-    return local_error == NULL;
+    return local_error == nullptr;
 }
 
 void RedChannelClientPrivate::watch_update_mask(int event_mask)
@@ -912,10 +912,10 @@ void RedChannelClient::migrate()
 {
     priv->cancel_ping_timer();
     red_timer_remove(priv->latency_monitor.timer);
-    priv->latency_monitor.timer = NULL;
+    priv->latency_monitor.timer = nullptr;
 
     red_timer_remove(priv->connectivity_monitor.timer);
-    priv->connectivity_monitor.timer = NULL;
+    priv->connectivity_monitor.timer = nullptr;
 
     pipe_add_type(RED_PIPE_ITEM_TYPE_MIGRATE);
 }
@@ -924,7 +924,7 @@ void RedChannelClient::shutdown()
 {
     if (priv->stream && priv->stream->watch) {
         red_watch_remove(priv->stream->watch);
-        priv->stream->watch = NULL;
+        priv->stream->watch = nullptr;
         ::shutdown(priv->stream->socket, SHUT_RDWR);
     }
 }
@@ -1040,7 +1040,7 @@ void RedChannelClient::handle_incoming()
         int ret_handle;
         uint8_t *parsed;
         size_t parsed_size;
-        message_destructor_t parsed_free = NULL;
+        message_destructor_t parsed_free = nullptr;
         RedChannel *channel = get_channel();
 
         if (buffer->header_pos < buffer->header.header_size) {
@@ -1064,12 +1064,12 @@ void RedChannelClient::handle_incoming()
         if (buffer->msg_pos < msg_size) {
             if (!buffer->msg) {
                 buffer->msg = alloc_recv_buf(msg_type, msg_size);
-                if (buffer->msg == NULL && priv->block_read) {
+                if (buffer->msg == nullptr && priv->block_read) {
                     // if we are blocked by flow control just return, message will be read
                     // when data will be available
                     return;
                 }
-                if (buffer->msg == NULL) {
+                if (buffer->msg == nullptr) {
                     red_channel_warning(channel, "ERROR: channel refused to allocate buffer.");
                     disconnect();
                     return;
@@ -1081,7 +1081,7 @@ void RedChannelClient::handle_incoming()
                                           msg_size - buffer->msg_pos);
             if (bytes_read == -1) {
                 release_recv_buf(msg_type, msg_size, buffer->msg);
-                buffer->msg = NULL;
+                buffer->msg = nullptr;
                 disconnect();
                 return;
             }
@@ -1094,20 +1094,20 @@ void RedChannelClient::handle_incoming()
 
         parsed = get_channel()->parse(buffer->msg, msg_size,
                                       msg_type, &parsed_size, &parsed_free);
-        if (parsed == NULL) {
+        if (parsed == nullptr) {
             red_channel_warning(channel, "failed to parse message type %d", msg_type);
             release_recv_buf(msg_type, msg_size, buffer->msg);
-            buffer->msg = NULL;
+            buffer->msg = nullptr;
             disconnect();
             return;
         }
         ret_handle = handle_message(msg_type, parsed_size, parsed);
-        if (parsed_free != NULL) {
+        if (parsed_free != nullptr) {
             parsed_free(parsed);
         }
         buffer->msg_pos = 0;
         release_recv_buf(msg_type, msg_size, buffer->msg);
-        buffer->msg = NULL;
+        buffer->msg = nullptr;
         buffer->header_pos = 0;
 
         if (!ret_handle) {
@@ -1345,14 +1345,14 @@ void RedChannelClient::begin_send_message()
     priv->send_data.header.set_msg_serial(&priv->send_data.header,
                                                ++priv->send_data.last_sent_serial);
     priv->ack_data.messages_window++;
-    priv->send_data.header.data = NULL; /* avoid writing to this until we have a new message */
+    priv->send_data.header.data = nullptr; /* avoid writing to this until we have a new message */
     send();
 }
 
 SpiceMarshaller *RedChannelClient::switch_to_urgent_sender()
 {
     spice_assert(no_item_being_sent());
-    spice_assert(priv->send_data.header.data != NULL);
+    spice_assert(priv->send_data.header.data != nullptr);
     priv->send_data.main.header_data = priv->send_data.header.data;
 
     priv->send_data.marshaller = priv->send_data.urgent.marshaller;
@@ -1484,7 +1484,7 @@ bool RedChannelClient::is_mini_header() const
 
 bool RedChannelClient::is_connected() const
 {
-    return g_list_find(priv->channel->get_clients(), this) != NULL;
+    return g_list_find(priv->channel->get_clients(), this) != nullptr;
 }
 
 void RedChannelClientPrivate::clear_sent_item()
@@ -1531,10 +1531,10 @@ void RedChannelClient::disconnect()
     shutdown();
 
     red_timer_remove(priv->latency_monitor.timer);
-    priv->latency_monitor.timer = NULL;
+    priv->latency_monitor.timer = nullptr;
 
     red_timer_remove(priv->connectivity_monitor.timer);
-    priv->connectivity_monitor.timer = NULL;
+    priv->connectivity_monitor.timer = nullptr;
 
     channel->remove_client(this);
     on_disconnect();

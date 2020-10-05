@@ -24,7 +24,7 @@ uint8_t *InputsChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
 {
     if (size > sizeof(recv_buf)) {
         red_channel_warning(get_channel(), "error: too large incoming message");
-        return NULL;
+        return nullptr;
     }
 
     return recv_buf;

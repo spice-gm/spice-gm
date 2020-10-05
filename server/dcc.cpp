@@ -88,7 +88,7 @@ bool dcc_drawable_is_in_pipe(DisplayChannelClient *dcc, Drawable *drawable)
     RedDrawablePipeItem *dpi;
     GList *l;
 
-    for (l = drawable->pipes; l != NULL; l = l->next) {
+    for (l = drawable->pipes; l != nullptr; l = l->next) {
         dpi = (RedDrawablePipeItem *) l->data;
         if (dpi->dcc == dcc) {
             return TRUE;
@@ -107,14 +107,14 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
 {
     int x;
 
-    spice_return_val_if_fail(dcc != NULL, TRUE);
+    spice_return_val_if_fail(dcc != nullptr, TRUE);
     /* removing the newest drawables that their destination is surface_id and
        no other drawable depends on them */
 
     auto &pipe = dcc->get_pipe();
     for (auto l = pipe.begin(); l != pipe.end(); ) {
         Drawable *drawable;
-        RedDrawablePipeItem *dpi = NULL;
+        RedDrawablePipeItem *dpi = nullptr;
         int depend_found = FALSE;
         RedPipeItem *item = l->get();
         auto item_pos = l;
@@ -435,7 +435,7 @@ void dcc_start(DisplayChannelClient *dcc)
 
     if (red_stream_is_plain_unix(dcc->get_stream()) &&
         dcc->test_remote_cap(SPICE_DISPLAY_CAP_GL_SCANOUT)) {
-        dcc->pipe_add(dcc_gl_scanout_item_new(dcc, NULL, 0));
+        dcc->pipe_add(dcc_gl_scanout_item_new(dcc, nullptr, 0));
         dcc_push_monitors_config(dcc);
     }
 }
@@ -450,7 +450,7 @@ static void dcc_destroy_stream_agents(DisplayChannelClient *dcc)
         region_destroy(&agent->clip);
         if (agent->video_encoder) {
             agent->video_encoder->destroy(agent->video_encoder);
-            agent->video_encoder = NULL;
+            agent->video_encoder = nullptr;
         }
     }
 }
@@ -460,7 +460,7 @@ static void dcc_stop(DisplayChannelClient *dcc)
     DisplayChannel *dc = DCC_TO_DC(dcc);
 
     pixmap_cache_unref(dcc->priv->pixmap_cache);
-    dcc->priv->pixmap_cache = NULL;
+    dcc->priv->pixmap_cache = nullptr;
     dcc_palette_cache_reset(dcc);
     g_free(dcc->priv->send_data.free_list.res);
     dcc_destroy_stream_agents(dcc);
@@ -493,7 +493,7 @@ void dcc_push_monitors_config(DisplayChannelClient *dcc)
     DisplayChannel *dc = DCC_TO_DC(dcc);
     MonitorsConfig *monitors_config = dc->priv->monitors_config;
 
-    if (monitors_config == NULL) {
+    if (monitors_config == nullptr) {
         spice_warning("monitors_config is NULL");
         return;
     }
@@ -609,7 +609,7 @@ static SpiceImageCompression get_compression_for_bitmap(SpiceBitmap *bitmap,
     if (preferred_compression == SPICE_IMAGE_COMPRESSION_AUTO_GLZ ||
         preferred_compression == SPICE_IMAGE_COMPRESSION_AUTO_LZ) {
         if (can_quic_compress(bitmap)) {
-            if (drawable == NULL ||
+            if (drawable == nullptr ||
                 drawable->copy_bitmap_graduality == BITMAP_GRADUAL_INVALID) {
                 if (bitmap_fmt_has_graduality(bitmap->format) &&
                     bitmap_get_graduality_level(bitmap) == BITMAP_GRADUAL_HIGH) {
@@ -630,7 +630,7 @@ static SpiceImageCompression get_compression_for_bitmap(SpiceBitmap *bitmap,
     }
 
     if (preferred_compression == SPICE_IMAGE_COMPRESSION_GLZ) {
-        if (drawable == NULL || !bitmap_fmt_has_graduality(bitmap->format)) {
+        if (drawable == nullptr || !bitmap_fmt_has_graduality(bitmap->format)) {
             preferred_compression = SPICE_IMAGE_COMPRESSION_LZ;
         }
     }
@@ -720,7 +720,7 @@ lz_compress:
 void dcc_palette_cache_palette(DisplayChannelClient *dcc, SpicePalette *palette,
                                uint8_t *flags)
 {
-    if (palette == NULL) {
+    if (palette == nullptr) {
         return;
     }
     if (palette->unique) {
@@ -871,7 +871,7 @@ static bool dcc_handle_stream_report(DisplayChannelClient *dcc,
                       report->stream_id);
         /* Stop streaming the video so the client can see it */
         agent->video_encoder->destroy(agent->video_encoder);
-        agent->video_encoder = NULL;
+        agent->video_encoder = nullptr;
         return TRUE;
     }
 
@@ -942,7 +942,7 @@ static void dcc_update_preferred_video_codecs(DisplayChannelClient *dcc)
     char *codecs_str;
 
     server_codecs = display_channel_get_video_codecs(DCC_TO_DC(dcc));
-    spice_return_if_fail(server_codecs != NULL);
+    spice_return_if_fail(server_codecs != nullptr);
 
     /* Copy current host preference */
     video_codecs = g_array_sized_new(FALSE, FALSE, sizeof(RedVideoCodec), server_codecs->len);
@@ -963,7 +963,7 @@ void dcc_video_codecs_update(DisplayChannelClient *dcc)
 {
     /* Only worry about video-codecs update if client has sent
      * SPICE_MSGC_DISPLAY_PREFERRED_VIDEO_CODEC_TYPE */
-    if (dcc->priv->client_preferred_video_codecs == NULL) {
+    if (dcc->priv->client_preferred_video_codecs == nullptr) {
         return;
     }
 
@@ -988,7 +988,7 @@ static int dcc_handle_preferred_video_codec_type(DisplayChannelClient *dcc,
 
 GArray *dcc_get_preferred_video_codecs_for_encoding(DisplayChannelClient *dcc)
 {
-    if (dcc->priv->preferred_video_codecs != NULL) {
+    if (dcc->priv->preferred_video_codecs != nullptr) {
         return dcc->priv->preferred_video_codecs;
     }
     return display_channel_get_video_codecs(DCC_TO_DC(dcc));

@@ -59,10 +59,10 @@ static void test_dispatcher_teardown(TestFixture *fixture, gconstpointer user_da
     g_assert_nonnull(core);
 
     red_watch_remove(watch);
-    watch = NULL;
+    watch = nullptr;
     dispatcher.reset();
     basic_event_loop_destroy();
-    core = NULL;
+    core = nullptr;
 }
 
 // test message to sent
@@ -96,12 +96,12 @@ static void *thread_proc(void *arg)
 
     // repeat sending messages
     for (unsigned n = 0; n < iterations; ++n) {
-        Msg msg{n, NULL};
+        Msg msg{n, nullptr};
         dispatcher->send_message_custom(msg_check, &msg, (n % 10) >= n_nack);
     }
 
     // one last sync to wait
-    Msg msg{0, NULL};
+    Msg msg{0, nullptr};
     dispatcher->send_message_custom(msg_end, &msg, true);
 
     // measure time
@@ -110,21 +110,21 @@ static void *thread_proc(void *arg)
     printf("With ACK/NACK %d/%d time spent %gus each over %u iterations\n",
            10 - n_nack, n_nack,
            cost / 1000.0 / iterations, iterations);
-    return NULL;
+    return nullptr;
 }
 
 static void test_dispatcher(TestFixture *fixture, gconstpointer user_data)
 {
     pthread_t th;
 
-    g_assert_cmpint(pthread_create(&th, NULL, thread_proc, (void *) user_data), ==, 0);
+    g_assert_cmpint(pthread_create(&th, nullptr, thread_proc, (void *) user_data), ==, 0);
 
     // start all test
     alarm(20);
     basic_event_loop_mainloop();
     alarm(0);
 
-    pthread_join(th, NULL);
+    pthread_join(th, nullptr);
 }
 
 int main(int argc, char *argv[])

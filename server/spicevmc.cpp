@@ -126,7 +126,7 @@ vmc_channel_client_create(RedChannel *channel, RedClient *client,
 RedVmcChannel::RedVmcChannel(RedsState *reds, uint32_t type, uint32_t id):
     RedChannel(reds, type, id, RedChannel::MigrateAll)
 {
-    init_stat_node(NULL, "spicevmc");
+    init_stat_node(nullptr, "spicevmc");
     const RedStatNode *stat = get_stat_node();
     stat_init_counter(&in_data, reds, stat, "in_data", TRUE);
     stat_init_counter(&in_compressed, reds, stat, "in_compressed", TRUE);
@@ -313,7 +313,7 @@ void VmcChannelClient::on_disconnect()
         }
     }
 
-    channel->rcc = NULL;
+    channel->rcc = nullptr;
     sif = spice_char_device_get_interface(channel->chardev_sin);
     if (sif->state) {
         sif->state(channel->chardev_sin, 0);
@@ -403,7 +403,7 @@ bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
         stat_inc_counter(channel->in_data, size);
         channel->recv_from_client_buf->buf_used = size;
         channel->chardev->write_buffer_add(channel->recv_from_client_buf);
-        channel->recv_from_client_buf = NULL;
+        channel->recv_from_client_buf = nullptr;
         break;
     case SPICE_MSGC_SPICEVMC_COMPRESSED_DATA:
         return handle_compressed_msg(channel, this, (SpiceMsgCompressedData*)msg);
@@ -413,7 +413,7 @@ bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
             spice_warning("bad port event message size");
             return FALSE;
         }
-        if (sif->base.minor_version >= 2 && sif->event != NULL)
+        if (sif->base.minor_version >= 2 && sif->event != nullptr)
             sif->event(channel->chardev_sin, *(uint8_t*)msg);
         break;
     default:
@@ -442,7 +442,7 @@ uint8_t *VmcChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
                                                                                   true);
         if (!channel->recv_from_client_buf) {
             block_read();
-            return NULL;
+            return nullptr;
         }
         return channel->recv_from_client_buf->buf;
     }
@@ -638,7 +638,7 @@ void RedCharDeviceSpiceVmc::port_event(uint8_t event)
         channel->port_opened = FALSE;
     }
 
-    if (channel->rcc == NULL) {
+    if (channel->rcc == nullptr) {
         return;
     }
 
@@ -659,7 +659,7 @@ RedCharDeviceSpiceVmc::~RedCharDeviceSpiceVmc()
 {
     if (channel) {
         // prevent possible recursive calls
-        channel->chardev = NULL;
+        channel->chardev = nullptr;
 
         // close all current connections and drop the reference
         channel->destroy();

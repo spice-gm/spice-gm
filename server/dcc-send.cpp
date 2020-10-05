@@ -129,7 +129,7 @@ static bool is_surface_area_lossy(DisplayChannelClient *dcc, uint32_t surface_id
 static bool is_bitmap_lossy(DisplayChannelClient *dcc, SpiceImage *image, SpiceRect *area,
                             BitmapData *out_data)
 {
-    if (image == NULL) {
+    if (image == nullptr) {
         // self bitmap
         out_data->type = BITMAP_DATA_TYPE_BITMAP;
         return FALSE;
@@ -163,7 +163,7 @@ static bool is_brush_lossy(DisplayChannelClient *dcc, SpiceBrush *brush,
                            BitmapData *out_data)
 {
     if (brush->type == SPICE_BRUSH_TYPE_PATTERN) {
-        return is_bitmap_lossy(dcc, brush->u.pattern.pat, NULL,
+        return is_bitmap_lossy(dcc, brush->u.pattern.pat, nullptr,
                                out_data);
     }
     out_data->type = BITMAP_DATA_TYPE_INVALID;
@@ -226,7 +226,7 @@ static void send_free_list_legacy(DisplayChannelClient *dcc)
     FreeList *free_list = &dcc->priv->send_data.free_list;
     SpiceMarshaller *marshaller;
     int sub_list_len = 1;
-    SpiceMarshaller *wait_m = NULL;
+    SpiceMarshaller *wait_m = nullptr;
     SpiceMarshaller *inval_m;
     SpiceMarshaller *sub_list_m;
 
@@ -350,10 +350,10 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
 {
     DisplayChannel *display = DCC_TO_DC(dcc);
     SpiceImage image;
-    compress_send_data_t comp_send_data = {0};
+    compress_send_data_t comp_send_data = {nullptr};
     SpiceMarshaller *bitmap_palette_out, *lzplt_palette_out;
 
-    if (simage == NULL) {
+    if (simage == nullptr) {
         spice_assert(drawable->red_drawable->self_bitmap_image);
         simage = drawable->red_drawable->self_bitmap_image;
     }
@@ -381,8 +381,8 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
                 }
                 spice_marshall_Image(m, &image,
                                      &bitmap_palette_out, &lzplt_palette_out);
-                spice_assert(bitmap_palette_out == NULL);
-                spice_assert(lzplt_palette_out == NULL);
+                spice_assert(bitmap_palette_out == nullptr);
+                spice_assert(lzplt_palette_out == nullptr);
                 stat_inc_counter(display->priv->cache_hits_counter, 1);
                 pthread_mutex_unlock(&dcc->priv->pixmap_cache->lock);
                 return FILL_BITS_TYPE_CACHE;
@@ -413,8 +413,8 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
         image.u.surface.surface_id = surface_id;
         spice_marshall_Image(m, &image,
                              &bitmap_palette_out, &lzplt_palette_out);
-        spice_assert(bitmap_palette_out == NULL);
-        spice_assert(lzplt_palette_out == NULL);
+        spice_assert(bitmap_palette_out == nullptr);
+        spice_assert(lzplt_palette_out == nullptr);
         pthread_mutex_unlock(&dcc->priv->pixmap_cache->lock);
         return FILL_BITS_TYPE_SURFACE;
     }
@@ -440,7 +440,7 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
             dcc_palette_cache_palette(dcc, palette, &bitmap->flags);
             spice_marshall_Image(m, &image,
                                  &bitmap_palette_out, &lzplt_palette_out);
-            spice_assert(lzplt_palette_out == NULL);
+            spice_assert(lzplt_palette_out == nullptr);
 
             if (bitmap_palette_out && palette) {
                 spice_marshall_Palette(bitmap_palette_out, palette);
@@ -460,7 +460,7 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
         red_display_add_image_to_pixmap_cache(dcc, simage, &image, comp_send_data.is_lossy);
 
         spice_marshall_Image(m, &image, &bitmap_palette_out, &lzplt_palette_out);
-        spice_assert(bitmap_palette_out == NULL);
+        spice_assert(bitmap_palette_out == nullptr);
 
         marshaller_add_compressed(m, comp_send_data.comp_buf,
                                   comp_send_data.comp_buf_size);
@@ -479,8 +479,8 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
         image.u.quic = simage->u.quic;
         spice_marshall_Image(m, &image,
                              &bitmap_palette_out, &lzplt_palette_out);
-        spice_assert(bitmap_palette_out == NULL);
-        spice_assert(lzplt_palette_out == NULL);
+        spice_assert(bitmap_palette_out == nullptr);
+        spice_assert(lzplt_palette_out == nullptr);
         /* 'drawable' owns this image data, so it must be kept
          * alive until the message is sent. */
         for (unsigned int i = 0; i < image.u.quic.data->num_chunks; i++) {
@@ -1413,9 +1413,9 @@ static void red_lossy_marshall_qxl_draw_composite(DisplayChannelClient *dcc,
     SpiceRect dest_lossy_area;
 
     src_is_lossy = is_bitmap_lossy(dcc, drawable->u.composite.src_bitmap,
-                                   NULL, &src_bitmap_data);
+                                   nullptr, &src_bitmap_data);
     mask_is_lossy = drawable->u.composite.mask_bitmap &&
-        is_bitmap_lossy(dcc, drawable->u.composite.mask_bitmap, NULL, &mask_bitmap_data);
+        is_bitmap_lossy(dcc, drawable->u.composite.mask_bitmap, nullptr, &mask_bitmap_data);
 
     dest_is_lossy = is_surface_area_lossy(dcc, drawable->surface_id,
                                           &drawable->bbox, &dest_lossy_area);
@@ -1898,7 +1898,7 @@ static void red_marshall_image(DisplayChannelClient *dcc,
     bitmap.x = item->width;
     bitmap.y = item->height;
     bitmap.stride = item->stride;
-    bitmap.palette = 0;
+    bitmap.palette = nullptr;
     bitmap.palette_id = 0;
 
     chunks = spice_chunks_new_linear(item->data, bitmap.stride * bitmap.y);
@@ -1918,18 +1918,18 @@ static void red_marshall_image(DisplayChannelClient *dcc,
     copy.data.src_area.right = bitmap.x;
     copy.data.src_area.bottom = bitmap.y;
     copy.data.scale_mode = 0;
-    copy.data.src_bitmap = 0;
+    copy.data.src_bitmap = nullptr;
     copy.data.mask.flags = 0;
     copy.data.mask.pos.x = 0;
     copy.data.mask.pos.y = 0;
-    copy.data.mask.bitmap = 0;
+    copy.data.mask.bitmap = nullptr;
 
     spice_marshall_msg_display_draw_copy(m, &copy,
                                          &src_bitmap_out, &mask_bitmap_out);
 
-    compress_send_data_t comp_send_data = {0};
+    compress_send_data_t comp_send_data = {nullptr};
 
-    int comp_succeeded = dcc_compress_image(dcc, &red_image, &bitmap, NULL, item->can_lossy, &comp_send_data);
+    int comp_succeeded = dcc_compress_image(dcc, &red_image, &bitmap, nullptr, item->can_lossy, &comp_send_data);
 
     surface_lossy_region = &dcc->priv->surface_client_lossy_region[item->surface_id];
     if (comp_succeeded) {
@@ -2174,7 +2174,7 @@ static void marshall_upgrade(DisplayChannelClient *dcc, SpiceMarshaller *m,
     red_drawable = item->drawable->red_drawable;
     spice_assert(red_drawable->type == QXL_DRAW_COPY);
     spice_assert(red_drawable->u.copy.rop_descriptor == SPICE_ROPD_OP_PUT);
-    spice_assert(red_drawable->u.copy.mask.bitmap == 0);
+    spice_assert(red_drawable->u.copy.mask.bitmap == nullptr);
 
     copy.base.surface_id = 0;
     copy.base.box = red_drawable->bbox;
@@ -2260,7 +2260,7 @@ static void marshall_gl_scanout(DisplayChannelClient *dcc,
     QXLInstance* qxl = display_channel->priv->qxl;
 
     SpiceMsgDisplayGlScanoutUnix *scanout = red_qxl_get_gl_scanout(qxl);
-    if (scanout != NULL) {
+    if (scanout != nullptr) {
         dcc->init_send_data(SPICE_MSG_DISPLAY_GL_SCANOUT_UNIX);
         spice_marshall_msg_display_gl_scanout_unix(m, scanout);
     }

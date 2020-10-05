@@ -230,8 +230,8 @@ static void snd_send(SndChannelClient * client);
 static SndChannelClient *snd_channel_get_client(SndChannel *channel)
 {
     GList *clients = channel->get_clients();
-    if (clients == NULL) {
-        return NULL;
+    if (clients == nullptr) {
+        return nullptr;
     }
 
     return (SndChannelClient*) clients->data;
@@ -239,7 +239,7 @@ static SndChannelClient *snd_channel_get_client(SndChannel *channel)
 
 static RedsState* snd_channel_get_server(SndChannelClient *client)
 {
-    g_return_val_if_fail(client != NULL, NULL);
+    g_return_val_if_fail(client != nullptr, NULL);
     return client->get_channel()->get_server();
 }
 
@@ -256,7 +256,7 @@ void PlaybackChannelClient::on_message_marshalled(uint8_t *, void *opaque)
 
     if (client->in_progress) {
         snd_playback_free_frame(client, client->in_progress);
-        client->in_progress = NULL;
+        client->in_progress = nullptr;
         if (client->pending_frame) {
             client->command |= SND_PLAYBACK_PCM_MASK;
             snd_send(client);
@@ -649,7 +649,7 @@ void PlaybackChannelClient::send_item(G_GNUC_UNUSED RedPipeItem *item)
         if (command & SND_PLAYBACK_PCM_MASK) {
             spice_assert(!in_progress && pending_frame);
             in_progress = pending_frame;
-            pending_frame = NULL;
+            pending_frame = nullptr;
             command &= ~SND_PLAYBACK_PCM_MASK;
             if (snd_playback_send_write(this)) {
                 break;
@@ -876,7 +876,7 @@ SPICE_GNUC_VISIBLE void spice_server_playback_stop(SpicePlaybackInstance *sin)
             spice_assert(!playback_client->in_progress);
             snd_playback_free_frame(playback_client,
                                     playback_client->pending_frame);
-            playback_client->pending_frame = NULL;
+            playback_client->pending_frame = nullptr;
         }
     }
 }
@@ -886,7 +886,7 @@ SPICE_GNUC_VISIBLE void spice_server_playback_get_buffer(SpicePlaybackInstance *
 {
     SndChannelClient *client = snd_channel_get_client(sin->st);
 
-    *frame = NULL;
+    *frame = nullptr;
     *num_samples = 0;
     if (!client) {
         return;
@@ -940,7 +940,7 @@ void snd_set_playback_latency(RedClient *client, uint32_t latency)
 {
     GList *l;
 
-    for (l = snd_channels; l != NULL; l = l->next) {
+    for (l = snd_channels; l != nullptr; l = l->next) {
         auto now = (SndChannel*) l->data;
         SndChannelClient *scc = snd_channel_get_client(now);
         if (now->type() == SPICE_CHANNEL_PLAYBACK && scc &&
@@ -977,7 +977,7 @@ PlaybackChannelClient::~PlaybackChannelClient()
 
     // free frames, unref them
     for (i = 0; i < NUM_AUDIO_FRAMES; ++i) {
-        frames->items[i].client = NULL;
+        frames->items[i].client = nullptr;
     }
     if (--frames->refs == 0) {
         g_free(frames);
@@ -1222,7 +1222,7 @@ SndChannel::~SndChannel()
     remove_channel(this);
 
     g_free(volume.volume);
-    volume.volume = NULL;
+    volume.volume = nullptr;
 }
 
 PlaybackChannel::PlaybackChannel(RedsState *reds):
@@ -1276,7 +1276,7 @@ void snd_set_playback_compression(bool on)
 {
     GList *l;
 
-    for (l = snd_channels; l != NULL; l = l->next) {
+    for (l = snd_channels; l != nullptr; l = l->next) {
         auto now = (SndChannel*) l->data;
         SndChannelClient *client = snd_channel_get_client(now);
         if (now->type() == SPICE_CHANNEL_PLAYBACK && client) {

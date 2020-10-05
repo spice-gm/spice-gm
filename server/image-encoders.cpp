@@ -202,7 +202,7 @@ static void encoder_data_init(EncoderData *data)
 {
     data->bufs_tail = g_new(RedCompressBuf, 1);
     data->bufs_head = data->bufs_tail;
-    data->bufs_head->send_next = NULL;
+    data->bufs_head->send_next = nullptr;
 }
 
 static void encoder_data_reset(EncoderData *data)
@@ -213,7 +213,7 @@ static void encoder_data_reset(EncoderData *data)
         g_free(buf);
         buf = next;
     }
-    data->bufs_head = data->bufs_tail = NULL;
+    data->bufs_head = data->bufs_tail = nullptr;
 }
 
 /* Allocate more space for compressed buffer.
@@ -226,7 +226,7 @@ static int encoder_usr_more_space(EncoderData *enc_data, uint8_t **io_ptr)
     buf = g_new(RedCompressBuf, 1);
     enc_data->bufs_tail->send_next = buf;
     enc_data->bufs_tail = buf;
-    buf->send_next = NULL;
+    buf->send_next = nullptr;
     *io_ptr = buf->buf.bytes;
     return sizeof(buf->buf);
 }
@@ -458,7 +458,7 @@ void image_encoders_init(ImageEncoders *enc, ImageEncoderSharedData *shared_data
 
     ring_init(&enc->glz_drawables);
     ring_init(&enc->glz_drawables_inst_to_free);
-    pthread_mutex_init(&enc->glz_drawables_inst_to_free_lock, NULL);
+    pthread_mutex_init(&enc->glz_drawables_inst_to_free_lock, nullptr);
 
     image_encoders_init_glz_data(enc);
     image_encoders_init_quic(enc);
@@ -477,18 +477,18 @@ void image_encoders_free(ImageEncoders *enc)
 {
     image_encoders_release_glz(enc);
     quic_destroy(enc->quic);
-    enc->quic = NULL;
+    enc->quic = nullptr;
     lz_destroy(enc->lz);
-    enc->lz = NULL;
+    enc->lz = nullptr;
     jpeg_encoder_destroy(enc->jpeg);
-    enc->jpeg = NULL;
+    enc->jpeg = nullptr;
 #ifdef USE_LZ4
     lz4_encoder_destroy(enc->lz4);
-    enc->lz4 = NULL;
+    enc->lz4 = nullptr;
 #endif
-    if (enc->zlib != NULL) {
+    if (enc->zlib != nullptr) {
         zlib_encoder_destroy(enc->zlib);
-        enc->zlib = NULL;
+        enc->zlib = nullptr;
     }
     pthread_mutex_destroy(&enc->glz_drawables_inst_to_free_lock);
 }
@@ -543,7 +543,7 @@ static void red_glz_drawable_free(RedGlzDrawable *glz_drawable)
 {
     ImageEncoders *enc = glz_drawable->encoders;
     RingItem *head_instance = ring_get_head(&glz_drawable->instances);
-    int cont = (head_instance != NULL);
+    int cont = (head_instance != nullptr);
 
     while (cont) {
         if (glz_drawable->instances_count == 1) {
@@ -597,7 +597,7 @@ int image_encoders_free_some_independent_glz_drawables(ImageEncoders *enc)
         return 0;
     }
     ring_link = ring_get_head(&enc->glz_drawables);
-    while ((n < RED_RELEASE_BUNCH_SIZE) && (ring_link != NULL)) {
+    while ((n < RED_RELEASE_BUNCH_SIZE) && (ring_link != nullptr)) {
         RedGlzDrawable *glz_drawable = SPICE_CONTAINEROF(ring_link, RedGlzDrawable, link);
         ring_link = ring_next(&enc->glz_drawables, ring_link);
         if (!glz_drawable->has_drawable) {
@@ -686,7 +686,7 @@ void image_encoders_glz_get_restore_data(ImageEncoders *enc,
 static GlzSharedDictionary *glz_shared_dictionary_new(RedClient *client, uint8_t id,
                                                       GlzEncDictContext *dict)
 {
-    spice_return_val_if_fail(dict != NULL, NULL);
+    spice_return_val_if_fail(dict != nullptr, NULL);
 
     auto shared_dict = g_new0(GlzSharedDictionary, 1);
 
@@ -695,7 +695,7 @@ static GlzSharedDictionary *glz_shared_dictionary_new(RedClient *client, uint8_t
     shared_dict->refs = 1;
     shared_dict->migrate_freeze = FALSE;
     shared_dict->client = client;
-    pthread_rwlock_init(&shared_dict->encode_lock, NULL);
+    pthread_rwlock_init(&shared_dict->encode_lock, nullptr);
 
     return shared_dict;
 }
@@ -706,9 +706,9 @@ static GList *glz_dictionary_list;
 static GlzSharedDictionary *find_glz_dictionary(RedClient *client, uint8_t dict_id)
 {
     GList *l;
-    GlzSharedDictionary *ret = NULL;
+    GlzSharedDictionary *ret = nullptr;
 
-    for (l = glz_dictionary_list; l != NULL; l = l->next) {
+    for (l = glz_dictionary_list; l != nullptr; l = l->next) {
         auto dict = (GlzSharedDictionary *) l->data;
         if ((dict->client == client) && (dict->id == dict_id)) {
             ret = dict;
@@ -748,14 +748,14 @@ gboolean image_encoders_get_glz_dictionary(ImageEncoders *enc,
         shared_dict->refs++;
     } else {
         shared_dict = create_glz_dictionary(enc, client, id, window_size);
-        if (shared_dict != NULL) {
+        if (shared_dict != nullptr) {
             glz_dictionary_list = g_list_prepend(glz_dictionary_list, shared_dict);
         }
     }
 
     pthread_mutex_unlock(&glz_dictionary_list_lock);
     enc->glz_dict = shared_dict;
-    return shared_dict != NULL;
+    return shared_dict != nullptr;
 }
 
 static GlzSharedDictionary *restore_glz_dictionary(ImageEncoders *enc,
@@ -774,7 +774,7 @@ gboolean image_encoders_restore_glz_dictionary(ImageEncoders *enc,
                                                uint8_t id,
                                                GlzEncDictRestoreData *restore_data)
 {
-    GlzSharedDictionary *shared_dict = NULL;
+    GlzSharedDictionary *shared_dict = nullptr;
 
     spice_return_val_if_fail(!enc->glz_dict, FALSE);
 
@@ -786,20 +786,20 @@ gboolean image_encoders_restore_glz_dictionary(ImageEncoders *enc,
         shared_dict->refs++;
     } else {
         shared_dict = restore_glz_dictionary(enc, client, id, restore_data);
-        if(shared_dict != NULL) {
+        if(shared_dict != nullptr) {
             glz_dictionary_list = g_list_prepend(glz_dictionary_list, shared_dict);
         }
     }
 
     pthread_mutex_unlock(&glz_dictionary_list_lock);
     enc->glz_dict = shared_dict;
-    return shared_dict != NULL;
+    return shared_dict != nullptr;
 }
 
 gboolean image_encoders_glz_create(ImageEncoders *enc, uint8_t id)
 {
     enc->glz = glz_encoder_create(id, enc->glz_dict->dict, &enc->glz_data.usr);
-    return enc->glz != NULL;
+    return enc->glz != nullptr;
 }
 
 /* destroy encoder, and dictionary if no one uses it*/
@@ -810,13 +810,13 @@ static void image_encoders_release_glz(ImageEncoders *enc)
     image_encoders_free_glz_drawables(enc);
 
     glz_encoder_destroy(enc->glz);
-    enc->glz = NULL;
+    enc->glz = nullptr;
 
     if (!(shared_dict = enc->glz_dict)) {
         return;
     }
 
-    enc->glz_dict = NULL;
+    enc->glz_dict = nullptr;
     pthread_mutex_lock(&glz_dictionary_list_lock);
     if (--shared_dict->refs != 0) {
         pthread_mutex_unlock(&glz_dictionary_list_lock);
@@ -880,7 +880,7 @@ bool image_encoders_compress_quic(ImageEncoders *enc, SpiceImage *dest,
         quic_data->data.u.lines_data.reverse = 1;
         stride = -src->stride;
     }
-    size = quic_encode(quic, type, src->x, src->y, NULL, 0, stride,
+    size = quic_encode(quic, type, src->x, src->y, nullptr, 0, stride,
                        quic_data->data.bufs_head->buf.words,
                        G_N_ELEMENTS(quic_data->data.bufs_head->buf.words));
 
@@ -942,7 +942,7 @@ bool image_encoders_compress_lz(ImageEncoders *enc,
 
     size = lz_encode(lz, type, src->x, src->y,
                      !!(src->flags & SPICE_BITMAP_FLAGS_TOP_DOWN),
-                     NULL, 0, src->stride,
+                     nullptr, 0, src->stride,
                      lz_data->data.bufs_head->buf.bytes,
                      sizeof(lz_data->data.bufs_head->buf));
 
@@ -1038,7 +1038,7 @@ bool image_encoders_compress_jpeg(ImageEncoders *enc, SpiceImage *dest,
         stride = -src->stride;
     }
     jpeg_size = jpeg_encode(jpeg, enc->jpeg_quality, jpeg_in_type,
-                            src->x, src->y, NULL,
+                            src->x, src->y, nullptr,
                             0, stride, jpeg_data->data.bufs_head->buf.bytes,
                             sizeof(jpeg_data->data.bufs_head->buf));
 
@@ -1074,7 +1074,7 @@ bool image_encoders_compress_jpeg(ImageEncoders *enc, SpiceImage *dest,
 
     alpha_lz_size = lz_encode(lz, LZ_IMAGE_TYPE_XXXA, src->x, src->y,
                                !!(src->flags & SPICE_BITMAP_FLAGS_TOP_DOWN),
-                               NULL, 0, src->stride,
+                               nullptr, 0, src->stride,
                                lz_out_start_byte,
                                comp_head_left);
 
@@ -1194,7 +1194,7 @@ static GlzDrawableInstanceItem *add_glz_drawable_instance(RedGlzDrawable *glz_dr
     ring_item_init(&ret->free_link);
     ring_item_init(&ret->glz_link);
     ring_add(&glz_drawable->instances, &ret->glz_link);
-    ret->context = NULL;
+    ret->context = nullptr;
     ret->glz_drawable = glz_drawable;
 
     return ret;
@@ -1244,7 +1244,7 @@ bool image_encoders_compress_glz(ImageEncoders *enc,
     glz_data->data.u.lines_data.reverse = 0;
 
     glz_size = glz_encode(enc->glz, type, src->x, src->y,
-                          (src->flags & SPICE_BITMAP_FLAGS_TOP_DOWN), NULL, 0,
+                          (src->flags & SPICE_BITMAP_FLAGS_TOP_DOWN), nullptr, 0,
                           src->stride, glz_data->data.bufs_head->buf.bytes,
                           sizeof(glz_data->data.bufs_head->buf),
                           glz_drawable_instance,
@@ -1255,9 +1255,9 @@ bool image_encoders_compress_glz(ImageEncoders *enc,
     if (!enable_zlib_glz_wrap || (glz_size < MIN_GLZ_SIZE_FOR_ZLIB)) {
         goto glz;
     }
-    if (enc->zlib == NULL) {
+    if (enc->zlib == nullptr) {
         enc->zlib = zlib_encoder_create(&enc->zlib_data.usr, ZLIB_DEFAULT_COMPRESSION_LEVEL);
-        if (enc->zlib == NULL) {
+        if (enc->zlib == nullptr) {
             g_warning("creating zlib encoder failed");
             goto glz;
         }

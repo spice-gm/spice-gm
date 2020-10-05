@@ -93,7 +93,7 @@ static PixmapCache *pixmap_cache_new(RedClient *client, uint8_t id, int64_t size
     auto cache = g_new0(PixmapCache, 1);
 
     ring_item_init(&cache->base);
-    pthread_mutex_init(&cache->lock, NULL);
+    pthread_mutex_init(&cache->lock, nullptr);
     cache->id = id;
     cache->refs = 1;
     ring_init(&cache->lru);
@@ -106,7 +106,7 @@ static PixmapCache *pixmap_cache_new(RedClient *client, uint8_t id, int64_t size
 
 PixmapCache *pixmap_cache_get(RedClient *client, uint8_t id, int64_t size)
 {
-    PixmapCache *ret = NULL;
+    PixmapCache *ret = nullptr;
     RingItem *now;
     pthread_mutex_lock(&cache_lock);
 

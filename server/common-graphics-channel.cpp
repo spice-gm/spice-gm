@@ -31,7 +31,7 @@ uint8_t *CommonGraphicsChannelClient::alloc_recv_buf(uint16_t type, uint32_t siz
 
     if (size > sizeof(recv_buf)) {
         spice_warning("unexpected message size %u (max is %zd)", size, sizeof(recv_buf));
-        return NULL;
+        return nullptr;
     }
     return recv_buf;
 }

@@ -132,7 +132,7 @@ void display_channel_init_video_streams(DisplayChannel *display)
     int i;
 
     ring_init(&display->priv->streams);
-    display->priv->free_streams = NULL;
+    display->priv->free_streams = nullptr;
     for (i = 0; i < NUM_STREAMS; i++) {
         VideoStream *stream = display_channel_get_nth_video_stream(display, i);
         ring_item_init(&stream->link);
@@ -316,8 +316,8 @@ void video_stream_detach_drawable(VideoStream *stream)
 {
     spice_assert(stream->current && stream->current->stream);
     spice_assert(stream->current->stream == stream);
-    stream->current->stream = NULL;
-    stream->current = NULL;
+    stream->current->stream = nullptr;
+    stream->current = nullptr;
 }
 
 static void before_reattach_stream(DisplayChannel *display,
@@ -361,7 +361,7 @@ static VideoStream *display_channel_stream_try_new(DisplayChannel *display)
 {
     VideoStream *stream;
     if (!display->priv->free_streams) {
-        return NULL;
+        return nullptr;
     }
     stream = display->priv->free_streams;
     display->priv->free_streams = display->priv->free_streams->next;
@@ -521,7 +521,7 @@ void video_stream_trace_update(DisplayChannel *display, Drawable *drawable)
     trace_end = trace + NUM_TRACE_ITEMS;
     for (; trace < trace_end; trace++) {
         if (is_next_stream_frame(drawable, trace->width, trace->height,
-                                 &trace->dest_area, trace->time, NULL, FALSE)) {
+                                 &trace->dest_area, trace->time, nullptr, FALSE)) {
             if (video_stream_add_frame(display, drawable,
                                        trace->first_frame_time,
                                        trace->frames_count,
@@ -606,11 +606,11 @@ static uint64_t get_initial_bit_rate(DisplayChannelClient *dcc, VideoStream *str
     uint64_t bit_rate = 0;
 
     env_bit_rate_str = getenv("SPICE_BIT_RATE");
-    if (env_bit_rate_str != NULL) {
+    if (env_bit_rate_str != nullptr) {
         double env_bit_rate;
 
         errno = 0;
-        env_bit_rate = strtod(env_bit_rate_str, NULL);
+        env_bit_rate = strtod(env_bit_rate_str, nullptr);
         if (errno == 0 && env_bit_rate > 0) {
             bit_rate = env_bit_rate * 1024 * 1024;
         } else {
@@ -739,7 +739,7 @@ static VideoEncoder* dcc_create_video_encoder(DisplayChannelClient *dcc,
         return mjpeg_encoder_new(SPICE_VIDEO_CODEC_TYPE_MJPEG, starting_bit_rate, cbs, bitmap_ref, bitmap_unref);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void dcc_create_stream(DisplayChannelClient *dcc, VideoStream *stream)
@@ -788,7 +788,7 @@ void video_stream_agent_stop(VideoStreamAgent *agent)
     dcc_update_streams_max_latency(dcc, agent);
     if (agent->video_encoder) {
         agent->video_encoder->destroy(agent->video_encoder);
-        agent->video_encoder = NULL;
+        agent->video_encoder = nullptr;
     }
 }
 
@@ -852,7 +852,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
 
         region_extents(&agent->vis_region, &upgrade_area);
         spice_debug("stream %d: upgrade by screenshot. has current %d. box ==>",
-                    stream_id, stream->current != NULL);
+                    stream_id, stream->current != nullptr);
         rect_debug(&upgrade_area);
         if (update_area_limit) {
             display_channel_draw_until(display, &upgrade_area, 0, update_area_limit);
@@ -932,7 +932,7 @@ void video_stream_detach_and_stop(DisplayChannel *display)
     while ((stream_item = ring_get_head(&display->priv->streams))) {
         VideoStream *stream = SPICE_CONTAINEROF(stream_item, VideoStream, link);
 
-        detach_video_stream_gracefully(display, stream, NULL);
+        detach_video_stream_gracefully(display, stream, nullptr);
         video_stream_stop(display, stream);
     }
 }
@@ -948,7 +948,7 @@ void video_stream_timeout(DisplayChannel *display)
         VideoStream *stream = SPICE_CONTAINEROF(item, VideoStream, link);
         item = ring_next(ring, item);
         if (now >= (stream->last_time + RED_STREAM_TIMEOUT)) {
-            detach_video_stream_gracefully(display, stream, NULL);
+            detach_video_stream_gracefully(display, stream, nullptr);
             video_stream_stop(display, stream);
         }
     }
