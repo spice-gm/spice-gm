@@ -1020,9 +1020,8 @@ static void mjpeg_encoder_decrease_bit_rate(MJpegEncoder *encoder)
         if (now - rate_control->warmup_start_time < MJPEG_WARMUP_TIME) {
             spice_debug("during warmup. ignoring");
             return;
-        } else {
-            rate_control->warmup_start_time = 0;
         }
+        rate_control->warmup_start_time = 0;
     }
 
     if (bit_rate_info->num_enc_frames > MJPEG_BIT_RATE_EVAL_MIN_NUM_FRAMES ||

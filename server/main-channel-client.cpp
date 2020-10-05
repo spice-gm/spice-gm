@@ -115,12 +115,14 @@ uint8_t *MainChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
     if (type == SPICE_MSGC_MAIN_AGENT_DATA) {
         RedChannel *channel = get_channel();
         return reds_get_agent_data_buffer(channel->get_server(), this, size);
-    } else if (size > sizeof(priv->recv_buf)) {
+    }
+
+    if (size > sizeof(priv->recv_buf)) {
         /* message too large, caller will log a message and close the connection */
         return NULL;
-    } else {
-        return priv->recv_buf;
     }
+
+    return priv->recv_buf;
 }
 
 void MainChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg)

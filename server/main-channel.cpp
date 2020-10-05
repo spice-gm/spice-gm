@@ -258,20 +258,19 @@ int MainChannel::migrate_connect(RedsMigSpice *new_mig_target, int try_seamless)
 
     if (!try_seamless) {
         return main_channel_connect_semi_seamless(this);
-    } else {
-        RedChannelClient *rcc;
-        GList *clients = get_clients();
-
-        /* just test the first one */
-        rcc = (RedChannelClient*) g_list_nth_data(clients, 0);
-
-        if (!rcc->test_remote_cap(SPICE_MAIN_CAP_SEAMLESS_MIGRATE)) {
-            return main_channel_connect_semi_seamless(this);
-        } else {
-            return main_channel_connect_seamless(this);
-        }
     }
 
+    RedChannelClient *rcc;
+    GList *clients = get_clients();
+
+    /* just test the first one */
+    rcc = (RedChannelClient*) g_list_nth_data(clients, 0);
+
+    if (!rcc->test_remote_cap(SPICE_MAIN_CAP_SEAMLESS_MIGRATE)) {
+        return main_channel_connect_semi_seamless(this);
+    }
+
+    return main_channel_connect_seamless(this);
 }
 
 void MainChannel::migrate_cancel_wait()

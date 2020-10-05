@@ -1095,9 +1095,8 @@ static QXLPHYSICAL red_replay_drawable(SpiceReplay *replay, uint32_t flags)
     }
     if (flags & QXL_COMMAND_FLAG_COMPAT) {
         return QXLPHYSICAL_FROM_PTR(red_replay_compat_drawable(replay, flags));
-    } else {
-        return QXLPHYSICAL_FROM_PTR(red_replay_native_drawable(replay, flags));
     }
+    return QXLPHYSICAL_FROM_PTR(red_replay_native_drawable(replay, flags));
 }
 
 static QXLUpdateCmd *red_replay_update_cmd(SpiceReplay *replay)

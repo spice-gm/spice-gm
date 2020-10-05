@@ -87,9 +87,9 @@ BitmapGradualType bitmap_get_graduality_level(SpiceBitmap *bitmap)
 
     if (score < GRADUAL_MEDIUM_SCORE_TH) {
         return BITMAP_GRADUAL_MEDIUM;
-    } else {
-        return BITMAP_GRADUAL_LOW;
     }
+
+    return BITMAP_GRADUAL_LOW;
 }
 
 int bitmap_has_extra_stride(SpiceBitmap *bitmap)
@@ -97,25 +97,26 @@ int bitmap_has_extra_stride(SpiceBitmap *bitmap)
     spice_assert(bitmap);
     if (bitmap_fmt_is_rgb(bitmap->format)) {
         return ((bitmap->x * bitmap_fmt_get_bytes_per_pixel(bitmap->format)) < bitmap->stride);
-    } else {
-        switch (bitmap->format) {
-        case SPICE_BITMAP_FMT_8BIT:
-            return (bitmap->x < bitmap->stride);
-        case SPICE_BITMAP_FMT_4BIT_BE:
-        case SPICE_BITMAP_FMT_4BIT_LE: {
-            int bytes_width = SPICE_ALIGN(bitmap->x, 2) >> 1;
-            return bytes_width < bitmap->stride;
-        }
-        case SPICE_BITMAP_FMT_1BIT_BE:
-        case SPICE_BITMAP_FMT_1BIT_LE: {
-            int bytes_width = SPICE_ALIGN(bitmap->x, 8) >> 3;
-            return bytes_width < bitmap->stride;
-        }
-        default:
-            spice_error("invalid image type %u", bitmap->format);
-            return 0;
-        }
     }
+
+    switch (bitmap->format) {
+    case SPICE_BITMAP_FMT_8BIT:
+        return (bitmap->x < bitmap->stride);
+    case SPICE_BITMAP_FMT_4BIT_BE:
+    case SPICE_BITMAP_FMT_4BIT_LE: {
+        int bytes_width = SPICE_ALIGN(bitmap->x, 2) >> 1;
+        return bytes_width < bitmap->stride;
+    }
+    case SPICE_BITMAP_FMT_1BIT_BE:
+    case SPICE_BITMAP_FMT_1BIT_LE: {
+        int bytes_width = SPICE_ALIGN(bitmap->x, 8) >> 3;
+        return bytes_width < bitmap->stride;
+    }
+    default:
+        spice_error("invalid image type %u", bitmap->format);
+        return 0;
+    }
+
     return 0;
 }
 

@@ -497,9 +497,9 @@ static int snd_playback_send_ctl(PlaybackChannelClient *playback_client)
 
     if ((client->client_active = client->active)) {
         return snd_playback_send_start(playback_client);
-    } else {
-        return snd_playback_send_stop(playback_client);
     }
+
+    return snd_playback_send_stop(playback_client);
 }
 
 static bool snd_record_send_start(RecordChannelClient *record_client)
@@ -536,9 +536,9 @@ static int snd_record_send_ctl(RecordChannelClient *record_client)
 
     if ((client->client_active = client->active)) {
         return snd_record_send_start(record_client);
-    } else {
-        return snd_record_send_stop(record_client);
     }
+
+    return snd_record_send_stop(record_client);
 }
 
 static bool snd_record_send_volume(RecordChannelClient *record_client)

@@ -4368,9 +4368,8 @@ static int calc_compression_level(RedsState *reds)
     if ((reds_get_streaming_video(reds) != SPICE_STREAM_VIDEO_OFF) ||
         (spice_server_get_image_compression(reds) != SPICE_IMAGE_COMPRESSION_QUIC)) {
         return 0;
-    } else {
-        return 1;
     }
+    return 1;
 }
 
 void reds_on_ic_change(RedsState *reds)

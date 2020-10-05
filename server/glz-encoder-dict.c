@@ -264,9 +264,9 @@ static inline int __get_pixels_num(LzImageType image_type, unsigned int num_line
 {
     if (IS_IMAGE_TYPE_RGB[image_type]) {
         return num_lines * stride / RGB_BYTES_PER_PIXEL[image_type];
-    } else {
-        return num_lines * stride * PLT_PIXELS_PER_BYTE[image_type];
     }
+
+    return num_lines * stride * PLT_PIXELS_PER_BYTE[image_type];
 }
 
 static void __glz_dictionary_window_segs_realloc(SharedDictionary *dict)

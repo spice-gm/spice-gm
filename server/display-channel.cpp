@@ -882,7 +882,8 @@ static bool current_add(DisplayChannel *display, Ring *ring, Drawable *drawable)
              * on to the next one. */
             now = ring_next(ring, now);
             continue;
-        } else if (sibling->type != TREE_ITEM_TYPE_SHADOW) {
+        }
+        if (sibling->type != TREE_ITEM_TYPE_SHADOW) {
             /* there is an overlap between the two regions */
             /* NOTE: Shadow types represent a source region for a COPY_BITS
              * operation, they don't represent a region that will be drawn.

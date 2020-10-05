@@ -142,9 +142,8 @@ static bool is_bitmap_lossy(DisplayChannelClient *dcc, SpiceImage *image, SpiceR
         if (dcc_pixmap_cache_hit(dcc, image->descriptor.id, &is_hit_lossy)) {
             out_data->type = BITMAP_DATA_TYPE_CACHE;
             return is_hit_lossy;
-        } else {
-            out_data->type = BITMAP_DATA_TYPE_BITMAP_TO_CACHE;
         }
+        out_data->type = BITMAP_DATA_TYPE_BITMAP_TO_CACHE;
     } else {
          out_data->type = BITMAP_DATA_TYPE_BITMAP;
     }
@@ -166,10 +165,9 @@ static bool is_brush_lossy(DisplayChannelClient *dcc, SpiceBrush *brush,
     if (brush->type == SPICE_BRUSH_TYPE_PATTERN) {
         return is_bitmap_lossy(dcc, brush->u.pattern.pat, NULL,
                                out_data);
-    } else {
-        out_data->type = BITMAP_DATA_TYPE_INVALID;
-        return FALSE;
     }
+    out_data->type = BITMAP_DATA_TYPE_INVALID;
+    return FALSE;
 }
 
 static RedChannelClient::Pipe::iterator get_pipe_tail(RedChannelClient::Pipe& pipe)
@@ -388,11 +386,9 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
                 stat_inc_counter(display->priv->cache_hits_counter, 1);
                 pthread_mutex_unlock(&dcc->priv->pixmap_cache->lock);
                 return FILL_BITS_TYPE_CACHE;
-            } else {
-                pixmap_cache_unlocked_set_lossy(dcc->priv->pixmap_cache, simage->descriptor.id,
-                                                FALSE);
-                image.descriptor.flags |= SPICE_IMAGE_FLAGS_CACHE_REPLACE_ME;
             }
+            pixmap_cache_unlocked_set_lossy(dcc->priv->pixmap_cache, simage->descriptor.id, FALSE);
+            image.descriptor.flags |= SPICE_IMAGE_FLAGS_CACHE_REPLACE_ME;
         }
     }
 
@@ -460,27 +456,23 @@ static FillBitsType fill_bits(DisplayChannelClient *dcc, SpiceMarshaller *m,
             }
             pthread_mutex_unlock(&dcc->priv->pixmap_cache->lock);
             return FILL_BITS_TYPE_BITMAP;
-        } else {
-            red_display_add_image_to_pixmap_cache(dcc, simage, &image,
-                                                  comp_send_data.is_lossy);
-
-            spice_marshall_Image(m, &image,
-                                 &bitmap_palette_out, &lzplt_palette_out);
-            spice_assert(bitmap_palette_out == NULL);
-
-            marshaller_add_compressed(m, comp_send_data.comp_buf,
-                                      comp_send_data.comp_buf_size);
-
-            if (lzplt_palette_out && comp_send_data.lzplt_palette) {
-                spice_marshall_Palette(lzplt_palette_out, comp_send_data.lzplt_palette);
-            }
-
-            spice_assert(!comp_send_data.is_lossy || can_lossy);
-            pthread_mutex_unlock(&dcc->priv->pixmap_cache->lock);
-            return (comp_send_data.is_lossy ? FILL_BITS_TYPE_COMPRESS_LOSSY :
-                                              FILL_BITS_TYPE_COMPRESS_LOSSLESS);
         }
-        break;
+        red_display_add_image_to_pixmap_cache(dcc, simage, &image, comp_send_data.is_lossy);
+
+        spice_marshall_Image(m, &image, &bitmap_palette_out, &lzplt_palette_out);
+        spice_assert(bitmap_palette_out == NULL);
+
+        marshaller_add_compressed(m, comp_send_data.comp_buf,
+                                  comp_send_data.comp_buf_size);
+
+        if (lzplt_palette_out && comp_send_data.lzplt_palette) {
+            spice_marshall_Palette(lzplt_palette_out, comp_send_data.lzplt_palette);
+        }
+
+        spice_assert(!comp_send_data.is_lossy || can_lossy);
+        pthread_mutex_unlock(&dcc->priv->pixmap_cache->lock);
+        return (comp_send_data.is_lossy ? FILL_BITS_TYPE_COMPRESS_LOSSY :
+                                          FILL_BITS_TYPE_COMPRESS_LOSSLESS);
     }
     case SPICE_IMAGE_TYPE_QUIC:
         red_display_add_image_to_pixmap_cache(dcc, simage, &image, FALSE);

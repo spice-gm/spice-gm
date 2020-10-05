@@ -510,10 +510,10 @@ bool RedChannel::wait_all_sent(int64_t timeout)
                       max_pipe_size, blocked);
         red_channel_disconnect_if_pending_send(this);
         return FALSE;
-    } else {
-        spice_assert(red_channel_no_item_being_sent(this));
-        return TRUE;
     }
+
+    spice_assert(red_channel_no_item_being_sent(this));
+    return TRUE;
 }
 
 RedsState* RedChannel::get_server()

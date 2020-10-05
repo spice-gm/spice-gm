@@ -1003,9 +1003,11 @@ static int red_peer_receive(RedStream *stream, uint8_t *buf, uint32_t size)
             spice_assert(now == -1);
             if (errno == EAGAIN) {
                 break;
-            } else if (errno == EINTR) {
+            }
+            if (errno == EINTR) {
                 continue;
-            } else if (errno != EPIPE) {
+            }
+            if (errno != EPIPE) {
                 g_warning("%s", strerror(errno));
             }
             return -1;
@@ -1214,7 +1216,8 @@ void RedChannelClientPrivate::handle_pong(SpiceMsgPing *ping)
     if (latency_monitor.state == PING_STATE_WARMUP) {
         latency_monitor.state = PING_STATE_LATENCY;
         return;
-    } else if (latency_monitor.state != PING_STATE_LATENCY) {
+    }
+    if (latency_monitor.state != PING_STATE_LATENCY) {
         spice_warning("unexpected");
         return;
     }
@@ -1631,10 +1634,9 @@ bool RedChannelClient::wait_outgoing_item(int64_t timeout)
     if (blocked) {
         spice_warning("timeout");
         return FALSE;
-    } else {
-        spice_assert(no_item_being_sent());
-        return TRUE;
     }
+    spice_assert(no_item_being_sent());
+    return TRUE;
 }
 
 bool RedChannelClient::no_item_being_sent() const
