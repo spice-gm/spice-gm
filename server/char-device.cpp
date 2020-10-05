@@ -317,7 +317,7 @@ red_char_device_send_to_client_tokens_absorb(RedCharDevice *dev,
     }
     dev_client->num_send_tokens += tokens;
 
-    if (dev_client->send_queue.size()) {
+    if (!dev_client->send_queue.empty()) {
         spice_assert(dev_client->num_send_tokens == tokens);
         red_char_device_client_send_queue_push(dev_client);
     }
