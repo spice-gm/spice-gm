@@ -148,7 +148,7 @@ static uint32_t replay_id_new(SpiceReplay *replay, uint32_t id)
     uint32_t *map;
 
     pthread_mutex_lock(&replay->mutex);
-    while (1) {
+    while (true) {
         if (replay->id_free->len > 0) {
             new_id = g_array_index(replay->id_free, uint32_t, 0);
             g_array_remove_index_fast(replay->id_free, 0);
