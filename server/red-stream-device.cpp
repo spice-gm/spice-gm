@@ -146,16 +146,12 @@ StreamDevice::partial_read()
         }
     }
 
-    if (handled || has_error) {
-        // Qemu put the device on blocking state if we don't read all data
-        // so schedule another read.
-        // We arrive here if we processed that entire message or we
-        // got an error, try to read another message or discard the
-        // wrong data
-        return true;
-    }
-
-    return false;
+    // Qemu put the device on blocking state if we don't read all data
+    // so schedule another read.
+    // We arrive here if we processed that entire message or we
+    // got an error, try to read another message or discard the
+    // wrong data
+    return handled || has_error;
 }
 
 RedPipeItemPtr StreamDevice::read_one_msg_from_device()

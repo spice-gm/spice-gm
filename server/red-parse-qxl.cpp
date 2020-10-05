@@ -1440,11 +1440,7 @@ bool red_validate_surface(uint32_t width, uint32_t height,
 
     /* the multiplication can overflow, also abs(-2^31) may return a negative value */
     size = (uint64_t) height * abs(stride);
-    if (size > MAX_DATA_CHUNK) {
-        return false;
-    }
-
-    return true;
+    return size <= MAX_DATA_CHUNK;
 }
 
 static bool red_get_surface_cmd(QXLInstance *qxl_instance, RedMemSlotInfo *slots, int group_id,
