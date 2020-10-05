@@ -129,9 +129,7 @@ RedChannel::RedChannel(RedsState *reds, uint32_t type, uint32_t id, CreationFlag
     set_common_cap(SPICE_COMMON_CAP_PROTOCOL_AUTH_SELECTION);
 }
 
-RedChannel::~RedChannel()
-{
-}
+RedChannel::~RedChannel() = default;
 
 uint32_t RedChannel::id() const
 {

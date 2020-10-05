@@ -627,9 +627,7 @@ RedCharDeviceClient::RedCharDeviceClient(RedCharDevice *init_dev,
     }
 }
 
-RedCharDeviceClient::~RedCharDeviceClient()
-{
-}
+RedCharDeviceClient::~RedCharDeviceClient() = default;
 
 bool RedCharDevice::client_add(RedCharDeviceClientOpaque *client,
                                int do_flow_control,

@@ -291,9 +291,7 @@ void CursorChannel::on_connect(RedClient *client, RedStream *stream, int migrati
     cursor_channel_init_client(this, ccc);
 }
 
-CursorChannel::~CursorChannel()
-{
-}
+CursorChannel::~CursorChannel() = default;
 
 CursorChannel::CursorChannel(RedsState *reds, uint32_t id,
                              SpiceCoreInterfaceInternal *core, Dispatcher *dispatcher):

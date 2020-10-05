@@ -74,9 +74,7 @@ DispatcherPrivate::~DispatcherPrivate()
     g_free(payload);
 }
 
-Dispatcher::~Dispatcher()
-{
-}
+Dispatcher::~Dispatcher() = default;
 
 Dispatcher::Dispatcher(uint32_t max_message_type):
     priv(new DispatcherPrivate(max_message_type))
