@@ -138,7 +138,7 @@ struct RedServerConfig {
 };
 
 
-typedef struct RedLinkInfo {
+struct RedLinkInfo {
     RedsState *reds;
     RedStream *stream;
     SpiceLinkHeader link_header;
@@ -146,7 +146,7 @@ typedef struct RedLinkInfo {
     TicketInfo tiTicketing;
     SpiceLinkAuthMechanism auth_mechanism;
     int skip_auth;
-} RedLinkInfo;
+};
 
 struct ChannelSecurityOptions {
     uint32_t channel_id;
@@ -160,11 +160,11 @@ struct RedVDIReadBuf final: public RedAgentDataPipeItem {
     RedCharDeviceVDIPort *dev;
 };
 
-typedef enum {
+enum VDIPortReadStates {
     VDI_PORT_READ_STATE_READ_HEADER,
     VDI_PORT_READ_STATE_GET_BUFF,
     VDI_PORT_READ_STATE_READ_DATA,
-} VDIPortReadStates;
+};
 
 struct RedCharDeviceVDIPortPrivate {
     bool agent_attached;
@@ -194,7 +194,7 @@ struct RedCharDeviceVDIPortPrivate {
 
 /* messages that are addressed to the agent and are created in the server */
 #include <spice/start-packed.h>
-typedef struct SPICE_ATTR_PACKED VDInternalBuf {
+struct SPICE_ATTR_PACKED VDInternalBuf {
     VDIChunkHeader chunk_header;
     VDAgentMessage header;
     union {
@@ -202,7 +202,7 @@ typedef struct SPICE_ATTR_PACKED VDInternalBuf {
         VDAgentGraphicsDeviceInfo graphics_device_info;
     }
     u;
-} VDInternalBuf;
+};
 #include <spice/end-packed.h>
 
 struct RedCharDeviceVDIPort: public RedCharDevice
@@ -3484,10 +3484,10 @@ SPICE_GNUC_VISIBLE SpiceServer *spice_server_new(void)
     return reds;
 }
 
-typedef struct {
+struct EnumNames {
     uint32_t id;
     const char *name;
-} EnumNames;
+};
 
 static gboolean get_name_index(const EnumNames names[], const char *name, uint32_t *index)
 {

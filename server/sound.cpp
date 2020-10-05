@@ -161,11 +161,11 @@ protected:
     virtual void send_item(RedPipeItem *item) override;
 };
 
-typedef struct SpiceVolumeState {
+struct SpiceVolumeState {
     uint16_t *volume;
     uint8_t volume_nchannels;
     int mute;
-} SpiceVolumeState;
+};
 
 /* Base class for PlaybackChannel and RecordChannel */
 struct SndChannel: public RedChannel

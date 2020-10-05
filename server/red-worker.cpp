@@ -949,10 +949,10 @@ static void register_callbacks(Dispatcher *dispatcher)
 
 
 
-typedef struct RedWorkerSource {
+struct RedWorkerSource {
     GSource source;
     RedWorker *worker;
-} RedWorkerSource;
+};
 
 static gboolean worker_source_prepare(GSource *source, gint *p_timeout)
 {

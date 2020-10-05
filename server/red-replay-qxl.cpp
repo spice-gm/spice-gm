@@ -32,10 +32,10 @@
 #define QXLPHYSICAL_FROM_PTR(ptr) ((QXLPHYSICAL)(uintptr_t)(ptr))
 #define QXLPHYSICAL_TO_PTR(phy) ((void*)(uintptr_t)(phy))
 
-typedef enum {
+enum replay_t {
     REPLAY_OK = 0,
     REPLAY_ERROR,
-} replay_t;
+};
 
 struct SpiceReplay {
     FILE *fd;

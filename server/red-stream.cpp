@@ -53,12 +53,11 @@ struct AsyncRead {
     AsyncReadDone done;
     AsyncReadError error;
 };
-typedef struct AsyncRead AsyncRead;
 
 #if HAVE_SASL
 #include <sasl/sasl.h>
 
-typedef struct RedSASL {
+struct RedSASL {
     sasl_conn_t *conn;
 
     /* If we want to negotiate an SSF layer with client */
@@ -75,7 +74,7 @@ typedef struct RedSASL {
     unsigned int encodedOffset;
 
     SpiceBuffer inbuffer;
-} RedSASL;
+};
 #endif
 
 struct RedStreamPrivate {
@@ -807,7 +806,7 @@ static int auth_sasl_check_ssf(RedSASL *sasl, int *runSSF)
     return 1;
 }
 
-typedef struct RedSASLAuth {
+struct RedSASLAuth {
     RedStream *stream;
     // list of mechanisms allowed, allocated and freed by SASL
     char *mechlist;
@@ -821,7 +820,7 @@ typedef struct RedSASLAuth {
     // saved Async callback, we need to call if failed as
     // we need to chain it in order to use a different opaque data
     AsyncReadError saved_error_cb;
-} RedSASLAuth;
+};
 
 static void red_sasl_auth_free(RedSASLAuth *auth)
 {

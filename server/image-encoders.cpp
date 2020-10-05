@@ -38,8 +38,8 @@
     } G_STMT_END
 #endif
 
-typedef struct RedGlzDrawable RedGlzDrawable;
-typedef struct GlzDrawableInstanceItem GlzDrawableInstanceItem;
+struct RedGlzDrawable;
+struct GlzDrawableInstanceItem;
 
 struct GlzSharedDictionary {
     GlzEncDictContext *dict;

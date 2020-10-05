@@ -107,10 +107,10 @@ static void show_draw_item(DrawItem *draw_item, const char *prefix)
            draw_item->base.rgn.extents.y2);
 }
 
-typedef struct DumpItem {
+struct DumpItem {
     int level;
     Container *container;
-} DumpItem;
+};
 
 static void dump_item(TreeItem *item, void *data)
 {

@@ -38,7 +38,7 @@ static red::shared_ptr<Dispatcher> dispatcher;
 static SpiceWatch *watch;
 // incremental number we use during the test, each message sent is incremented
 static unsigned num;
-typedef int TestFixture;
+using TestFixture = int;
 
 static void test_dispatcher_setup(TestFixture *fixture, gconstpointer user_data)
 {

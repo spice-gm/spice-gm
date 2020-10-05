@@ -150,7 +150,7 @@ void StreamChannel::on_connect(RedClient *red_client, RedStream *stream,
 
 static SpiceCoreInterface *core;
 static Test *test;
-typedef int TestFixture;
+using TestFixture = int;
 
 static void test_stream_device_setup(TestFixture *fixture, gconstpointer user_data)
 {

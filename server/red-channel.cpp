@@ -322,13 +322,13 @@ void RedChannel::disconnect()
     red_channel_foreach_client(this, &RedChannelClient::disconnect);
 }
 
-typedef struct RedMessageConnect {
+struct RedMessageConnect {
     RedChannel *channel;
     RedClient *client;
     RedStream *stream;
     int migration;
     RedChannelCapabilities caps;
-} RedMessageConnect;
+};
 
 static void handle_dispatcher_connect(void *opaque, RedMessageConnect *msg)
 {
@@ -538,9 +538,9 @@ const RedChannelCapabilities* RedChannel::get_local_capabilities()
     return &priv->local_caps;
 }
 
-typedef struct RedMessageMigrate {
+struct RedMessageMigrate {
     RedChannelClient *rcc;
-} RedMessageMigrate;
+};
 
 static void handle_dispatcher_migrate(void *opaque, RedMessageMigrate *msg)
 {
@@ -562,9 +562,9 @@ void RedChannel::migrate_client(RedChannelClient *rcc)
                                           &payload, false);
 }
 
-typedef struct RedMessageDisconnect {
+struct RedMessageDisconnect {
     RedChannelClient *rcc;
-} RedMessageDisconnect;
+};
 
 static void handle_dispatcher_disconnect(void *opaque, RedMessageDisconnect *msg)
 {

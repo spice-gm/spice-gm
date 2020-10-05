@@ -47,17 +47,17 @@
 
 /* Parts cribbed from spice-display.h/.c/qxl.c */
 
-typedef struct SimpleSpiceUpdate {
+struct SimpleSpiceUpdate {
     QXLCommandExt ext; // first
     QXLDrawable drawable;
     QXLImage image;
     uint8_t *bitmap;
-} SimpleSpiceUpdate;
+};
 
-typedef struct SimpleSurfaceCmd {
+struct SimpleSurfaceCmd {
     QXLCommandExt ext; // first
     QXLSurfaceCmd surface_cmd;
-} SimpleSurfaceCmd;
+};
 
 static void test_spice_destroy_update(SimpleSpiceUpdate *update)
 {
@@ -142,11 +142,11 @@ static void simple_set_release_info(QXLReleaseInfo *info, intptr_t ptr)
     //info->group_id = MEM_SLOT_GROUP_ID;
 }
 
-typedef struct Path {
+struct Path {
     int t;
     int min_t;
     int max_t;
-} Path;
+};
 
 static void path_init(Path *path, int min, int max)
 {

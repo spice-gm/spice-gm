@@ -44,7 +44,7 @@
 #define IOV_MAX 1024
 #endif
 
-typedef struct SpiceDataHeaderOpaque SpiceDataHeaderOpaque;
+struct SpiceDataHeaderOpaque;
 
 typedef uint16_t (*get_msg_type_proc)(SpiceDataHeaderOpaque *header);
 typedef uint32_t (*get_msg_size_proc)(SpiceDataHeaderOpaque *header);
@@ -66,14 +66,14 @@ struct SpiceDataHeaderOpaque {
     get_msg_size_proc get_msg_size;
 };
 
-typedef enum {
+enum QosPingState {
     PING_STATE_NONE,
     PING_STATE_TIMER,
     PING_STATE_WARMUP,
     PING_STATE_LATENCY,
-} QosPingState;
+};
 
-typedef struct RedChannelClientLatencyMonitor {
+struct RedChannelClientLatencyMonitor {
     QosPingState state;
     uint64_t last_pong_time;
     SpiceTimer *timer;
@@ -83,35 +83,35 @@ typedef struct RedChannelClientLatencyMonitor {
     bool warmup_was_sent;
 
     int64_t roundtrip;
-} RedChannelClientLatencyMonitor;
+};
 
-typedef enum {
+enum ConnectivityState {
     CONNECTIVITY_STATE_CONNECTED,
     CONNECTIVITY_STATE_BLOCKED,
     CONNECTIVITY_STATE_WAIT_PONG,
     CONNECTIVITY_STATE_DISCONNECTED,
-} ConnectivityState;
+};
 
-typedef struct RedChannelClientConnectivityMonitor {
+struct RedChannelClientConnectivityMonitor {
     ConnectivityState state;
     bool sent_bytes;
     bool received_bytes;
     uint32_t timeout;
     SpiceTimer *timer;
-} RedChannelClientConnectivityMonitor;
+};
 
-typedef struct OutgoingMessageBuffer {
+struct OutgoingMessageBuffer {
     int pos;
     int size;
-} OutgoingMessageBuffer;
+};
 
-typedef struct IncomingMessageBuffer {
+struct IncomingMessageBuffer {
     uint8_t header_buf[MAX_HEADER_SIZE];
     SpiceDataHeaderOpaque header;
     uint32_t header_pos;
     uint8_t *msg; // data of the msg following the header. allocated by alloc_msg_buf.
     uint32_t msg_pos;
-} IncomingMessageBuffer;
+};
 
 struct RedChannelClientPrivate
 {

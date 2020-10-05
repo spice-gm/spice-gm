@@ -31,12 +31,12 @@
 #define CHAR_DEVICE_WRITE_TO_TIMEOUT 100
 #define RED_CHAR_DEVICE_WAIT_TOKENS_TIMEOUT 30000
 
-typedef enum {
+enum WriteBufferOrigin {
     WRITE_BUFFER_ORIGIN_NONE,
     WRITE_BUFFER_ORIGIN_CLIENT,
     WRITE_BUFFER_ORIGIN_SERVER,
     WRITE_BUFFER_ORIGIN_SERVER_NO_TOKEN,
-} WriteBufferOrigin;
+};
 
 struct RedCharDeviceWriteBufferPrivate {
     RedCharDeviceClientOpaque *client; /* The client that sent the message to the device.
@@ -48,7 +48,7 @@ struct RedCharDeviceWriteBufferPrivate {
 
 struct RedCharDeviceClient {
     SPICE_CXX_GLIB_ALLOCATOR
-    typedef std::list<RedPipeItemPtr, red::Mallocator<RedPipeItemPtr>> Queue;
+    using Queue = std::list<RedPipeItemPtr, red::Mallocator<RedPipeItemPtr> >;
 
     RedCharDeviceClient(RedCharDevice *dev,
                         RedsState *reds,

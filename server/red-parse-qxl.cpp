@@ -45,7 +45,6 @@ verify(MAX_DATA_CHUNK <= G_MAXINT32);
 
 #define INVALID_SIZE ((size_t) -1)
 
-typedef struct RedDataChunk RedDataChunk;
 struct RedDataChunk {
     uint32_t data_size;
     RedDataChunk *prev_chunk;

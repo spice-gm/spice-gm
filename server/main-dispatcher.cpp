@@ -56,23 +56,23 @@ enum {
     MAIN_DISPATCHER_NUM_MESSAGES
 };
 
-typedef struct MainDispatcherChannelEventMessage {
+struct MainDispatcherChannelEventMessage {
     int event;
     SpiceChannelEventInfo *info;
-} MainDispatcherChannelEventMessage;
+};
 
-typedef struct MainDispatcherMigrateSeamlessDstCompleteMessage {
+struct MainDispatcherMigrateSeamlessDstCompleteMessage {
     RedClient *client;
-} MainDispatcherMigrateSeamlessDstCompleteMessage;
+};
 
-typedef struct MainDispatcherMmTimeLatencyMessage {
+struct MainDispatcherMmTimeLatencyMessage {
     RedClient *client;
     uint32_t latency;
-} MainDispatcherMmTimeLatencyMessage;
+};
 
-typedef struct MainDispatcherClientDisconnectMessage {
+struct MainDispatcherClientDisconnectMessage {
     RedClient *client;
-} MainDispatcherClientDisconnectMessage;
+};
 
 /* channel_event - calls core->channel_event, must be done in main thread */
 static void main_dispatcher_handle_channel_event(void *opaque,

@@ -24,28 +24,28 @@
 #include "display-channel-private.h"
 #include "red-qxl.h"
 
-typedef enum {
+enum FillBitsType {
     FILL_BITS_TYPE_INVALID,
     FILL_BITS_TYPE_CACHE,
     FILL_BITS_TYPE_SURFACE,
     FILL_BITS_TYPE_COMPRESS_LOSSLESS,
     FILL_BITS_TYPE_COMPRESS_LOSSY,
     FILL_BITS_TYPE_BITMAP,
-} FillBitsType;
+};
 
-typedef enum {
+enum BitmapDataType {
     BITMAP_DATA_TYPE_INVALID,
     BITMAP_DATA_TYPE_CACHE,
     BITMAP_DATA_TYPE_SURFACE,
     BITMAP_DATA_TYPE_BITMAP,
     BITMAP_DATA_TYPE_BITMAP_TO_CACHE,
-} BitmapDataType;
+};
 
-typedef struct BitmapData {
+struct BitmapData {
     BitmapDataType type;
     uint64_t id; // surface id or cache item id
     SpiceRect lossy_rect;
-} BitmapData;
+};
 
 static int dcc_pixmap_cache_unlocked_hit(DisplayChannelClient *dcc, uint64_t id, int *lossy)
 {
