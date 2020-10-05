@@ -411,7 +411,7 @@ stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_si
      * Note that these computations can't overflow due to sizes checks
      * above. */
     size_t size_required = cursor->header.width * cursor->header.height;
-    size_required = SPICE_ALIGN(size_required * cursor_bits, 8) / 8u;
+    size_required = SPICE_ALIGN(size_required * cursor_bits, 8) / 8U;
     if (msg_size < sizeof(StreamMsgCursorSet) + size_required) {
         g_free(cmd);
         return nullptr;

@@ -82,7 +82,7 @@ static inline void encode_32(Encoder *encoder, unsigned int word)
 static inline void encode_64(Encoder *encoder, uint64_t word)
 {
     encode_32(encoder, (uint32_t)(word >> 32));
-    encode_32(encoder, (uint32_t)(word & 0xffffffffu));
+    encode_32(encoder, (uint32_t)(word & 0xffffffffU));
 }
 
 static inline void encode_copy_count(Encoder *encoder, uint8_t copy_count)

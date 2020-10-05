@@ -400,7 +400,7 @@ void spice_qxl_stop(QXLInstance *instance)
 SPICE_GNUC_VISIBLE
 void spice_qxl_set_max_monitors(QXLInstance *instance, unsigned int max_monitors)
 {
-    instance->st->max_monitors = MAX(1u, max_monitors);
+    instance->st->max_monitors = MAX(1U, max_monitors);
 }
 
 SpiceMsgDisplayGlScanoutUnix *red_qxl_get_gl_scanout(QXLInstance *qxl)
@@ -530,7 +530,7 @@ void spice_qxl_set_device_info(QXLInstance *instance,
     }
 
     instance->st->monitors_count = device_display_id_count;
-    instance->st->max_monitors = MAX(1u, device_display_id_count);
+    instance->st->max_monitors = MAX(1U, device_display_id_count);
 
     reds_send_device_display_info(red_qxl_get_server(instance->st));
 }

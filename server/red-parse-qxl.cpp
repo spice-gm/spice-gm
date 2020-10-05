@@ -34,7 +34,7 @@
  * This value should be big enough for all requests but limited
  * to 32 bits. Even better if it fits on 31 bits to detect integer overflows.
  */
-#define MAX_DATA_CHUNK 0x7ffffffflu
+#define MAX_DATA_CHUNK 0x7fffffffLU
 
 verify(MAX_DATA_CHUNK <= G_MAXINT32);
 
@@ -435,7 +435,7 @@ static bool bitmap_consistent(SpiceBitmap *bitmap)
 
     bpp = MAP_BITMAP_FMT_TO_BITS_PER_PIXEL[bitmap->format];
 
-    if (bitmap->stride < (((uint64_t) bitmap->x * bpp + 7u) / 8u)) {
+    if (bitmap->stride < (((uint64_t) bitmap->x * bpp + 7U) / 8U)) {
         spice_warning("image stride too small for width: %d < ((%d * %d + 7) / 8) (%s=%d)",
                     bitmap->stride, bitmap->x, bpp,
                     bitmap_format_to_string(bitmap->format),
@@ -920,7 +920,7 @@ static SpiceString *red_get_string(RedMemSlotInfo *slots, int group_id,
     while (start < end) {
         spice_assert((QXLRasterGlyph*)(&start->data[0]) <= end);
         glyphs++;
-        glyph_size = start->height * ((start->width * bpp + 7u) / 8u);
+        glyph_size = start->height * ((start->width * bpp + 7U) / 8U);
         red_size += sizeof(SpiceRasterGlyph *) + SPICE_ALIGN(sizeof(SpiceRasterGlyph) + glyph_size, 4);
         /* do the test correctly, we know end - start->data[0] cannot
          * overflow, don't use start->data[glyph_size] to test for
@@ -946,7 +946,7 @@ static SpiceString *red_get_string(RedMemSlotInfo *slots, int group_id,
         glyph->height = start->height;
         red_get_point_ptr(&glyph->render_pos, &start->render_pos);
         red_get_point_ptr(&glyph->glyph_origin, &start->glyph_origin);
-        glyph_size = glyph->height * ((glyph->width * bpp + 7u) / 8u);
+        glyph_size = glyph->height * ((glyph->width * bpp + 7U) / 8U);
         /* see above for similar test */
         spice_assert(glyph_size <= (char*) end - (char*) &start->data[0]);
         memcpy(glyph->data, start->data, glyph_size);
@@ -1437,7 +1437,7 @@ bool red_validate_surface(uint32_t width, uint32_t height,
     }
 
     /* check stride is larger than required bytes */
-    size = ((uint64_t) width * bpp + 7u) / 8u;
+    size = ((uint64_t) width * bpp + 7U) / 8U;
     /* the uint32_t conversion is here to avoid problems with -2^31 value */
     if (stride == G_MININT32 || size > (uint32_t) abs(stride)) {
         return false;
