@@ -44,8 +44,8 @@ struct RedTestChannel final: public RedChannel
 class RedTestChannelClient final: public RedChannelClient
 {
     using RedChannelClient::RedChannelClient;
-    virtual uint8_t * alloc_recv_buf(uint16_t type, uint32_t size) override;
-    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    uint8_t * alloc_recv_buf(uint16_t type, uint32_t size) override;
+    void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
 };
 
 void

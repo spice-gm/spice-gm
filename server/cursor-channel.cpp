@@ -27,7 +27,7 @@
 
 struct RedCursorPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_CURSOR> {
     explicit RedCursorPipeItem(RedCursorCmd *cmd);
-    ~RedCursorPipeItem();
+    ~RedCursorPipeItem() override;
     RedCursorCmd *red_cursor;
 };
 

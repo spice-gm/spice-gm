@@ -106,10 +106,10 @@ public:
 
     inline SndChannel* get_channel();
 
-    virtual bool config_socket() override;
-    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
-    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
-    virtual void migrate() override;
+    bool config_socket() override;
+    uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
+    void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    void migrate() override;
 
 private:
     /* we don't expect very big messages so don't allocate too much
@@ -139,13 +139,13 @@ struct AudioFrameContainer
 class PlaybackChannelClient final: public SndChannelClient
 {
 protected:
-    ~PlaybackChannelClient();
+    ~PlaybackChannelClient() override;
 public:
     PlaybackChannelClient(PlaybackChannel *channel,
                           RedClient *client,
                           RedStream *stream,
                           RedChannelCapabilities *caps);
-    virtual bool init() override;
+    bool init() override;
 
     AudioFrameContainer *frames = nullptr;
     AudioFrame *free_frames = nullptr;
@@ -158,7 +158,7 @@ public:
 
     static void on_message_marshalled(uint8_t *data, void *opaque);
 protected:
-    virtual void send_item(RedPipeItem *item) override;
+    void send_item(RedPipeItem *item) override;
 };
 
 struct SpiceVolumeState {
@@ -171,7 +171,7 @@ struct SpiceVolumeState {
 struct SndChannel: public RedChannel
 {
     using RedChannel::RedChannel;
-    ~SndChannel();
+    ~SndChannel() override;
     void set_peer_common();
     bool active;
     SpiceVolumeState volume;
@@ -202,10 +202,10 @@ struct RecordChannel final: public SndChannel
 class RecordChannelClient final: public SndChannelClient
 {
 protected:
-    ~RecordChannelClient();
+    ~RecordChannelClient() override;
 public:
     using SndChannelClient::SndChannelClient;
-    virtual bool init() override;
+    bool init() override;
 
     uint32_t samples[RECORD_SAMPLES_SIZE];
     uint32_t write_pos = 0;
@@ -216,8 +216,8 @@ public:
     SndCodec codec = nullptr;
     uint8_t  decode_buf[SND_CODEC_MAX_FRAME_BYTES];
 protected:
-    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
-    virtual void send_item(RedPipeItem *item) override;
+    bool handle_message(uint16_t type, uint32_t size, void *message) override;
+    void send_item(RedPipeItem *item) override;
 };
 
 

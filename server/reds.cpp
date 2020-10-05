@@ -155,7 +155,7 @@ struct ChannelSecurityOptions {
 };
 
 struct RedVDIReadBuf final: public RedAgentDataPipeItem {
-    ~RedVDIReadBuf();
+    ~RedVDIReadBuf() override;
 
     RedCharDeviceVDIPort *dev;
 };
@@ -209,13 +209,13 @@ struct RedCharDeviceVDIPort: public RedCharDevice
 {
     explicit RedCharDeviceVDIPort(RedsState *reds);
     RedCharDeviceVDIPort();
-    ~RedCharDeviceVDIPort();
+    ~RedCharDeviceVDIPort() override;
 
-    virtual RedPipeItemPtr read_one_msg_from_device() override;
-    virtual void send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque) override;
-    virtual void send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens) override;
-    virtual void remove_client(RedCharDeviceClientOpaque *opaque) override;
-    virtual void on_free_self_token() override;
+    RedPipeItemPtr read_one_msg_from_device() override;
+    void send_msg_to_client(RedPipeItem *msg, RedCharDeviceClientOpaque *opaque) override;
+    void send_tokens_to_client(RedCharDeviceClientOpaque *opaque, uint32_t tokens) override;
+    void remove_client(RedCharDeviceClientOpaque *opaque) override;
+    void on_free_self_token() override;
 
     RedCharDeviceVDIPortPrivate priv[1];
 };

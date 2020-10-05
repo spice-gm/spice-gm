@@ -63,12 +63,12 @@ struct RedVmcPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_SPICEVMC_DATA> {
 struct RedCharDeviceSpiceVmc: public RedCharDevice
 {
     RedCharDeviceSpiceVmc(SpiceCharDeviceInstance *sin, RedsState *reds, RedVmcChannel *channel);
-    ~RedCharDeviceSpiceVmc();
+    ~RedCharDeviceSpiceVmc() override;
 
-    virtual RedPipeItemPtr read_one_msg_from_device() override;
-    virtual void remove_client(RedCharDeviceClientOpaque *opaque) override;
-    virtual void on_free_self_token() override;
-    virtual void port_event(uint8_t event) override;
+    RedPipeItemPtr read_one_msg_from_device() override;
+    void remove_client(RedCharDeviceClientOpaque *opaque) override;
+    void on_free_self_token() override;
+    void port_event(uint8_t event) override;
 
     red::shared_ptr<RedVmcChannel> channel;
 };
@@ -78,7 +78,7 @@ static void spicevmc_red_channel_queue_data(RedVmcChannel *channel, red::shared_
 struct RedVmcChannel: public RedChannel
 {
     RedVmcChannel(RedsState *reds, uint32_t type, uint32_t id);
-    ~RedVmcChannel();
+    ~RedVmcChannel() override;
 
     void on_connect(RedClient *client, RedStream *stream, int migration,
                     RedChannelCapabilities *caps) override;
@@ -108,13 +108,13 @@ public:
         return static_cast<RedVmcChannel*>(RedChannelClient::get_channel());
     }
 protected:
-    virtual uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
-    virtual void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
-    virtual void on_disconnect() override;
-    virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
-    virtual void send_item(RedPipeItem *item) override;
-    virtual bool handle_migrate_data(uint32_t size, void *message) override;
-    virtual void handle_migrate_flush_mark() override;
+    uint8_t *alloc_recv_buf(uint16_t type, uint32_t size) override;
+    void release_recv_buf(uint16_t type, uint32_t size, uint8_t *msg) override;
+    void on_disconnect() override;
+    bool handle_message(uint16_t type, uint32_t size, void *msg) override;
+    void send_item(RedPipeItem *item) override;
+    bool handle_migrate_data(uint32_t size, void *message) override;
+    void handle_migrate_flush_mark() override;
 };
 
 static VmcChannelClient *

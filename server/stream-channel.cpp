@@ -33,7 +33,7 @@
 class StreamChannelClient final: public CommonGraphicsChannelClient
 {
 protected:
-    ~StreamChannelClient();
+    ~StreamChannelClient() override;
 public:
     using CommonGraphicsChannelClient::CommonGraphicsChannelClient;
 
@@ -51,9 +51,9 @@ private:
     bool handle_preferred_video_codec_type(SpiceMsgcDisplayPreferredVideoCodecType *msg);
     void marshall_monitors_config(StreamChannel *channel, SpiceMarshaller *m);
     void fill_base(SpiceMarshaller *m, const StreamChannel *channel);
-    virtual void on_disconnect() override;
-    virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
-    virtual void send_item(RedPipeItem *pipe_item) override;
+    void on_disconnect() override;
+    bool handle_message(uint16_t type, uint32_t size, void *msg) override;
+    void send_item(RedPipeItem *pipe_item) override;
 };
 
 enum {
@@ -72,7 +72,7 @@ struct StreamCreateItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_STREAM_CREATE>
 };
 
 struct StreamDataItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_STREAM_DATA> {
-    ~StreamDataItem();
+    ~StreamDataItem() override;
 
     StreamChannel *channel;
     // NOTE: this must be the last field in the structure
