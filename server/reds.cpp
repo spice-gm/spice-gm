@@ -3107,7 +3107,7 @@ static const char *const spice_server_char_device_recognized_subtypes_list[] = {
 
 SPICE_GNUC_VISIBLE const char** spice_server_char_device_recognized_subtypes(void)
 {
-    return (const char **) spice_server_char_device_recognized_subtypes_list;
+    return const_cast<const char **>(spice_server_char_device_recognized_subtypes_list);
 }
 
 static void reds_add_char_device(RedsState *reds, const red::shared_ptr<RedCharDevice> &dev)
@@ -4051,7 +4051,7 @@ SPICE_GNUC_VISIBLE const char *spice_server_get_video_codecs(SpiceServer *reds)
 
 SPICE_GNUC_VISIBLE void spice_server_free_video_codecs(SpiceServer *reds, const char *video_codecs)
 {
-    g_free((char *) video_codecs);
+    g_free(const_cast<char *>(video_codecs));
 }
 
 GArray* reds_get_video_codecs(const RedsState *reds)

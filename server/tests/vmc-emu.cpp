@@ -97,8 +97,8 @@ VmcEmu *vmc_emu_new(const char *subtype, const char *portname)
 
 void vmc_emu_destroy(VmcEmu *vmc)
 {
-    g_free((char *) vmc->instance.portname);
-    g_free((char *) vmc->instance.subtype);
+    g_free(const_cast<char *>(vmc->instance.portname));
+    g_free(const_cast<char *>(vmc->instance.subtype));
     g_free(vmc);
 }
 

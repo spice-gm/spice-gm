@@ -363,7 +363,7 @@ int red_stream_send_msgfd(RedStream *stream, int fd)
     spice_return_val_if_fail(red_stream_is_plain_unix(stream), -1);
 
     /* set the payload */
-    iov.iov_base = (char*)"@";
+    iov.iov_base = const_cast<char *>("@");
     iov.iov_len = 1;
     msgh.msg_iovlen = 1;
     msgh.msg_iov = &iov;
@@ -1179,7 +1179,7 @@ static ssize_t stream_websocket_write(RedStream *s, const void *buf, size_t size
 
 static ssize_t stream_websocket_writev(RedStream *s, const struct iovec *iov, int iovcnt)
 {
-    return websocket_writev(s->priv->ws, (struct iovec *) iov, iovcnt, WEBSOCKET_BINARY_FINAL);
+    return websocket_writev(s->priv->ws, iov, iovcnt, WEBSOCKET_BINARY_FINAL);
 }
 
 /*
