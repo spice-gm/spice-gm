@@ -184,7 +184,7 @@ void dcc_create_surface(DisplayChannelClient *dcc, int surface_id)
                                                          surface->context.height,
                                                          surface->context.format, flags);
     dcc->priv->surface_client_created[surface_id] = TRUE;
-    dcc->pipe_add(std::move(create));
+    dcc->pipe_add(create);
 }
 
 // adding the pipe item after pos. If pos == NULL, adding to head.
@@ -238,9 +238,9 @@ dcc_add_surface_area_image(DisplayChannelClient *dcc, int surface_id,
     }
 
     if (pipe_item_pos != dcc->get_pipe().end()) {
-        dcc->pipe_add_after_pos(std::move(item), pipe_item_pos);
+        dcc->pipe_add_after_pos(item, pipe_item_pos);
     } else {
-        dcc->pipe_add(std::move(item));
+        dcc->pipe_add(item);
     }
 }
 
@@ -315,7 +315,7 @@ void dcc_prepend_drawable(DisplayChannelClient *dcc, Drawable *drawable)
     auto dpi = red::make_shared<RedDrawablePipeItem>(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
-    dcc->pipe_add(std::move(dpi));
+    dcc->pipe_add(dpi);
 }
 
 void dcc_append_drawable(DisplayChannelClient *dcc, Drawable *drawable)
@@ -323,7 +323,7 @@ void dcc_append_drawable(DisplayChannelClient *dcc, Drawable *drawable)
     auto dpi = red::make_shared<RedDrawablePipeItem>(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
-    dcc->pipe_add_tail(std::move(dpi));
+    dcc->pipe_add_tail(dpi);
 }
 
 void dcc_add_drawable_after(DisplayChannelClient *dcc, Drawable *drawable, RedPipeItem *pos)
@@ -331,7 +331,7 @@ void dcc_add_drawable_after(DisplayChannelClient *dcc, Drawable *drawable, RedPi
     auto dpi = red::make_shared<RedDrawablePipeItem>(dcc, drawable);
 
     add_drawable_surface_images(dcc, drawable);
-    dcc->pipe_add_after(std::move(dpi), pos);
+    dcc->pipe_add_after(dpi, pos);
 }
 
 static void dcc_init_stream_agents(DisplayChannelClient *dcc)
@@ -475,7 +475,7 @@ void dcc_video_stream_agent_clip(DisplayChannelClient* dcc, VideoStreamAgent *ag
 {
     auto item = red::make_shared<VideoStreamClipItem>(agent);
 
-    dcc->pipe_add(std::move(item));
+    dcc->pipe_add(item);
 }
 
 RedMonitorsConfigItem::~RedMonitorsConfigItem()
@@ -503,7 +503,7 @@ void dcc_push_monitors_config(DisplayChannelClient *dcc)
     }
 
     auto mci = red::make_shared<RedMonitorsConfigItem>(monitors_config);
-    dcc->pipe_add(std::move(mci));
+    dcc->pipe_add(mci);
 }
 
 RedSurfaceDestroyItem::RedSurfaceDestroyItem(uint32_t surface_id)
@@ -564,7 +564,7 @@ void dcc_destroy_surface(DisplayChannelClient *dcc, uint32_t surface_id)
 
     dcc->priv->surface_client_created[surface_id] = FALSE;
     auto destroy = red::make_shared<RedSurfaceDestroyItem>(surface_id);
-    dcc->pipe_add(std::move(destroy));
+    dcc->pipe_add(destroy);
 }
 
 #define MIN_DIMENSION_TO_QUIC 3

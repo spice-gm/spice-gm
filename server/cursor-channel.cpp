@@ -223,7 +223,7 @@ void CursorChannel::process_cmd(RedCursorCmd *cursor_cmd)
         (mouse_mode == SPICE_MOUSE_MODE_SERVER
          || cursor_cmd->type != QXL_CURSOR_MOVE
          || cursor_show)) {
-        pipes_add(std::move(cursor_pipe_item));
+        pipes_add(cursor_pipe_item);
     }
 }
 

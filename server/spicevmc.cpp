@@ -270,7 +270,7 @@ static void spicevmc_port_send_init(VmcChannelClient *rcc)
     SpiceCharDeviceInstance *sin = channel->chardev_sin;
     auto item = red::make_shared<RedPortInitPipeItem>(sin->portname, channel->port_opened);
 
-    rcc->pipe_add_push(std::move(item));
+    rcc->pipe_add_push(item);
 }
 
 static void spicevmc_port_send_event(RedChannelClient *rcc, uint8_t event)
@@ -278,7 +278,7 @@ static void spicevmc_port_send_event(RedChannelClient *rcc, uint8_t event)
     auto item = red::make_shared<RedPortEventPipeItem>();
 
     item->event = event;
-    rcc->pipe_add_push(std::move(item));
+    rcc->pipe_add_push(item);
 }
 
 void RedCharDeviceSpiceVmc::remove_client(RedCharDeviceClientOpaque *opaque)
@@ -473,7 +473,7 @@ static void
 spicevmc_red_channel_queue_data(RedVmcChannel *channel, red::shared_ptr<RedVmcPipeItem>&& item)
 {
     channel->queued_data += item->buf_used;
-    channel->rcc->pipe_add_push(std::move(item));
+    channel->rcc->pipe_add_push(item);
 }
 
 static void spicevmc_red_channel_send_data(VmcChannelClient *rcc,

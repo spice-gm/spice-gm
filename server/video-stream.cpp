@@ -845,7 +845,7 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         upgrade_item->rects->num_rects = n_rects;
         region_ret_rects(&upgrade_item->drawable->tree_item.base.rgn,
                          upgrade_item->rects->rects, n_rects);
-        dcc->pipe_add(std::move(upgrade_item));
+        dcc->pipe_add(upgrade_item);
 
     } else {
         SpiceRect upgrade_area;

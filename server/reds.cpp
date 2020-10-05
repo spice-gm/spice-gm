@@ -1251,7 +1251,7 @@ void reds_on_main_channel_migrate(RedsState *reds, MainChannelClient *mcc)
         switch (vdi_port_read_buf_process(agent_dev, *read_buf)) {
         case AGENT_MSG_FILTER_OK:
             reds_adjust_agent_capabilities(reds, (VDAgentMessage *)read_buf->data);
-            mcc->push_agent_data(std::move(read_buf));
+            mcc->push_agent_data(read_buf);
             break;
         case AGENT_MSG_FILTER_PROTO_ERROR:
             reds_agent_remove(reds);

@@ -434,7 +434,7 @@ StreamChannel::change_format(const StreamMsgFormat *fmt)
     item->stream_create.src_height = fmt->height;
     item->stream_create.dest = (SpiceRect) { 0, 0, fmt->width, fmt->height };
     item->stream_create.clip = (SpiceClip) { SPICE_CLIP_TYPE_NONE, nullptr };
-    pipes_add(std::move(item));
+    pipes_add(item);
 
     // activate stream report if possible
     pipes_add_type(RED_PIPE_ITEM_TYPE_STREAM_ACTIVATE_REPORT);

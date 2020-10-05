@@ -203,7 +203,7 @@ void MainChannelClient::push_agent_tokens(uint32_t num_tokens)
 
 void MainChannelClient::push_agent_data(red::shared_ptr<RedAgentDataPipeItem>&& item)
 {
-    pipe_add_push(std::move(item));
+    pipe_add_push(item);
 }
 
 static RedPipeItemPtr
