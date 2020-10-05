@@ -67,7 +67,7 @@ static uint8_t *add_format(uint8_t *p, uint32_t w, uint32_t h, SpiceVideoCodecTy
 /* currently we don't care about possible capabilities sent so discard them
  * from server reply */
 static void
-discard_server_capabilities(void)
+discard_server_capabilities()
 {
     StreamDevHeader hdr;
 
@@ -88,7 +88,7 @@ discard_server_capabilities(void)
 
 // check we have an error message on the write buffer
 static void
-check_vmc_error_message(void)
+check_vmc_error_message()
 {
     StreamDevHeader hdr;
 
@@ -181,7 +181,7 @@ static void test_stream_device_teardown(TestFixture *fixture, gconstpointer user
     core = NULL;
 }
 
-static void test_kick(void)
+static void test_kick()
 {
     spice_server_add_interface(test->server, &vmc->instance.base);
 

@@ -2740,7 +2740,7 @@ static inline void openssl_global_init(void)
 }
 
 #else
-static inline void openssl_global_init(void)
+static inline void openssl_global_init()
 {
 }
 #endif

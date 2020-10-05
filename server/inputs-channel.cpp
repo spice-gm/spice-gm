@@ -60,7 +60,7 @@ struct SpiceMouseState {
     int dummy;
 };
 
-static SpiceMouseState* spice_mouse_state_new(void)
+static SpiceMouseState* spice_mouse_state_new()
 {
     return g_new0(SpiceMouseState, 1);
 }

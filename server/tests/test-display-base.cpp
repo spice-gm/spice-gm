@@ -97,7 +97,7 @@ static void child_exited(GPid pid, gint status, gpointer user_data)
     exit(0);
 }
 
-static void regression_test(void)
+static void regression_test()
 {
     GPid pid;
     GError *error = NULL;
@@ -476,12 +476,12 @@ static void push_command(QXLCommandExt *ext)
     pthread_mutex_unlock(&command_mutex);
 }
 
-static int get_num_commands(void)
+static int get_num_commands()
 {
     return commands_end - commands_start;
 }
 
-static struct QXLCommandExt *get_simple_command(void)
+static struct QXLCommandExt *get_simple_command()
 {
     pthread_mutex_lock(&command_mutex);
     struct QXLCommandExt *ret = NULL;
@@ -685,7 +685,7 @@ static struct {
     uint8_t data[CURSOR_WIDTH * CURSOR_HEIGHT * 4 + 128]; // 32bit per pixel
 } cursor;
 
-static void cursor_init(void)
+static void cursor_init()
 {
     cursor.cursor.header.unique = 0;
     cursor.cursor.header.type = SPICE_CURSOR_TYPE_COLOR32;
@@ -960,7 +960,7 @@ void test_destroy(Test *test)
     g_free(test);
 }
 
-static void init_automated(void)
+static void init_automated()
 {
 }
 

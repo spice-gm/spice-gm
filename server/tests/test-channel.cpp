@@ -196,7 +196,7 @@ static RedStream *create_dummy_stream(SpiceServer *server, int *p_socket)
     return stream;
 }
 
-static void channel_loop(void)
+static void channel_loop()
 {
     SpiceCoreInterface *core;
     SpiceServer *server = spice_server_new();
