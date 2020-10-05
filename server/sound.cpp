@@ -185,7 +185,7 @@ inline SndChannel* SndChannelClient::get_channel()
 
 struct PlaybackChannel final: public SndChannel
 {
-    PlaybackChannel(RedsState *reds);
+    explicit PlaybackChannel(RedsState *reds);
     void on_connect(RedClient *client, RedStream *stream,
                     int migration, RedChannelCapabilities *caps) override;
 };
@@ -193,7 +193,7 @@ struct PlaybackChannel final: public SndChannel
 
 struct RecordChannel final: public SndChannel
 {
-    RecordChannel(RedsState *reds);
+    explicit RecordChannel(RedsState *reds);
     void on_connect(RedClient *client, RedStream *stream,
                     int migration, RedChannelCapabilities *caps) override;
 };

@@ -207,7 +207,7 @@ struct SPICE_ATTR_PACKED VDInternalBuf {
 
 struct RedCharDeviceVDIPort: public RedCharDevice
 {
-    RedCharDeviceVDIPort(RedsState *reds);
+    explicit RedCharDeviceVDIPort(RedsState *reds);
     RedCharDeviceVDIPort();
     ~RedCharDeviceVDIPort();
 

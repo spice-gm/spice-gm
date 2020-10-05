@@ -26,7 +26,7 @@
 #include "reds.h"
 
 struct RedCursorPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_TYPE_CURSOR> {
-    RedCursorPipeItem(RedCursorCmd *cmd);
+    explicit RedCursorPipeItem(RedCursorCmd *cmd);
     ~RedCursorPipeItem();
     RedCursorCmd *red_cursor;
 };

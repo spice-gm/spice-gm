@@ -45,7 +45,7 @@ struct DispatcherMessage {
 
 struct DispatcherPrivate {
     SPICE_CXX_GLIB_ALLOCATOR
-    DispatcherPrivate(uint32_t init_max_message_type):
+    explicit DispatcherPrivate(uint32_t init_max_message_type):
         max_message_type(init_max_message_type)
     {
     }

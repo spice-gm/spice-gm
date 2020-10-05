@@ -87,12 +87,12 @@ RedsState* spice_tablet_state_get_server(SpiceTabletState *st)
 }
 
 struct RedKeyModifiersPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_KEY_MODIFIERS> {
-    RedKeyModifiersPipeItem(uint8_t modifiers);
+    explicit RedKeyModifiersPipeItem(uint8_t modifiers);
     uint8_t modifiers;
 };
 
 struct RedInputsInitPipeItem: public RedPipeItemNum<RED_PIPE_ITEM_INPUTS_INIT> {
-    RedInputsInitPipeItem(uint8_t modifiers);
+    explicit RedInputsInitPipeItem(uint8_t modifiers);
     uint8_t modifiers;
 };
 
