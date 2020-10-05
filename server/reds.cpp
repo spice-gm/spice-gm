@@ -333,7 +333,7 @@ void reds_unregister_channel(RedsState *reds, RedChannel *channel)
 
 RedChannel *reds_find_channel(RedsState *reds, uint32_t type, uint32_t id)
 {
-    for (auto channel: reds->channels) {
+    for (const auto& channel: reds->channels) {
         if (channel->type() == type && channel->id() == id) {
             return channel.get();
         }
@@ -810,7 +810,7 @@ void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
     }
 
     // add the stream devices to the message
-    for (auto dev: reds->char_devices) {
+    for (const auto& dev: reds->char_devices) {
         auto stream_dev = dynamic_cast<StreamDevice*>(dev.get());
         if (stream_dev) {
             const StreamDeviceDisplayInfo *info = stream_dev->get_device_display_info();
@@ -1728,7 +1728,7 @@ static void reds_late_initialization(RedsState *reds)
     }
 
     // create stream channels for streaming devices
-    for (auto dev: reds->char_devices) {
+    for (const auto& dev: reds->char_devices) {
         auto stream_dev = dynamic_cast<StreamDevice*>(dev.get());
         if (stream_dev) {
             stream_dev->create_channel();
@@ -4244,7 +4244,7 @@ SPICE_GNUC_VISIBLE int spice_server_migrate_switch(SpiceServer *reds)
 SPICE_GNUC_VISIBLE void spice_server_vm_start(SpiceServer *reds)
 {
     reds->vm_running = TRUE;
-    for (auto dev: reds->char_devices) {
+    for (const auto& dev: reds->char_devices) {
         dev->start();
     }
     reds_on_vm_start(reds);
@@ -4253,7 +4253,7 @@ SPICE_GNUC_VISIBLE void spice_server_vm_start(SpiceServer *reds)
 SPICE_GNUC_VISIBLE void spice_server_vm_stop(SpiceServer *reds)
 {
     reds->vm_running = FALSE;
-    for (auto dev: reds->char_devices) {
+    for (const auto& dev: reds->char_devices) {
         dev->stop();
     }
     reds_on_vm_stop(reds);
