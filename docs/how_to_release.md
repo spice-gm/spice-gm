@@ -20,7 +20,7 @@ to avoid forgetting something.
   * Upload tarball and relative signature
 * Upload tarball and relative signature to
   https://www.spice-space.org/download/releases/ (sftp to
-  `spice-uploader@spice-web.osci.io:/var/www/www.spice-space.org/`)
+  `spice-uploader@spice-web.osci.io:/var/www/www.spice-space.org/download/releases/`)
 * Update file `download.rst` in
   https://gitlab.freedesktop.org/spice/spice-space-pages
 * Create a merge request for `spice-space-pages`

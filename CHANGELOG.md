@@ -1,3 +1,30 @@
+Major Changes in 0.14.90:
+=========================
+
+**IMPORTANT**
+0.14.90 is the first release candidate for the stable 0.15.x series. While some
+bugs might still be present, it should be reasonably stable. If you are looking
+for stability for daily use, please keep using the latest 0.14.x release.
+
+* Support UNIX abstract sockets
+* Fix some potential thread race condition in RedClient
+* Many cleanups in the code
+* Improve migration test script
+* Update in protocol documentation
+* Improve Meson build
+* Removed CELT support
+* Update CI
+* Removed QXLWorker definition, it was deprecated 6 years ago
+* Fix some compatibility with MacOS
+* Fix some compatibility with Windows
+* Move the project to C++
+* Some fixes for SASL dealing with WebDAV
+* Fix minor Coverity reports
+* Add Doxygen support, manually built with "make doxy"
+* Support more mouse buttons (up to 16 buttons)
+* CVE-2020-14355 multiple buffer overflow vulnerabilities in QUIC decoding
+  code
+
 Major Changes in 0.14.3:
 ========================
 

@@ -30,7 +30,7 @@ run_command('build-aux/meson/check-spice-common', check : true)
 #
 #
 spice_server_current = 15
-spice_server_revision = 0
+spice_server_revision = 1
 spice_server_age = 14
 spice_server_so_version = '@0@.@1@.@2@'.format(spice_server_current - spice_server_age,
                                                spice_server_age,
