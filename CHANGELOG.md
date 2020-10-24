@@ -1,8 +1,8 @@
-Major Changes in 0.14.90:
+Major Changes in 0.14.91:
 =========================
 
 **IMPORTANT**
-0.14.90 is the first release candidate for the stable 0.15.x series. While some
+0.14.91 is the first release candidate for the stable 0.15.x series. While some
 bugs might still be present, it should be reasonably stable. If you are looking
 for stability for daily use, please keep using the latest 0.14.x release.
 
