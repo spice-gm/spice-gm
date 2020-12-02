@@ -2753,6 +2753,10 @@ static int reds_init_ssl(RedsState *reds)
      * When some other SSL/TLS version becomes obsolete, add it to this
      * variable. */
     long ssl_options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION | SSL_OP_NO_TLSv1;
+#ifdef SSL_OP_NO_RENEGOTIATION
+    // With OpenSSL 1.1: Disable all renegotiation in TLSv1.2 and earlier
+    ssl_options |= SSL_OP_NO_RENEGOTIATION;
+#endif
 
     /* Global system initialization*/
     openssl_global_init();
