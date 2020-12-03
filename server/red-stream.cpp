@@ -523,6 +523,11 @@ RedStreamSslStatus red_stream_ssl_accept(RedStream *stream)
         return RED_STREAM_SSL_STATUS_OK;
     }
 
+#ifndef SSL_OP_NO_RENEGOTIATION
+    // With OpenSSL 1.0.2 and earlier: disable client-side renogotiation
+    stream->priv->ssl->s3->flags |= SSL3_FLAGS_NO_RENEGOTIATE_CIPHERS;
+#endif
+
     ssl_error = SSL_get_error(stream->priv->ssl, return_code);
     if (return_code == -1 && (ssl_error == SSL_ERROR_WANT_READ ||
                               ssl_error == SSL_ERROR_WANT_WRITE)) {
