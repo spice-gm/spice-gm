@@ -81,11 +81,46 @@
 	fun:fake_client_connect_tls
 }
 
+# suppressing several new "possible" loss coming with Fedora 33 on calloc
 {
-    g-type-register-static-possible
+    # this one is making most tests to fail (20 out of 21)
+    calloc-possibly-lost-from-dl_init
     Memcheck:Leak
     match-leak-kinds:possible
-    fun:malloc
+    fun:calloc
+    fun:g_malloc0
     ...
-    fun:g_type_register_static
+    fun:_dl_init
+}
+
+{
+    calloc-possibly-lost-from-fake_client_connect-fake_client_new
+    Memcheck:Leak
+    match-leak-kinds:possible
+    fun:calloc
+    fun:g_malloc0
+    ...
+    fun:g_object_new
+    fun:fake_client_*
+}
+
+{
+    calloc-possibly-lost-from-g_output_stream
+    Memcheck:Leak
+    match-leak-kinds:possible
+    fun:calloc
+    ...
+    fun:g_thread_pool_push
+    fun:g_task_run_in_thread
+    ...
+    fun:g_output_stream_write_all
+}
+
+{
+    calloc-possibly-lost-from-g_thread_new
+    Memcheck:Leak
+    match-leak-kinds:possible
+    fun:calloc
+    ...
+    fun:g_thread_new
 }
