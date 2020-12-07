@@ -73,8 +73,6 @@
 	fun:malloc
 	...
 	fun:g_quark_init
-	...
-	fun:glib_init_ctor
 }
 
 {
@@ -84,8 +82,6 @@
 	fun:calloc
 	...
 	fun:g_quark_init
-	...
-	fun:glib_init_ctor
 }
 
 {
@@ -127,7 +123,7 @@
 {
 	g-type-register-static
 	Memcheck:Leak
-	match-leak-kinds:reachable
+	match-leak-kinds:possible,reachable
 	fun:malloc
 	...
 	fun:g_type_register_static
@@ -145,7 +141,7 @@
 {
 	g-type-register-static-calloc
 	Memcheck:Leak
-	match-leak-kinds:reachable
+	match-leak-kinds:possible,reachable
 	fun:calloc
 	...
 	fun:g_type_register_static
@@ -218,7 +214,7 @@
 }
 
 {
-	g-test-rand-init2
+	g-rand-init2
 	Memcheck:Leak
 	match-leak-kinds:reachable
 	fun:calloc
@@ -226,8 +222,6 @@
 	fun:g_rand_new_with_seed_array
 	...
 	fun:get_global_random
-	...
-	fun:g_test_init
 }
 
 {
@@ -446,6 +440,33 @@
 }
 
 {
+        g-get-language_names-with-category-malloc
+        Memcheck:Leak
+        match-leak-kinds:reachable
+        fun:malloc
+        ...
+        fun:g_get_language_names_with_category
+}
+
+{
+        g-get-language_names-with-category-calloc
+        Memcheck:Leak
+        match-leak-kinds:reachable
+        fun:calloc
+        ...
+        fun:g_get_language_names_with_category
+}
+
+{
+        g-get-language_names-with-category-realloc
+        Memcheck:Leak
+        match-leak-kinds:reachable
+        fun:realloc
+        ...
+        fun:g_get_language_names_with_category
+}
+
+{
 	g-static-mutex
 	Memcheck:Leak
 	match-leak-kinds:reachable
@@ -464,6 +485,17 @@
 }
 
 {
+	g-task-thread-pool-init
+	Memcheck:Leak
+	match-leak-kinds:possible,reachable,definite
+	fun:malloc
+	...
+	fun:g_thread_new
+	...
+	fun:g_task_thread_pool_init
+}
+
+{
 	g-io-module-default-proxy-resolver-gnome
 	Memcheck:Leak
 	match-leak-kinds:reachable
@@ -478,7 +510,7 @@
 {
 	g-threaded-resolver-getaddrinfo-config
 	Memcheck:Leak
-	match-leak-kinds:reachable
+	match-leak-kinds:reachable,definite
 	fun:malloc
 	...
 	fun:__resolv_conf_allocate
@@ -876,11 +908,21 @@
 	fun:g_dbus_error_quark
 }
 
+# g_win32_registry_get_os_dirs_w*() caches an array of strings that is allocated only once.
+{
+	g_win32_registry_get_os_dirs
+	Memcheck:Leak
+	match-leak-kinds:reachable,definite
+	fun:malloc
+	...
+	fun:g_win32_registry_get_os_dirs*
+}
+
 # Thread-private data allocated once per thread
 {
 	g_private_set_alloc0
 	Memcheck:Leak
-	match-leak-kinds:reachable
+	match-leak-kinds:definite,reachable
 	fun:malloc
 	...
 	fun:g_private_set_alloc0
@@ -888,17 +930,26 @@
 {
 	g_private_set_alloc0-calloc
 	Memcheck:Leak
-	match-leak-kinds:reachable
+	match-leak-kinds:definite,reachable
 	fun:calloc
 	...
 	fun:g_private_set_alloc0
+}
+
+# Keys for thread-private data
+{
+	g_private_key
+	Memcheck:Leak
+	match-leak-kinds:reachable
+	fun:malloc
+	fun:g_private_impl_new
 }
 
 # Thread-private GMainContext stack
 {
 	g_main_context_push_thread_default
 	Memcheck:Leak
-	match-leak-kinds:reachable
+	match-leak-kinds:definite,reachable
 	fun:malloc
 	...
 	fun:g_queue_new
@@ -945,4 +996,45 @@
 	fun:lookup_namespace
 	...
 	fun:g_file_*
+}
+
+# Cached charset
+{
+	g_get_charset
+	Memcheck:Leak
+	match-leak-kinds:reachable
+	fun:malloc
+	...
+	fun:g_get_charset
+}
+
+{
+	g_get_charset_calloc
+	Memcheck:Leak
+	match-leak-kinds:reachable
+	fun:calloc
+	...
+	fun:g_get_charset
+}
+
+# Global unused thread queue
+{
+	g_thread_pool_unused_thread_queue
+	Memcheck:Leak
+	match-leak-kinds:reachable
+	fun:malloc
+	...
+	fun:g_async_queue_new_full
+	...
+	fun:g_thread_pool_new
+}
+
+# One-time program name storage
+{
+	g_set_prgname
+	Memcheck:Leak
+	match-leak-kinds:reachable
+	fun:malloc
+	...
+	fun:g_set_prgname
 }
