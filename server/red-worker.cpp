@@ -536,7 +536,10 @@ static void handle_dev_start(void *opaque, void *payload)
 {
     RedWorker *worker = (RedWorker*) opaque;
 
-    spice_assert(!red_qxl_is_running(worker->qxl));
+    if (red_qxl_is_running(worker->qxl)) {
+        return;
+    }
+
     if (worker->cursor_channel) {
         worker->cursor_channel->set_during_target_migrate(FALSE);
     }
