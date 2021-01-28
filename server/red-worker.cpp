@@ -515,7 +515,9 @@ static void handle_dev_stop(void *opaque, void *payload)
     RedWorker *worker = (RedWorker*) opaque;
 
     spice_debug("stop");
-    spice_assert(red_qxl_is_running(worker->qxl));
+    if (!red_qxl_is_running(worker->qxl)) {
+	    return;
+    }
 
     red_qxl_set_running(worker->qxl, false);
     display_channel_update_qxl_running(worker->display_channel, false);
