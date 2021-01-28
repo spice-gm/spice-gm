@@ -3255,6 +3255,9 @@ SPICE_GNUC_VISIBLE int spice_server_add_interface(SpiceServer *reds,
          * be called. */
         red_qxl_attach_worker(qxl);
         red_qxl_set_compression_level(qxl, calc_compression_level(reds));
+        if (reds->vm_running) {
+            red_qxl_start(qxl);
+        }
     } else if (strcmp(base_interface->type, SPICE_INTERFACE_TABLET) == 0) {
         SpiceTabletInstance *tablet = SPICE_UPCAST(SpiceTabletInstance, sin);
         spice_debug("SPICE_INTERFACE_TABLET");
