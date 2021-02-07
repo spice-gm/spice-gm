@@ -95,7 +95,7 @@ distcheck:
 makecheck-centos:
   before_script:
     - dnf install -y 'dnf-command(config-manager)'
-    - dnf config-manager --set-enabled PowerTools
+    - dnf config-manager --set-enabled powertools
     - >
       dnf install git libtool make libasan orc-devel glib-networking
       gcc glib2-devel
