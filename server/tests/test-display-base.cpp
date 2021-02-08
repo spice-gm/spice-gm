@@ -798,7 +798,7 @@ static QXLInterface display_sif = {
         .major_version = SPICE_INTERFACE_QXL_MAJOR,
         .minor_version = SPICE_INTERFACE_QXL_MINOR
     },
-    .attached_worker = attached_worker,
+    { .attached_worker = attached_worker },
     .set_compression_level = set_compression_level,
     .set_mm_time = NULL,
     .get_init_info = get_init_info,
