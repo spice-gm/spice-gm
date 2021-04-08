@@ -17,6 +17,11 @@
 */
 #include <config.h>
 
+#ifdef _WIN32
+/* Avoid conflicting types for INT32 */
+#define QGLOBAL_H
+#endif
+
 #include <stdio.h>
 #include <inttypes.h>
 #include <jerror.h>
