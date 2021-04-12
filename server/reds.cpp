@@ -354,7 +354,7 @@ int reds_get_free_channel_id(RedsState *reds, uint32_t type)
 
     // mark id used for the specific channel type
     memset(used_ids, 0, sizeof(used_ids));
-    for (const auto channel: reds->channels) {
+    for (const auto &channel: reds->channels) {
         if (channel->type() == type && channel->id() < SPICE_N_ELEMENTS(used_ids)) {
             used_ids[channel->id()] = true;
         }
@@ -599,7 +599,7 @@ static void reds_update_mouse_mode(RedsState *reds)
     int qxl_count = reds->qxl_instances.size();
     int display_channel_count = 0;
 
-    for (const auto channel: reds->channels) {
+    for (const auto &channel: reds->channels) {
         if (channel->type() == SPICE_CHANNEL_DISPLAY) {
             ++display_channel_count;
         }
@@ -972,7 +972,7 @@ static void reds_fill_channels(RedsState *reds, SpiceMsgChannels *channels_info)
 {
     int used_channels = 0;
 
-    for (const auto channel: reds->channels) {
+    for (const auto &channel: reds->channels) {
         if (reds->clients.size() > 1 &&
             !channel_supports_multiple_clients(channel.get())) {
             continue;
