@@ -72,7 +72,7 @@ static void codecs_bad(void)
         },{
             NULL,
             G_LOG_LEVEL_CRITICAL,
-            "*assertion 'codecs != NULL' failed",
+            "*assertion 'codecs != nullptr' failed",
             FALSE,
         },{
             ";:;",
