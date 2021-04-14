@@ -265,7 +265,7 @@ static bool red_process_is_blocked(RedWorker *worker)
            worker->display_channel->max_pipe_size() > MAX_PIPE_SIZE;
 }
 
-typedef int (*red_process_t)(RedWorker *worker, int *ring_is_empty);
+using red_process_t = int (*)(RedWorker *worker, int *ring_is_empty);
 static void flush_commands(RedWorker *worker, RedChannel *red_channel,
                            red_process_t process)
 {

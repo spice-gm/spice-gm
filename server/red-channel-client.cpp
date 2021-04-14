@@ -46,12 +46,12 @@
 
 struct SpiceDataHeaderOpaque;
 
-typedef uint16_t (*get_msg_type_proc)(SpiceDataHeaderOpaque *header);
-typedef uint32_t (*get_msg_size_proc)(SpiceDataHeaderOpaque *header);
-typedef void (*set_msg_type_proc)(SpiceDataHeaderOpaque *header, uint16_t type);
-typedef void (*set_msg_size_proc)(SpiceDataHeaderOpaque *header, uint32_t size);
-typedef void (*set_msg_serial_proc)(SpiceDataHeaderOpaque *header, uint64_t serial);
-typedef void (*set_msg_sub_list_proc)(SpiceDataHeaderOpaque *header, uint32_t sub_list);
+using get_msg_type_proc = uint16_t (*)(SpiceDataHeaderOpaque *header);
+using get_msg_size_proc = uint32_t (*)(SpiceDataHeaderOpaque *header);
+using set_msg_type_proc = void (*)(SpiceDataHeaderOpaque *header, uint16_t type);
+using set_msg_size_proc = void (*)(SpiceDataHeaderOpaque *header, uint32_t size);
+using set_msg_serial_proc = void (*)(SpiceDataHeaderOpaque *header, uint64_t serial);
+using set_msg_sub_list_proc = void (*)(SpiceDataHeaderOpaque *header, uint32_t sub_list);
 
 struct SpiceDataHeaderOpaque {
     uint8_t *data;

@@ -87,8 +87,8 @@ RedTestChannelClient::release_recv_buf(uint16_t type, uint32_t size, uint8_t *ms
 /*
  * Main test part
  */
-typedef SpiceWatch *watch_add_t(const SpiceCoreInterfaceInternal *iface,
-                                int fd, int event_mask, SpiceWatchFunc func, void *opaque);
+using watch_add_t = SpiceWatch *(const SpiceCoreInterfaceInternal *iface,
+                                 int fd, int event_mask, SpiceWatchFunc func, void *opaque);
 static watch_add_t *old_watch_add = nullptr;
 static SpiceWatchFunc old_watch_func = nullptr;
 
