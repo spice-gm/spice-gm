@@ -1,3 +1,15 @@
+Major Changes in 0.15:
+======================
+
+This is the first release in the new 0.15.x stable series. This release should
+be ready for production use.
+
+* Minor updates to CI
+* Some compatibility with OpenSSL
+* Change the behavior of handle_dev_start ignoring multiple start requests
+* Ignore multiple calls to handle_dev_stop
+* Pick up newer spice-common to fix a buffer overflow issue
+
 Major Changes in 0.14.91:
 =========================
 
