@@ -9,6 +9,7 @@ EXTRA_DIST =					\
 	manual.html				\
 	manual.chunked				\
 	manual.txt				\
+	manual.conf				\
 	$(NULL)
 
 .txt.html:
