@@ -535,6 +535,9 @@ static SpiceImage *red_get_image(RedMemSlotInfo *slots, int group_id,
             red->u.bitmap.data = red_get_image_data_flat(slots, group_id,
                                                          qxl->bitmap.data,
                                                          bitmap_size);
+            if (red->u.bitmap.data == nullptr) {
+                goto error;
+            }
         } else {
             size = red_get_data_chunks(slots, group_id,
                                        &chunks, qxl->bitmap.data);
