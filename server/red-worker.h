@@ -28,7 +28,7 @@
 
 SPICE_BEGIN_DECLS
 
-typedef struct RedWorker RedWorker;
+struct RedWorker;
 
 RedWorker* red_worker_new(QXLInstance *qxl);
 bool       red_worker_run(RedWorker *worker);
@@ -40,7 +40,7 @@ void red_qxl_create_primary_surface_complete(QXLState *qxl_state, const QXLDevSu
 bool red_qxl_is_running(QXLInstance *qxl);
 void red_qxl_set_running(QXLInstance *qxl, bool running);
 
-typedef uint32_t RedWorkerMessage;
+using RedWorkerMessage = uint32_t;
 
 /* Keep message order, only append new messages!
  * Replay code store enum values into save files.
@@ -99,152 +99,183 @@ enum {
     RED_WORKER_MESSAGE_COUNT // LAST
 };
 
-typedef struct RedWorkerMessageUpdate {
+struct RedWorkerMessageUpdate {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_UPDATE };
     uint32_t surface_id;
     QXLRect * qxl_area;
     QXLRect * qxl_dirty_rects;
     uint32_t num_dirty_rects;
     uint32_t clear_dirty_region;
-} RedWorkerMessageUpdate;
+};
 
-typedef struct RedWorkerMessageAsync {
+struct RedWorkerMessageAsync {
     uint64_t cookie;
-} RedWorkerMessageAsync;
+};
 
-typedef struct RedWorkerMessageUpdateAsync {
+struct RedWorkerMessageUpdateAsync {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_UPDATE_ASYNC };
     RedWorkerMessageAsync base;
     uint32_t surface_id;
     QXLRect qxl_area;
     uint32_t clear_dirty_region;
-} RedWorkerMessageUpdateAsync;
+};
 
-typedef struct RedWorkerMessageAddMemslot {
+struct RedWorkerMessageAddMemslot {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_ADD_MEMSLOT };
     QXLDevMemSlot mem_slot;
-} RedWorkerMessageAddMemslot;
+};
 
-typedef struct RedWorkerMessageAddMemslotAsync {
+struct RedWorkerMessageAddMemslotAsync {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_ADD_MEMSLOT_ASYNC };
     RedWorkerMessageAsync base;
     QXLDevMemSlot mem_slot;
-} RedWorkerMessageAddMemslotAsync;
+};
 
-typedef struct RedWorkerMessageDelMemslot {
+struct RedWorkerMessageDelMemslot {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_DEL_MEMSLOT };
     uint32_t slot_group_id;
     uint32_t slot_id;
-} RedWorkerMessageDelMemslot;
+};
 
-typedef struct RedWorkerMessageDestroySurfaces {
+struct RedWorkerMessageDestroySurfaces {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_DESTROY_SURFACES };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageDestroySurfaces;
+};
 
-typedef struct RedWorkerMessageDestroySurfacesAsync {
+struct RedWorkerMessageDestroySurfacesAsync {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_DESTROY_SURFACES_ASYNC };
     RedWorkerMessageAsync base;
-} RedWorkerMessageDestroySurfacesAsync;
+};
 
 
-typedef struct RedWorkerMessageDestroyPrimarySurface {
+struct RedWorkerMessageDestroyPrimarySurface {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_DESTROY_PRIMARY_SURFACE };
     uint32_t surface_id;
-} RedWorkerMessageDestroyPrimarySurface;
+};
 
-typedef struct RedWorkerMessageDestroyPrimarySurfaceAsync {
+struct RedWorkerMessageDestroyPrimarySurfaceAsync {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_DESTROY_PRIMARY_SURFACE_ASYNC };
     RedWorkerMessageAsync base;
     uint32_t surface_id;
-} RedWorkerMessageDestroyPrimarySurfaceAsync;
+};
 
-typedef struct RedWorkerMessageCreatePrimarySurfaceAsync {
+struct RedWorkerMessageCreatePrimarySurfaceAsync {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_CREATE_PRIMARY_SURFACE_ASYNC };
     RedWorkerMessageAsync base;
     uint32_t surface_id;
     QXLDevSurfaceCreate surface;
-} RedWorkerMessageCreatePrimarySurfaceAsync;
+};
 
-typedef struct RedWorkerMessageCreatePrimarySurface {
+struct RedWorkerMessageCreatePrimarySurface {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_CREATE_PRIMARY_SURFACE };
     uint32_t surface_id;
     QXLDevSurfaceCreate surface;
-} RedWorkerMessageCreatePrimarySurface;
+};
 
-typedef struct RedWorkerMessageResetImageCache {
+struct RedWorkerMessageResetImageCache {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_RESET_IMAGE_CACHE };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageResetImageCache;
+};
 
-typedef struct RedWorkerMessageResetCursor {
+struct RedWorkerMessageResetCursor {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_RESET_CURSOR };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageResetCursor;
+};
 
-typedef struct RedWorkerMessageWakeup {
+struct RedWorkerMessageWakeup {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_WAKEUP };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageWakeup;
+};
 
-typedef struct RedWorkerMessageOom {
+struct RedWorkerMessageOom {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_OOM };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageOom;
+};
 
-typedef struct RedWorkerMessageStart {
+struct RedWorkerMessageStart {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_START };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageStart;
+};
 
-typedef struct RedWorkerMessageFlushSurfacesAsync {
+struct RedWorkerMessageFlushSurfacesAsync {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_FLUSH_SURFACES_ASYNC };
     RedWorkerMessageAsync base;
-} RedWorkerMessageFlushSurfacesAsync;
+};
 
-typedef struct RedWorkerMessageStop {
+struct RedWorkerMessageStop {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_STOP };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageStop;
+};
 
 /* this command is sync, so it's ok to pass a pointer */
-typedef struct RedWorkerMessageLoadvmCommands {
+struct RedWorkerMessageLoadvmCommands {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_LOADVM_COMMANDS };
     uint32_t count;
     QXLCommandExt *ext;
-} RedWorkerMessageLoadvmCommands;
+};
 
-typedef struct RedWorkerMessageSetCompression {
+struct RedWorkerMessageSetCompression {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_SET_COMPRESSION };
     SpiceImageCompression image_compression;
-} RedWorkerMessageSetCompression;
+};
 
-typedef struct RedWorkerMessageSetStreamingVideo {
+struct RedWorkerMessageSetStreamingVideo {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_SET_STREAMING_VIDEO };
     uint32_t streaming_video;
-} RedWorkerMessageSetStreamingVideo;
+};
 
-typedef struct RedWorkerMessageSetVideoCodecs {
+struct RedWorkerMessageSetVideoCodecs {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_SET_VIDEO_CODECS };
     GArray* video_codecs;
-} RedWorkerMessageSetVideoCodecs;
+};
 
-typedef struct RedWorkerMessageSetMouseMode {
+struct RedWorkerMessageSetMouseMode {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_SET_MOUSE_MODE };
     uint32_t mode;
-} RedWorkerMessageSetMouseMode;
+};
 
-typedef struct RedWorkerMessageDestroySurfaceWait {
+struct RedWorkerMessageDestroySurfaceWait {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_DESTROY_SURFACE_WAIT };
     uint32_t surface_id;
-} RedWorkerMessageDestroySurfaceWait;
+};
 
-typedef struct RedWorkerMessageDestroySurfaceWaitAsync {
+struct RedWorkerMessageDestroySurfaceWaitAsync {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_DESTROY_SURFACE_WAIT_ASYNC };
     RedWorkerMessageAsync base;
     uint32_t surface_id;
-} RedWorkerMessageDestroySurfaceWaitAsync;
+};
 
-typedef struct RedWorkerMessageResetMemslots {
-} RedWorkerMessageResetMemslots;
+struct RedWorkerMessageResetMemslots {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_RESET_MEMSLOTS };
+};
 
-typedef struct RedWorkerMessageMonitorsConfigAsync {
+struct RedWorkerMessageMonitorsConfigAsync {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_MONITORS_CONFIG_ASYNC };
     RedWorkerMessageAsync base;
     QXLPHYSICAL monitors_config;
     int group_id;
     unsigned int max_monitors;
-} RedWorkerMessageMonitorsConfigAsync;
+};
 
-typedef struct RedWorkerMessageDriverUnload {
+struct RedWorkerMessageDriverUnload {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_DRIVER_UNLOAD };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageDriverUnload;
+};
 
-typedef struct RedWorkerMessageGlScanout {
+struct RedWorkerMessageGlScanout {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_GL_SCANOUT };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageGlScanout;
+};
 
-typedef struct RedWorkerMessageClose {
+struct RedWorkerMessageClose {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_CLOSE_WORKER };
     uint8_t dummy_empty_field[0]; // C/C++ compatibility
-} RedWorkerMessageClose;
+};
 
-typedef struct RedWorkerMessageGlDraw {
+struct RedWorkerMessageGlDraw {
+    enum { MESSAGE_NUM = RED_WORKER_MESSAGE_GL_DRAW_ASYNC };
     SpiceMsgDisplayGlDraw draw;
-} RedWorkerMessageGlDraw;
+};
 
 enum {
     RED_DISPATCHER_PENDING_WAKEUP,

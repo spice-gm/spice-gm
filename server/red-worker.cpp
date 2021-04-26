@@ -781,10 +781,10 @@ static void worker_dispatcher_record(void *opaque, uint32_t message_type, void *
 
 template <typename T>
 static inline void
-register_handler(Dispatcher *dispatcher, uint32_t message_type,
+register_handler(Dispatcher *dispatcher,
                  void (*handler)(RedWorker*, T*), bool ack)
 {
-    dispatcher->register_handler(message_type,
+    dispatcher->register_handler(T::MESSAGE_NUM,
                                  reinterpret_cast<dispatcher_handle_message>(handler),
                                  sizeof(T),
                                  ack);
@@ -794,127 +794,96 @@ static void register_callbacks(Dispatcher *dispatcher)
 {
     /* TODO: register cursor & display specific msg in respective channel files */
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_UPDATE,
                      handle_dev_update,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_UPDATE_ASYNC,
                      handle_dev_update_async,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_ADD_MEMSLOT,
                      handle_dev_add_memslot,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_ADD_MEMSLOT_ASYNC,
                      handle_dev_add_memslot_async,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_DEL_MEMSLOT,
                      handle_dev_del_memslot,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_DESTROY_SURFACES,
                      handle_dev_destroy_surfaces,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_DESTROY_SURFACES_ASYNC,
                      handle_dev_destroy_surfaces_async,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_DESTROY_PRIMARY_SURFACE,
                      handle_dev_destroy_primary_surface,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_DESTROY_PRIMARY_SURFACE_ASYNC,
                      handle_dev_destroy_primary_surface_async,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_CREATE_PRIMARY_SURFACE_ASYNC,
                      handle_dev_create_primary_surface_async,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_CREATE_PRIMARY_SURFACE,
                      handle_dev_create_primary_surface,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_RESET_IMAGE_CACHE,
                      handle_dev_reset_image_cache,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_RESET_CURSOR,
                      handle_dev_reset_cursor,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_WAKEUP,
                      handle_dev_wakeup,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_OOM,
                      handle_dev_oom,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_START,
                      handle_dev_start,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_FLUSH_SURFACES_ASYNC,
                      handle_dev_flush_surfaces_async,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_STOP,
                      handle_dev_stop,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_LOADVM_COMMANDS,
                      handle_dev_loadvm_commands,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_SET_COMPRESSION,
                      handle_dev_set_compression,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_SET_STREAMING_VIDEO,
                      handle_dev_set_streaming_video,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_SET_VIDEO_CODECS,
                      handle_dev_set_video_codecs,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_SET_MOUSE_MODE,
                      handle_dev_set_mouse_mode,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_DESTROY_SURFACE_WAIT,
                      handle_dev_destroy_surface_wait,
                      true);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_DESTROY_SURFACE_WAIT_ASYNC,
                      handle_dev_destroy_surface_wait_async,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_RESET_MEMSLOTS,
                      handle_dev_reset_memslots,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_MONITORS_CONFIG_ASYNC,
                      handle_dev_monitors_config_async,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_DRIVER_UNLOAD,
                      handle_dev_driver_unload,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_GL_SCANOUT,
                      handle_dev_gl_scanout,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_GL_DRAW_ASYNC,
                      handle_dev_gl_draw_async,
                      false);
     register_handler(dispatcher,
-                     RED_WORKER_MESSAGE_CLOSE_WORKER,
                      handle_dev_close,
                      false);
 }
