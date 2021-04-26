@@ -26,7 +26,7 @@
 
 #include "red-channel.h"
 
-SPICE_BEGIN_DECLS
+#include "push-visibility.h"
 
 struct RedWorker;
 
@@ -284,6 +284,6 @@ enum {
 
 void red_qxl_clear_pending(QXLState *qxl_state, int pending);
 
-SPICE_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* RED_WORKER_H_ */
