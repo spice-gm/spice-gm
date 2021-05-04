@@ -22,6 +22,7 @@
 #include <libcacard.h>
 #endif
 
+#include "glib-compat.h"
 #include "reds.h"
 #include "char-device.h"
 #include "smartcard.h"
@@ -389,7 +390,7 @@ smartcard_new_vsc_msg_item(unsigned int reader_id, const VSCMsgHeader *vheader)
 {
     auto msg_item = red::make_shared<RedMsgItem>();
 
-    msg_item->vheader.reset((VSCMsgHeader*) g_memdup(vheader, sizeof(*vheader) + vheader->length));
+    msg_item->vheader.reset((VSCMsgHeader*) g_memdup2(vheader, sizeof(*vheader) + vheader->length));
     /* We patch the reader_id, since the device only knows about itself, and
      * we know about the sum of readers. */
     msg_item->vheader->reader_id = reader_id;

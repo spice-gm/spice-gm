@@ -19,6 +19,7 @@
 
 #include <common/recorder.h>
 
+#include "glib-compat.h"
 #include "red-stream-device.h"
 
 #include "stream-channel.h"
@@ -416,7 +417,7 @@ stream_msg_cursor_set_to_cursor_cmd(const StreamMsgCursorSet *msg, size_t msg_si
         return nullptr;
     }
     cursor->data_size = size_required;
-    cursor->data = (uint8_t*) g_memdup(msg->data, size_required);
+    cursor->data = (uint8_t*) g_memdup2(msg->data, size_required);
     return cmd;
 }
 

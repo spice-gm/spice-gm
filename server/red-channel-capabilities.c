@@ -20,6 +20,7 @@
 #include <glib.h>
 #include <common/macros.h>
 
+#include "glib-compat.h"
 #include "red-channel-capabilities.h"
 
 void red_channel_capabilities_init(RedChannelCapabilities *dest,
@@ -27,11 +28,11 @@ void red_channel_capabilities_init(RedChannelCapabilities *dest,
 {
     *dest = *caps;
     if (caps->common_caps) {
-        dest->common_caps = (uint32_t*) g_memdup(caps->common_caps,
+        dest->common_caps = (uint32_t*) g_memdup2(caps->common_caps,
                                      caps->num_common_caps * sizeof(uint32_t));
     }
     if (caps->num_caps) {
-        dest->caps = (uint32_t*) g_memdup(caps->caps, caps->num_caps * sizeof(uint32_t));
+        dest->caps = (uint32_t*) g_memdup2(caps->caps, caps->num_caps * sizeof(uint32_t));
     }
 }
 

@@ -36,6 +36,7 @@
 #include <common/mem.h>
 
 #include "sys-socket.h"
+#include "glib-compat.h"
 #include "websocket.h"
 
 #ifdef _WIN32
@@ -487,7 +488,7 @@ static void constrain_iov(struct iovec *iov, int iovcnt,
         if (iov[i].iov_len > maxlen) {
             /* TODO - This code has never triggered afaik... */
             *iov_out_cnt = ++i;
-            *iov_out = g_memdup(iov, i * sizeof (*iov));
+            *iov_out = g_memdup2(iov, i * sizeof (*iov));
             (*iov_out)[i-1].iov_len = maxlen;
             return;
         }

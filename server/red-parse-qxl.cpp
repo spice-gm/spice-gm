@@ -20,6 +20,8 @@
 #include <inttypes.h>
 #include <glib.h>
 #include <common/lz_common.h>
+
+#include "glib-compat.h"
 #include "spice-bitmap-utils.h"
 #include "red-common.h"
 #include "red-qxl.h"
@@ -1562,7 +1564,7 @@ static bool red_get_cursor(RedMemSlotInfo *slots, int group_id,
     if (free_data) {
         red->data = data;
     } else {
-        red->data = (uint8_t*) g_memdup(data, size);
+        red->data = (uint8_t*) g_memdup2(data, size);
     }
     // Arrived here we could note that we are not going to use anymore cursor data
     // and we could be tempted to release resource back to QXL. Don't do that!

@@ -53,6 +53,7 @@
 #include <common/generated_server_marshallers.h>
 #include <common/agent.h>
 
+#include "glib-compat.h"
 #include "spice-wrapped.h"
 #include "reds.h"
 #include "agent-msg-filter.h"
@@ -1458,7 +1459,7 @@ bool reds_handle_migrate_data(RedsState *reds, MainChannelClient *mcc,
             /* restore agent state when the agent gets attached */
             spice_debug("saving mig_data");
             spice_assert(agent_dev->priv->plug_generation == 0);
-            agent_dev->priv->mig_data = (SpiceMigrateDataMain*) g_memdup(mig_data, size);
+            agent_dev->priv->mig_data = (SpiceMigrateDataMain*) g_memdup2(mig_data, size);
         }
     } else {
         spice_debug("agent was not attached on the source host");
@@ -1746,13 +1747,13 @@ red_channel_capabilities_init_from_link_message(RedChannelCapabilities *caps,
     caps->num_common_caps = link_mess->num_common_caps;
     caps->common_caps = nullptr;
     if (caps->num_common_caps) {
-        caps->common_caps = (uint32_t*) g_memdup(raw_caps,
+        caps->common_caps = (uint32_t*) g_memdup2(raw_caps,
                                      link_mess->num_common_caps * sizeof(uint32_t));
     }
     caps->num_caps = link_mess->num_channel_caps;
     caps->caps = nullptr;
     if (link_mess->num_channel_caps) {
-        caps->caps = (uint32_t*) g_memdup(raw_caps + link_mess->num_common_caps * sizeof(uint32_t),
+        caps->caps = (uint32_t*) g_memdup2(raw_caps + link_mess->num_common_caps * sizeof(uint32_t),
                               link_mess->num_channel_caps * sizeof(uint32_t));
     }
 }

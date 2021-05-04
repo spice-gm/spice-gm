@@ -31,6 +31,7 @@
 #include <common/generated_server_marshallers.h>
 #include <common/snd_codec.h>
 
+#include "glib-compat.h"
 #include "spice-wrapped.h"
 #include "red-common.h"
 #include "main-channel.h"
@@ -790,7 +791,7 @@ static void snd_channel_set_volume(SndChannel *channel,
 
     st->volume_nchannels = nchannels;
     g_free(st->volume);
-    st->volume = (uint16_t*) g_memdup(volume, sizeof(uint16_t) * nchannels);
+    st->volume = (uint16_t*) g_memdup2(volume, sizeof(uint16_t) * nchannels);
 
     if (!client || nchannels == 0)
         return;
