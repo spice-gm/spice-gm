@@ -108,7 +108,7 @@ static void send_ack_sync(int socket, uint32_t generation)
     msg.len = GUINT32_TO_LE(sizeof(generation));
     msg.generation = GUINT32_TO_LE(generation);
 
-    g_assert_cmpint(socket_write(socket, &msg.type, 10), ==, 10);
+    g_assert_cmpint(socket_write(socket, reinterpret_cast<uint8_t *>(&msg) + 2, 10), ==, 10);
 }
 
 static void send_data(int socket, uint32_t type, uint32_t reader_id)
@@ -128,7 +128,8 @@ static void send_data(int socket, uint32_t type, uint32_t reader_id)
     msg.vheader.length = GUINT32_TO_LE(6);
     strcpy(msg.data, "hello");
 
-    g_assert_cmpint(socket_write(socket, &msg.type, sizeof(msg)-4), ==, sizeof(msg)-4);
+    g_assert_cmpint(socket_write(socket, reinterpret_cast<uint8_t *>(&msg) + 2,
+                                 sizeof(msg) - 4), ==, sizeof(msg) - 4);
 }
 
 static void check_data(VmcEmu *vmc_emu)

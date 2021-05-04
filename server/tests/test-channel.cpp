@@ -129,7 +129,7 @@ static void send_ack_sync(int socket, uint32_t generation)
     msg.len = GUINT32_TO_LE(sizeof(generation));
     msg.generation = GUINT32_TO_LE(generation);
 
-    g_assert_cmpint(socket_write(socket, &msg.type, 10), ==, 10);
+    g_assert_cmpint(socket_write(socket, reinterpret_cast<uint8_t *>(&msg) + 2, 10), ==, 10);
 }
 
 static SpiceTimer *waked_up_timer;
