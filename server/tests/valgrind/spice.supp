@@ -124,3 +124,14 @@
     ...
     fun:g_thread_new
 }
+
+{
+    g_thread_pool_leak
+    Memcheck:Leak
+    match-leak-kinds:possible
+    fun:calloc
+    ...
+    fun:g_thread_new_internal
+    ...
+    fun:g_thread_pool_push
+}
