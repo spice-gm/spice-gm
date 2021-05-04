@@ -90,7 +90,7 @@
 	match-leak-kinds:reachable
 	fun:malloc
 	...
-	fun:gobject_init_ctor
+	fun:gobject_init*
 }
 
 {
@@ -99,7 +99,7 @@
 	match-leak-kinds:reachable
 	fun:realloc
 	...
-	fun:gobject_init_ctor
+	fun:gobject_init*
 }
 
 {
@@ -108,7 +108,7 @@
 	match-leak-kinds:possible,reachable
 	fun:calloc
 	...
-	fun:gobject_init_ctor
+	fun:gobject_init*
 }
 
 {
@@ -367,6 +367,16 @@
 }
 
 {
+	g-type-class-ref-inlined
+	Memcheck:Leak
+	fun:calloc
+	...
+	fun:UnknownInlinedFun
+	...
+	fun:g_type_class_ref
+}
+
+{
 	g-io-module-default-singleton-malloc
 	Memcheck:Leak
 	match-leak-kinds:reachable
@@ -419,6 +429,14 @@
 	fun:g_strdup
 	...
 	fun:_g_io_module_get_default*
+}
+
+{
+	g-io-module-default-singleton-weak-ref
+	Memcheck:Leak
+	fun:calloc
+	...
+	fun:_g_io_module_get_default
 }
 
 {
@@ -480,6 +498,15 @@
 	Memcheck:Leak
 	match-leak-kinds:possible,reachable
 	fun:calloc
+	...
+	fun:g_system_thread_new
+}
+
+{
+	g-system-thread-init-malloc
+	Memcheck:Leak
+	match-leak-kinds:possible,reachable
+	fun:malloc
 	...
 	fun:g_system_thread_new
 }
@@ -1037,4 +1064,37 @@
 	fun:malloc
 	...
 	fun:g_set_prgname
+}
+
+# Error domains hash
+{
+	g_error_init
+	Memcheck:Leak
+	match-leak-kinds: reachable
+	fun:malloc
+	...
+	fun:g_hash_table_new_full
+	fun:g_error_init
+}
+
+# Error domain static registration
+{
+	g_error_domain_register_static
+	Memcheck:Leak
+	match-leak-kinds: reachable
+	fun:malloc
+	...
+	fun:g_hash_table_insert
+	fun:error_domain_register
+	fun:g_error_domain_register_static
+}
+
+{
+	new_quark
+	Memcheck:Leak
+	match-leak-kinds:reachable
+	fun:malloc
+	...
+	fun:g_hash_table_insert
+	fun:quark_new
 }
