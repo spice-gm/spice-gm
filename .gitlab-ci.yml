@@ -33,7 +33,7 @@ makecheck:
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     CXXFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    ../autogen.sh
+    ../autogen.sh --enable-werror
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
 
@@ -54,7 +54,7 @@ meson-makecheck:
 # --without-sasl       disable SASL
 options:
   script:
-  - ./autogen.sh --enable-statistics --without-sasl
+  - ./autogen.sh --enable-statistics --without-sasl --enable-werror
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
 
@@ -88,7 +88,7 @@ syntax-check:
 
 distcheck:
   script:
-  - ./autogen.sh --enable-manual
+  - ./autogen.sh --enable-manual --enable-werror
   - make distcheck
 
 # Same as makecheck job but use a Centos image
@@ -112,7 +112,7 @@ makecheck-centos:
     CFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     CXXFLAGS='-O2 -pipe -g -fsanitize=address -fno-omit-frame-pointer -Wframe-larger-than=40920'
     LDFLAGS='-fsanitize=address -lasan'
-    ./autogen.sh
+    ./autogen.sh --enable-werror
   - make
   - make -C server check || (cat server/tests/test-suite.log && exit 1)
 
