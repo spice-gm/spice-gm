@@ -98,14 +98,15 @@ Dispatcher::Dispatcher(uint32_t max_message_type):
  * read_safe
  * helper. reads until size bytes accumulated in buf, if an error other then
  * EINTR is encountered returns -1, otherwise returns 0.
- * @block if 1 the read will block (the fd is always blocking).
- *        if 0 poll first, return immediately if no bytes available, otherwise
+ * @block if true the read will block (the fd is always blocking).
+ *        if false poll first, return immediately if no bytes available, otherwise
  *         read size in blocking mode.
  */
-static int read_safe(int fd, uint8_t *buf, size_t size, int block)
+static int read_safe(int fd, void *raw_buf, size_t size, bool block)
 {
     int read_size = 0;
     int ret;
+    uint8_t *buf = reinterpret_cast<uint8_t *>(raw_buf);
 
     if (size == 0) {
         return 0;
@@ -167,10 +168,11 @@ static int read_safe(int fd, uint8_t *buf, size_t size, int block)
  * write_safe
  * @return -1 for error, otherwise number of written bytes. may be zero.
  */
-static int write_safe(int fd, uint8_t *buf, size_t size)
+static int write_safe(int fd, const void *raw_buf, size_t size)
 {
     int written_size = 0;
     int ret;
+    const uint8_t *buf = reinterpret_cast<const uint8_t *>(raw_buf);
 
     while (written_size < size) {
         ret = socket_write(fd, buf + written_size, size - written_size);
@@ -192,7 +194,7 @@ bool DispatcherPrivate::handle_single_read()
     DispatcherMessage msg[1];
     uint32_t ack = ACK;
 
-    if ((ret = read_safe(recv_fd, (uint8_t*)msg, sizeof(msg), 0)) == -1) {
+    if ((ret = read_safe(recv_fd, msg, sizeof(msg), false)) == -1) {
         g_warning("error reading from dispatcher: %d", errno);
         return false;
     }
@@ -204,7 +206,7 @@ bool DispatcherPrivate::handle_single_read()
         payload = g_realloc(payload, msg->size);
         payload_size = msg->size;
     }
-    if (read_safe(recv_fd, (uint8_t*) payload, msg->size, 1) == -1) {
+    if (read_safe(recv_fd, payload, msg->size, true) == -1) {
         g_warning("error reading from dispatcher: %d", errno);
         /* TODO: close socketpair? */
         return false;
@@ -218,7 +220,7 @@ bool DispatcherPrivate::handle_single_read()
         g_warning("error: no handler for message type %d", msg->type);
     }
     if (msg->ack) {
-        if (write_safe(recv_fd, (uint8_t*)&ack, sizeof(ack)) == -1) {
+        if (write_safe(recv_fd, &ack, sizeof(ack)) == -1) {
             g_warning("error writing ack for message %d", msg->type);
             /* TODO: close socketpair? */
         }
@@ -241,18 +243,18 @@ void DispatcherPrivate::send_message(const DispatcherMessage& msg, void *msg_pay
     uint32_t ack;
 
     pthread_mutex_lock(&lock);
-    if (write_safe(send_fd, (uint8_t*)&msg, sizeof(msg)) == -1) {
+    if (write_safe(send_fd, &msg, sizeof(msg)) == -1) {
         g_warning("error: failed to send message header for message %d",
                   msg.type);
         goto unlock;
     }
-    if (write_safe(send_fd, (uint8_t*) msg_payload, msg.size) == -1) {
+    if (write_safe(send_fd, msg_payload, msg.size) == -1) {
         g_warning("error: failed to send message body for message %d",
                   msg.type);
         goto unlock;
     }
     if (msg.ack) {
-        if (read_safe(send_fd, (uint8_t*)&ack, sizeof(ack), 1) == -1) {
+        if (read_safe(send_fd, &ack, sizeof(ack), true) == -1) {
             g_warning("error: failed to read ack");
         } else if (ack != ACK) {
             g_warning("error: got wrong ack value in dispatcher "
