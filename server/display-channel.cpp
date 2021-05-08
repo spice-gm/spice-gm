@@ -2419,10 +2419,9 @@ void display_channel_debug_oom(DisplayChannel *display, const char *msg)
 
 static void guest_set_client_capabilities(DisplayChannel *display)
 {
-    int i;
     RedChannelClient *rcc;
     uint8_t caps[SPICE_CAPABILITIES_SIZE] = { 0 };
-    int caps_available[] = {
+    const int caps_available[] = {
         SPICE_DISPLAY_CAP_SIZED_STREAM,
         SPICE_DISPLAY_CAP_MONITORS_CONFIG,
         SPICE_DISPLAY_CAP_COMPOSITE,
@@ -2446,13 +2445,14 @@ static void guest_set_client_capabilities(DisplayChannel *display)
         red_qxl_set_client_capabilities(display->priv->qxl, FALSE, caps);
     } else {
         // Take least common denominator
-        for (i = 0 ; i < SPICE_N_ELEMENTS(caps_available); ++i) {
-            SET_CAP(caps, caps_available[i]);
+        for (auto &&cap : caps_available) {
+            SET_CAP(caps, cap);
         }
         FOREACH_CLIENT(display, rcc) {
-            for (i = 0 ; i < SPICE_N_ELEMENTS(caps_available); ++i) {
-                if (!rcc->test_remote_cap(caps_available[i]))
-                    CLEAR_CAP(caps, caps_available[i]);
+            for (auto &&cap : caps_available) {
+                if (!rcc->test_remote_cap(cap)) {
+                    CLEAR_CAP(caps, cap);
+                }
             }
         }
         red_qxl_set_client_capabilities(display->priv->qxl, TRUE, caps);

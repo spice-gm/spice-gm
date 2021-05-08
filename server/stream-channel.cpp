@@ -302,11 +302,8 @@ stream_channel_get_supported_codecs(StreamChannel *channel, uint8_t *out_codecs)
         SPICE_DISPLAY_CAP_CODEC_H265,
     };
 
-    bool supported[SPICE_N_ELEMENTS(codec2cap)];
-
-    for (codec = 0; codec < SPICE_N_ELEMENTS(codec2cap); ++codec) {
-        supported[codec] = true;
-    }
+    std::array<bool, SPICE_N_ELEMENTS(codec2cap)> supported;
+    supported.fill(true);
 
     FOREACH_CLIENT(channel, rcc) {
         for (codec = 1; codec < SPICE_N_ELEMENTS(codec2cap); ++codec) {
