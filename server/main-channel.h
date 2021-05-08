@@ -42,14 +42,14 @@ struct MainChannel;
 
 red::shared_ptr<MainChannel> main_channel_new(RedsState *reds);
 
-/* This is a 'clone' from the reds.h Channel.link callback to allow passing link_id */
-MainChannelClient *main_channel_link(MainChannel *, RedClient *client,
-     RedStream *stream, uint32_t link_id, int migration,
-     RedChannelCapabilities *caps);
+/* This is a 'clone' from the reds.h Channel.link callback to allow passing connect_id */
+MainChannelClient *main_channel_link(MainChannel *, RedClient *client, RedStream *stream,
+                                     uint32_t connection_id, int migration,
+                                     RedChannelCapabilities *caps);
 
 struct MainChannel final: public RedChannel
 {
-    RedClient *get_client_by_link_id(uint32_t link_id);
+    RedClient *get_client_by_link_id(uint32_t connection_id);
     void push_mouse_mode(SpiceMouseMode current_mode, int is_client_mouse_allowed);
     void push_agent_connected();
     void push_agent_disconnected();

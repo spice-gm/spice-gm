@@ -55,7 +55,7 @@ struct SpicePlaybackInstance {
 void spice_server_playback_start(SpicePlaybackInstance *sin);
 void spice_server_playback_stop(SpicePlaybackInstance *sin);
 void spice_server_playback_get_buffer(SpicePlaybackInstance *sin,
-                                      uint32_t **samples, uint32_t *nsamples);
+                                      uint32_t **samples, uint32_t *num_samples);
 void spice_server_playback_put_samples(SpicePlaybackInstance *sin,
                                        uint32_t *samples);
 void spice_server_playback_set_volume(SpicePlaybackInstance *sin,

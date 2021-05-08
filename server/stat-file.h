@@ -30,7 +30,7 @@ typedef struct RedStatFile RedStatFile;
 
 RedStatFile *stat_file_new(unsigned int max_nodes);
 void stat_file_free(RedStatFile *stat_file);
-void stat_file_unlink(RedStatFile *file_stat);
+void stat_file_unlink(RedStatFile *stat_file);
 const char *stat_file_get_shm_name(RedStatFile *stat_file);
 StatNodeRef stat_file_add_node(RedStatFile *stat_file, StatNodeRef parent,
                                const char *name, int visible);

@@ -145,8 +145,8 @@ void red_surface_cmd_unref(RedSurfaceCmd *cmd);
 
 RedCursorCmd *red_cursor_cmd_new(QXLInstance *qxl, RedMemSlotInfo *slots,
                                  int group_id, QXLPHYSICAL addr);
-RedCursorCmd *red_cursor_cmd_ref(RedCursorCmd *cmd);
-void red_cursor_cmd_unref(RedCursorCmd *cmd);
+RedCursorCmd *red_cursor_cmd_ref(RedCursorCmd *red);
+void red_cursor_cmd_unref(RedCursorCmd *red);
 
 SPICE_END_DECLS
 

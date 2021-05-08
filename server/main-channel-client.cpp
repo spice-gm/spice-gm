@@ -775,7 +775,7 @@ static void main_channel_marshall_registered_channel(RedChannelClient *rcc,
     spice_marshall_msg_main_channels_list(m, channels_info);
 }
 
-void MainChannelClient::send_item(RedPipeItem *base)
+void MainChannelClient::send_item(RedPipeItem *item)
 {
     SpiceMarshaller *m = get_marshaller();
 
@@ -785,72 +785,72 @@ void MainChannelClient::send_item(RedPipeItem *base)
      * it stopped on the src side. */
     if (!priv->init_sent &&
         !priv->seamless_mig_dst &&
-        base->type != RED_PIPE_ITEM_TYPE_MAIN_INIT) {
+        item->type != RED_PIPE_ITEM_TYPE_MAIN_INIT) {
         red_channel_warning(get_channel(),
                             "Init msg for client %p was not sent yet "
                             "(client is probably during semi-seamless migration). Ignoring msg type %d",
-                            get_client(), base->type);
+                            get_client(), item->type);
         return;
     }
-    switch (base->type) {
+    switch (item->type) {
         case RED_PIPE_ITEM_TYPE_MAIN_CHANNELS_LIST:
-            main_channel_marshall_channels(this, m, base);
+            main_channel_marshall_channels(this, m, item);
             priv->initial_channels_list_sent = true;
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_PING:
             main_channel_marshall_ping(this, m,
-                static_cast<RedPingPipeItem*>(base));
+                static_cast<RedPingPipeItem*>(item));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MOUSE_MODE:
             main_channel_marshall_mouse_mode(this, m,
-                static_cast<RedMouseModePipeItem*>(base));
+                static_cast<RedMouseModePipeItem*>(item));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_AGENT_DISCONNECTED:
-            main_channel_marshall_agent_disconnected(this, m, base);
+            main_channel_marshall_agent_disconnected(this, m, item);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_AGENT_TOKEN:
             main_channel_marshall_tokens(this, m,
-                static_cast<RedTokensPipeItem*>(base));
+                static_cast<RedTokensPipeItem*>(item));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_AGENT_DATA:
             main_channel_marshall_agent_data(this, m,
-                static_cast<RedAgentDataPipeItem*>(base));
+                static_cast<RedAgentDataPipeItem*>(item));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_DATA:
-            main_channel_marshall_migrate_data_item(this, m, base);
+            main_channel_marshall_migrate_data_item(this, m, item);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_INIT:
             priv->init_sent = TRUE;
             main_channel_marshall_init(this, m,
-                static_cast<RedInitPipeItem*>(base));
+                static_cast<RedInitPipeItem*>(item));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_NOTIFY:
             main_channel_marshall_notify(this, m,
-                static_cast<RedNotifyPipeItem*>(base));
+                static_cast<RedNotifyPipeItem*>(item));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN:
-            main_channel_marshall_migrate_begin(m, this, base);
+            main_channel_marshall_migrate_begin(m, this, item);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_BEGIN_SEAMLESS:
-            main_channel_marshall_migrate_begin_seamless(m, this, base);
+            main_channel_marshall_migrate_begin_seamless(m, this, item);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MULTI_MEDIA_TIME:
             main_channel_marshall_multi_media_time(this, m,
-                static_cast<RedMultiMediaTimePipeItem*>(base));
+                static_cast<RedMultiMediaTimePipeItem*>(item));
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_MIGRATE_SWITCH_HOST:
-            main_channel_marshall_migrate_switch(m, this, base);
+            main_channel_marshall_migrate_switch(m, this, item);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_NAME:
             init_send_data(SPICE_MSG_MAIN_NAME);
-            spice_marshall_msg_main_name(m, &static_cast<RedNamePipeItem*>(base)->msg);
+            spice_marshall_msg_main_name(m, &static_cast<RedNamePipeItem*>(item)->msg);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_UUID:
             init_send_data(SPICE_MSG_MAIN_UUID);
-            spice_marshall_msg_main_uuid(m, &static_cast<RedUuidPipeItem*>(base)->msg);
+            spice_marshall_msg_main_uuid(m, &static_cast<RedUuidPipeItem*>(item)->msg);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_AGENT_CONNECTED_TOKENS:
-            main_channel_marshall_agent_connected(m, this, base);
+            main_channel_marshall_agent_connected(m, this, item);
             break;
         case RED_PIPE_ITEM_TYPE_MAIN_REGISTERED_CHANNEL:
             /* The spice protocol requires that the server receive a ATTACH_CHANNELS
@@ -861,7 +861,7 @@ void MainChannelClient::send_item(RedPipeItem *base)
                 return;
             }
             main_channel_marshall_registered_channel(this, m,
-                static_cast<RedRegisteredChannelPipeItem*>(base));
+                static_cast<RedRegisteredChannelPipeItem*>(item));
             break;
         default:
             break;

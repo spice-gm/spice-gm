@@ -76,7 +76,7 @@ private:
 
 red::shared_ptr<InputsChannel> inputs_channel_new(RedsState *reds);
 
-RedsState* spice_tablet_state_get_server(SpiceTabletState *dev);
+RedsState *spice_tablet_state_get_server(SpiceTabletState *st);
 
 #include "pop-visibility.h"
 

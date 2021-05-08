@@ -68,10 +68,10 @@ enum PlaybackCommand {
 #define SND_PLAYBACK_PCM_MASK (1 << SND_PLAYBACK_PCM)
 #define SND_PLAYBACK_LATENCY_MASK ( 1 << SND_PLAYBACK_LATENCY)
 
-struct SndChannelClient;
+class SndChannelClient;
 struct SndChannel;
-struct PlaybackChannelClient;
-struct RecordChannelClient;
+class PlaybackChannelClient;
+class RecordChannelClient;
 struct AudioFrame;
 struct AudioFrameContainer;
 
@@ -883,11 +883,12 @@ SPICE_GNUC_VISIBLE void spice_server_playback_stop(SpicePlaybackInstance *sin)
 }
 
 SPICE_GNUC_VISIBLE void spice_server_playback_get_buffer(SpicePlaybackInstance *sin,
-                                                         uint32_t **frame, uint32_t *num_samples)
+                                                         uint32_t **samples,
+                                                         uint32_t *num_samples)
 {
     SndChannelClient *client = snd_channel_get_client(sin->st);
 
-    *frame = nullptr;
+    *samples = nullptr;
     *num_samples = 0;
     if (!client) {
         return;
@@ -902,7 +903,7 @@ SPICE_GNUC_VISIBLE void spice_server_playback_get_buffer(SpicePlaybackInstance *
         ++playback_client->frames->refs;
     }
 
-    *frame = playback_client->free_frames->samples;
+    *samples = playback_client->free_frames->samples;
     playback_client->free_frames = playback_client->free_frames->next;
     *num_samples = snd_codec_frame_size(playback_client->codec);
 }

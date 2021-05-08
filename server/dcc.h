@@ -46,7 +46,7 @@ public:
     virtual void disconnect() override;
 
 protected:
-    virtual bool handle_message(uint16_t type, uint32_t size, void *message) override;
+    virtual bool handle_message(uint16_t type, uint32_t size, void *msg) override;
     virtual bool config_socket() override;
     virtual void on_disconnect() override;
     virtual void send_item(RedPipeItem *item) override;

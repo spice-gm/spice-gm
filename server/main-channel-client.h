@@ -26,7 +26,7 @@
 
 #include "push-visibility.h"
 
-class MainChannelClientPrivate;
+struct MainChannelClientPrivate;
 
 MainChannelClient *main_channel_client_create(MainChannel *main_chan, RedClient *client,
                                               RedStream *stream, uint32_t connection_id,

@@ -51,7 +51,7 @@ typedef void (*stream_channel_queue_stat_proc)(void *opaque, const StreamQueueSt
                                                StreamChannel *channel);
 
 struct StreamDataItem;
-struct StreamChannelClient;
+class StreamChannelClient;
 struct StreamChannel final: public RedChannel
 {
     friend struct StreamChannelClient;
