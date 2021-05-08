@@ -105,8 +105,6 @@ bool dcc_drawable_is_in_pipe(DisplayChannelClient *dcc, Drawable *drawable)
 bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surface_id,
                                            int wait_if_used)
 {
-    int x;
-
     spice_return_val_if_fail(dcc != nullptr, TRUE);
     /* removing the newest drawables that their destination is surface_id and
        no other drawable depends on them */
@@ -115,7 +113,6 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
     for (auto l = pipe.begin(); l != pipe.end(); ) {
         Drawable *drawable;
         RedDrawablePipeItem *dpi = nullptr;
-        int depend_found = FALSE;
         RedPipeItem *item = l->get();
         auto item_pos = l;
 
@@ -134,13 +131,9 @@ bool dcc_clear_surface_drawables_from_pipe(DisplayChannelClient *dcc, int surfac
             continue;
         }
 
-        for (x = 0; x < 3; ++x) {
-            if (drawable->surface_deps[x] == surface_id) {
-                depend_found = TRUE;
-                break;
-            }
-        }
-
+        auto depend_found =
+            std::find(std::begin(drawable->surface_deps), std::end(drawable->surface_deps),
+                      surface_id) != std::end(drawable->surface_deps);
         if (depend_found) {
             spice_debug("surface %d dependent item found %p, %p", surface_id, drawable, item);
             if (!wait_if_used) {
@@ -271,12 +264,8 @@ void dcc_push_surface_image(DisplayChannelClient *dcc, int surface_id)
 static void add_drawable_surface_images(DisplayChannelClient *dcc, Drawable *drawable)
 {
     DisplayChannel *display = DCC_TO_DC(dcc);
-    int x;
 
-    for (x = 0; x < 3; ++x) {
-        int surface_id;
-
-        surface_id = drawable->surface_deps[x];
+    for (const auto surface_id : drawable->surface_deps) {
         if (surface_id != -1) {
             if (dcc->priv->surface_client_created[surface_id]) {
                 continue;
@@ -442,15 +431,12 @@ void dcc_start(DisplayChannelClient *dcc)
 
 static void dcc_destroy_stream_agents(DisplayChannelClient *dcc)
 {
-    int i;
-
-    for (i = 0; i < NUM_STREAMS; i++) {
-        VideoStreamAgent *agent = &dcc->priv->stream_agents[i];
-        region_destroy(&agent->vis_region);
-        region_destroy(&agent->clip);
-        if (agent->video_encoder) {
-            agent->video_encoder->destroy(agent->video_encoder);
-            agent->video_encoder = nullptr;
+    for (auto& agent : dcc->priv->stream_agents) {
+        region_destroy(&agent.vis_region);
+        region_destroy(&agent.clip);
+        if (agent.video_encoder) {
+            agent.video_encoder->destroy(agent.video_encoder);
+            agent.video_encoder = nullptr;
         }
     }
 }

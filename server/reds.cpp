@@ -1695,12 +1695,7 @@ static void reds_mig_target_client_disconnect_all(RedsState *reds)
 
 static bool reds_find_client(RedsState *reds, RedClient *client)
 {
-    for (auto list_client: reds->clients) {
-        if (list_client == client) {
-            return TRUE;
-        }
-    }
-    return FALSE;
+    return std::find(reds->clients.begin(), reds->clients.end(), client) != reds->clients.end();
 }
 
 /* should be used only when there is one client */

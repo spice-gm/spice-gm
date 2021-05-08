@@ -1114,12 +1114,9 @@ static void display_channel_print_stats(DisplayChannel *display)
 
 static void drawable_ref_surface_deps(DisplayChannel *display, Drawable *drawable)
 {
-    int x;
-    int surface_id;
     RedSurface *surface;
 
-    for (x = 0; x < 3; ++x) {
-        surface_id = drawable->surface_deps[x];
+    for (const auto surface_id : drawable->surface_deps) {
         if (surface_id == -1) {
             continue;
         }
@@ -1287,7 +1284,6 @@ static Drawable *display_channel_get_drawable(DisplayChannel *display, uint8_t e
                                               uint32_t process_commands_generation)
 {
     Drawable *drawable;
-    int x;
 
     /* Validate all surface ids before updating counters
      * to avoid invalid updates if we find an invalid id.
@@ -1295,9 +1291,8 @@ static Drawable *display_channel_get_drawable(DisplayChannel *display, uint8_t e
     if (!validate_drawable_bbox(display, red_drawable)) {
         return nullptr;
     }
-    for (x = 0; x < 3; ++x) {
-        if (red_drawable->surface_deps[x] != -1
-            && !display_channel_validate_surface(display, red_drawable->surface_deps[x])) {
+    for (const auto surface_id : red_drawable->surface_deps) {
+        if (surface_id != -1 && !display_channel_validate_surface(display, surface_id)) {
             return nullptr;
         }
     }
@@ -1545,11 +1540,9 @@ static void drawable_free(DisplayChannel *display, Drawable *drawable)
 
 static void drawables_init(DisplayChannel *display)
 {
-    int i;
-
     display->priv->free_drawables = nullptr;
-    for (i = 0; i < NUM_DRAWABLES; i++) {
-        drawable_free(display, &display->priv->drawables[i].u.drawable);
+    for (auto& drawable : display->priv->drawables) {
+        drawable_free(display, &drawable.u.drawable);
     }
 }
 
@@ -1610,11 +1603,7 @@ static void drawable_remove_dependencies(Drawable *drawable)
 
 static void drawable_unref_surface_deps(DisplayChannel *display, Drawable *drawable)
 {
-    int x;
-    int surface_id;
-
-    for (x = 0; x < 3; ++x) {
-        surface_id = drawable->surface_deps[x];
+    for (const auto surface_id : drawable->surface_deps) {
         if (surface_id == -1) {
             continue;
         }
@@ -2445,11 +2434,11 @@ static void guest_set_client_capabilities(DisplayChannel *display)
         red_qxl_set_client_capabilities(display->priv->qxl, FALSE, caps);
     } else {
         // Take least common denominator
-        for (auto &&cap : caps_available) {
+        for (const auto cap : caps_available) {
             SET_CAP(caps, cap);
         }
         FOREACH_CLIENT(display, rcc) {
-            for (auto &&cap : caps_available) {
+            for (const auto cap : caps_available) {
                 if (!rcc->test_remote_cap(cap)) {
                     CLEAR_CAP(caps, cap);
                 }

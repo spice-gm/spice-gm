@@ -975,11 +975,9 @@ static int snd_desired_audio_mode(bool playback_compression, int frequency,
 
 PlaybackChannelClient::~PlaybackChannelClient()
 {
-    int i;
-
     // free frames, unref them
-    for (i = 0; i < NUM_AUDIO_FRAMES; ++i) {
-        frames->items[i].client = nullptr;
+    for (auto& item : frames->items) {
+        item.client = nullptr;
     }
     if (--frames->refs == 0) {
         g_free(frames);
@@ -1298,12 +1296,10 @@ void snd_set_playback_compression(bool on)
 
 static void snd_playback_alloc_frames(PlaybackChannelClient *playback)
 {
-    int i;
-
     playback->frames = g_new0(AudioFrameContainer, 1);
     playback->frames->refs = 1;
-    for (i = 0; i < NUM_AUDIO_FRAMES; ++i) {
-        playback->frames->items[i].container = playback->frames;
-        snd_playback_free_frame(playback, &playback->frames->items[i]);
+    for (auto& item : playback->frames->items) {
+        item.container = playback->frames;
+        snd_playback_free_frame(playback, &item);
     }
 }
