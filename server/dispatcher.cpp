@@ -106,7 +106,7 @@ static int read_safe(int fd, void *raw_buf, size_t size, bool block)
 {
     int read_size = 0;
     int ret;
-    uint8_t *buf = reinterpret_cast<uint8_t *>(raw_buf);
+    auto buf = reinterpret_cast<uint8_t *>(raw_buf);
 
     if (size == 0) {
         return 0;
@@ -172,7 +172,7 @@ static int write_safe(int fd, const void *raw_buf, size_t size)
 {
     int written_size = 0;
     int ret;
-    const uint8_t *buf = reinterpret_cast<const uint8_t *>(raw_buf);
+    auto buf = reinterpret_cast<const uint8_t *>(raw_buf);
 
     while (written_size < size) {
         ret = socket_write(fd, buf + written_size, size - written_size);

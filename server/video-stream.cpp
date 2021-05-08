@@ -129,14 +129,11 @@ static void video_stream_free(DisplayChannel *display, VideoStream *stream)
 
 void display_channel_init_video_streams(DisplayChannel *display)
 {
-    int i;
-
     ring_init(&display->priv->streams);
     display->priv->free_streams = nullptr;
-    for (i = 0; i < NUM_STREAMS; i++) {
-        VideoStream *stream = display_channel_get_nth_video_stream(display, i);
-        ring_item_init(&stream->link);
-        video_stream_free(display, stream);
+    for (auto &&stream : display->priv->streams_buf) {
+        ring_item_init(&stream.link);
+        video_stream_free(display, &stream);
     }
 }
 

@@ -593,14 +593,12 @@ gboolean reds_config_get_agent_mouse(const RedsState *reds)
 static void reds_update_mouse_mode(RedsState *reds)
 {
     int allowed = 0;
-    int qxl_count = reds->qxl_instances.size();
-    int display_channel_count = 0;
-
-    for (const auto &channel: reds->channels) {
-        if (channel->type() == SPICE_CHANNEL_DISPLAY) {
-            ++display_channel_count;
-        }
-    }
+    auto qxl_count = reds->qxl_instances.size();
+    auto display_channel_count =
+        std::count_if(reds->channels.begin(), reds->channels.end(),
+                      [](const red::shared_ptr<RedChannel> &channel) {
+                          return channel->type() == SPICE_CHANNEL_DISPLAY;
+                      });
 
     if ((reds->config->agent_mouse && reds->vdagent) ||
         (reds->inputs_channel && reds->inputs_channel->has_tablet() &&
@@ -3711,9 +3709,7 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
     servers = g_list_remove(servers, reds);
     pthread_mutex_unlock(&global_reds_lock);
 
-    for (auto qxl: reds->qxl_instances) {
-        red_qxl_destroy(qxl);
-    }
+    std::for_each(reds->qxl_instances.begin(), reds->qxl_instances.end(), red_qxl_destroy);
 
     if (reds->inputs_channel) {
         reds->inputs_channel->destroy();
@@ -4336,11 +4332,10 @@ static gboolean reds_use_client_monitors_config(RedsState *reds)
         return FALSE;
     }
 
-    FOREACH_QXL_INSTANCE(reds, qxl) {
-        if (!red_qxl_client_monitors_config(qxl, nullptr))
-            return FALSE;
-    }
-    return TRUE;
+    return std::all_of(reds->qxl_instances.begin(), reds->qxl_instances.end(),
+                       [](QXLInstance *qxl) {
+                           return red_qxl_client_monitors_config(qxl, nullptr);
+                       });
 }
 
 static void reds_client_monitors_config(RedsState *reds, VDAgentMonitorsConfig *monitors_config)

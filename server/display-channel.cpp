@@ -44,8 +44,8 @@ DisplayChannel::~DisplayChannel()
         spice_assert(count == NUM_STREAMS);
         spice_assert(ring_is_empty(&priv->streams));
 
-        for (count = 0; count < NUM_SURFACES; ++count) {
-            spice_assert(priv->surfaces[count].context.canvas == nullptr);
+        for (const auto &surface : priv->surfaces) {
+            spice_assert(surface.context.canvas == nullptr);
         }
     }
 
