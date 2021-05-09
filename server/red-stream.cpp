@@ -455,15 +455,15 @@ static void red_stream_set_socket(RedStream *stream, int socket)
     /* deprecated fields. Filling them for backward compatibility */
     stream->priv->info->llen = sizeof(stream->priv->info->laddr);
     stream->priv->info->plen = sizeof(stream->priv->info->paddr);
-    getsockname(stream->socket, (struct sockaddr*)(&stream->priv->info->laddr), &stream->priv->info->llen);
-    getpeername(stream->socket, (struct sockaddr*)(&stream->priv->info->paddr), &stream->priv->info->plen);
+    getsockname(stream->socket, &stream->priv->info->laddr, &stream->priv->info->llen);
+    getpeername(stream->socket, &stream->priv->info->paddr, &stream->priv->info->plen);
 
     stream->priv->info->flags |= SPICE_CHANNEL_EVENT_FLAG_ADDR_EXT;
     stream->priv->info->llen_ext = sizeof(stream->priv->info->laddr_ext);
     stream->priv->info->plen_ext = sizeof(stream->priv->info->paddr_ext);
-    getsockname(stream->socket, (struct sockaddr*)(&stream->priv->info->laddr_ext),
+    getsockname(stream->socket, reinterpret_cast<struct sockaddr *>(&stream->priv->info->laddr_ext),
                 &stream->priv->info->llen_ext);
-    getpeername(stream->socket, (struct sockaddr*)(&stream->priv->info->paddr_ext),
+    getpeername(stream->socket, reinterpret_cast<struct sockaddr *>(&stream->priv->info->paddr_ext),
                 &stream->priv->info->plen_ext);
 }
 
@@ -483,8 +483,8 @@ RedStream *red_stream_new(RedsState *reds, int socket)
 {
     RedStream *stream;
 
-    stream = (RedStream*) g_malloc0(sizeof(RedStream) + sizeof(RedStreamPrivate));
-    stream->priv = (RedStreamPrivate *)(stream+1);
+    stream = static_cast<RedStream *>(g_malloc0(sizeof(RedStream) + sizeof(RedStreamPrivate)));
+    stream->priv = reinterpret_cast<RedStreamPrivate *>(stream + 1);
     stream->priv->info = g_new0(SpiceChannelEventInfo, 1);
     stream->priv->reds = reds;
     stream->priv->core = reds_get_core_interface(reds);
@@ -1173,7 +1173,7 @@ static ssize_t stream_websocket_read(RedStream *s, void *buf, size_t size)
     int len;
 
     do {
-        len = websocket_read(s->priv->ws, (uint8_t *) buf, size, &flags);
+        len = websocket_read(s->priv->ws, static_cast<uint8_t *>(buf), size, &flags);
     } while (len == 0 && flags != 0);
     return len;
 }
@@ -1200,10 +1200,10 @@ bool red_stream_is_websocket(RedStream *stream, const void *buf, size_t len)
         return false;
     }
 
-    stream->priv->ws = websocket_new(buf, len, stream,
-                                     (websocket_read_cb_t) stream->priv->read,
-                                     (websocket_write_cb_t) stream->priv->write,
-                                     (websocket_writev_cb_t) stream->priv->writev);
+    stream->priv->ws =
+        websocket_new(buf, len, stream, reinterpret_cast<websocket_read_cb_t>(stream->priv->read),
+                      reinterpret_cast<websocket_write_cb_t>(stream->priv->write),
+                      reinterpret_cast<websocket_writev_cb_t>(stream->priv->writev));
     if (stream->priv->ws) {
         stream->priv->read = stream_websocket_read;
         stream->priv->write = stream_websocket_write;

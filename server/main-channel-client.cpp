@@ -369,8 +369,8 @@ void MainChannelClient::handle_pong(SpiceMsgPing *ping, uint32_t size)
             start_connectivity_monitoring(CLIENT_CONNECTIVITY_TIMEOUT);
             break;
         }
-        priv->bitrate_per_sec = (uint64_t)(NET_TEST_BYTES * 8) * 1000000
-            / (roundtrip - priv->latency);
+        priv->bitrate_per_sec =
+            uint64_t{NET_TEST_BYTES * 8} * 1000000 / (roundtrip - priv->latency);
         priv->net_test_stage = NET_TEST_STAGE_COMPLETE;
         red_channel_debug(get_channel(),
                           "net test: latency %f ms, bitrate %" G_GUINT64_FORMAT " bps (%f Mbps)%s",
@@ -666,7 +666,7 @@ static void main_channel_marshall_notify(RedChannelClient *rcc,
     notify.what = SPICE_WARN_GENERAL;
     notify.message_len = strlen(item->msg.get());
     spice_marshall_msg_notify(m, &notify);
-    spice_marshaller_add(m, (uint8_t *)item->msg.get(), notify.message_len + 1);
+    spice_marshaller_add(m, reinterpret_cast<uint8_t *>(item->msg.get()), notify.message_len + 1);
 }
 
 static void main_channel_fill_migrate_dst_info(MainChannel *main_channel,
@@ -676,10 +676,10 @@ static void main_channel_fill_migrate_dst_info(MainChannel *main_channel,
     dst_info->port = mig_dst->port;
     dst_info->sport = mig_dst->sport;
     dst_info->host_size = strlen(mig_dst->host) + 1;
-    dst_info->host_data = (uint8_t *)mig_dst->host;
+    dst_info->host_data = reinterpret_cast<uint8_t *>(mig_dst->host);
     if (mig_dst->cert_subject) {
         dst_info->cert_subject_size = strlen(mig_dst->cert_subject) + 1;
-        dst_info->cert_subject_data = (uint8_t *)mig_dst->cert_subject;
+        dst_info->cert_subject_data = reinterpret_cast<uint8_t *>(mig_dst->cert_subject);
     } else {
         dst_info->cert_subject_size = 0;
         dst_info->cert_subject_data = nullptr;
@@ -733,10 +733,10 @@ static void main_channel_marshall_migrate_switch(SpiceMarshaller *m, MainChannel
     migrate.port = mig_target->port;
     migrate.sport = mig_target->sport;
     migrate.host_size = strlen(mig_target->host) + 1;
-    migrate.host_data = (uint8_t *)mig_target->host;
+    migrate.host_data = reinterpret_cast<uint8_t *>(mig_target->host);
     if (mig_target->cert_subject) {
         migrate.cert_subject_size = strlen(mig_target->cert_subject) + 1;
-        migrate.cert_subject_data = (uint8_t *)mig_target->cert_subject;
+        migrate.cert_subject_data = reinterpret_cast<uint8_t *>(mig_target->cert_subject);
     } else {
         migrate.cert_subject_size = 0;
         migrate.cert_subject_data = nullptr;

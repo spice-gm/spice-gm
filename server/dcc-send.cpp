@@ -327,7 +327,7 @@ static void fill_base(SpiceMarshaller *base_marshaller, Drawable *drawable)
 
 static void marshaller_compress_buf_free(uint8_t *data, void *opaque)
 {
-    compress_buf_free((RedCompressBuf*) opaque);
+    compress_buf_free(static_cast<RedCompressBuf *>(opaque));
 }
 
 static void marshaller_add_compressed(SpiceMarshaller *m,
@@ -347,7 +347,7 @@ static void marshaller_add_compressed(SpiceMarshaller *m,
 
 static void marshaller_unref_drawable(uint8_t *data, void *opaque)
 {
-    auto drawable = (Drawable *) opaque;
+    auto drawable = static_cast<Drawable *>(opaque);
     drawable_unref(drawable);
 }
 
@@ -1633,7 +1633,7 @@ static void red_lossy_marshall_qxl_draw_text(DisplayChannelClient *dcc,
 
 static void red_release_video_encoder_buffer(uint8_t *data, void *opaque)
 {
-    auto buffer = (VideoBuffer*)opaque;
+    auto buffer = static_cast<VideoBuffer *>(opaque);
     buffer->free(buffer);
 }
 
@@ -1804,8 +1804,8 @@ static void display_channel_marshall_migrate_data(DisplayChannelClient *dcc,
     display_data.glz_dict_data = glz_dict_data;
 
     /* all data besided the surfaces ref */
-    spice_marshaller_add(base_marshaller,
-                         (uint8_t *)&display_data, sizeof(display_data) - sizeof(uint32_t));
+    spice_marshaller_add(base_marshaller, reinterpret_cast<uint8_t *>(&display_data),
+                         sizeof(display_data) - sizeof(uint32_t));
     display_channel_marshall_migrate_data_surfaces(dcc, base_marshaller,
                                                    display_channel->priv->enable_jpeg);
 }
@@ -2223,7 +2223,8 @@ static void marshall_monitors_config(RedChannelClient *rcc, SpiceMarshaller *bas
 {
     int heads_size = sizeof(SpiceHead) * monitors_config->count;
     int i;
-    auto msg = (SpiceMsgDisplayMonitorsConfig *) g_malloc0(sizeof(SpiceMsgDisplayMonitorsConfig) + heads_size);
+    auto msg = static_cast<SpiceMsgDisplayMonitorsConfig *>(
+        g_malloc0(sizeof(SpiceMsgDisplayMonitorsConfig) + heads_size));
     int count = 0; // ignore monitors_config->count, it may contain zero width monitors, remove them now
 
     rcc->init_send_data(SPICE_MSG_DISPLAY_MONITORS_CONFIG);

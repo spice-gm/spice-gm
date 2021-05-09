@@ -765,27 +765,27 @@ static uint16_t mini_header_get_msg_type(SpiceDataHeaderOpaque *header)
 
 static void full_header_set_msg_type(SpiceDataHeaderOpaque *header, uint16_t type)
 {
-    ((SpiceDataHeader *)header->data)->type = GUINT16_TO_LE(type);
+    reinterpret_cast<SpiceDataHeader *>(header->data)->type = GUINT16_TO_LE(type);
 }
 
 static void mini_header_set_msg_type(SpiceDataHeaderOpaque *header, uint16_t type)
 {
-    ((SpiceMiniDataHeader *)header->data)->type = GUINT16_TO_LE(type);
+    reinterpret_cast<SpiceMiniDataHeader *>(header->data)->type = GUINT16_TO_LE(type);
 }
 
 static void full_header_set_msg_size(SpiceDataHeaderOpaque *header, uint32_t size)
 {
-    ((SpiceDataHeader *)header->data)->size = GUINT32_TO_LE(size);
+    reinterpret_cast<SpiceDataHeader *>(header->data)->size = GUINT32_TO_LE(size);
 }
 
 static void mini_header_set_msg_size(SpiceDataHeaderOpaque *header, uint32_t size)
 {
-    ((SpiceMiniDataHeader *)header->data)->size = GUINT32_TO_LE(size);
+    reinterpret_cast<SpiceMiniDataHeader *>(header->data)->size = GUINT32_TO_LE(size);
 }
 
 static void full_header_set_msg_serial(SpiceDataHeaderOpaque *header, uint64_t serial)
 {
-    ((SpiceDataHeader *)header->data)->serial = GUINT64_TO_LE(serial);
+    reinterpret_cast<SpiceDataHeader *>(header->data)->serial = GUINT64_TO_LE(serial);
 }
 
 static void mini_header_set_msg_serial(SpiceDataHeaderOpaque *header, uint64_t serial)
@@ -795,7 +795,7 @@ static void mini_header_set_msg_serial(SpiceDataHeaderOpaque *header, uint64_t s
 
 static void full_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t sub_list)
 {
-    ((SpiceDataHeader *)header->data)->sub_list = GUINT32_TO_LE(sub_list);
+    (reinterpret_cast<SpiceDataHeader *>(header->data))->sub_list = GUINT32_TO_LE(sub_list);
 }
 
 static void mini_header_set_msg_sub_list(SpiceDataHeaderOpaque *header, uint32_t sub_list)
@@ -1283,7 +1283,7 @@ bool RedChannelClient::handle_message(uint16_t type, uint32_t size, void *messag
 {
     switch (type) {
     case SPICE_MSGC_ACK_SYNC:
-        priv->ack_data.client_generation = ((SpiceMsgcAckSync *) message)->generation;
+        priv->ack_data.client_generation = static_cast<SpiceMsgcAckSync *>(message)->generation;
         break;
     case SPICE_MSGC_ACK:
         if (priv->ack_data.client_generation == priv->ack_data.generation) {
@@ -1306,7 +1306,7 @@ bool RedChannelClient::handle_message(uint16_t type, uint32_t size, void *messag
         handle_migrate_data_early(size, message);
         break;
     case SPICE_MSGC_PONG:
-        priv->handle_pong((SpiceMsgPing*) message);
+        priv->handle_pong(static_cast<SpiceMsgPing *>(message));
         break;
     default:
         red_channel_warning(get_channel(), "invalid message type %u",

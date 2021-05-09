@@ -114,7 +114,7 @@ struct DumpItem {
 
 static void dump_item(TreeItem *item, void *data)
 {
-    auto di = (DumpItem*) data;
+    auto di = static_cast<DumpItem *>(data);
     const char *item_prefix = "|--";
     int i;
 
@@ -246,7 +246,7 @@ void container_cleanup(Container *container)
         Container *next = container->base.container;
         if (container->items.next != &container->items) {
             SPICE_VERIFY(SPICE_OFFSETOF(TreeItem, siblings_link) == 0);
-            auto item = (TreeItem *)ring_get_head(&container->items);
+            auto item = reinterpret_cast<TreeItem *>(ring_get_head(&container->items));
             spice_assert(item);
             ring_remove(&item->siblings_link);
             ring_add_after(&item->siblings_link, &container->base.siblings_link);
@@ -262,7 +262,7 @@ Shadow* tree_item_find_shadow(TreeItem *item)
 {
     while (item->type == TREE_ITEM_TYPE_CONTAINER) {
         SPICE_VERIFY(SPICE_OFFSETOF(TreeItem, siblings_link) == 0);
-        if (!(item = (TreeItem *)ring_get_tail(&CONTAINER(item)->items))) {
+        if (!(item = reinterpret_cast<TreeItem *>(ring_get_tail(&CONTAINER(item)->items)))) {
             return nullptr;
         }
     }

@@ -82,7 +82,7 @@ bool MainChannelClient::handle_migrate_data(uint32_t size, void *message)
 {
     RedChannel *channel = get_channel();
     MainChannelClient *mcc = this;
-    auto header = (SpiceMigrateDataHeader *)message;
+    auto header = static_cast<SpiceMigrateDataHeader *>(message);
 
     /* not supported with multi-clients */
     spice_assert(channel->get_n_clients() == 1);
@@ -98,8 +98,7 @@ bool MainChannelClient::handle_migrate_data(uint32_t size, void *message)
         return FALSE;
     }
     return reds_handle_migrate_data(channel->get_server(), mcc,
-                                    (SpiceMigrateDataMain *)(header + 1),
-                                    size);
+                                    reinterpret_cast<SpiceMigrateDataMain *>(header + 1), size);
 }
 
 void MainChannel::push_multi_media_time(uint32_t time)
@@ -143,7 +142,7 @@ bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *messa
     case SPICE_MSGC_MAIN_AGENT_START: {
         SpiceMsgcMainAgentStart *tokens;
 
-        tokens = (SpiceMsgcMainAgentStart *)message;
+        tokens = static_cast<SpiceMsgcMainAgentStart *>(message);
         reds_on_main_agent_start(reds, this, tokens->num_tokens);
         break;
     }
@@ -153,7 +152,7 @@ bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *messa
     case SPICE_MSGC_MAIN_AGENT_TOKEN: {
         SpiceMsgcMainAgentTokens *tokens;
 
-        tokens = (SpiceMsgcMainAgentTokens *)message;
+        tokens = static_cast<SpiceMsgcMainAgentTokens *>(message);
         reds_on_main_agent_tokens(reds, this, tokens->num_tokens);
         break;
     }
@@ -170,7 +169,8 @@ bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *messa
         this->handle_migrate_connected(FALSE, FALSE);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_DST_DO_SEAMLESS:
-        this->handle_migrate_dst_do_seamless(((SpiceMsgcMainMigrateDstDoSeamless *)message)->src_version);
+        this->handle_migrate_dst_do_seamless(
+            (static_cast<SpiceMsgcMainMigrateDstDoSeamless *>(message))->src_version);
         break;
     case SPICE_MSGC_MAIN_MIGRATE_END:
         this->handle_migrate_end();
@@ -179,7 +179,7 @@ bool MainChannelClient::handle_message(uint16_t type, uint32_t size, void *messa
         reds_on_main_mouse_mode_request(reds, message, size);
         break;
     case SPICE_MSGC_PONG:
-        handle_pong((SpiceMsgPing *)message, size);
+        handle_pong(static_cast<SpiceMsgPing *>(message), size);
         break;
     default:
         return RedChannelClient::handle_message(type, size, message);
@@ -264,7 +264,7 @@ int MainChannel::migrate_connect(RedsMigSpice *new_mig_target, int try_seamless)
     GList *clients = get_clients();
 
     /* just test the first one */
-    rcc = (RedChannelClient*) g_list_nth_data(clients, 0);
+    rcc = static_cast<RedChannelClient *>(g_list_nth_data(clients, 0));
 
     if (!rcc->test_remote_cap(SPICE_MAIN_CAP_SEAMLESS_MIGRATE)) {
         return main_channel_connect_semi_seamless(this);

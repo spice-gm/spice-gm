@@ -550,7 +550,8 @@ uint32_t red_qxl_marshall_device_display_info(const QXLInstance *qxl, SpiceMarsh
         spice_marshaller_add_uint32(m, i);
         spice_marshaller_add_uint32(m, qxl_state->device_display_ids[i]);
         spice_marshaller_add_uint32(m, device_address_len);
-        spice_marshaller_add(m, (const uint8_t*) (void*) device_address, device_address_len);
+        spice_marshaller_add(m, reinterpret_cast<const uint8_t *>(device_address),
+                             device_address_len);
         ++device_count;
 
         g_debug("   (qxl)    channel_id: %u monitor_id: %zu, device_address: %s, "
@@ -680,7 +681,7 @@ void red_qxl_attach_worker(QXLInstance *qxl)
      * Passing QXLInstance pointer instead allows these programs to keep working
      * although spice_replay_next_cmd declaration changed */
     if (qxl_interface->attache_worker) {
-        qxl_interface->attache_worker(qxl, (QXLWorker *) qxl);
+        qxl_interface->attache_worker(qxl, reinterpret_cast<QXLWorker *>(qxl));
     }
 }
 

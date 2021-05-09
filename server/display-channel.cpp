@@ -126,7 +126,7 @@ static MonitorsConfig* monitors_config_new(const QXLHead *heads, ssize_t nheads,
 {
     MonitorsConfig *mc;
 
-    mc = (MonitorsConfig*) g_malloc(sizeof(MonitorsConfig) + nheads * sizeof(QXLHead));
+    mc = static_cast<MonitorsConfig *>(g_malloc(sizeof(MonitorsConfig) + nheads * sizeof(QXLHead)));
     mc->refs = 1;
     mc->count = nheads;
     mc->max_allowed = max;
@@ -319,7 +319,7 @@ static void pipes_add_drawable_after(DisplayChannel *display,
     int num_other_linked = 0;
 
     for (GList *l = pos_after->pipes; l != nullptr; l = l->next) {
-        dpi_pos_after = (RedDrawablePipeItem*) l->data;
+        dpi_pos_after = static_cast<RedDrawablePipeItem *>(l->data);
 
         num_other_linked++;
         dcc_add_drawable_after(dpi_pos_after->dcc, drawable, dpi_pos_after);
@@ -334,7 +334,7 @@ static void pipes_add_drawable_after(DisplayChannel *display,
         FOREACH_DCC(display, dcc) {
             int sent = 0;
             for (GList *l = pos_after->pipes; l != nullptr; l = l->next) {
-                dpi_pos_after = (RedDrawablePipeItem*) l->data;
+                dpi_pos_after = static_cast<RedDrawablePipeItem *>(l->data);
                 if (dpi_pos_after->dcc == dcc) {
                     sent = 1;
                     break;
@@ -514,7 +514,7 @@ static bool current_add_equal(DisplayChannel *display, DrawItem *item, TreeItem 
             dpi_item = g_list_first(other_drawable->pipes);
             /* dpi contains a sublist of dcc's, ordered the same */
             FOREACH_DCC(display, dcc) {
-                if (dpi_item && dcc == ((RedDrawablePipeItem *) dpi_item->data)->dcc) {
+                if (dpi_item && dcc == (static_cast<RedDrawablePipeItem *>(dpi_item->data))->dcc) {
                     dpi_item = dpi_item->next;
                 } else {
                     dcc_prepend_drawable(dcc, drawable);
@@ -747,7 +747,7 @@ static void exclude_region(DisplayChannel *display, Ring *ring, RingItem *ring_i
                     /* the caller wanted to stop at this item, but this item
                      * has been removed, so we set @last to the next item */
                     SPICE_VERIFY(SPICE_OFFSETOF(TreeItem, siblings_link) == 0);
-                    *last = (TreeItem *)ring_next(ring, ring_item);
+                    *last = reinterpret_cast<TreeItem *>(ring_next(ring, ring_item));
                 }
             } else if (now->type == TREE_ITEM_TYPE_CONTAINER) {
                 /* if this sibling is a container type, descend into the
@@ -774,7 +774,7 @@ static void exclude_region(DisplayChannel *display, Ring *ring, RingItem *ring_i
         SPICE_VERIFY(SPICE_OFFSETOF(TreeItem, siblings_link) == 0);
         /* if this is the last item to check, or if the current ring is
          * completed, don't go any further */
-        while ((last && *last == (TreeItem *)ring_item) ||
+        while ((last && *last == reinterpret_cast<TreeItem *>(ring_item)) ||
                !(ring_item = ring_next(ring, ring_item))) {
             /* we're currently iterating the top ring, so we're done */
             if (ring == top_ring) {
@@ -1161,7 +1161,7 @@ static void handle_self_bitmap(DisplayChannel *display, Drawable *drawable)
     image->descriptor.height = image->u.bitmap.y = height;
     image->u.bitmap.palette = nullptr;
 
-    dest = (uint8_t *)spice_malloc_n(height, dest_stride);
+    dest = static_cast<uint8_t *>(spice_malloc_n(height, dest_stride));
     image->u.bitmap.data = spice_chunks_new_linear(dest, height * dest_stride);
     image->u.bitmap.data->flags |= SPICE_CHUNKS_FLAGS_FREE;
 
@@ -1394,7 +1394,7 @@ bool display_channel_wait_for_migrate_data(DisplayChannel *display)
     spice_debug("trace");
     spice_warn_if_fail(g_list_length(clients) == 1);
 
-    rcc = (RedChannelClient*) g_list_nth_data(clients, 0);
+    rcc = static_cast<RedChannelClient *>(g_list_nth_data(clients, 0));
 
     red::shared_ptr<RedChannelClient> hold_rcc(rcc);
     for (;;) {
@@ -1522,8 +1522,8 @@ static Drawable* drawable_try_new(DisplayChannel *display)
 static void drawable_free(DisplayChannel *display, Drawable *drawable)
 {
     drawable->~Drawable();
-    ((_Drawable *)drawable)->u.next = display->priv->free_drawables;
-    display->priv->free_drawables = (_Drawable *)drawable;
+    reinterpret_cast<_Drawable *>(drawable)->u.next = display->priv->free_drawables;
+    display->priv->free_drawables = reinterpret_cast<_Drawable *>(drawable);
     display->priv->drawable_count--;
 }
 
@@ -1784,7 +1784,7 @@ static void surface_update_dest(RedSurface *surface, const SpiceRect *area)
 {
     SpiceCanvas *canvas = surface->context.canvas;
     int stride = surface->context.stride;
-    auto line_0 = (uint8_t*) surface->context.line_0;
+    auto line_0 = static_cast<uint8_t *>(surface->context.line_0);
 
     if (surface->context.canvas_draws_on_surface)
         return;
@@ -2049,9 +2049,10 @@ create_canvas_for_surface(DisplayChannel *display, RedSurface *surface, uint32_t
 
     switch (renderer) {
     case RED_RENDERER_SW:
-        canvas = canvas_create_for_data(surface->context.width, surface->context.height, surface->context.format,
-                                        (uint8_t*) surface->context.line_0, surface->context.stride,
-                                        &display->priv->image_cache.base,
+        canvas = canvas_create_for_data(surface->context.width, surface->context.height,
+                                        surface->context.format,
+                                        static_cast<uint8_t *>(surface->context.line_0),
+                                        surface->context.stride, &display->priv->image_cache.base,
                                         &display->priv->image_surfaces, nullptr, nullptr, nullptr);
         surface->context.top_down = TRUE;
         surface->context.canvas_draws_on_surface = TRUE;
@@ -2079,7 +2080,7 @@ display_channel_create_surface(DisplayChannel *display, uint32_t surface_id, uin
     surface->context.stride = stride;
     surface->context.line_0 = line_0;
     if (!data_is_valid) {
-        auto data = (char*) line_0;
+        auto data = static_cast<char *>(line_0);
         if (stride < 0) {
             data -= abs(stride) * (height - 1);
         }
@@ -2140,7 +2141,8 @@ bool DisplayChannelClient::handle_migrate_data_get_serial(uint32_t size, void *m
 {
     SpiceMigrateDataDisplay *migrate_data;
 
-    migrate_data = (SpiceMigrateDataDisplay *)((uint8_t *)message + sizeof(SpiceMigrateDataHeader));
+    migrate_data = reinterpret_cast<SpiceMigrateDataDisplay *>(static_cast<uint8_t *>(message) +
+                                                               sizeof(SpiceMigrateDataHeader));
 
     serial = migrate_data->message_serial;
     return true;
@@ -2260,7 +2262,7 @@ void display_channel_process_surface_cmd(DisplayChannel *display,
         if (stride < 0) {
             /* No need to worry about overflow here, command should already be validated
              * when it is read, specifically red_get_surface_cmd */
-            data -= (int32_t)(stride * (height - 1));
+            data -= static_cast<int32_t>(stride * (height - 1));
         }
         surface = display_channel_create_surface(display, surface_id, create->width,
                                                  height, stride, create->format, data,

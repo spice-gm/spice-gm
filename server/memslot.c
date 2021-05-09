@@ -128,7 +128,7 @@ void *memslot_get_virt(RedMemSlotInfo *info, QXLPHYSICAL addr, uint32_t add_size
         return NULL;
     }
 
-    return (void*)(uintptr_t)h_virt;
+    return (void *)h_virt;
 }
 
 void memslot_info_init(RedMemSlotInfo *info,

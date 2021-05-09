@@ -270,7 +270,7 @@ bool StreamChannelClient::handle_message(uint16_t type, uint32_t size, void *msg
         return false;
     case SPICE_MSGC_DISPLAY_PREFERRED_VIDEO_CODEC_TYPE:
         return handle_preferred_video_codec_type(
-            (SpiceMsgcDisplayPreferredVideoCodecType *)msg);
+            static_cast<SpiceMsgcDisplayPreferredVideoCodecType *>(msg));
     default:
         return CommonGraphicsChannelClient::handle_message(type, size, msg);
     }

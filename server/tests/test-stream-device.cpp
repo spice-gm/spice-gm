@@ -310,7 +310,7 @@ static void test_stream_device_format_after_data(TestFixture *fixture, gconstpoi
 // check empty message
 static void test_stream_device_empty(TestFixture *fixture, gconstpointer user_data)
 {
-    const auto msg_type = (StreamMsgType) GPOINTER_TO_INT(user_data);
+    const auto msg_type = static_cast<StreamMsgType> GPOINTER_TO_INT(user_data);
     uint8_t *p = vmc->message;
 
     // add some messages into device buffer
@@ -361,7 +361,7 @@ static void test_stream_device_data_message(TestFixture *fixture, gconstpointer 
     p = add_format(p, 640, 480, SPICE_VIDEO_CODEC_TYPE_MJPEG);
     p = add_stream_hdr(p, STREAM_TYPE_DATA, 1017);
     for (int i = 0; i < 1017; ++i, ++p) {
-        *p = (uint8_t) (i * 123 + 57);
+        *p = static_cast<uint8_t>(i * 123 + 57);
     }
     vmc_emu_add_read_till(vmc, vmc->message + 51);
     vmc_emu_add_read_till(vmc, vmc->message + 123);
@@ -402,7 +402,7 @@ static void test_display_info(TestFixture *fixture, gconstpointer user_data)
     p = add_stream_hdr(p, STREAM_TYPE_DEVICE_DISPLAY_INFO, sizeof(info) + sizeof(address));
     memcpy(p, &info, sizeof(info));
     p += sizeof(info);
-    strcpy((char*)p, address);
+    strcpy(reinterpret_cast<char *>(p), address);
     p += sizeof(address);
 
     vmc_emu_add_read_till(vmc, p);

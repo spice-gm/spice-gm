@@ -168,8 +168,8 @@ VideoStreamClipItem::VideoStreamClipItem(VideoStreamAgent *agent):
     agent->stream->refs++;
 
     int n_rects = pixman_region32_n_rects(&agent->clip);
-    rects.reset((SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) +
-                                           n_rects * sizeof(SpiceRect)));
+    rects.reset(static_cast<SpiceClipRects *>(
+        g_malloc(sizeof(SpiceClipRects) + n_rects * sizeof(SpiceRect))));
     rects->num_rects = n_rects;
     region_ret_rects(&agent->clip, rects->rects, n_rects);
 }
@@ -277,7 +277,8 @@ static void attach_stream(DisplayChannel *display, Drawable *drawable, VideoStre
     uint64_t duration = drawable->creation_time - stream->input_fps_start_time;
     if (duration >= RED_STREAM_INPUT_FPS_TIMEOUT) {
         /* Round to the nearest integer, for instance 24 for 23.976 */
-        stream->input_fps = ((uint64_t)stream->num_input_frames * 1000 * 1000 * 1000 + duration / 2) / duration;
+        stream->input_fps =
+            (uint64_t{stream->num_input_frames} * 1000 * 1000 * 1000 + duration / 2) / duration;
         spice_debug("input-fps=%u", stream->input_fps);
         stream->num_input_frames = 0;
         stream->input_fps_start_time = drawable->creation_time;
@@ -338,7 +339,7 @@ static void before_reattach_stream(DisplayChannel *display,
 
     index = display_channel_get_video_stream_id(display, stream);
     for (dpi_link = stream->current->pipes; dpi_link; dpi_link = dpi_next) {
-        auto dpi = (RedDrawablePipeItem*) dpi_link->data;
+        auto dpi = static_cast<RedDrawablePipeItem *>(dpi_link->data);
         dpi_next = dpi_link->next;
         dcc = dpi->dcc;
         agent = dcc_get_video_stream_agent(dcc, index);
@@ -640,7 +641,7 @@ static uint64_t get_initial_bit_rate(DisplayChannelClient *dcc, VideoStream *str
 
 static uint32_t get_roundtrip_ms(void *opaque)
 {
-    auto agent = (VideoStreamAgent*) opaque;
+    auto agent = static_cast<VideoStreamAgent *>(opaque);
     int roundtrip;
     RedChannelClient *rcc = agent->dcc;
 
@@ -661,14 +662,14 @@ static uint32_t get_roundtrip_ms(void *opaque)
 
 static uint32_t get_source_fps(void *opaque)
 {
-    auto agent = (VideoStreamAgent*) opaque;
+    auto agent = static_cast<VideoStreamAgent *>(opaque);
 
     return agent->stream->input_fps;
 }
 
 static void update_client_playback_delay(void *opaque, uint32_t delay_ms)
 {
-    auto agent = (VideoStreamAgent*) opaque;
+    auto agent = static_cast<VideoStreamAgent *>(opaque);
     DisplayChannelClient *dcc = agent->dcc;
     RedClient *client = dcc->get_client();
     RedsState *reds = client->get_server();
@@ -685,13 +686,13 @@ static void update_client_playback_delay(void *opaque, uint32_t delay_ms)
 
 static void bitmap_ref(gpointer data)
 {
-    auto red_drawable = (RedDrawable*)data;
+    auto red_drawable = static_cast<RedDrawable *>(data);
     shared_ptr_add_ref(red_drawable);
 }
 
 static void bitmap_unref(gpointer data)
 {
-    auto red_drawable = (RedDrawable*)data;
+    auto red_drawable = static_cast<RedDrawable *>(data);
     shared_ptr_unref(red_drawable);
 }
 
@@ -831,8 +832,8 @@ static void dcc_detach_stream_gracefully(DisplayChannelClient *dcc,
         rect_debug(&stream->current->red_drawable->bbox);
         auto upgrade_item = red::make_shared<RedUpgradeItem>(stream->current);
         n_rects = pixman_region32_n_rects(&upgrade_item->drawable->tree_item.base.rgn);
-        upgrade_item->rects.reset((SpiceClipRects*) g_malloc(sizeof(SpiceClipRects) +
-                                                             n_rects * sizeof(SpiceRect)));
+        upgrade_item->rects.reset(static_cast<SpiceClipRects *>(
+            g_malloc(sizeof(SpiceClipRects) + n_rects * sizeof(SpiceRect))));
         upgrade_item->rects->num_rects = n_rects;
         region_ret_rects(&upgrade_item->drawable->tree_item.base.rgn,
                          upgrade_item->rects->rects, n_rects);

@@ -205,7 +205,7 @@ bool RedChannel::is_waiting_for_migrate_data()
         return FALSE;
     }
     spice_assert(n_clients == 1);
-    rcc = (RedChannelClient*) g_list_nth_data(priv->clients, 0);
+    rcc = static_cast<RedChannelClient *>(g_list_nth_data(priv->clients, 0));
     return rcc->is_waiting_for_migrate_data();
 }
 

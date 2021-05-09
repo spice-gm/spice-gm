@@ -397,9 +397,8 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
         return;
     }
 
-    line_0 = (uint8_t*)memslot_get_virt(&worker->mem_slots, surface.mem,
-                                        surface.height * abs(surface.stride),
-                                        surface.group_id);
+    line_0 = static_cast<uint8_t *>(memslot_get_virt(
+        &worker->mem_slots, surface.mem, surface.height * abs(surface.stride), surface.group_id));
     if (line_0 == nullptr) {
         return;
     }
@@ -409,7 +408,7 @@ static void dev_create_primary_surface(RedWorker *worker, uint32_t surface_id,
     }
 
     if (surface.stride < 0) {
-        line_0 -= (int32_t)(surface.stride * (surface.height -1));
+        line_0 -= static_cast<int32_t>(surface.stride * (surface.height - 1));
     }
 
     display_channel_create_surface(display, 0, surface.width, surface.height, surface.stride, surface.format,
@@ -599,9 +598,8 @@ handle_dev_monitors_config_async(RedWorker* worker, RedWorkerMessageMonitorsConf
 {
     uint16_t count, max_allowed;
     const QXLMonitorsConfig *dev_monitors_config =
-        (QXLMonitorsConfig*)memslot_get_virt(&worker->mem_slots, msg->monitors_config,
-                                             qxl_monitors_config_size(1),
-                                             msg->group_id);
+        static_cast<QXLMonitorsConfig *>(memslot_get_virt(
+            &worker->mem_slots, msg->monitors_config, qxl_monitors_config_size(1), msg->group_id));
 
     if (dev_monitors_config == nullptr) {
         /* TODO: raise guest bug (requires added QXL interface) */
@@ -622,10 +620,8 @@ handle_dev_monitors_config_async(RedWorker* worker, RedWorkerMessageMonitorsConf
         goto async_complete;
     }
     /* get pointer again to check virtual size */
-    dev_monitors_config =
-        (QXLMonitorsConfig*)memslot_get_virt(&worker->mem_slots, msg->monitors_config,
-                                             qxl_monitors_config_size(count),
-                                             msg->group_id);
+    dev_monitors_config = static_cast<QXLMonitorsConfig *>(memslot_get_virt(
+        &worker->mem_slots, msg->monitors_config, qxl_monitors_config_size(count), msg->group_id));
     if (dev_monitors_config == nullptr) {
         /* TODO: raise guest bug (requires added QXL interface) */
         goto async_complete;
@@ -756,7 +752,7 @@ handle_dev_loadvm_commands(RedWorker* worker, RedWorkerMessageLoadvmCommands* ms
 
 static void worker_dispatcher_record(void *opaque, uint32_t message_type, void *payload)
 {
-    auto worker = (RedWorker*) opaque;
+    auto worker = static_cast<RedWorker *>(opaque);
 
     red_record_event(worker->record, 1, message_type);
 }
@@ -1008,7 +1004,7 @@ RedWorker* red_worker_new(QXLInstance *qxl)
 
 static void *red_worker_main(void *arg)
 {
-    auto worker = (RedWorker *) arg;
+    auto worker = static_cast<RedWorker *>(arg);
 
     spice_debug("begin");
 #if defined(__APPLE__)

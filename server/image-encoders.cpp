@@ -234,7 +234,8 @@ static int encoder_usr_more_space(EncoderData *enc_data, uint8_t **io_ptr)
 static int quic_usr_more_space(QuicUsrContext *usr, uint32_t **io_ptr, int rows_completed)
 {
     EncoderData *usr_data = &(SPICE_CONTAINEROF(usr, QuicData, usr)->data);
-    return encoder_usr_more_space(usr_data, (uint8_t **)io_ptr) / sizeof(uint32_t);
+    return encoder_usr_more_space(usr_data, reinterpret_cast<uint8_t **>(io_ptr)) /
+           sizeof(uint32_t);
 }
 
 static int lz_usr_more_space(LzUsrContext *usr, uint8_t **io_ptr)
@@ -387,7 +388,7 @@ static void image_encoders_init_lz(ImageEncoders *enc)
 static void glz_usr_free_image(GlzEncoderUsrContext *usr, GlzUsrImageContext *image)
 {
     GlzData *lz_data = SPICE_CONTAINEROF(usr, GlzData, usr);
-    auto glz_drawable_instance = (GlzDrawableInstanceItem *)image;
+    auto glz_drawable_instance = static_cast<GlzDrawableInstanceItem *>(image);
     ImageEncoders *drawable_enc = glz_drawable_instance->glz_drawable->encoders;
     ImageEncoders *this_enc = SPICE_CONTAINEROF(lz_data, ImageEncoders, glz_data);
     if (this_enc == drawable_enc) {
@@ -709,7 +710,7 @@ static GlzSharedDictionary *find_glz_dictionary(RedClient *client, uint8_t dict_
     GlzSharedDictionary *ret = nullptr;
 
     for (l = glz_dictionary_list; l != nullptr; l = l->next) {
-        auto dict = (GlzSharedDictionary *) l->data;
+        auto dict = static_cast<GlzSharedDictionary *>(l->data);
         if ((dict->client == client) && (dict->id == dict_id)) {
             ret = dict;
             break;

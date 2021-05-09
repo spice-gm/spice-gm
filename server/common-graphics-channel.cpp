@@ -26,7 +26,7 @@ uint8_t *CommonGraphicsChannelClient::alloc_recv_buf(uint16_t type, uint32_t siz
 {
     /* SPICE_MSGC_MIGRATE_DATA is the only client message whose size is dynamic */
     if (type == SPICE_MSGC_MIGRATE_DATA) {
-        return (uint8_t *) g_malloc(size);
+        return static_cast<uint8_t *>(g_malloc(size));
     }
 
     if (size > sizeof(recv_buf)) {

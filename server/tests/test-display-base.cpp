@@ -68,7 +68,7 @@ static void test_spice_destroy_update(SimpleSpiceUpdate *update)
         return;
     }
     if (update->drawable.clip.type != SPICE_CLIP_TYPE_NONE) {
-        auto ptr = (uint8_t*)(uintptr_t)update->drawable.clip.data;
+        auto ptr = reinterpret_cast<uint8_t *>(static_cast<uintptr_t>(update->drawable.clip.data));
         g_free(ptr);
     }
     g_free(update->bitmap);
@@ -118,13 +118,17 @@ static void regression_test()
     }
 
     argv = g_strsplit("./regression-test.py", " ", -1);
-    retval = g_spawn_async(nullptr, argv, nullptr, (GSpawnFlags) (G_SPAWN_SEARCH_PATH|G_SPAWN_DO_NOT_REAP_CHILD),
-                           nullptr, nullptr, &pid, &error);
+    retval =
+        g_spawn_async(nullptr, argv, nullptr,
+                      static_cast<GSpawnFlags>(G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD),
+                      nullptr, nullptr, &pid, &error);
     g_strfreev(argv);
     g_assert(retval);
 
     GSource *source = g_child_watch_source_new(pid);
-    g_source_set_callback(source, (GSourceFunc)(void*)child_exited, nullptr, nullptr);
+    g_source_set_callback(source,
+                          reinterpret_cast<GSourceFunc>(reinterpret_cast<void *>(child_exited)),
+                          nullptr, nullptr);
     guint id = g_source_attach(source, basic_event_loop_get_context());
     g_assert(id != 0);
     g_source_unref(source);
@@ -205,7 +209,8 @@ test_spice_create_update_from_bitmap(uint32_t surface_id,
     } else {
         QXLClipRects *cmd_clip;
 
-        cmd_clip = (QXLClipRects*) g_malloc0(sizeof(QXLClipRects) + num_clip_rects*sizeof(QXLRect));
+        cmd_clip = static_cast<QXLClipRects *>(
+            g_malloc0(sizeof(QXLClipRects) + num_clip_rects * sizeof(QXLRect)));
         cmd_clip->num_rects = num_clip_rects;
         cmd_clip->chunk.data_size = num_clip_rects*sizeof(QXLRect);
         cmd_clip->chunk.prev_chunk = cmd_clip->chunk.next_chunk = 0;
@@ -255,7 +260,7 @@ static SimpleSpiceUpdate *test_spice_create_update_solid(uint32_t surface_id, QX
     bw = bbox.right - bbox.left;
     bh = bbox.bottom - bbox.top;
 
-    bitmap = (uint8_t*) g_malloc(bw * bh * 4);
+    bitmap = static_cast<uint8_t *>(g_malloc(bw * bh * 4));
     dst = SPICE_ALIGNED_CAST(uint32_t *, bitmap);
 
     for (i = 0 ; i < bh * bw ; ++i, ++dst) {
@@ -290,7 +295,7 @@ static SimpleSpiceUpdate *test_spice_create_update_draw(Test *test, uint32_t sur
     bw       = test->primary_width/SINGLE_PART;
     bh       = 48;
 
-    bitmap = dst = (uint8_t*) g_malloc(bw * bh * 4);
+    bitmap = dst = static_cast<uint8_t *>(g_malloc(bw * bh * 4));
     //printf("allocated %p\n", dst);
 
     for (i = 0 ; i < bh * bw ; ++i, dst+=4) {
@@ -640,7 +645,7 @@ static int req_cmd_notification(QXLInstance *qin)
 
 static void do_wakeup(void *opaque)
 {
-    auto test = (Test*) opaque;
+    auto test = static_cast<Test *>(opaque);
     int notify;
 
     test->cursor_notify = NOTIFY_CURSOR_BATCH;
@@ -657,7 +662,7 @@ static void do_wakeup(void *opaque)
 static void release_resource(SPICE_GNUC_UNUSED QXLInstance *qin,
                              struct QXLReleaseInfoExt release_info)
 {
-    auto ext = (QXLCommandExt*)(uintptr_t)release_info.info->id;
+    auto ext = reinterpret_cast<QXLCommandExt *>(static_cast<uintptr_t>(release_info.info->id));
     //printf("%s\n", __func__);
     spice_assert(release_info.group_id == MEM_SLOT_GROUP_ID);
     switch (ext->cmd.type) {
@@ -668,7 +673,7 @@ static void release_resource(SPICE_GNUC_UNUSED QXLInstance *qin,
             g_free(ext);
             break;
         case QXL_CMD_CURSOR: {
-            auto cmd = (QXLCursorCmd *)(uintptr_t)ext->cmd.data;
+            auto cmd = reinterpret_cast<QXLCursorCmd *>(static_cast<uintptr_t>(ext->cmd.data));
             if (cmd->type == QXL_CURSOR_SET || cmd->type == QXL_CURSOR_MOVE) {
                 g_free(cmd);
             }
@@ -874,7 +879,7 @@ void test_add_agent_interface(SpiceServer *server)
     spice_server_add_interface(server, &vdagent_sin.base);
 }
 
-void test_set_simple_command_list(Test *test, const int *simple_commands, int num_commands)
+void test_set_simple_command_list(Test *test, const CommandType *simple_commands, int num_commands)
 {
     int i;
 
@@ -882,7 +887,7 @@ void test_set_simple_command_list(Test *test, const int *simple_commands, int nu
     test->commands = g_new0(Command, num_commands);
     test->num_commands = num_commands;
     for (i = 0 ; i < num_commands; ++i) {
-        test->commands[i].command = (CommandType) simple_commands[i];
+        test->commands[i].command = simple_commands[i];
     }
 }
 

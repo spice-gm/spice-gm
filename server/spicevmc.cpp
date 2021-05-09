@@ -205,10 +205,9 @@ try_compress_lz4(RedVmcChannel *channel, red::shared_ptr<RedVmcPipeItem>& msg_it
         return false;
     }
     auto msg_item_compressed = red::make_shared<RedVmcPipeItem>();
-    compressed_data_count = LZ4_compress_default((char*)&msg_item->buf,
-                                                 (char*)&msg_item_compressed->buf,
-                                                 n,
-                                                 BUF_SIZE);
+    compressed_data_count =
+        LZ4_compress_default(reinterpret_cast<char *>(&msg_item->buf),
+                             reinterpret_cast<char *>(&msg_item_compressed->buf), n, BUF_SIZE);
 
     if (compressed_data_count > 0 && compressed_data_count < n) {
         stat_inc_counter(channel->out_uncompressed, n);
@@ -284,7 +283,7 @@ static void spicevmc_port_send_event(RedChannelClient *rcc, uint8_t event)
 
 void RedCharDeviceSpiceVmc::remove_client(RedCharDeviceClientOpaque *opaque)
 {
-    auto client = (RedClient *) opaque;
+    auto client = reinterpret_cast<RedClient *>(opaque);
 
     spice_assert(channel->rcc &&
                  channel->rcc->get_client() == client);
@@ -305,8 +304,9 @@ void VmcChannelClient::on_disconnect()
                                         &channel->recv_from_client_buf);
 
     if (channel->chardev) {
-        if (channel->chardev->client_exists((RedCharDeviceClientOpaque *)client)) {
-            channel->chardev->client_remove((RedCharDeviceClientOpaque *)client);
+        auto opaque_client = reinterpret_cast<RedCharDeviceClientOpaque *>(client);
+        if (channel->chardev->client_exists(opaque_client)) {
+            channel->chardev->client_remove(opaque_client);
         } else {
             red_channel_warning(channel,
                                 "client %p have already been removed from char dev %p",
@@ -334,8 +334,8 @@ bool VmcChannelClient::handle_migrate_data(uint32_t size, void *message)
 
     channel = get_channel();
 
-    header = (SpiceMigrateDataHeader *)message;
-    mig_data = (SpiceMigrateDataSpiceVmc *)(header + 1);
+    header = static_cast<SpiceMigrateDataHeader *>(message);
+    mig_data = reinterpret_cast<SpiceMigrateDataSpiceVmc *>(header + 1);
     spice_assert(size >= sizeof(SpiceMigrateDataHeader) + sizeof(SpiceMigrateDataSpiceVmc));
 
     if (!migration_protocol_validate_header(header,
@@ -364,10 +364,10 @@ static bool handle_compressed_msg(RedVmcChannel *channel, RedChannelClient *rcc,
 #ifdef USE_LZ4
     case SPICE_DATA_COMPRESSION_TYPE_LZ4: {
         uint8_t *decompressed = write_buf->buf;
-        decompressed_size = LZ4_decompress_safe ((char *)compressed_data_msg->compressed_data,
-                                                 (char *)decompressed,
-                                                 compressed_data_msg->compressed_size,
-                                                 compressed_data_msg->uncompressed_size);
+        decompressed_size = LZ4_decompress_safe(
+            reinterpret_cast<char *>(compressed_data_msg->compressed_data),
+            reinterpret_cast<char *>(decompressed), compressed_data_msg->compressed_size,
+            compressed_data_msg->uncompressed_size);
         stat_inc_counter(channel->in_compressed, compressed_data_msg->compressed_size);
         stat_inc_counter(channel->in_decompressed, decompressed_size);
         break;
@@ -407,7 +407,7 @@ bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
         channel->recv_from_client_buf = nullptr;
         break;
     case SPICE_MSGC_SPICEVMC_COMPRESSED_DATA:
-        return handle_compressed_msg(channel, this, (SpiceMsgCompressedData*)msg);
+        return handle_compressed_msg(channel, this, static_cast<SpiceMsgCompressedData *>(msg));
         break;
     case SPICE_MSGC_PORT_EVENT:
         if (size != sizeof(uint8_t)) {
@@ -415,7 +415,7 @@ bool VmcChannelClient::handle_message(uint16_t type, uint32_t size, void *msg)
             return FALSE;
         }
         if (sif->base.minor_version >= 2 && sif->event != nullptr)
-            sif->event(channel->chardev_sin, *(uint8_t*)msg);
+            sif->event(channel->chardev_sin, *static_cast<uint8_t *>(msg));
         break;
     default:
         return RedChannelClient::handle_message(type, size, msg);
@@ -449,7 +449,7 @@ uint8_t *VmcChannelClient::alloc_recv_buf(uint16_t type, uint32_t size)
     }
 
     default:
-        return (uint8_t*) g_malloc(size);
+        return static_cast<uint8_t *>(g_malloc(size));
     }
 
 }
@@ -529,7 +529,7 @@ static void spicevmc_red_channel_send_port_init(RedChannelClient *rcc,
     SpiceMsgPortInit init;
 
     rcc->init_send_data(SPICE_MSG_PORT_INIT);
-    init.name = (uint8_t *)i->name.get();
+    init.name = reinterpret_cast<uint8_t *>(i->name.get());
     init.name_size = strlen(i->name.get()) + 1;
     init.opened = i->opened;
     spice_marshall_msg_port_init(m, &init);
@@ -603,7 +603,8 @@ void RedVmcChannel::on_connect(RedClient *client, RedStream *stream, int migrati
         spicevmc_port_send_init(rcc);
     }
 
-    if (!vmc_channel->chardev->client_add((RedCharDeviceClientOpaque *)client, FALSE, 0, ~0, ~0, rcc->is_waiting_for_migrate_data())) {
+    if (!vmc_channel->chardev->client_add(reinterpret_cast<RedCharDeviceClientOpaque *>(client),
+                                          FALSE, 0, ~0, ~0, rcc->is_waiting_for_migrate_data())) {
         spice_warning("failed to add client to spicevmc");
         rcc->disconnect();
         return;

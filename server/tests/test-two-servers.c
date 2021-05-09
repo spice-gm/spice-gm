@@ -25,7 +25,7 @@
 
 static SpiceCoreInterface *core;
 
-static const int simple_commands[] = {
+static const CommandType simple_commands[] = {
     //SIMPLE_CREATE_SURFACE,
     //SIMPLE_DRAW,
     //SIMPLE_DESTROY_SURFACE,

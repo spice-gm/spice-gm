@@ -46,9 +46,8 @@ DisplayChannelClient::DisplayChannelClient(DisplayChannel *display,
     // todo: tune quality according to bandwidth
     priv->encoders.jpeg_quality = 85;
 
-    priv->send_data.free_list.res = (SpiceResourceList*)
-        g_malloc(sizeof(SpiceResourceList) +
-                 DISPLAY_FREE_LIST_DEFAULT_SIZE * sizeof(SpiceResourceID));
+    priv->send_data.free_list.res = static_cast<SpiceResourceList *>(g_malloc(
+        sizeof(SpiceResourceList) + DISPLAY_FREE_LIST_DEFAULT_SIZE * sizeof(SpiceResourceID)));
     priv->send_data.free_list.res_size = DISPLAY_FREE_LIST_DEFAULT_SIZE;
 
 
@@ -89,7 +88,7 @@ bool dcc_drawable_is_in_pipe(DisplayChannelClient *dcc, Drawable *drawable)
     GList *l;
 
     for (l = drawable->pipes; l != nullptr; l = l->next) {
-        dpi = (RedDrawablePipeItem *) l->data;
+        dpi = static_cast<RedDrawablePipeItem *>(l->data);
         if (dpi->dcc == dcc) {
             return TRUE;
         }
@@ -512,7 +511,7 @@ XXX_CAST(RedChannelClient, DisplayChannelClient, DISPLAY_CHANNEL_CLIENT);
 RedPipeItemPtr dcc_gl_draw_item_new(RedChannelClient *rcc, void *data, int num)
 {
     DisplayChannelClient *dcc = DISPLAY_CHANNEL_CLIENT(rcc);
-    auto draw = (const SpiceMsgDisplayGlDraw *) data;
+    auto draw = static_cast<const SpiceMsgDisplayGlDraw *>(data);
 
     if (!red_stream_is_plain_unix(rcc->get_stream()) ||
         !rcc->test_remote_cap(SPICE_DISPLAY_CAP_GL_SCANOUT)) {
@@ -688,7 +687,7 @@ lz_compress:
     }
 
     if (!success) {
-        uint64_t image_size = src->stride * (uint64_t)src->y;
+        uint64_t image_size = src->stride * uint64_t{src->y};
         stat_compress_add(&display_channel->priv->encoder_shared_data.off_stat, start_time, image_size, image_size);
     }
 
@@ -732,9 +731,9 @@ static void dcc_push_release(DisplayChannelClient *dcc, uint8_t type, uint64_t i
     }
 
     if (free_list->res->count == free_list->res_size) {
-        free_list->res = (SpiceResourceList*) g_realloc(free_list->res,
-                                   sizeof(*free_list->res) +
-                                   free_list->res_size * sizeof(SpiceResourceID) * 2);
+        free_list->res = static_cast<SpiceResourceList *>(
+            g_realloc(free_list->res,
+                      sizeof(*free_list->res) + free_list->res_size * sizeof(SpiceResourceID) * 2));
         free_list->res_size *= 2;
     }
     free_list->res->resources[free_list->res->count].type = type;
@@ -885,7 +884,7 @@ static bool dcc_handle_preferred_compression(DisplayChannelClient *dcc,
     case SPICE_IMAGE_COMPRESSION_LZ:
     case SPICE_IMAGE_COMPRESSION_GLZ:
     case SPICE_IMAGE_COMPRESSION_OFF:
-        dcc->priv->image_compression = (SpiceImageCompression) pc->image_compression;
+        dcc->priv->image_compression = static_cast<SpiceImageCompression>(pc->image_compression);
         break;
     default:
         spice_warning("preferred-compression: unsupported image compression setting");
@@ -908,9 +907,9 @@ static gint sort_video_codecs_by_client_preference(gconstpointer a_pointer,
                                                    gconstpointer b_pointer,
                                                    gpointer user_data)
 {
-    auto a = (const RedVideoCodec *) a_pointer;
-    auto b = (const RedVideoCodec *) b_pointer;
-    auto client_pref = (GArray *) user_data;
+    auto a = static_cast<const RedVideoCodec *>(a_pointer);
+    auto b = static_cast<const RedVideoCodec *>(b_pointer);
+    auto client_pref = static_cast<GArray *>(user_data);
 
     return (g_array_index(client_pref, gint, a->type) -
             g_array_index(client_pref, gint, b->type));
@@ -994,17 +993,17 @@ bool DisplayChannelClient::handle_message(uint16_t type, uint32_t size, void *ms
 {
     switch (type) {
     case SPICE_MSGC_DISPLAY_INIT:
-        return dcc_handle_init(this, (SpiceMsgcDisplayInit *)msg);
+        return dcc_handle_init(this, static_cast<SpiceMsgcDisplayInit *>(msg));
     case SPICE_MSGC_DISPLAY_STREAM_REPORT:
-        return dcc_handle_stream_report(this, (SpiceMsgcDisplayStreamReport *)msg);
+        return dcc_handle_stream_report(this, static_cast<SpiceMsgcDisplayStreamReport *>(msg));
     case SPICE_MSGC_DISPLAY_PREFERRED_COMPRESSION:
-        return dcc_handle_preferred_compression(this,
-            (SpiceMsgcDisplayPreferredCompression *)msg);
+        return dcc_handle_preferred_compression(
+            this, static_cast<SpiceMsgcDisplayPreferredCompression *>(msg));
     case SPICE_MSGC_DISPLAY_GL_DRAW_DONE:
         return dcc_handle_gl_draw_done(this);
     case SPICE_MSGC_DISPLAY_PREFERRED_VIDEO_CODEC_TYPE:
-        return dcc_handle_preferred_video_codec_type(this,
-            (SpiceMsgcDisplayPreferredVideoCodecType *)msg);
+        return dcc_handle_preferred_video_codec_type(
+            this, static_cast<SpiceMsgcDisplayPreferredVideoCodecType *>(msg));
     default:
         return RedChannelClient::handle_message(type, size, msg);
     }
@@ -1077,8 +1076,8 @@ bool DisplayChannelClient::handle_migrate_data(uint32_t size, void *message)
     DisplayChannelClient *dcc = this;
     DisplayChannel *display = DCC_TO_DC(dcc);
     int surfaces_restored = FALSE;
-    auto header = (SpiceMigrateDataHeader *)message;
-    auto migrate_data = (SpiceMigrateDataDisplay *)(header + 1);
+    auto header = static_cast<SpiceMigrateDataHeader *>(message);
+    auto migrate_data = reinterpret_cast<SpiceMigrateDataDisplay *>(header + 1);
     uint8_t *surfaces;
     int i;
 
@@ -1128,10 +1127,12 @@ bool DisplayChannelClient::handle_migrate_data(uint32_t size, void *message)
         }
     }
 
-    surfaces = (uint8_t *)message + migrate_data->surfaces_at_client_ptr;
+    surfaces = static_cast<uint8_t *>(message) + migrate_data->surfaces_at_client_ptr;
     surfaces_restored = display->priv->enable_jpeg ?
-        restore_surfaces_lossy(dcc, (MigrateDisplaySurfacesAtClientLossy *)surfaces) :
-        restore_surfaces_lossless(dcc, (MigrateDisplaySurfacesAtClientLossless*)surfaces);
+        restore_surfaces_lossy(dcc,
+                  reinterpret_cast<MigrateDisplaySurfacesAtClientLossy *>(surfaces)) :
+        restore_surfaces_lossless(dcc,
+                  reinterpret_cast<MigrateDisplaySurfacesAtClientLossless *>(surfaces));
 
     spice_return_val_if_fail(surfaces_restored, FALSE);
 
