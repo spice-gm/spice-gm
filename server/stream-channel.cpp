@@ -351,6 +351,9 @@ void StreamChannel::on_connect(RedClient *red_client, RedStream *stream,
         StreamMsgStartStop base;
         uint8_t codecs_buffer[MAX_SUPPORTED_CODECS];
     } start_msg;
+    static_assert(offsetof(StreamMsgStartStop, codecs) ==
+                  offsetof(decltype(start_msg), codecs_buffer),
+                  "Wrong assumption");
     StreamMsgStartStop *const start = &start_msg.base;
 
     spice_return_if_fail(stream != nullptr);
@@ -361,7 +364,7 @@ void StreamChannel::on_connect(RedClient *red_client, RedStream *stream,
     }
 
     // request new stream
-    start->num_codecs = stream_channel_get_supported_codecs(this, start->codecs);
+    start->num_codecs = stream_channel_get_supported_codecs(this, start_msg.codecs_buffer);
     // send in any case, even if list is not changed
     // notify device about changes
     request_new_stream(start);
