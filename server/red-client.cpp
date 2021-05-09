@@ -21,9 +21,6 @@
 #include "red-client.h"
 #include "reds.h"
 
-#define FOREACH_CHANNEL_CLIENT(_client, _data) \
-    for (const auto &_data: _client->channels)
-
 RedClient::~RedClient()
 {
     spice_debug("release client=%p", this);
@@ -50,7 +47,7 @@ void RedClient::set_migration_seamless() // dest
     seamless_migrate = TRUE;
     /* update channel clients that got connected before the migration
      * type was set. red_client_add_channel will handle newer channel clients */
-    FOREACH_CHANNEL_CLIENT(this, rcc) {
+    for (const auto &rcc : channels) {
         if (rcc->set_migration_seamless()) {
             num_migrated_channels++;
         }
@@ -67,7 +64,7 @@ void RedClient::migrate()
                       " this might be a BUG",
                       (void*) thread_id, (void*) pthread_self());
     }
-    FOREACH_CHANNEL_CLIENT(this, rcc) {
+    for (const auto &rcc : channels) {
         if (rcc->is_connected()) {
             auto channel = rcc->get_channel();
             channel->migrate_client(rcc.get());
@@ -128,10 +125,8 @@ void RedClient::destroy()
 /* client->lock should be locked */
 RedChannelClient *RedClient::get_channel(int type, int id)
 {
-    FOREACH_CHANNEL_CLIENT(this, rcc) {
-        RedChannel *channel;
-
-        channel = rcc->get_channel();
+    for (const auto &rcc : channels) {
+        auto channel = rcc->get_channel();
         if (channel->type() == type && channel->id() == id) {
             return rcc.get();
         }
@@ -199,7 +194,7 @@ void RedClient::semi_seamless_migrate_complete()
         return;
     }
     during_target_migrate = FALSE;
-    FOREACH_CHANNEL_CLIENT(this, rcc) {
+    for (const auto &rcc : channels) {
         rcc->semi_seamless_migration_complete();
     }
     pthread_mutex_unlock(&lock);
