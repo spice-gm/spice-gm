@@ -20,8 +20,9 @@
  */
 
 #include <config.h>
-#include <stdio.h>
-#include <stdlib.h>
+
+#include <cstdio>
+#include <cstdlib>
 
 #include "basic-event-loop.h"
 #include "test-glib-compat.h"

@@ -17,9 +17,10 @@
 */
 #include <config.h>
 
+#include <cerrno>
+#include <climits>
+
 #include <fcntl.h>
-#include <errno.h>
-#include <limits.h>
 #include <sys/types.h>
 #ifndef _WIN32
 #include <netinet/in.h>

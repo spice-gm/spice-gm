@@ -16,13 +16,14 @@
 */
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
+#include <cerrno>
+#include <cinttypes>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <pthread.h>
-#include <inttypes.h>
+#include <unistd.h>
 
 #include <spice/qxl_dev.h>
 #include <common/quic.h>

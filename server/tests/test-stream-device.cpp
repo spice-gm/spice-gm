@@ -20,10 +20,11 @@
  */
 
 #include <config.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
 #include <spice/protocol.h>

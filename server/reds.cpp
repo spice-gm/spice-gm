@@ -17,12 +17,13 @@
 */
 #include <config.h>
 
-#include <stdint.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <limits.h>
+#include <cctype>
+#include <climits>
+#include <cstdint>
+#include <cstdio>
+
 #include <pthread.h>
-#include <ctype.h>
+#include <unistd.h>
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <sys/uio.h>

@@ -20,8 +20,9 @@
 */
 #include <config.h>
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
+
 #ifdef USE_LZ4
 #include <lz4.h>
 #endif

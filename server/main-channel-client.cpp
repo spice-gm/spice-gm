@@ -16,7 +16,6 @@
 */
 #include <config.h>
 
-#include <inttypes.h>
 #include <common/generated_server_marshallers.h>
 
 #include "main-channel-client.h"

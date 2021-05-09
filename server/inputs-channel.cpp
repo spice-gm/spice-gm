@@ -17,10 +17,9 @@
 */
 #include <config.h>
 
-#include <stddef.h> // NULL
 #include <spice/macros.h>
-#include <spice/vd_agent.h>
 #include <spice/protocol.h>
+#include <spice/vd_agent.h>
 
 #include <common/marshaller.h>
 #include <common/messages.h>

@@ -17,12 +17,13 @@
 
 #include <config.h>
 
-#include <glib.h>
-#include <stdio.h>
-#include <stdint.h>
+#include <cerrno>
+#include <cstdint>
+#include <cstdio>
+
 #include <fcntl.h>
+#include <glib.h>
 #include <unistd.h>
-#include <errno.h>
 #ifndef _WIN32
 #include <netinet/in.h>
 #include <netinet/tcp.h>

@@ -17,8 +17,8 @@
 */
 #include <config.h>
 
-#include <inttypes.h>
 #include <glib.h>
+
 #include <common/lz_common.h>
 
 #include "glib-compat.h"

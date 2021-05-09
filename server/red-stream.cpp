@@ -17,9 +17,10 @@
 */
 #include <config.h>
 
-#include <errno.h>
-#include <unistd.h>
+#include <cerrno>
+
 #include <fcntl.h>
+#include <unistd.h>
 #ifndef _WIN32
 #include <netdb.h>
 #include <sys/socket.h>

@@ -20,15 +20,16 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <inttypes.h>
+#include <cerrno>
+#include <cinttypes>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <glib.h>
+#include <pthread.h>
+#include <unistd.h>
 
 #include <spice/protocol.h>
 #include <spice/qxl_dev.h>

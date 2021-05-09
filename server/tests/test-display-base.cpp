@@ -15,19 +15,22 @@
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, see <http://www.gnu.org/licenses/>.
 */
+
 #include <config.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
+
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #ifndef _WIN32
 #include <sys/wait.h>
 #include <sys/select.h>
 #endif
-#include <sys/types.h>
 #include <getopt.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "spice-wrapped.h"
 #include <spice/qxl_dev.h>

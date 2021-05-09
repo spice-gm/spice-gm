@@ -16,12 +16,13 @@
 */
 #include <config.h>
 
-#include <unistd.h>
-#include <errno.h>
-#include <assert.h>
-#include <string.h>
-#include <pthread.h>
+#include <cassert>
+#include <cerrno>
+#include <cstring>
+
 #include <fcntl.h>
+#include <pthread.h>
+#include <unistd.h>
 #ifndef _WIN32
 #include <poll.h>
 #endif
