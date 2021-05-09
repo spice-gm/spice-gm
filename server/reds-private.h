@@ -139,7 +139,4 @@ struct RedsState {
     RedRecord *record;
 };
 
-#define FOREACH_QXL_INSTANCE(_reds, _qxl) \
-    for (auto _qxl: _reds->qxl_instances)
-
 #endif /* REDS_PRIVATE_H_ */

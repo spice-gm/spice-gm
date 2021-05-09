@@ -577,7 +577,7 @@ static void reds_set_mouse_mode(RedsState *reds, SpiceMouseMode mode)
     }
     reds->mouse_mode = mode;
 
-    FOREACH_QXL_INSTANCE(reds, qxl) {
+    for (const auto &qxl : reds->qxl_instances) {
         red_qxl_set_mouse_mode(qxl, mode);
     }
 
@@ -800,7 +800,7 @@ void reds_marshall_device_display_info(RedsState *reds, SpiceMarshaller *m)
     void *device_count_ptr = spice_marshaller_add_uint32(m, device_count);
 
     // add the qxl devices to the message
-    FOREACH_QXL_INSTANCE(reds, qxl) {
+    for (const auto &qxl : reds->qxl_instances) {
         device_count += red_qxl_marshall_device_display_info(qxl, m);
     }
 
@@ -4307,7 +4307,7 @@ void reds_update_client_mouse_allowed(RedsState *reds)
     if (num_active_workers > 0) {
 
         allow_now = TRUE;
-        FOREACH_QXL_INSTANCE(reds, qxl) {
+        for (const auto &qxl : reds->qxl_instances) {
             if (red_qxl_get_allow_client_mouse(qxl, &x_res, &y_res, &allow_now)) {
                 break;
             }
@@ -4340,7 +4340,7 @@ static gboolean reds_use_client_monitors_config(RedsState *reds)
 
 static void reds_client_monitors_config(RedsState *reds, VDAgentMonitorsConfig *monitors_config)
 {
-    FOREACH_QXL_INSTANCE(reds, qxl) {
+    for (const auto &qxl : reds->qxl_instances) {
         if (!red_qxl_client_monitors_config(qxl, monitors_config)) {
             /* this is a normal condition, some qemu devices might not implement it */
             spice_debug("QXLInterface::client_monitors_config failed");
@@ -4363,7 +4363,7 @@ void reds_on_ic_change(RedsState *reds)
 {
     int compression_level = calc_compression_level(reds);
 
-    FOREACH_QXL_INSTANCE(reds, qxl) {
+    for (const auto &qxl : reds->qxl_instances) {
         red_qxl_set_compression_level(qxl, compression_level);
         red_qxl_on_ic_change(qxl, spice_server_get_image_compression(reds));
     }
@@ -4373,7 +4373,7 @@ void reds_on_sv_change(RedsState *reds)
 {
     int compression_level = calc_compression_level(reds);
 
-    FOREACH_QXL_INSTANCE(reds, qxl) {
+    for (const auto &qxl : reds->qxl_instances) {
         red_qxl_set_compression_level(qxl, compression_level);
         red_qxl_on_sv_change(qxl, reds_get_streaming_video(reds));
     }
@@ -4381,23 +4381,19 @@ void reds_on_sv_change(RedsState *reds)
 
 void reds_on_vc_change(RedsState *reds)
 {
-    FOREACH_QXL_INSTANCE(reds, qxl) {
+    for (const auto &qxl : reds->qxl_instances) {
         red_qxl_on_vc_change(qxl, reds_get_video_codecs(reds));
     }
 }
 
 void reds_on_vm_stop(RedsState *reds)
 {
-    FOREACH_QXL_INSTANCE(reds, qxl) {
-        red_qxl_stop(qxl);
-    }
+    std::for_each(reds->qxl_instances.begin(), reds->qxl_instances.end(), red_qxl_stop);
 }
 
 void reds_on_vm_start(RedsState *reds)
 {
-    FOREACH_QXL_INSTANCE(reds, qxl) {
-        red_qxl_start(qxl);
-    }
+    std::for_each(reds->qxl_instances.begin(), reds->qxl_instances.end(), red_qxl_start);
 }
 
 uint32_t reds_qxl_ram_size(RedsState *reds)
