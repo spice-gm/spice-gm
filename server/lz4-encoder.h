@@ -32,6 +32,7 @@
 #define LZ4_ENCODER_H_
 
 #include <spice/types.h>
+#include <spice/macros.h>
 
 SPICE_BEGIN_DECLS
 

@@ -32,6 +32,7 @@
 #define ZLIB_ENCODER_H_
 
 #include <inttypes.h>
+#include <spice/macros.h>
 
 SPICE_BEGIN_DECLS
 

@@ -19,6 +19,7 @@
 #define GLZ_ENCODER_DICT_H_
 
 #include <stdint.h>
+#include <spice/macros.h>
 
 /*
     Interface for maintaining lz dictionary that is shared among several encoders.

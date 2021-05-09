@@ -20,6 +20,7 @@
 #define STAT_FILE_H_
 
 #include <stdint.h>
+#include <spice/macros.h>
 
 SPICE_BEGIN_DECLS
 
