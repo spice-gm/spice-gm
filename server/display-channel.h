@@ -54,10 +54,10 @@ struct DisplayChannel final: public CommonGraphicsChannel
     red::unique_link<DisplayChannelPrivate> priv;
 };
 
-typedef struct DependItem {
+struct DependItem {
     Drawable *drawable;
     RingItem ring_item;
-} DependItem;
+};
 
 struct Drawable {
     uint32_t refs;
@@ -77,12 +77,12 @@ struct Drawable {
     VideoStream *stream;
     int streamable;
     BitmapGradualType copy_bitmap_graduality;
-    DependItem depend_items[3];
+    std::array<DependItem, 3> depend_items;
 
     /* destination surface. This pointer is not NULL. A reference is hold */
     RedSurface *surface;
     /* dependency surfaces. They can be NULL. A reference is hold. */
-    RedSurface *surface_deps[3];
+    std::array<RedSurface *, 3> surface_deps;
 
     uint32_t process_commands_generation;
     DisplayChannel *display;

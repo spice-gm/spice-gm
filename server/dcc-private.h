@@ -44,13 +44,13 @@ struct DisplayChannelClientPrivate
     uint32_t pixmap_cache_generation = 0;
     int pending_pixmaps_sync = 0;
 
-    RedCacheItem *palette_cache[PALETTE_CACHE_HASH_SIZE];
+    std::array<RedCacheItem *, PALETTE_CACHE_HASH_SIZE> palette_cache;
     Ring palette_cache_lru = { nullptr, nullptr };
     long palette_cache_available = CLIENT_PALETTE_CACHE_SIZE;
 
     struct {
         FreeList free_list;
-        uint64_t pixmap_cache_items[MAX_DRAWABLE_PIXMAP_CACHE_ITEMS];
+        std::array<uint64_t, MAX_DRAWABLE_PIXMAP_CACHE_ITEMS> pixmap_cache_items;
         int num_pixmap_cache_items;
     } send_data;
 
@@ -60,10 +60,10 @@ struct DisplayChannelClientPrivate
      * preference order (index) as value */
     GArray *client_preferred_video_codecs;
 
-    uint8_t surface_client_created[NUM_SURFACES];
-    QRegion surface_client_lossy_region[NUM_SURFACES];
+    std::array<bool, NUM_SURFACES> surface_client_created;
+    std::array<QRegion, NUM_SURFACES> surface_client_lossy_region;
 
-    VideoStreamAgent stream_agents[NUM_STREAMS];
+    std::array<VideoStreamAgent, NUM_STREAMS> stream_agents;
     uint32_t streams_max_latency;
     uint64_t streams_max_bit_rate;
     bool gl_draw_ongoing;

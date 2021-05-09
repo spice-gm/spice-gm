@@ -83,17 +83,17 @@ struct VideoStream;
 struct VideoStreamAgent;
 struct RedSurface;
 
-typedef struct WaitForChannels {
+struct WaitForChannels {
     SpiceMsgWaitForChannels header;
-    SpiceWaitForChannel buf[MAX_CACHE_CLIENTS];
-} WaitForChannels;
+    std::array<SpiceWaitForChannel, MAX_CACHE_CLIENTS> buf;
+};
 
-typedef struct FreeList {
+struct FreeList {
     int res_size;
     SpiceResourceList *res;
     uint64_t sync[MAX_CACHE_CLIENTS];
     WaitForChannels wait;
-} FreeList;
+};
 
 #define DCC_TO_DC(dcc) ((DisplayChannel*) dcc->get_channel())
 

@@ -24,7 +24,7 @@
 #define NUM_TRACE_ITEMS (1 << TRACE_ITEMS_SHIFT)
 #define ITEMS_TRACE_MASK (NUM_TRACE_ITEMS - 1)
 
-typedef struct DrawContext {
+struct DrawContext {
     SpiceCanvas *canvas;
     int canvas_draws_on_surface;
     int top_down;
@@ -33,7 +33,7 @@ typedef struct DrawContext {
     int32_t stride;
     uint32_t format;
     void *line_0;
-} DrawContext;
+};
 
 struct RedSurface {
     SPICE_CXX_GLIB_ALLOCATOR
@@ -63,15 +63,14 @@ struct RedSurface {
     red::shared_ptr<const RedSurfaceCmd> destroy_cmd;
 };
 
-typedef struct MonitorsConfig {
+struct MonitorsConfig {
     int refs;
     int count;
     int max_allowed;
     QXLHead heads[0];
-} MonitorsConfig;
+};
 
 #define NUM_DRAWABLES 1000
-typedef struct _Drawable _Drawable;
 struct _Drawable {
     union {
         alignas(Drawable) char raw_drawable[sizeof(Drawable)];
@@ -103,20 +102,20 @@ struct DisplayChannelPrivate
     Ring current_list;
 
     uint32_t drawable_count;
-    _Drawable drawables[NUM_DRAWABLES];
+    std::array<_Drawable, NUM_DRAWABLES> drawables;
     _Drawable *free_drawables;
 
     int stream_video;
     GArray *video_codecs;
     uint32_t stream_count;
-    VideoStream streams_buf[NUM_STREAMS];
+    std::array<VideoStream, NUM_STREAMS> streams_buf;
     VideoStream *free_streams;
     Ring streams;
-    ItemTrace items_trace[NUM_TRACE_ITEMS];
+    std::array<ItemTrace, NUM_TRACE_ITEMS> items_trace;
     uint32_t next_item_trace;
     uint64_t streams_size_total;
 
-    RedSurface *surfaces[NUM_SURFACES];
+    std::array<RedSurface *, NUM_SURFACES> surfaces;
     uint32_t n_surfaces;
     SpiceImageSurfaces image_surfaces;
 
@@ -325,15 +324,10 @@ static inline int is_same_drawable(Drawable *d1, Drawable *d2)
 
 static inline bool is_drawable_independent_from_surfaces(const Drawable *drawable)
 {
-    for (const auto& surface : drawable->surface_deps) {
-        if (surface) {
-            return false;
-        }
-    }
-    return true;
+    return std::all_of(drawable->surface_deps.begin(), drawable->surface_deps.end(), std::logical_not<RedSurface *>());
 }
 
-static inline int has_shadow(RedDrawable *drawable)
+static inline bool has_shadow(const RedDrawable *drawable)
 {
     return drawable->type == QXL_COPY_BITS;
 }

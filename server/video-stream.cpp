@@ -486,8 +486,6 @@ GArray *video_stream_parse_preferred_codecs(SpiceMsgcDisplayPreferredVideoCodecT
 /* TODO: document the difference between the 2 functions below */
 void video_stream_trace_update(DisplayChannel *display, Drawable *drawable)
 {
-    ItemTrace *trace;
-    ItemTrace *trace_end;
     RingItem *item;
 
     if (drawable->stream || !drawable->streamable || drawable->frames_count) {
@@ -514,16 +512,12 @@ void video_stream_trace_update(DisplayChannel *display, Drawable *drawable)
         }
     }
 
-    trace = display->priv->items_trace;
-    trace_end = trace + NUM_TRACE_ITEMS;
-    for (; trace < trace_end; trace++) {
-        if (is_next_stream_frame(drawable, trace->width, trace->height,
-                                 &trace->dest_area, trace->time, nullptr, FALSE)) {
-            if (video_stream_add_frame(display, drawable,
-                                       trace->first_frame_time,
-                                       trace->frames_count,
-                                       trace->gradual_frames_count,
-                                       trace->last_gradual_frame)) {
+    for (auto &&trace : display->priv->items_trace) {
+        if (is_next_stream_frame(drawable, trace.width, trace.height, &trace.dest_area, trace.time,
+                                 nullptr, false)) {
+            if (video_stream_add_frame(display, drawable, trace.first_frame_time,
+                                       trace.frames_count, trace.gradual_frames_count,
+                                       trace.last_gradual_frame)) {
                 return;
             }
         }

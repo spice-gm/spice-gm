@@ -224,7 +224,7 @@ static void stop_streams(DisplayChannel *display)
     }
 
     display->priv->next_item_trace = 0;
-    memset(display->priv->items_trace, 0, sizeof(display->priv->items_trace));
+    display->priv->items_trace = {};
 }
 
 static void display_channel_surface_unref(DisplayChannel *display, RedSurface *surface)
@@ -2334,7 +2334,7 @@ void display_channel_gl_draw_done(DisplayChannel *display)
 
 int display_channel_get_video_stream_id(DisplayChannel *display, VideoStream *stream)
 {
-    return (int)(stream - display->priv->streams_buf);
+    return static_cast<int>(stream - display->priv->streams_buf.data());
 }
 
 VideoStream *display_channel_get_nth_video_stream(DisplayChannel *display, gint i)
