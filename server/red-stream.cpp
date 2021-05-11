@@ -754,6 +754,11 @@ static char *addr_to_string(const char *format,
     char serv[NI_MAXSERV];
     int err;
 
+    // makes it work on no-glibc avoiding getnameinfo returning error
+    if (sa->ss_family == AF_UNIX) {
+        return g_strdup("localhost;");
+    }
+
     if ((err = getnameinfo((struct sockaddr *)sa, salen,
                            host, sizeof(host),
                            serv, sizeof(serv),
