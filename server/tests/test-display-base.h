@@ -18,7 +18,7 @@
 #ifndef __TEST_DISPLAY_BASE_H__
 #define __TEST_DISPLAY_BASE_H__
 
-#include <spice.h>
+#include "spice-wrapped.h"
 #include "basic-event-loop.h"
 
 SPICE_BEGIN_DECLS
