@@ -804,13 +804,11 @@ bool dcc_pixmap_cache_unlocked_add(DisplayChannelClient *dcc, uint64_t id,
             now = &(*now)->next;
         }
         ring_remove(&tail->lru_link);
-        cache->items--;
         cache->available += tail->size;
         cache->sync[dcc->priv->id] = serial;
         dcc_push_release(dcc, SPICE_RES_TYPE_PIXMAP, tail->id, tail->sync);
         g_free(tail);
     }
-    ++cache->items;
     item->next = cache->hash_table[(key = BITS_CACHE_HASH_KEY(id))];
     cache->hash_table[key] = item;
     ring_item_init(&item->lru_link);

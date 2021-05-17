@@ -52,7 +52,6 @@ void pixmap_cache_clear(PixmapCache *cache)
     memset(cache->hash_table, 0, sizeof(*cache->hash_table) * BITS_CACHE_HASH_SIZE);
 
     cache->available = cache->size;
-    cache->items = 0;
 }
 
 bool pixmap_cache_freeze(PixmapCache *cache)

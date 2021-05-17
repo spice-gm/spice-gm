@@ -53,7 +53,6 @@ struct PixmapCache {
     Ring lru;
     int64_t available;
     int64_t size;
-    int32_t items;
 
     int frozen;
     RingItem *frozen_head;
