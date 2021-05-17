@@ -25,10 +25,12 @@ AM_CPPFLAGS =					\
 
 AM_CFLAGS =					\
 	$(WARN_CFLAGS)				\
+	$(PTHREAD_CFLAGS)			\
 	$(NULL)
 
 AM_CXXFLAGS =					\
 	$(WARN_CXXFLAGS)			\
+	$(PTHREAD_CXXFLAGS)			\
 	$(NULL)
 
 noinst_LTLIBRARIES = libserver.la
@@ -62,6 +64,7 @@ libserver_la_LIBADD =							\
 	$(Z_LIBS)							\
 	$(SPICE_NONPKGCONFIG_LIBS)					\
 	$(ORC_LIBS)							\
+	$(PTHREAD_LIBS)							\
 	$(NULL)
 
 libspice_serverincludedir = $(includedir)/spice-server

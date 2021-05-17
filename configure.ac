@@ -33,6 +33,8 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_CONFIG_HEADER([config.h])
 AC_CONFIG_AUX_DIR(.)
 
+AX_PTHREAD
+
 AM_INIT_AUTOMAKE([dist-bzip2 no-dist-gzip subdir-objects foreign])
 AM_MAINTAINER_MODE
 
