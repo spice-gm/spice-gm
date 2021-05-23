@@ -243,7 +243,7 @@ void dcc_push_surface_image(DisplayChannelClient *dcc, RedSurface *surface)
         return;
     }
 
-    if (!surface->context.canvas) {
+    if (!surface) {
         return;
     }
     area.top = area.left = 0;
@@ -407,11 +407,12 @@ void dcc_start(DisplayChannelClient *dcc)
 
     red::shared_ptr<DisplayChannelClient> self(dcc);
     dcc->ack_zero_messages_window();
-    if (display->priv->surfaces[0].context.canvas) {
-        display_channel_current_flush(display, &display->priv->surfaces[0]);
+    auto surface0 = display->priv->surfaces[0];
+    if (surface0) {
+        display_channel_current_flush(display, surface0);
         dcc->pipe_add_type(RED_PIPE_ITEM_TYPE_INVAL_PALETTE_CACHE);
-        dcc_create_surface(dcc, &display->priv->surfaces[0]);
-        dcc_push_surface_image(dcc, &display->priv->surfaces[0]);
+        dcc_create_surface(dcc, surface0);
+        dcc_push_surface_image(dcc, surface0);
         dcc_push_monitors_config(dcc);
         dcc->pipe_add_empty_msg(SPICE_MSG_DISPLAY_MARK);
         dcc_create_all_streams(dcc);

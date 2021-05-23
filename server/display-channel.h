@@ -95,10 +95,10 @@ display_channel_new(RedsState *reds, QXLInstance *qxl,
                     GArray *video_codecs,
                     uint32_t n_surfaces);
 void display_channel_surface_id_unref(DisplayChannel *display, uint32_t surface_id);
-void                       display_channel_create_surface            (DisplayChannel *display, uint32_t surface_id,
-                                                                      uint32_t width, uint32_t height,
-                                                                      int32_t stride, uint32_t format, void *line_0,
-                                                                      int data_is_valid, int send_client);
+RedSurface *display_channel_create_surface(DisplayChannel *display, uint32_t surface_id,
+                                           uint32_t width, uint32_t height,
+                                           int32_t stride, uint32_t format, void *line_0,
+                                           int data_is_valid, int send_client);
 void                       display_channel_draw                      (DisplayChannel *display,
                                                                       const SpiceRect *area,
                                                                       int surface_id);

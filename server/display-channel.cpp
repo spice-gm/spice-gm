@@ -45,7 +45,7 @@ DisplayChannel::~DisplayChannel()
         spice_assert(ring_is_empty(&priv->streams));
 
         for (const auto &surface : priv->surfaces) {
-            spice_assert(surface.context.canvas == nullptr);
+            spice_assert(!surface);
         }
     }
 
@@ -242,28 +242,30 @@ static void display_channel_surface_unref(DisplayChannel *display, RedSurface *s
     spice_assert(surface->context.canvas);
 
     surface->context.canvas->ops->destroy(surface->context.canvas);
+    surface->context.canvas = nullptr;
     surface->create_cmd.reset();
     surface->destroy_cmd.reset();
 
     region_destroy(&surface->draw_dirty_region);
-    surface->context.canvas = nullptr;
     FOREACH_DCC(display, dcc) {
         dcc_destroy_surface(dcc, surface->id);
     }
 
     spice_warn_if_fail(ring_is_empty(&surface->depend_on_me));
+    delete surface;
 }
 
 /* TODO: perhaps rename to "ready" or "realized" ? */
 gboolean display_channel_surface_has_canvas(DisplayChannel *display,
                                             uint32_t surface_id)
 {
-    return display->priv->surfaces[surface_id].context.canvas != nullptr;
+    return display->priv->surfaces[surface_id] != nullptr;
 }
 
 void display_channel_surface_id_unref(DisplayChannel *display, uint32_t surface_id)
 {
-    display_channel_surface_unref(display, &display->priv->surfaces[surface_id]);
+    display_channel_surface_unref(display, display->priv->surfaces[surface_id]);
+    display->priv->surfaces[surface_id] = nullptr;
 }
 
 static void streams_update_visible_region(DisplayChannel *display, Drawable *drawable)
@@ -1120,7 +1122,7 @@ static void drawable_ref_surface_deps(DisplayChannel *display, Drawable *drawabl
             continue;
         }
 
-        RedSurface *surface = &display->priv->surfaces[surface_id];
+        RedSurface *surface = display->priv->surfaces[surface_id];
         surface->refs++;
         drawable->surface_deps[x] = surface;
     }
@@ -1299,7 +1301,7 @@ static Drawable *display_channel_get_drawable(DisplayChannel *display, uint8_t e
 
     drawable->tree_item.effect = effect;
 
-    drawable->surface = &display->priv->surfaces[red_drawable->surface_id];
+    drawable->surface = display->priv->surfaces[red_drawable->surface_id];
     drawable->surface->refs++;
 
     drawable->red_drawable = red_drawable;
@@ -1424,11 +1426,9 @@ bool display_channel_wait_for_migrate_data(DisplayChannel *display)
 
 void display_channel_flush_all_surfaces(DisplayChannel *display)
 {
-    int x;
-
-    for (x = 0; x < NUM_SURFACES; ++x) {
-        if (display->priv->surfaces[x].context.canvas) {
-            display_channel_current_flush(display, &display->priv->surfaces[x]);
+    for (const auto& surface : display->priv->surfaces) {
+        if (surface) {
+            display_channel_current_flush(display, surface);
         }
     }
 }
@@ -1914,7 +1914,7 @@ void display_channel_draw(DisplayChannel *display, const SpiceRect *area, int su
     spice_return_if_fail(area->left >= 0 && area->top >= 0 &&
                          area->left < area->right && area->top < area->bottom);
 
-    surface = &display->priv->surfaces[surface_id];
+    surface = display->priv->surfaces[surface_id];
 
     display_channel_surface_draw(display, surface, area);
 }
@@ -2016,17 +2016,15 @@ void display_channel_destroy_surface_wait(DisplayChannel *display, uint32_t surf
 /* TODO: split me*/
 void display_channel_destroy_surfaces(DisplayChannel *display)
 {
-    int i;
-
     spice_debug("trace");
     //to handle better
-    for (i = 0; i < NUM_SURFACES; ++i) {
-        if (display->priv->surfaces[i].context.canvas) {
-            display_channel_destroy_surface_wait(display, i);
-            if (display->priv->surfaces[i].context.canvas) {
-                display_channel_surface_unref(display, &display->priv->surfaces[i]);
+    for (auto& surface : display->priv->surfaces) {
+        if (surface) {
+            display_channel_destroy_surface_wait(display, surface->id);
+            if (surface) {
+                display_channel_surface_unref(display, surface);
+                surface = nullptr;
             }
-            spice_assert(!display->priv->surfaces[i].context.canvas);
         }
     }
     spice_warn_if_fail(ring_is_empty(&display->priv->streams));
@@ -2072,13 +2070,14 @@ create_canvas_for_surface(DisplayChannel *display, RedSurface *surface, uint32_t
     return nullptr;
 }
 
-void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id, uint32_t width,
-                                    uint32_t height, int32_t stride, uint32_t format,
-                                    void *line_0, int data_is_valid, int send_client)
+RedSurface*
+display_channel_create_surface(DisplayChannel *display, uint32_t surface_id, uint32_t width,
+                               uint32_t height, int32_t stride, uint32_t format,
+                               void *line_0, int data_is_valid, int send_client)
 {
-    RedSurface *surface = &display->priv->surfaces[surface_id];
+    RedSurface *surface = new RedSurface;
 
-    spice_warn_if_fail(!surface->context.canvas);
+    spice_warn_if_fail(!display->priv->surfaces[surface_id]);
 
     surface->context.canvas_draws_on_surface = FALSE;
     surface->context.width = width;
@@ -2095,10 +2094,6 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
     }
     g_warn_if_fail(!surface->create_cmd);
     g_warn_if_fail(!surface->destroy_cmd);
-    ring_init(&surface->current);
-    ring_init(&surface->current_list);
-    ring_init(&surface->depend_on_me);
-    region_init(&surface->draw_dirty_region);
     surface->refs = 1;
     surface->id = surface_id;
 
@@ -2118,10 +2113,26 @@ void display_channel_create_surface(DisplayChannel *display, uint32_t surface_id
         surface->context.canvas = create_canvas_for_surface(display, surface, display->priv->renderer);
     }
 
-    spice_return_if_fail(surface->context.canvas);
+    if (!surface->context.canvas) {
+        delete surface;
+        return nullptr;
+    }
+
+    // finish initialization
+    ring_init(&surface->current);
+    ring_init(&surface->current_list);
+    ring_init(&surface->depend_on_me);
+    region_init(&surface->draw_dirty_region);
+
+    if (display->priv->surfaces[surface_id]) {
+        display_channel_surface_unref(display, display->priv->surfaces[surface_id]);
+    }
+    display->priv->surfaces[surface_id] = surface;
+
     if (send_client) {
         send_create_surface(display, surface, data_is_valid);
     }
+    return surface;
 }
 
 void DisplayChannelClient::handle_migrate_flush_mark()
@@ -2239,7 +2250,7 @@ void display_channel_process_surface_cmd(DisplayChannel *display,
         return;
     }
 
-    surface = &display->priv->surfaces[surface_id];
+    surface = display->priv->surfaces[surface_id];
 
     switch (surface_cmd->type) {
     case QXL_SURFACE_CMD_CREATE: {
@@ -2248,7 +2259,7 @@ void display_channel_process_surface_cmd(DisplayChannel *display,
         int32_t stride = create->stride;
         int reloaded_surface = loadvm || (surface_cmd->flags & QXL_SURF_FLAG_KEEP_DATA);
 
-        if (surface->refs) {
+        if (surface) {
             spice_warning("avoiding creating a surface twice");
             break;
         }
@@ -2258,21 +2269,24 @@ void display_channel_process_surface_cmd(DisplayChannel *display,
              * when it is read, specifically red_get_surface_cmd */
             data -= (int32_t)(stride * (height - 1));
         }
-        display_channel_create_surface(display, surface_id, create->width,
-                                       height, stride, create->format, data,
-                                       reloaded_surface,
-                                       // reloaded surfaces will be sent on demand
-                                       !reloaded_surface);
-        surface->create_cmd = surface_cmd;
+        surface = display_channel_create_surface(display, surface_id, create->width,
+                                                 height, stride, create->format, data,
+                                                 reloaded_surface,
+                                                 // reloaded surfaces will be sent on demand
+                                                 !reloaded_surface);
+        if (surface) {
+            surface->create_cmd = surface_cmd;
+        }
         break;
     }
     case QXL_SURFACE_CMD_DESTROY:
-        if (!surface->refs) {
+        if (!surface) {
             spice_warning("avoiding destroying a surface twice");
             break;
         }
         surface->destroy_cmd = surface_cmd;
         display_channel_destroy_surface(display, surface);
+        display->priv->surfaces[surface_id] = nullptr;
         break;
     default:
         spice_warn_if_reached();
@@ -2341,11 +2355,10 @@ RedSurface *display_channel_validate_surface(DisplayChannel *display, uint32_t s
         spice_warning("invalid surface_id %u", surface_id);
         return nullptr;
     }
-    RedSurface *surface = &display->priv->surfaces[surface_id];
-    if (!surface->context.canvas) {
-        spice_warning("canvas address is %p for %d (and is NULL)",
-                      &(surface->context.canvas), surface_id);
-        spice_warning("failed on %d", surface_id);
+
+    RedSurface *surface = display->priv->surfaces[surface_id];
+    if (!surface) {
+        spice_warning("surface %d is NULL", surface_id);
         return nullptr;
     }
     return surface;

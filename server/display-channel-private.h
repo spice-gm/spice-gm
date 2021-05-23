@@ -36,6 +36,8 @@ typedef struct DrawContext {
 } DrawContext;
 
 struct RedSurface {
+    SPICE_CXX_GLIB_ALLOCATOR
+
     uint32_t refs;
     uint16_t id;
     /* A Ring representing a hierarchical tree structure. This tree includes
@@ -114,7 +116,7 @@ struct DisplayChannelPrivate
     uint32_t next_item_trace;
     uint64_t streams_size_total;
 
-    RedSurface surfaces[NUM_SURFACES];
+    RedSurface *surfaces[NUM_SURFACES];
     uint32_t n_surfaces;
     SpiceImageSurfaces image_surfaces;
 
