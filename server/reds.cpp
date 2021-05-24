@@ -3709,6 +3709,12 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
     servers = g_list_remove(servers, reds);
     pthread_mutex_unlock(&global_reds_lock);
 
+    // avoids any possible new connection to happen
+    reds_cleanup_net(reds);
+
+    // disconnect all connected client
+    reds_disconnect(reds);
+
     std::for_each(reds->qxl_instances.begin(), reds->qxl_instances.end(), red_qxl_destroy);
 
     if (reds->inputs_channel) {
@@ -3729,7 +3735,6 @@ SPICE_GNUC_VISIBLE void spice_server_destroy(SpiceServer *reds)
     }
 
     reds->main_dispatcher.reset();
-    reds_cleanup_net(reds);
     reds->agent_dev.reset();
 
     // NOTE: don't replace with g_list_free_full as this function that passed callback

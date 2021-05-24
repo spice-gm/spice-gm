@@ -67,6 +67,9 @@ struct DispatcherPrivate {
 
 DispatcherPrivate::~DispatcherPrivate()
 {
+    while (handle_single_read()) {
+        continue;
+    }
     g_free(messages);
     socket_close(send_fd);
     socket_close(recv_fd);
