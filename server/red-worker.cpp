@@ -450,11 +450,6 @@ static void destroy_primary_surface(RedWorker *worker, uint32_t surface_id)
     display_channel_destroy_surface_wait(display, 0);
     display_channel_surface_id_unref(display, 0);
 
-    /* FIXME: accessing private data only for warning purposes...
-    spice_warn_if_fail(ring_is_empty(&display->streams));
-    */
-    spice_warn_if_fail(!display_channel_surface_has_canvas(display, surface_id));
-
     worker->cursor_channel->reset();
 }
 

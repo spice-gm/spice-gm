@@ -255,13 +255,6 @@ static void display_channel_surface_unref(DisplayChannel *display, RedSurface *s
     delete surface;
 }
 
-/* TODO: perhaps rename to "ready" or "realized" ? */
-gboolean display_channel_surface_has_canvas(DisplayChannel *display,
-                                            uint32_t surface_id)
-{
-    return display->priv->surfaces[surface_id] != nullptr;
-}
-
 void display_channel_surface_id_unref(DisplayChannel *display, uint32_t surface_id)
 {
     display_channel_surface_unref(display, display->priv->surfaces[surface_id]);
