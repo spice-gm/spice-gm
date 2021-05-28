@@ -323,7 +323,7 @@ static void dcc_init_stream_agents(DisplayChannelClient *dcc)
     int i;
     DisplayChannel *display = DCC_TO_DC(dcc);
 
-    for (i = 0; i < NUM_STREAMS; i++) {
+    for (i = 0; i < dcc->priv->stream_agents.size(); i++) {
         VideoStreamAgent *agent = &dcc->priv->stream_agents[i];
         agent->stream = display_channel_get_nth_video_stream(display, i);
         region_init(&agent->vis_region);
@@ -832,7 +832,7 @@ static bool dcc_handle_stream_report(DisplayChannelClient *dcc,
 {
     VideoStreamAgent *agent;
 
-    if (report->stream_id >= NUM_STREAMS) {
+    if (report->stream_id >= dcc->priv->stream_agents.size()) {
         spice_warning("stream_report: invalid stream id %u",
                       report->stream_id);
         return FALSE;

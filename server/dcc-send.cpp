@@ -1751,7 +1751,7 @@ static void display_channel_marshall_migrate_data_surfaces(DisplayChannelClient 
 
     num_surfaces_created_ptr = spice_marshaller_reserve_space(m2, sizeof(uint32_t));
     num_surfaces_created = 0;
-    for (i = 0; i < NUM_SURFACES; i++) {
+    for (i = 0; i < dcc->priv->surface_client_created.size(); i++) {
         SpiceRect lossy_rect;
 
         if (!dcc->priv->surface_client_created[i]) {

@@ -35,13 +35,13 @@ DisplayChannel::~DisplayChannel()
         for (drawable = priv->free_drawables; drawable; drawable = drawable->u.next) {
             ++count;
         }
-        spice_assert(count == NUM_DRAWABLES);
+        spice_assert(count == priv->drawables.size());
 
         count = 0;
         for (stream = priv->free_streams; stream; stream = stream->next) {
             ++count;
         }
-        spice_assert(count == NUM_STREAMS);
+        spice_assert(count == priv->streams_buf.size());
         spice_assert(ring_is_empty(&priv->streams));
 
         for (const auto &surface : priv->surfaces) {
@@ -1902,7 +1902,7 @@ void display_channel_draw(DisplayChannel *display, const SpiceRect *area, int su
 {
     RedSurface *surface;
 
-    spice_return_if_fail(surface_id >= 0 && surface_id < NUM_SURFACES);
+    spice_return_if_fail(surface_id >= 0 && surface_id < display->priv->surfaces.size());
     spice_return_if_fail(area);
     spice_return_if_fail(area->left >= 0 && area->top >= 0 &&
                          area->left < area->right && area->top < area->bottom);
@@ -2188,7 +2188,7 @@ DisplayChannel::DisplayChannel(RedsState *reds,
         image_surfaces_get,
     };
 
-    priv->n_surfaces = MIN(n_surfaces, NUM_SURFACES);
+    priv->n_surfaces = MIN(n_surfaces, priv->surfaces.size());
     priv->qxl = qxl;
 
     /* must be manually allocated here since g_type_class_add_private() only
