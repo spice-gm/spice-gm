@@ -74,17 +74,17 @@ void display_channel_compress_stats_reset(DisplayChannel *display)
     image_encoder_shared_stat_reset(&display->priv->encoder_shared_data);
 }
 
-void display_channel_compress_stats_print(DisplayChannel *display_channel)
+void display_channel_compress_stats_print(DisplayChannel *display)
 {
 #ifdef COMPRESS_STAT
     uint32_t id;
 
-    spice_return_if_fail(display_channel);
+    spice_return_if_fail(display);
 
-    id = display_channel->id();
+    id = display->id();
 
     spice_info("==> Compression stats for display %u", id);
-    image_encoder_shared_stat_print(&display_channel->priv->encoder_shared_data);
+    image_encoder_shared_stat_print(&display->priv->encoder_shared_data);
 #endif
 }
 
