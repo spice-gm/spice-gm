@@ -46,10 +46,6 @@ struct CursorChannelClientPrivate
 #include "cache-item.tmpl.cpp"
 #undef CLIENT_CURSOR_CACHE
 
-#ifdef DEBUG_CURSORS
-static int _cursor_count = 0;
-#endif
-
 void CursorChannelClient::reset_cursor_cache()
 {
     red_cursor_cache_reset(this, CLIENT_CURSOR_CACHE_SIZE);
