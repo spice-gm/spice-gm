@@ -24,6 +24,7 @@ EXTRA_DIST =					\
 	build-aux/meson/check-spice-common	\
 	CHANGELOG.md				\
 	doxygen.sh				\
+	doxygen.cfg				\
 	.version				\
 	$(NULL)
 
