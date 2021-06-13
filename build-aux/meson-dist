@@ -14,3 +14,23 @@ fi
 
 # generate tarball version
 echo "$1" > "$MESON_DIST_ROOT/.tarball-version"
+
+# remove useless files
+pushd "$MESON_DIST_ROOT"
+find . -name .gitignore -delete
+rm -rf \
+build-aux/useless-if-before-free \
+build-aux/vc-list-files \
+cfg.mk \
+docs/how_to_release.md \
+docs/manual/images/pepper.png \
+docs/Spice_user_manual.odt \
+GNUmakefile \
+.mailmap \
+maint.mk \
+README.Windows.md \
+server/tests/autobahn-check-report \
+server/tests/fuzzingclient.json \
+TODO.multiclient \
+.travis.yml \
+uncrustify_cfg
