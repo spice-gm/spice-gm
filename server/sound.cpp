@@ -152,7 +152,7 @@ public:
     AudioFrame *free_frames = nullptr;
     AudioFrame *in_progress = nullptr;   /* Frame being sent to the client */
     AudioFrame *pending_frame = nullptr; /* Next frame to send to the client */
-    uint32_t mode = SPICE_AUDIO_DATA_MODE_RAW;
+    SpiceAudioDataMode mode = SPICE_AUDIO_DATA_MODE_RAW;
     uint32_t latency = 0;
     SndCodec codec = nullptr;
     uint8_t  encode_buf[SND_CODEC_MAX_COMPRESSED_BYTES];
@@ -211,7 +211,7 @@ public:
     uint32_t samples[RECORD_SAMPLES_SIZE];
     uint32_t write_pos = 0;
     uint32_t read_pos = 0;
-    uint32_t mode = SPICE_AUDIO_DATA_MODE_RAW;
+    SpiceAudioDataMode mode = SPICE_AUDIO_DATA_MODE_RAW;
     uint32_t mode_time = 0;
     uint32_t start_time = 0;
     SndCodec codec = nullptr;
@@ -310,21 +310,23 @@ static bool snd_record_handle_write(RecordChannelClient *record_client, size_t s
     return true;
 }
 
-static
-const char* spice_audio_data_mode_to_string(gint mode)
+static const char*
+spice_audio_data_mode_to_string(SpiceAudioDataMode mode)
 {
+    switch (mode) {
+    case SPICE_AUDIO_DATA_MODE_INVALID:
+        return "invalid";
+    case SPICE_AUDIO_DATA_MODE_RAW:
+        return "raw";
     G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-    static const char * const str[] = {
-        [ SPICE_AUDIO_DATA_MODE_INVALID ] = "invalid",
-        [ SPICE_AUDIO_DATA_MODE_RAW ] = "raw",
-        [ SPICE_AUDIO_DATA_MODE_CELT_0_5_1 ] = "celt",
-        [ SPICE_AUDIO_DATA_MODE_OPUS ] = "opus",
-    };
+    case SPICE_AUDIO_DATA_MODE_CELT_0_5_1:
+        return "celt";
     G_GNUC_END_IGNORE_DEPRECATIONS
-    if (mode >= 0 && mode < G_N_ELEMENTS(str)) {
-        return str[mode];
+    case SPICE_AUDIO_DATA_MODE_OPUS:
+        return "opus";
+    case SPICE_AUDIO_DATA_MODE_ENUM_END:
+        break;
     }
-
     return "unknown audio codec";
 }
 
@@ -339,23 +341,23 @@ bool RecordChannelClient::handle_message(uint16_t type, uint32_t size, void *mes
         auto msg_mode = (SpiceMsgcRecordMode *)message;
         SndChannel *channel = get_channel();
         mode_time = msg_mode->time;
-        if (msg_mode->mode != SPICE_AUDIO_DATA_MODE_RAW) {
-            if (snd_codec_is_capable((SpiceAudioDataMode) msg_mode->mode, channel->frequency)) {
-                if (snd_codec_create(&codec, (SpiceAudioDataMode) msg_mode->mode,
+        auto new_mode = static_cast<SpiceAudioDataMode>(msg_mode->mode);
+        if (new_mode != SPICE_AUDIO_DATA_MODE_RAW) {
+            if (snd_codec_is_capable(new_mode, channel->frequency)) {
+                if (snd_codec_create(&codec, new_mode,
                                      channel->frequency, SND_CODEC_DECODE) == SND_CODEC_OK) {
-                    mode = msg_mode->mode;
+                    mode = new_mode;
                 } else {
                     red_channel_warning(channel, "create decoder failed");
                     return false;
                 }
-            }
-            else {
+            } else {
                 red_channel_warning(channel, "unsupported mode %d", mode);
                 return false;
             }
+        } else {
+            mode = new_mode;
         }
-        else
-            mode = msg_mode->mode;
 
         spice_debug("record client %p using mode %s", this,
                     spice_audio_data_mode_to_string(mode));
@@ -961,8 +963,8 @@ void snd_set_playback_latency(RedClient *client, uint32_t latency)
     }
 }
 
-static int snd_desired_audio_mode(bool playback_compression, int frequency,
-                                  bool client_can_opus)
+static SpiceAudioDataMode
+snd_desired_audio_mode(bool playback_compression, int frequency, bool client_can_opus)
 {
     if (!playback_compression)
         return SPICE_AUDIO_DATA_MODE_RAW;
@@ -1002,7 +1004,8 @@ PlaybackChannelClient::PlaybackChannelClient(PlaybackChannel *channel,
     bool client_can_opus = test_remote_cap(SPICE_PLAYBACK_CAP_OPUS);
     bool playback_compression =
         reds_config_get_playback_compression(channel->get_server());
-    int desired_mode = snd_desired_audio_mode(playback_compression, channel->frequency, client_can_opus);
+    auto desired_mode =
+        snd_desired_audio_mode(playback_compression, channel->frequency, client_can_opus);
     if (desired_mode != SPICE_AUDIO_DATA_MODE_RAW) {
         if (snd_codec_create(&codec, (SpiceAudioDataMode) desired_mode, channel->frequency,
                              SND_CODEC_ENCODE) == SND_CODEC_OK) {
@@ -1283,7 +1286,7 @@ void snd_set_playback_compression(bool on)
             PlaybackChannelClient* playback = PLAYBACK_CHANNEL_CLIENT(client);
             RedChannelClient *rcc = playback;
             bool client_can_opus = rcc->test_remote_cap(SPICE_PLAYBACK_CAP_OPUS);
-            int desired_mode = snd_desired_audio_mode(on, now->frequency, client_can_opus);
+            auto desired_mode = snd_desired_audio_mode(on, now->frequency, client_can_opus);
             if (playback->mode != desired_mode) {
                 playback->mode = desired_mode;
                 snd_set_command(client, SND_PLAYBACK_MODE_MASK);
