@@ -25,7 +25,7 @@
 
 #include "spice-bitmap-utils.h"
 
-SPICE_BEGIN_DECLS
+#include "push-visibility.h"
 
 enum {
     TREE_ITEM_TYPE_NONE,
@@ -36,10 +36,7 @@ enum {
     TREE_ITEM_TYPE_LAST,
 };
 
-typedef struct TreeItem TreeItem;
-typedef struct Shadow Shadow;
-typedef struct Container Container;
-typedef struct DrawItem DrawItem;
+struct Container;
 
 /* TODO consider GNode instead */
 struct TreeItem {
@@ -99,6 +96,6 @@ Container* container_new                            (DrawItem *item);
 void       container_free                           (Container *container);
 void       container_cleanup                        (Container *container);
 
-SPICE_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* TREE_H_ */

@@ -82,13 +82,13 @@ struct RedMessage final: public RedQXLResource<RedMessage> {
     uint8_t *data;
 };
 
-typedef struct RedSurfaceCreate {
+struct RedSurfaceCreate {
     uint32_t format;
     uint32_t width;
     uint32_t height;
     int32_t stride;
     uint8_t *data;
-} RedSurfaceCreate;
+};
 
 struct RedSurfaceCmd final: public RedQXLResource<RedSurfaceCmd> {
     ~RedSurfaceCmd();

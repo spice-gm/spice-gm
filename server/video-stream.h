@@ -27,7 +27,7 @@
 #include "red-channel.h"
 #include "dcc.h"
 
-SPICE_BEGIN_DECLS
+#include "push-visibility.h"
 
 #define RED_STREAM_DETECTION_MAX_DELTA (NSEC_PER_SEC / 5)
 #define RED_STREAM_CONTINUOUS_MAX_DELTA NSEC_PER_SEC
@@ -45,10 +45,10 @@ SPICE_BEGIN_DECLS
 #define RED_STREAM_DEFAULT_LOW_START_BIT_RATE (2.5 * 1024 * 1024) // 2.5Mbps
 #define MAX_FPS 30
 
-typedef struct VideoStream VideoStream;
+struct VideoStream;
 
 #ifdef STREAM_STATS
-typedef struct StreamStats {
+struct StreamStats {
     uint64_t num_drops_pipe;
     uint64_t num_drops_fps;
     uint64_t num_frames_sent;
@@ -57,10 +57,10 @@ typedef struct StreamStats {
 
     uint64_t start;
     uint64_t end;
-} StreamStats;
+};
 #endif
 
-typedef struct VideoStreamAgent {
+struct VideoStreamAgent {
     QRegion vis_region; /* the part of the surface area that is currently occupied by video
                            fragments */
     QRegion clip;       /* the current video clipping. It can be different from vis_region:
@@ -79,7 +79,7 @@ typedef struct VideoStreamAgent {
 #ifdef STREAM_STATS
     StreamStats stats;
 #endif
-} VideoStreamAgent;
+};
 
 struct VideoStreamClipItem: public RedPipeItem {
     VideoStreamClipItem(VideoStreamAgent *agent);
@@ -96,7 +96,7 @@ struct StreamCreateDestroyItem: public RedPipeItem {
     VideoStreamAgent *agent;
 };
 
-typedef struct ItemTrace {
+struct ItemTrace {
     red_time_t time;
     red_time_t first_frame_time;
     int frames_count;
@@ -105,7 +105,7 @@ typedef struct ItemTrace {
     int width;
     int height;
     SpiceRect dest_area;
-} ItemTrace;
+};
 
 struct VideoStream {
     uint8_t refs;
@@ -139,6 +139,6 @@ void video_stream_agent_stop(VideoStreamAgent *agent);
 
 void video_stream_detach_drawable(VideoStream *stream);
 
-SPICE_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* VIDEO_STREAM_H_ */

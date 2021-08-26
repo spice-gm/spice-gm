@@ -24,12 +24,12 @@
 #include <common/canvas_base.h>
 #include <common/ring.h>
 
-SPICE_BEGIN_DECLS
+#include "push-visibility.h"
 
 /* FIXME: move back to display-channel.h (once structs are private) */
-typedef struct Drawable Drawable;
+struct Drawable;
 
-typedef struct ImageCacheItem {
+struct ImageCacheItem {
     RingItem lru_link;
     uint64_t id;
 #ifdef IMAGE_CACHE_AGE
@@ -37,11 +37,11 @@ typedef struct ImageCacheItem {
 #endif
     struct ImageCacheItem *next;
     pixman_image_t *image;
-} ImageCacheItem;
+};
 
 #define IMAGE_CACHE_HASH_SIZE 1024
 
-typedef struct ImageCache {
+struct ImageCache {
     SpiceImageCache base;
     ImageCacheItem *hash_table[IMAGE_CACHE_HASH_SIZE];
     Ring lru;
@@ -50,7 +50,7 @@ typedef struct ImageCache {
 #else
     uint32_t num_items;
 #endif
-} ImageCache;
+};
 
 void         image_cache_init              (ImageCache *cache);
 void         image_cache_reset             (ImageCache *cache);
@@ -62,6 +62,6 @@ void         image_cache_localize_brush    (ImageCache *cache, SpiceBrush *brush
 void         image_cache_localize_mask     (ImageCache *cache, SpiceQMask *mask,
                                             SpiceImage *image_store);
 
-SPICE_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* IMAGE_CACHE_H_ */

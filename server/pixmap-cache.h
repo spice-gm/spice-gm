@@ -23,7 +23,7 @@
 
 #include "red-channel.h"
 
-SPICE_BEGIN_DECLS
+#include "push-visibility.h"
 
 #define MAX_CACHE_CLIENTS 4
 
@@ -31,9 +31,6 @@ SPICE_BEGIN_DECLS
 #define BITS_CACHE_HASH_SIZE (1 << BITS_CACHE_HASH_SHIFT)
 #define BITS_CACHE_HASH_MASK (BITS_CACHE_HASH_SIZE - 1)
 #define BITS_CACHE_HASH_KEY(id) ((id) & BITS_CACHE_HASH_MASK)
-
-typedef struct PixmapCache PixmapCache;
-typedef struct NewCacheItem NewCacheItem;
 
 struct NewCacheItem {
     RingItem lru_link;
@@ -74,6 +71,6 @@ void         pixmap_cache_clear(PixmapCache *cache);
 int          pixmap_cache_unlocked_set_lossy(PixmapCache *cache, uint64_t id, int lossy);
 bool         pixmap_cache_freeze(PixmapCache *cache);
 
-SPICE_END_DECLS
+#include "pop-visibility.h"
 
 #endif /* PIXMAP_CACHE_H_ */

@@ -62,11 +62,11 @@ static void hexdump_qxl(RedMemSlotInfo *slots, int group_id,
 /* TODO: make this thread safe (required for two qxl devices) */
 
 #if WITH_ZLIB
-typedef struct RecordEncoderData {
+struct RecordEncoderData {
     ZlibEncoderUsrContext base;
     uint8_t *buf;
     int size;
-} RecordEncoderData;
+};
 
 static int record_zlib_more_space(ZlibEncoderUsrContext *usr, uint8_t **io_ptr)
 {

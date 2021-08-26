@@ -32,46 +32,46 @@
 #define MIGRATE_TIMEOUT (MSEC_PER_SEC * 10)
 #define MM_TIME_DELTA 400 /*ms*/
 
-typedef struct TicketAuthentication {
+struct TicketAuthentication {
     char password[SPICE_MAX_PASSWORD_LENGTH];
     time_t expiration_time;
-} TicketAuthentication;
+};
 
-typedef struct TicketInfo {
+struct TicketInfo {
     RSA *rsa;
     int rsa_size;
     BIGNUM *bn;
     SpiceLinkEncryptedTicket encrypted_ticket;
-} TicketInfo;
+};
 
-typedef struct MonitorMode {
+struct MonitorMode {
     uint32_t x_res;
     uint32_t y_res;
-} MonitorMode;
+};
 
-typedef struct RedsMigPendingLink {
+struct RedsMigPendingLink {
     SpiceLinkMess *link_msg;
     RedStream *stream;
-} RedsMigPendingLink;
+};
 
-typedef struct RedsMigTargetClient {
+struct RedsMigTargetClient {
     RedClient *client;
     GList *pending_links;
-} RedsMigTargetClient;
+};
 
-typedef struct ChannelSecurityOptions ChannelSecurityOptions;
+struct ChannelSecurityOptions;
 
-typedef struct RedSSLParameters {
+struct RedSSLParameters {
     char keyfile_password[256];
     char certs_file[256];
     char private_key_file[256];
     char ca_certificate_file[256];
     char dh_key_file[256];
     char ciphersuite[256];
-} RedSSLParameters;
+};
 
-typedef struct RedCharDeviceVDIPort RedCharDeviceVDIPort;
-typedef struct RedServerConfig RedServerConfig;
+struct RedCharDeviceVDIPort;
+struct RedServerConfig;
 
 struct RedsState {
     SPICE_CXX_GLIB_ALLOCATOR
