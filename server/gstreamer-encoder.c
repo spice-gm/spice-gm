@@ -991,7 +991,7 @@ static gboolean create_pipeline(SpiceGstEncoder *encoder)
 #ifdef HAVE_GSTREAMER_0_10
     GstAppSinkCallbacks appsink_cbs = {NULL, NULL, &new_sample, NULL, {NULL}};
 #else
-    GstAppSinkCallbacks appsink_cbs = {NULL, NULL, &new_sample, {NULL}};
+    GstAppSinkCallbacks appsink_cbs = {NULL, NULL, &new_sample, ._gst_reserved={NULL}};
 #endif
     gst_app_sink_set_callbacks(encoder->appsink, &appsink_cbs, encoder, NULL);
 
