@@ -31,6 +31,7 @@
 #include <config.h>
 #include <unistd.h>
 #include <spice.h>
+#include <openssl/ssl.h>
 
 #include "test-glib-compat.h"
 #include "basic-event-loop.h"
@@ -68,6 +69,10 @@ static void server_leaks(void)
     g_assert_cmpint(result, ==, 0);
 
     /* spice_server_add_ssl_client should not leak when it's given a disconnected socket */
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L)
+    /* Discard the OpenSSL-generated error logs */
+    g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "*error:*:SSL*");
+#endif
     g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
                           "*SSL_accept failed*");
     g_assert_cmpint(socketpair(AF_LOCAL, SOCK_STREAM, 0, sv), ==, 0);
