@@ -218,6 +218,8 @@ MainChannel::MainChannel(RedsState *reds):
     RedChannel(reds, SPICE_CHANNEL_MAIN, 0, RedChannel::MigrateAll)
 {
     set_cap(SPICE_MAIN_CAP_SEMI_SEAMLESS_MIGRATE);
+    set_cap(SPICE_MAIN_CAP_NAME_AND_UUID);
+    set_cap(SPICE_MAIN_CAP_AGENT_CONNECTED_TOKENS);
     set_cap(SPICE_MAIN_CAP_SEAMLESS_MIGRATE);
 }
 
