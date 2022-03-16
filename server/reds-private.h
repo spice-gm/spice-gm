@@ -21,7 +21,7 @@
 
 #include <spice/protocol.h>
 #include <spice/stats.h>
-
+#include <string>
 #include "main-dispatcher.h"
 #include "main-channel.h"
 #include "inputs-channel.h"
@@ -39,6 +39,11 @@ struct TicketAuthentication {
 
 struct TicketInfo {
     RSA *rsa;
+    EVP_PKEY *evp_pkey;
+    int sm2_size;
+    std::string pubKey;
+    std::string priKey;
+    EC_KEY *ec_key;
     int rsa_size;
     BIGNUM *bn;
     SpiceLinkEncryptedTicket encrypted_ticket;

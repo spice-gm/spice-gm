@@ -52,6 +52,7 @@ spice_server_headers = [
   'spice-server.h',
   'spice-replay.h',
   'spice.h',
+  'sm2.h',
 ]
 
 install_headers(spice_server_headers, subdir : 'spice-server')
@@ -173,6 +174,8 @@ spice_server_sources = [
   'websocket.h',
   'zlib-encoder.c',
   'zlib-encoder.h',
+  'sm2.h',
+  'sm2.cpp',
 ]
 
 if spice_server_has_lz4 == true
