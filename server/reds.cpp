@@ -2179,7 +2179,11 @@ static void reds_handle_ticket_sm2(void *opaque) {
     // cout << "encrypted_data_str.length: " << encrypted_data_str.length() << endl;
     password_size = sm2Handler.Decrypt(encrypted_data_str, encrypted_data_str.length(), decrypted_password, len_plaint, link->tiTicketing.priKey);
     // cout << "decrypted_password: " << decrypted_password << endl;
-
+    if (password_size == -1) {
+        spice_warning("failed to decrypt SM2 encrypted password");
+        red_dump_openssl_errors();
+        goto error;
+    }
     if (reds->config->ticketing_enabled && !link->skip_auth) {
         time_t ltime;
         bool expired;
