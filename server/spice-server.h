@@ -57,6 +57,7 @@ int spice_server_set_sasl(SpiceServer *s, int enabled);
 int spice_server_set_sasl_appname(SpiceServer *s, const char *appname);
 int spice_server_set_ticket(SpiceServer *s, const char *passwd, int lifetime,
                             int fail_if_connected, int disconnect_if_connected);
+void spice_server_set_ticket_handler(SpiceServer *reds, const char *ticket_handler);
 int spice_server_set_tls(SpiceServer *s, int port,
                          const char *ca_cert_file, const char *certs_file,
                          const char *private_key_file, const char *key_passwd,

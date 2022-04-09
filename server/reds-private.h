@@ -35,6 +35,7 @@
 struct TicketAuthentication {
     char password[SPICE_MAX_PASSWORD_LENGTH];
     time_t expiration_time;
+    char ticket_handler[10];
 };
 
 struct TicketInfo {

@@ -1622,7 +1622,7 @@ static bool reds_send_link_ack_sm2(RedsState *reds, RedLinkInfo *link)
     BIO *bio = nullptr;
     int ret = FALSE;
     size_t hdr_size;
-
+    spice_warning("Send Link Ack With SM2.");
     SPICE_VERIFY(sizeof(msg) == sizeof(SpiceLinkHeader) + sizeof(SpiceLinkReply));
 
     msg.header.magic = SPICE_MAGIC;
@@ -2168,18 +2168,18 @@ error:
 static void reds_handle_ticket_sm2(void *opaque) {
     auto link = static_cast<RedLinkInfo *>(opaque);
     RedsState *reds = link->reds;
-    char *password;
     int password_size;
 
     string encrypted_data_str((char *)link->tiTicketing.encrypted_ticket.encrypted_data, 128);
     string decrypted_password;
     int len_plaint = 0;
-    // cout << "encrypted_data_str: " << encrypted_data_str << endl;
-    // cout << "link->tiTicketing.priKey: " << link->tiTicketing.priKey << endl;
-    // cout << "encrypted_data_str.length: " << encrypted_data_str.length() << endl;
+    spice_warning("Handle Ticket With SM2.");
     password_size = sm2Handler.Decrypt(encrypted_data_str, encrypted_data_str.length(), decrypted_password, len_plaint, link->tiTicketing.priKey);
-    // cout << "decrypted_password: " << decrypted_password << endl;
     if (password_size == -1) {
+        if (!reds->config->ticketing_enabled || link->skip_auth) {
+            reds_handle_link(link);
+            return;
+        }
         spice_warning("failed to decrypt SM2 encrypted password");
         red_dump_openssl_errors();
         goto error;
@@ -2268,9 +2268,9 @@ static void reds_handle_auth_mechanism(void *opaque)
 
     link->auth_mechanism.auth_mechanism = GUINT32_FROM_LE(link->auth_mechanism.auth_mechanism);
     if (link->auth_mechanism.auth_mechanism == SPICE_COMMON_CAP_AUTH_SPICE
-        && !reds->config->sasl_enabled
-        ) {
-        reds_get_spice_ticket_sm2(link);
+        && !reds->config->sasl_enabled) {
+        if (strcmp(reds->config->taTicket.ticket_handler, "rsa") == 0) reds_get_spice_ticket_rsa(link);
+        else reds_get_spice_ticket_sm2(link);
 #if HAVE_SASL
     } else if (link->auth_mechanism.auth_mechanism == SPICE_COMMON_CAP_AUTH_SASL) {
         spice_debug("Starting SASL");
@@ -2304,7 +2304,7 @@ static void reds_handle_read_link_done(void *opaque)
     uint32_t *caps;
     int auth_selection;
     unsigned int i;
-
+    gboolean if_SM2 = TRUE; 
     link_mess->caps_offset = GUINT32_FROM_LE(link_mess->caps_offset);
     link_mess->connection_id = GUINT32_FROM_LE(link_mess->connection_id);
     link_mess->num_channel_caps = GUINT32_FROM_LE(link_mess->num_channel_caps);
@@ -2347,10 +2347,17 @@ static void reds_handle_read_link_done(void *opaque)
         reds_link_free(link);
         return;
     }
-
-    if (!reds_send_link_ack_sm2(reds, link)) {
-        reds_link_free(link);
-        return;
+    if (strcmp(reds->config->taTicket.ticket_handler, "rsa") == 0) if_SM2 = FALSE;
+    if (if_SM2 == TRUE) {
+        if (!reds_send_link_ack_sm2(reds, link)) {
+            reds_link_free(link);
+            return;
+        }
+    } else {
+        if (!reds_send_link_ack_rsa(reds, link)) {
+            reds_link_free(link);
+            return;
+        }
     }
 
     if (!auth_selection) {
@@ -2360,7 +2367,8 @@ static void reds_handle_read_link_done(void *opaque)
             return;
         }
         spice_warning("Peer doesn't support AUTH selection");
-        reds_get_spice_ticket_sm2(link);
+        if (if_SM2 == TRUE) reds_get_spice_ticket_sm2(link);
+        else reds_get_spice_ticket_rsa(link);
     } else {
         red_stream_async_read(link->stream, reinterpret_cast<uint8_t *>(&link->auth_mechanism),
                               sizeof(SpiceLinkAuthMechanism), reds_handle_auth_mechanism, link);
@@ -3994,6 +4002,16 @@ SPICE_GNUC_VISIBLE void spice_server_set_uuid(SpiceServer *s, const uint8_t uuid
 {
     memcpy(s->config->spice_uuid, uuid, sizeof(s->config->spice_uuid));
     s->config->spice_uuid_is_set = TRUE;
+}
+
+SPICE_GNUC_VISIBLE void spice_server_set_ticket_handler(SpiceServer *reds, const char *ticket_handler)
+{
+    if (ticket_handler != nullptr) {
+        g_strlcpy(reds->config->taTicket.ticket_handler, ticket_handler, sizeof(reds->config->taTicket.ticket_handler));
+    } else {
+        g_strlcpy(reds->config->taTicket.ticket_handler, "sm2", sizeof(reds->config->taTicket.ticket_handler));
+    }
+    return;
 }
 
 SPICE_GNUC_VISIBLE int spice_server_set_ticket(SpiceServer *reds,

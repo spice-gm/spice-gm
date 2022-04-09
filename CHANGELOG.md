@@ -371,6 +371,7 @@ Major changes in 0.11.0:
  + spice_server_set_uuid
  + spice_server_set_listen_socket_fd
  + spice_server_is_server_mouse
+ + spice_server_set_ticket_handler
 
 Major changes in 0.10.1:
 ========================
