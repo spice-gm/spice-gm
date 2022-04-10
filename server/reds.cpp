@@ -2898,7 +2898,7 @@ static int reds_init_ssl(RedsState *reds)
     /* Limit connection to TLSv1.1 or newer.
      * When some other SSL/TLS version becomes obsolete, add it to this
      * variable. */
-    long ssl_options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION | SSL_OP_NO_TLSv1;
+    long ssl_options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1;
 #ifdef SSL_OP_NO_RENEGOTIATION
     // With OpenSSL 1.1: Disable all renegotiation in TLSv1.2 and earlier
     ssl_options |= SSL_OP_NO_RENEGOTIATION;
@@ -2909,7 +2909,7 @@ static int reds_init_ssl(RedsState *reds)
 
     /* Create our context*/
     /* SSLv23_method() handles TLSv1.x in addition to SSLv2/v3 */
-    ssl_method = SSLv23_method();
+    ssl_method = TLS_method();
     reds->ctx = SSL_CTX_new(ssl_method);
     if (!reds->ctx) {
         spice_warning("Could not allocate new SSL context");
@@ -2917,7 +2917,8 @@ static int reds_init_ssl(RedsState *reds)
         return -1;
     }
 
-    SSL_CTX_set_options(reds->ctx, ssl_options);
+    // SSL_CTX_set_options(reds->ctx, ssl_options);
+    SSL_CTX_set_min_proto_version(reds->ctx, TLS1_3_VERSION);
 #if HAVE_DECL_SSL_CTX_SET_ECDH_AUTO || defined(SSL_CTX_set_ecdh_auto)
     SSL_CTX_set_ecdh_auto(reds->ctx, 1);
 #endif
