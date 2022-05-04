@@ -55,6 +55,7 @@
 
 #include <common/generated_server_marshallers.h>
 #include <common/agent.h>
+#include <common/sm2-EVP/cpp/sm2.h>
 
 #include "glib-compat.h"
 #include "spice-wrapped.h"
@@ -81,7 +82,6 @@
 #include "red-client.h"
 #include "net-utils.h"
 #include "red-stream-device.h"
-#include "sm2.h"
 
 #define REDS_MAX_STAT_NODES 100
 
